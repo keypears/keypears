@@ -21,6 +21,11 @@ Password sharing social network.
 - CLI app
 - system tray app (Windows, macOS, Linux)
 
+## Business Model
+
+- advertising
+- premium ("verified") accounts
+
 ## Copyright
 
 Copyright (C) 2025 Identellica LLC
