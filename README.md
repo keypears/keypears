@@ -1,6 +1,6 @@
 # KeyPears
 
-Key sharing social network.
+Password sharing social network.
 
 ## Features
 
