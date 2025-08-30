@@ -1,6 +1,6 @@
 # KeyPears
 
-Password sharing social network.
+Social password manager.
 
 ## Features
 
