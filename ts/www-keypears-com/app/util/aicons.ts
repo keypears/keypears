@@ -1,0 +1,22 @@
+export type AIcon =
+  "/images/imp-logo-4-128.ico" |
+  "/images/imp-logo-4-128.webp" |
+  "/images/imp-logo-4-180.png" |
+  "/images/imp-logo-4-180.webp" |
+  "/images/imp-logo-4-200.webp" |
+  "/images/imp-logo-4-300.webp" |
+  "/images/imp-logo-4-32.webp" |
+  "/images/imp-logo-4-400.webp" |
+  "/images/imp-logo-4-64.webp" |
+  "/images/imp-logo-4-96.webp" |
+  "/images/keypears-2-128.ico" |
+  "/images/keypears-2-128.webp" |
+  "/images/keypears-2-180.png" |
+  "/images/keypears-2-180.webp" |
+  "/images/keypears-2-200.webp" |
+  "/images/keypears-2-300.webp" |
+  "/images/keypears-2-32.webp" |
+  "/images/keypears-2-400.webp" |
+  "/images/keypears-2-64.webp" |
+  "/images/keypears-2-96.webp";
+export const $aicon = (icon: AIcon) => icon;
