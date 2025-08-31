@@ -1,11 +1,11 @@
-import type { Route } from "./+types/_index";
 import { $aicon } from "~/util/aicons";
+import type { Route } from "./+types/_index";
 
 // biome-ignore lint/correctness/noEmptyPattern: <no reason>
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "ImpStack" },
-    { name: "description", content: "Welcome to ImpStack!" },
+    { title: "KeyPears" },
+    { name: "description", content: "Welcome to KeyPears!" },
   ];
 }
 
@@ -17,11 +17,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div>
       <img
-        src={$aicon("/images/imp-logo-4-300.webp")}
-        alt="ImpStack"
-        className="w-[100px- m-4 mx-auto block h-[100px]"
+        src={$aicon("/images/keypears-2-300.webp")}
+        alt="KeyPears"
+        className="w-[100px- m-4 mx-auto block h-[150px]"
       />
-      <h1 className="text-center text-2xl font-bold">ImpStack</h1>
+      <h1 className="text-center text-2xl font-bold">KeyPears</h1>
+      <p className="text-center text-lg">{loaderData.message}</p>
     </div>
   );
 }
