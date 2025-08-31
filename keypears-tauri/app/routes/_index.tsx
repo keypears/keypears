@@ -8,7 +8,7 @@ import type { MetaFunction } from "react-router";
 //   return redirect($path("/spa"));
 // }
 
-function App() {
+export default function AppIndex() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
@@ -45,7 +45,3 @@ export const meta: MetaFunction = () => {
     { name: "description", content: "Welcome to KeyPears!" },
   ];
 };
-
-export default function AppIndex() {
-  return <App />;
-}
