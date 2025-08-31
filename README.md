@@ -1,6 +1,6 @@
 # KeyPears
 
-Social password manager.
+Social key manager.
 
 ## Features
 
