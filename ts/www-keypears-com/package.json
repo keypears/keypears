@@ -22,6 +22,7 @@
     "sharp": "^0.34.3"
   },
   "devDependencies": {
+    "@catppuccin/tailwindcss": "^1.0.0",
     "@react-router/dev": "^7.8.2",
     "@tailwindcss/vite": "^4.1.12",
     "@types/compression": "^1.8.1",

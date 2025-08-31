@@ -22,7 +22,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         className="w-[100px- m-4 mx-auto block h-[150px]"
       />
       <h1 className="text-center text-2xl font-bold">KeyPears</h1>
-      <p className="text-center text-lg">{loaderData.message}</p>
+      <p className="text-center text-lg">Social key management</p>
     </div>
   );
 }
