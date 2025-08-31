@@ -1,8 +1,8 @@
-import { MetaFunction, redirect } from "react-router";
-import type { Route } from "./+types/_index.js";
-import { $path } from "safe-routes";
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
+import type { MetaFunction } from "react-router";
+
+// import type { Route } from "./+types/_index.js";
 
 // export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 //   return redirect($path("/spa"));
