@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:icons": "tsx process-icons.ts",
+    "build:icons": "tsx build-icons.ts",
     "build": "react-router build",
     "dev": "cross-env NODE_ENV=development node server.js",
     "start": "node server.js",

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build:icons": "tsx process-icons.ts",
+    "build:icons": "tsx build-icons.ts",
     "dev": "react-router dev",
     "dev:old": "vite",
     "build": "react-router build && mv dist/client/* dist/ && rmdir dist/client",
