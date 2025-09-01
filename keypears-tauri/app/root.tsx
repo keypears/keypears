@@ -20,13 +20,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export function HydrateFallback() {
-  return (
-    <div>
-      <p className="my-4 text-center text-black dark:text-white">
-        Loading...
-      </p>
-    </div>
-  );
+  return <div>Loading...</div>;
 }
 
 export default function App() {
