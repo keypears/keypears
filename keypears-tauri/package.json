@@ -7,6 +7,7 @@
     "dev": "react-router dev",
     "dev:old": "vite",
     "build": "react-router build && mv dist/client/* dist/ && rmdir dist/client",
+    "typecheck": "react-router typegen && tsc -b",
     "build:old": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
