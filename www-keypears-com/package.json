@@ -9,6 +9,8 @@
     "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
+    "@orpc/client": "^1.8.6",
+    "@orpc/server": "^1.8.6",
     "@react-router/express": "^7.8.2",
     "@react-router/fs-routes": "^7.8.2",
     "@react-router/node": "^7.8.2",
