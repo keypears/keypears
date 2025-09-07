@@ -1,5 +1,9 @@
 # KeyPears
 
+**Decentralized secret sharing system**
+
+---
+
 **KeyPears** is the first **federated, end-to-end encrypted key & secret sharing
 platform.**\
 Like email, but for secrets — passwords, API tokens, crypto keys, and more.\
