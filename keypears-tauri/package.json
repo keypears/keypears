@@ -8,7 +8,7 @@
     "dev": "react-router dev",
     "dev:old": "vite",
     "build": "react-router build && mv dist/client/* dist/ && rmdir dist/client",
-    "typecheck": "react-router typegen && tsc -b",
+    "typecheck": "react-router typegen && tsc --noEmit",
     "build:old": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
@@ -33,6 +33,7 @@
     "@react-router/dev": "^7.8.2",
     "@tailwindcss/vite": "^4.1.12",
     "@tauri-apps/cli": "^2",
+    "@types/node": "^24.4.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^5.0.2",
