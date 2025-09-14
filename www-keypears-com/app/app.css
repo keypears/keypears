@@ -5,6 +5,26 @@
   --font-sans:
     "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --background: var(--ctp-base); /* background color */
+  --foreground: var(--ctp-text); /* main text color */
+  --muted: var(--ctp-surface0);
+  --muted-foreground: var(--ctp-overlay2);
+
+  --primary: var(--ctp-blue); /* pick your favorite accent/brand */
+  --primary-foreground: var(--ctp-base);
+  --secondary: var(--ctp-teal);
+  --secondary-foreground: var(--ctp-base);
+
+  --accent: var(--ctp-lavender);
+  --accent-foreground: var(--ctp-base);
+
+  --destructive: var(--ctp-red);
+  --destructive-foreground: var(--ctp-base);
+
+  --border: var(--ctp-surface1);
+  --input: var(--ctp-surface0);
+  --ring: var(--ctp-mauve);
+  --radius: 0.5rem;
 }
 
 html,
