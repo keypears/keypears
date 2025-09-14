@@ -19,10 +19,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <img
         src={$aicon("/images/keypears-3-300.webp")}
         alt="KeyPears"
-        className="w-[100px- m-4 mx-auto block h-[150px]"
+        className="m-4 mx-auto block h-[150px] w-[150px]"
       />
       <h1 className="text-center text-2xl font-bold">KeyPears</h1>
-      <p className="text-center text-lg">Social key management</p>
+      <p className="text-center text-lg">Decentralized secret sharing.</p>
     </div>
   );
 }
