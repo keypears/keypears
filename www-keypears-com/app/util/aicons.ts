@@ -18,5 +18,15 @@ export type AIcon =
   "/images/keypears-2-32.webp" |
   "/images/keypears-2-400.webp" |
   "/images/keypears-2-64.webp" |
-  "/images/keypears-2-96.webp";
+  "/images/keypears-2-96.webp" |
+  "/images/keypears-3-128.ico" |
+  "/images/keypears-3-128.webp" |
+  "/images/keypears-3-180.png" |
+  "/images/keypears-3-180.webp" |
+  "/images/keypears-3-200.webp" |
+  "/images/keypears-3-300.webp" |
+  "/images/keypears-3-32.webp" |
+  "/images/keypears-3-400.webp" |
+  "/images/keypears-3-64.webp" |
+  "/images/keypears-3-96.webp";
 export const $aicon = (icon: AIcon) => icon;
