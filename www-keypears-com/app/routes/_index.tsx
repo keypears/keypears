@@ -1,7 +1,6 @@
 import { $aicon } from "~/util/aicons";
 import type { Route } from "./+types/_index";
 
-// biome-ignore lint/correctness/noEmptyPattern: <no reason>
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "KeyPears" },
