@@ -40,8 +40,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <script
-          dangerouslySetInnerHTML={{
-            __html: `
+          dangerouslySetInnerHTML={
+            /* This script sets the initial theme based on the user's system
+             * preference. It runs before the React app hydrates to prevent a
+             * flash of incorrect theme. */
+            {
+              __html: `
 (function() {
   try {
     var mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -55,7 +59,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   } catch (e) {}
 })();
             `,
-          }}
+            }
+          }
         />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
