@@ -5,9 +5,12 @@ import { WebBuf } from "@webbuf/webbuf";
 import crypto from "crypto";
 import { z } from "zod";
 
-// for all lowercase letters, 16 chars is ~75 bits of entropy
+/** for all lowercase letters, 16 chars is ~75 bits of entropy */
 export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);
 
+/**
+ * the schema for an update to a secret
+ */
 export const SecretUpdateSchema = z.object({
   id: z.ulid(), // id of this update
   secretId: z.ulid(), // id of the secret being updated
@@ -20,14 +23,26 @@ export const SecretUpdateSchema = z.object({
   deleted: z.boolean().optional(), // soft delete for sync purposes
 });
 
+/** Generates a new random 32-byte key for encrypting a secret file */
 export function generateKey(): FixedBuf<32> {
   return FixedBuf.fromRandom(32);
 }
 
-export function hashSecretFolderKey(key: FixedBuf<32>): FixedBuf<32> {
+/** Hashes a 32-byte key to produce a key suitable for encrypting secrets */
+export function hashKey(key: FixedBuf<32>): FixedBuf<32> {
   return blake3Hash(key.buf);
 }
 
+/** Derives a key from a password, salt, and number of rounds using Blake3-based KDF
+ * This is a custom KDF using Blake3's keyed mode for HMAC-like functionality
+ * Note: This is not a standard KDF like PBKDF2 or Argon2, but is designed to be secure
+ * and fast while leveraging Blake3's performance and security properties.
+ *
+ * @param password - The input password as a string
+ * @param salt - A 32-byte salt as FixedBuf<32>
+ * @param rounds - Number of iterations (default: 100,000)
+ * @returns A derived 32-byte key as FixedBuf<32>
+ */
 export function derivePasswordKeyTemplate(
   password: string,
   salt: FixedBuf<32>,
@@ -51,18 +66,27 @@ export function derivePasswordKeyTemplate(
   return result;
 }
 
-// Generate a deterministic but unique salt from password
+/**
+ * Generate a deterministic but unique salt from password
+ */
 export function derivePasswordSalt(password: string): FixedBuf<32> {
   const context = blake3Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
   const passwordBuf = WebBuf.fromUtf8(password);
   return blake3Mac(context, passwordBuf);
 }
 
+/**
+ * Derives a 32-byte key from the given password using a deterministic salt
+ * and 100,000 rounds of Blake3-based key derivation
+ */
 export function derivePasswordKey(password: string): FixedBuf<32> {
   const salt = derivePasswordSalt(password);
   return derivePasswordKeyTemplate(password, salt, 100_000);
 }
 
+/** Encrypts a 32-byte key using a password-derived key
+ * Optionally accepts an IV for deterministic encryption (for testing)
+ */
 export function encryptKey(
   password: string,
   key: FixedBuf<32>,
@@ -72,6 +96,7 @@ export function encryptKey(
   return acb3Encrypt(key.buf, hashedPassword, iv);
 }
 
+/** Decrypts a 32-byte key using a password-derived key */
 export function decryptKey(
   password: string,
   encryptedKey: WebBuf,
