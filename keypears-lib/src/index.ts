@@ -8,9 +8,6 @@ export const BaseMetadata = z.object({
   username: z.string().optional(),
   email: z.email().optional(),
   url: z.url().optional(),
-  notes: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  favorite: z.boolean().optional(),
 });
 
 // Type-specific metadata schemas
@@ -46,11 +43,10 @@ export const SecretContainerSchema = z.object({
   name: z.string().min(1).max(255),
   domain: z.string().optional(),
   type: SecretType,
-  secret: z.string(), // encrypted secret data
+  encryptedSecret: z.string(), // encrypted secret data
   metadata: SecretMetadata.optional(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
-  version: z.number().int().positive().default(1), // useful for conflict resolution
   deleted: z.boolean().default(false), // soft delete for sync purposes
 });
 
