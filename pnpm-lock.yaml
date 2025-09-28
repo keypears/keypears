@@ -8,6 +8,18 @@ importers:
 
   keypears-lib:
     dependencies:
+      '@webbuf/acb3':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/blake3@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/blake3':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/fixedbuf':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/webbuf':
+        specifier: 3.0.28
+        version: 3.0.28
       zod:
         specifier: 4.1.11
         version: 4.1.11
@@ -2144,6 +2156,39 @@ packages:
       react: '*'
       react-dom: '*'
       vite: '*'
+
+  '@webbuf/acb3@3.0.28':
+    resolution: {integrity: sha512-cEIhGkWJX7EOQ4c278yUTKskKOyk1rGnr31x+GkgNo89e9c8RvQiJLUxZoMI8vmdAGJUlyghYqOYoBL46amq+g==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/aescbc': ^3.0.28
+      '@webbuf/blake3': ^3.0.28
+      '@webbuf/fixedbuf': ^3.0.28
+      '@webbuf/webbuf': ^3.0.28
+
+  '@webbuf/aescbc@3.0.28':
+    resolution: {integrity: sha512-FEW/bIO88SY0ItCHwC530z8aQpjniheONv4xpSZW0Y6Hb1c73y3mlr9HbDxoMxrG4ZO9lV9IOZwn8PRILYauXg==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/fixedbuf': ^3.0.28
+      '@webbuf/webbuf': ^3.0.28
+
+  '@webbuf/blake3@3.0.28':
+    resolution: {integrity: sha512-6yT6DvYSif9AnvOJlzoOz07uBpDtbZlfj00FVCbkFqRGK0yeR/MfnB3DxGgVTvwMKL+ehhcRAhqnphPFntxJ1Q==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/fixedbuf': ^3.0.28
+      '@webbuf/webbuf': ^3.0.28
+
+  '@webbuf/fixedbuf@3.0.28':
+    resolution: {integrity: sha512-kIR3VUjeVTVmSnGK9Z9Ej2LmLarBbn2Zcl5/SjV0pzDMzGTWSj9ALa56WYaYeqeemxfv8iaSqvX9WvwyEujUSA==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/webbuf': ^3.0.28
+
+  '@webbuf/webbuf@3.0.28':
+    resolution: {integrity: sha512-ugDgyhDMb/2U+rrHT4bL0PSMZva9eA/ATeLxHIoaVmvQ6hk7hBNAgc60nzuCmrwjYL+9L0cQe6xrGjostN2OPQ==}
+    engines: {node: '>=20.8.0'}
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
@@ -6319,6 +6364,29 @@ snapshots:
       vite: 7.1.7(@types/node@24.5.2)(jiti@2.5.1)(lightningcss@1.30.1)(tsx@4.20.5)
       vitefu: 1.1.1(vite@7.1.7(@types/node@24.5.2)(jiti@2.5.1)(lightningcss@1.30.1)(tsx@4.20.5))
     optional: true
+
+  '@webbuf/acb3@3.0.28(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/blake3@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)':
+    dependencies:
+      '@webbuf/aescbc': 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/blake3': 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/fixedbuf': 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/webbuf': 3.0.28
+
+  '@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)':
+    dependencies:
+      '@webbuf/fixedbuf': 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/webbuf': 3.0.28
+
+  '@webbuf/blake3@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)':
+    dependencies:
+      '@webbuf/fixedbuf': 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/webbuf': 3.0.28
+
+  '@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28)':
+    dependencies:
+      '@webbuf/webbuf': 3.0.28
+
+  '@webbuf/webbuf@3.0.28': {}
 
   abbrev@2.0.0: {}
 

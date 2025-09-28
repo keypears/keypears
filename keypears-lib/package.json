@@ -28,6 +28,10 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@webbuf/acb3": "3.0.28",
+    "@webbuf/blake3": "3.0.28",
+    "@webbuf/fixedbuf": "3.0.28",
+    "@webbuf/webbuf": "3.0.28",
     "zod": "4.1.11"
   }
 }
