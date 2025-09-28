@@ -24,7 +24,7 @@ export const ApiKeyMetadata = BaseMetadata.extend({
   service_name: z.string().optional(),
   key_name: z.string().optional(),
   permissions: z.array(z.string()).optional(),
-  expires_at: z.string().datetime().optional(),
+  expires_at: z.iso.datetime().optional(),
 });
 
 export const EnvVarMetadata = BaseMetadata.extend({
@@ -42,7 +42,7 @@ export const SecretMetadata = z.union([
 
 // Main secret container schema
 export const SecretContainerSchema = z.object({
-  id: z.string().ulid(), // Assumes you have a ULID validator
+  id: z.ulid(), // Assumes you have a ULID validator
   name: z.string().min(1).max(255),
   domain: z.string().optional(),
   type: SecretType,
@@ -61,10 +61,10 @@ export type SecretContainer = z.infer<typeof SecretContainerSchema>;
 
 // Log entry schema for tracking changes
 export const LogEntrySchema = z.object({
-  id: z.string().ulid(),
+  id: z.ulid(),
   secret_id: z.string().ulid(),
   action: z.enum(["create", "update", "delete", "restore"]),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   device_id: z.string().optional(), // track which device made the change
   checksum: z.string().optional(), // for integrity verification
   data: SecretContainerSchema, // the actual secret data at this point in time
@@ -75,7 +75,7 @@ export type LogEntry = z.infer<typeof LogEntrySchema>;
 // Collection schema for multiple secrets
 export const SecretCollectionSchema = z.object({
   secrets: z.array(SecretContainerSchema),
-  last_sync: z.string().datetime().optional(),
+  last_sync: z.iso.datetime().optional(),
   schema_version: z.string().default("1.0.0"), // for future migrations
 });
 
