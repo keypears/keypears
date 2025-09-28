@@ -4,6 +4,7 @@ import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { blake3Hash } from "@webbuf/blake3";
 
+// for all lowercase letters, 16 chars is ~75 bits of entropy
 export const PasswordSchema = z.string().min(16).max(128);
 
 export const SecretUpdateSchema = z.object({
@@ -26,17 +27,16 @@ export function hashSecretFolderKey(key: FixedBuf<32>): FixedBuf<32> {
   return blake3Hash(key.buf);
 }
 
-export function encryptSecretFolderKey(
-  password: string,
-  key: FixedBuf<32>,
-): WebBuf {
-  return acb3Encrypt(WebBuf.fromUtf8(password), key);
+export function encryptFolderKey(password: string, key: FixedBuf<32>): WebBuf {
+  const hashedPassword = blake3Hash(WebBuf.fromUtf8(password));
+  return acb3Encrypt(key.buf, hashedPassword);
 }
 
-export function decryptSecretFolderKey(
+export function decryptFolderKey(
   password: string,
-  encryptedKey: FixedBuf<32>,
+  encryptedKey: WebBuf,
 ): FixedBuf<32> {
-  const decrypted = acb3Decrypt(WebBuf.fromUtf8(password), encryptedKey);
+  const hashedPassword = blake3Hash(WebBuf.fromUtf8(password));
+  const decrypted = acb3Decrypt(encryptedKey, hashedPassword);
   return FixedBuf.fromBuf(32, decrypted);
 }
