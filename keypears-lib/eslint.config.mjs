@@ -94,16 +94,6 @@ export default [
     },
   },
 
-  // Configuration for test files
-  {
-    files: ["**/*.{test,spec}.{js,ts,tsx}", "**/tests/**/*.{js,ts,tsx}"],
-    rules: {
-      "no-console": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-      "node/no-unpublished-import": "off",
-    },
-  },
-
   // Ignore patterns
   {
     ignores: [
@@ -114,12 +104,5 @@ export default [
       "*.min.js",
       "*.d.ts",
     ],
-  },
-
-  {
-    files: ["eslint.config.{js,mjs}"],
-    rules: {
-      "node/no-unpublished-import": "off",
-    },
   },
 ];
