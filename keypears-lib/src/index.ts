@@ -1,20 +1,13 @@
 import { z } from "zod";
 
 // Define the secret type enum
-export const SecretType = z.enum([
-  "password",
-  "env_var",
-  "api_key",
-  "ssh_key",
-  "recovery_codes",
-  "other",
-]);
+export const SecretType = z.enum(["password", "env_var", "api_key"]);
 
 // Base metadata schema that can be extended
 export const BaseMetadata = z.object({
   username: z.string().optional(),
-  email: z.string().email().optional(),
-  url: z.string().url().optional(),
+  email: z.email().optional(),
+  url: z.url().optional(),
   notes: z.string().optional(),
   tags: z.array(z.string()).optional(),
   favorite: z.boolean().optional(),
@@ -23,7 +16,7 @@ export const BaseMetadata = z.object({
 // Type-specific metadata schemas
 export const PasswordMetadata = BaseMetadata.extend({
   username: z.string().optional(),
-  url: z.string().url().optional(),
+  url: z.url().optional(),
   auto_submit: z.boolean().optional(),
 });
 
@@ -39,20 +32,11 @@ export const EnvVarMetadata = BaseMetadata.extend({
   project: z.string().optional(),
 });
 
-export const TotpMetadata = BaseMetadata.extend({
-  issuer: z.string().optional(),
-  account: z.string().optional(),
-  algorithm: z.enum(["SHA1", "SHA256", "SHA512"]).optional(),
-  digits: z.number().int().min(6).max(8).optional(),
-  period: z.number().int().positive().optional(),
-});
-
 // Union type for all metadata
 export const SecretMetadata = z.union([
   PasswordMetadata,
   ApiKeyMetadata,
   EnvVarMetadata,
-  TotpMetadata,
   BaseMetadata,
 ]);
 
@@ -64,8 +48,8 @@ export const SecretContainerSchema = z.object({
   type: SecretType,
   secret: z.string(), // encrypted secret data
   metadata: SecretMetadata.optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.iso.datetime(),
+  updated_at: z.iso.datetime(),
   version: z.number().int().positive().default(1), // useful for conflict resolution
   deleted: z.boolean().default(false), // soft delete for sync purposes
 });
