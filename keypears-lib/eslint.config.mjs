@@ -1,0 +1,187 @@
+import js from "@eslint/js";
+import typescript from "@typescript-eslint/eslint-plugin";
+import typescriptParser from "@typescript-eslint/parser";
+import nodePlugin from "eslint-plugin-node";
+import importPlugin from "eslint-plugin-import";
+
+export default [
+  // Configuration for TypeScript files
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
+        project: "./tsconfig.json",
+      },
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        exports: "writable",
+        module: "writable",
+        require: "readonly",
+        global: "readonly",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": typescript,
+      node: nodePlugin,
+      import: importPlugin,
+    },
+    rules: {
+      // ESLint recommended rules
+      ...js.configs.recommended.rules,
+
+      // TypeScript specific rules
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/explicit-function-return-type": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-var-requires": "error",
+      "@typescript-eslint/no-unsafe-function-type": "error",
+      "@typescript-eslint/no-wrapper-object-types": "error",
+
+      // General ESLint rules
+      // "no-console": "warn",
+      "prefer-const": "error",
+      "no-var": "error",
+      "object-shorthand": "error",
+      "prefer-template": "error",
+      "no-unused-vars": "off", // Use TypeScript version instead
+
+      // Import rules
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin",
+            "external",
+            "internal",
+            "parent",
+            "sibling",
+            "index",
+          ],
+          "newlines-between": "always",
+        },
+      ],
+      "import/no-duplicates": "error",
+      "import/no-unresolved": "error",
+
+      // Node.js specific rules
+      "node/no-unsupported-features/es-syntax": "off",
+      "node/no-missing-import": "off",
+      "node/no-unpublished-import": [
+        "error",
+        {
+          allowModules: ["vitest", "jest", "@types/node"],
+        },
+      ],
+      "node/no-extraneous-import": "error",
+    },
+    settings: {
+      "import/resolver": {
+        typescript: {
+          alwaysTryTypes: true,
+          project: "./tsconfig.json",
+        },
+      },
+    },
+  },
+
+  // Configuration for JavaScript files (including config files)
+  {
+    files: ["**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        exports: "writable",
+        module: "writable",
+        require: "readonly",
+        global: "readonly",
+      },
+    },
+    plugins: {
+      node: nodePlugin,
+      import: importPlugin,
+    },
+    rules: {
+      // ESLint recommended rules
+      ...js.configs.recommended.rules,
+
+      // General rules for JS files
+      "no-console": "warn",
+      "prefer-const": "error",
+      "no-var": "error",
+      "object-shorthand": "error",
+      "prefer-template": "error",
+
+      // Import rules
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin",
+            "external",
+            "internal",
+            "parent",
+            "sibling",
+            "index",
+          ],
+          "newlines-between": "always",
+        },
+      ],
+      "import/no-duplicates": "error",
+
+      // Node.js specific rules
+      "node/no-unsupported-features/es-syntax": "off",
+      "node/no-missing-import": "off",
+      "node/no-unpublished-import": [
+        "error",
+        {
+          allowModules: ["vitest", "jest", "@types/node"],
+        },
+      ],
+    },
+  },
+
+  // Configuration for test files
+  {
+    files: ["**/*.{test,spec}.{js,ts,tsx}", "**/tests/**/*.{js,ts,tsx}"],
+    rules: {
+      "no-console": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "node/no-unpublished-import": "off",
+    },
+  },
+
+  // Ignore patterns
+  {
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "coverage/",
+      "*.min.js",
+      "*.d.ts",
+    ],
+  },
+
+  {
+    files: ["eslint.config.{js,mjs}"],
+    rules: {
+      "node/no-unpublished-import": "off",
+    },
+  },
+];
