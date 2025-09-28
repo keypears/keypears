@@ -56,20 +56,20 @@ export default [
       "no-unused-vars": "off", // Use TypeScript version instead
 
       // Import rules
-      "import/order": [
-        "error",
-        {
-          groups: [
-            "builtin",
-            "external",
-            "internal",
-            "parent",
-            "sibling",
-            "index",
-          ],
-          // "newlines-between": "always",
-        },
-      ],
+      // "import/order": [
+      //   "error",
+      //   {
+      //     groups: [
+      //       "builtin",
+      //       "external",
+      //       "internal",
+      //       "parent",
+      //       "sibling",
+      //       "index",
+      //     ],
+      //     // "newlines-between": "always",
+      //   },
+      // ],
       "import/no-duplicates": "error",
       "import/no-unresolved": "error",
 

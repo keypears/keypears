@@ -2,7 +2,12 @@ import { blake3Hash } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { describe, expect, it } from "vitest";
-import { decryptKey, encryptKey, generateKey } from "~src/index";
+import {
+  decryptKey,
+  encryptKey,
+  generateKey,
+  generateSecureLowercasePassword,
+} from "~src/index";
 
 describe("Index", () => {
   it("should generate a 32-byte secret key", () => {
@@ -27,6 +32,15 @@ describe("Index", () => {
       expect(encryptedKey.toHex()).toBe(
         "4a7d9da92478b59156a4967f7d626e077ca271feddc7f380df0f689eb4e71176000102030405060708090a0b0c0d0e0fe0c1c6d13d8952fcd120b55ef52ed52db1c238b04570f7693bd0426b55d5a1802f29f3f11e0d5715c061e394942fbd80",
       );
+    });
+  });
+
+  describe("generateSecureLowercasePassword", () => {
+    it("should generate a secure lowercase password of specified length", () => {
+      const length = 16;
+      const password = generateSecureLowercasePassword(length);
+      expect(password).toHaveLength(length);
+      expect(/^[a-z]+$/.test(password)).toBe(true); // Only lowercase letters
     });
   });
 });

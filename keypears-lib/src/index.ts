@@ -1,11 +1,12 @@
-import { z } from "zod";
-import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
-import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf } from "@webbuf/fixedbuf";
+import { acb3Decrypt, acb3Encrypt } from "@webbuf/acb3";
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
+import crypto from "crypto";
+import { z } from "zod";
 
 // for all lowercase letters, 16 chars is ~75 bits of entropy
-export const PasswordSchema = z.string().min(16).max(128);
+export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);
 
 export const SecretUpdateSchema = z.object({
   id: z.ulid(), // id of this update
@@ -78,4 +79,32 @@ export function decryptKey(
   const hashedPassword = derivePasswordKey(password);
   const decrypted = acb3Decrypt(encryptedKey, hashedPassword);
   return FixedBuf.fromBuf(32, decrypted);
+}
+
+/**
+ * Generates a cryptographically secure random password with lowercase letters
+ * Uses rejection sampling to avoid modulo bias
+ */
+export function generateSecureLowercasePassword(length: number): string {
+  if (length <= 0) {
+    throw new Error("Password length must be greater than 0");
+  }
+
+  const charset = "abcdefghijklmnopqrstuvwxyz";
+
+  const charsetLength = charset.length;
+  let password = "";
+
+  for (let i = 0; i < length; i++) {
+    let randomValue: number;
+
+    // Rejection sampling to avoid modulo bias
+    do {
+      randomValue = crypto.randomBytes(1)[0] as number;
+    } while (randomValue >= Math.floor(256 / charsetLength) * charsetLength);
+
+    password += charset[randomValue % charsetLength];
+  }
+
+  return password;
 }
