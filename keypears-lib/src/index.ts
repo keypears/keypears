@@ -1,3 +1,98 @@
-export default function main(): void {
-  console.log("hello");
-}
+import { z } from "zod";
+
+// Define the secret type enum
+export const SecretType = z.enum([
+  "password",
+  "env_var",
+  "api_key",
+  "ssh_key",
+  "recovery_codes",
+  "other",
+]);
+
+// Base metadata schema that can be extended
+export const BaseMetadata = z.object({
+  username: z.string().optional(),
+  email: z.string().email().optional(),
+  url: z.string().url().optional(),
+  notes: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  favorite: z.boolean().optional(),
+});
+
+// Type-specific metadata schemas
+export const PasswordMetadata = BaseMetadata.extend({
+  username: z.string().optional(),
+  url: z.string().url().optional(),
+  auto_submit: z.boolean().optional(),
+});
+
+export const ApiKeyMetadata = BaseMetadata.extend({
+  service_name: z.string().optional(),
+  key_name: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  expires_at: z.string().datetime().optional(),
+});
+
+export const EnvVarMetadata = BaseMetadata.extend({
+  environment: z.string().optional(), // e.g., "production", "staging", "development"
+  project: z.string().optional(),
+});
+
+export const TotpMetadata = BaseMetadata.extend({
+  issuer: z.string().optional(),
+  account: z.string().optional(),
+  algorithm: z.enum(["SHA1", "SHA256", "SHA512"]).optional(),
+  digits: z.number().int().min(6).max(8).optional(),
+  period: z.number().int().positive().optional(),
+});
+
+// Union type for all metadata
+export const SecretMetadata = z.union([
+  PasswordMetadata,
+  ApiKeyMetadata,
+  EnvVarMetadata,
+  TotpMetadata,
+  BaseMetadata,
+]);
+
+// Main secret container schema
+export const SecretContainerSchema = z.object({
+  id: z.string().ulid(), // Assumes you have a ULID validator
+  name: z.string().min(1).max(255),
+  domain: z.string().optional(),
+  type: SecretType,
+  secret: z.string(), // encrypted secret data
+  metadata: SecretMetadata.optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  version: z.number().int().positive().default(1), // useful for conflict resolution
+  deleted: z.boolean().default(false), // soft delete for sync purposes
+});
+
+// Inferred TypeScript types
+// export type SecretType = z.infer<typeof SecretType>;
+// export type SecretMetadata = z.infer<typeof SecretMetadata>;
+export type SecretContainer = z.infer<typeof SecretContainerSchema>;
+
+// Log entry schema for tracking changes
+export const LogEntrySchema = z.object({
+  id: z.string().ulid(),
+  secret_id: z.string().ulid(),
+  action: z.enum(["create", "update", "delete", "restore"]),
+  timestamp: z.string().datetime(),
+  device_id: z.string().optional(), // track which device made the change
+  checksum: z.string().optional(), // for integrity verification
+  data: SecretContainerSchema, // the actual secret data at this point in time
+});
+
+export type LogEntry = z.infer<typeof LogEntrySchema>;
+
+// Collection schema for multiple secrets
+export const SecretCollectionSchema = z.object({
+  secrets: z.array(SecretContainerSchema),
+  last_sync: z.string().datetime().optional(),
+  schema_version: z.string().default("1.0.0"), // for future migrations
+});
+
+export type SecretCollection = z.infer<typeof SecretCollectionSchema>;

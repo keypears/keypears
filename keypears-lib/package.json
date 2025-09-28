@@ -26,5 +26,8 @@
     "eslint-plugin-node": "11.1.0",
     "eslint-plugin-promise": "7.2.1",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "zod": "4.1.11"
   }
 }

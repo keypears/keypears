@@ -7,6 +7,10 @@ settings:
 importers:
 
   keypears-lib:
+    dependencies:
+      zod:
+        specifier: 4.1.11
+        version: 4.1.11
     devDependencies:
       '@eslint/js':
         specifier: 9.36.0
