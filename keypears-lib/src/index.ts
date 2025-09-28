@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
+import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { blake3Hash } from "@webbuf/blake3";
 
@@ -21,4 +22,19 @@ export function generateSecretFolderKey(): FixedBuf<32> {
 
 export function hashSecretFolderKey(key: FixedBuf<32>): FixedBuf<32> {
   return blake3Hash(key.buf);
+}
+
+export function encryptSecretFolderKey(
+  password: string,
+  key: FixedBuf<32>,
+): WebBuf {
+  return acb3Encrypt(WebBuf.fromUtf8(password), key);
+}
+
+export function decryptSecretFolderKey(
+  password: string,
+  encryptedKey: FixedBuf<32>,
+): FixedBuf<32> {
+  const decrypted = acb3Decrypt(WebBuf.fromUtf8(password), encryptedKey);
+  return FixedBuf.fromBuf(32, decrypted);
 }
