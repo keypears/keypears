@@ -4,6 +4,8 @@ import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { blake3Hash } from "@webbuf/blake3";
 
+export const PasswordSchema = z.string().min(16).max(128);
+
 export const SecretUpdateSchema = z.object({
   id: z.ulid(), // id of this update
   secretId: z.ulid(), // id of the secret being updated
