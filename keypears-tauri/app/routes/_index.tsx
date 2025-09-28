@@ -3,12 +3,33 @@ import { useState } from "react";
 import type { MetaFunction } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { $aicon } from "~app/util/aicons";
+import { generateSecureLowercasePassword } from "@keypears/lib";
 
 // import type { Route } from "./+types/_index.js";
 
 // export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 //   return redirect($path("/spa"));
 // }
+
+function TestGeneratePassword() {
+  const [password, setPassword] = useState("");
+
+  function generatePassword() {
+    const newPassword = generateSecureLowercasePassword(16);
+    setPassword(newPassword);
+  }
+
+  return (
+    <div>
+      <Button onClick={generatePassword}>Generate Password</Button>
+      {password && (
+        <p className="mt-2">
+          Generated Password: <strong>{password}</strong>
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function AppIndex() {
   const [greetMsg, setGreetMsg] = useState("");
@@ -31,10 +52,7 @@ export default function AppIndex() {
         <p className="text-center text-lg">Decentralized secret sharing.</p>
       </div>
       <hr className="my-4" />
-      <h2 className="text-xl font-semibold">Test Generate Password</h2>
-      <div>
-        <Button>hello</Button>
-      </div>
+      <TestGeneratePassword />
       <hr className="my-4" />
       <h2 className="text-xl font-semibold">Test Tauri</h2>
       <div>
