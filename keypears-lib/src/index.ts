@@ -13,7 +13,7 @@ export const SecretUpdateSchema = z.object({
   name: z.string().min(1).max(255),
   domain: z.string().optional(),
   label: z.string().optional(),
-  secretType: z.enum(["password", "env_var", "api_key", "cryptocurrency_key"]),
+  secretType: z.enum(["password", "env-var", "api-key", "cryptocurrency-key"]),
   encryptedSecret: z.string().optional(), // encrypted secret data
   createdAt: z.iso.datetime(),
   deleted: z.boolean().optional(), // soft delete for sync purposes
