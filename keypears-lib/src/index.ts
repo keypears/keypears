@@ -2,7 +2,7 @@ import { z } from "zod";
 import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { blake3Hash } from "@webbuf/blake3";
+import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 
 // for all lowercase letters, 16 chars is ~75 bits of entropy
 export const PasswordSchema = z.string().min(16).max(128);
@@ -19,7 +19,7 @@ export const SecretUpdateSchema = z.object({
   deleted: z.boolean().optional(), // soft delete for sync purposes
 });
 
-export function generateSecretFolderKey(): FixedBuf<32> {
+export function generateKey(): FixedBuf<32> {
   return FixedBuf.fromRandom(32);
 }
 
@@ -27,16 +27,51 @@ export function hashSecretFolderKey(key: FixedBuf<32>): FixedBuf<32> {
   return blake3Hash(key.buf);
 }
 
-export function encryptFolderKey(password: string, key: FixedBuf<32>): WebBuf {
-  const hashedPassword = blake3Hash(WebBuf.fromUtf8(password));
+export function derivePasswordKeyTemplate(
+  password: string,
+  salt: FixedBuf<32>,
+  rounds: number = 100_000,
+): FixedBuf<32> {
+  if (rounds < 1) {
+    throw new Error("Rounds must be at least 1");
+  }
+
+  // Convert password to WebBuf
+  const passwordBuf = WebBuf.fromUtf8(password);
+
+  // First round: MAC(salt, password)
+  let result = blake3Mac(salt, passwordBuf);
+
+  // Subsequent rounds: MAC(salt, previous_result)
+  for (let i = 1; i < rounds; i++) {
+    result = blake3Mac(salt, result.buf);
+  }
+
+  return result;
+}
+
+// Generate a deterministic but unique salt from password
+function derivePasswordSalt(password: string): FixedBuf<32> {
+  const context = blake3Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
+  const passwordBuf = WebBuf.fromUtf8(password);
+  return blake3Mac(context, passwordBuf);
+}
+
+function derivePasswordKey(password: string): FixedBuf<32> {
+  const salt = derivePasswordSalt(password);
+  return derivePasswordKeyTemplate(password, salt, 100_000);
+}
+
+export function encryptKey(password: string, key: FixedBuf<32>): WebBuf {
+  const hashedPassword = derivePasswordKey(password);
   return acb3Encrypt(key.buf, hashedPassword);
 }
 
-export function decryptFolderKey(
+export function decryptKey(
   password: string,
   encryptedKey: WebBuf,
 ): FixedBuf<32> {
-  const hashedPassword = blake3Hash(WebBuf.fromUtf8(password));
+  const hashedPassword = derivePasswordKey(password);
   const decrypted = acb3Decrypt(encryptedKey, hashedPassword);
   return FixedBuf.fromBuf(32, decrypted);
 }
