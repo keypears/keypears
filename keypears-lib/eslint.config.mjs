@@ -94,68 +94,6 @@ export default [
     },
   },
 
-  // Configuration for JavaScript files (including config files)
-  {
-    files: ["**/*.{js,mjs,cjs}"],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "module",
-      globals: {
-        console: "readonly",
-        process: "readonly",
-        Buffer: "readonly",
-        __dirname: "readonly",
-        __filename: "readonly",
-        exports: "writable",
-        module: "writable",
-        require: "readonly",
-        global: "readonly",
-      },
-    },
-    plugins: {
-      node: nodePlugin,
-      import: importPlugin,
-    },
-    rules: {
-      // ESLint recommended rules
-      ...js.configs.recommended.rules,
-
-      // General rules for JS files
-      "no-console": "warn",
-      "prefer-const": "error",
-      "no-var": "error",
-      "object-shorthand": "error",
-      "prefer-template": "error",
-
-      // Import rules
-      "import/order": [
-        "error",
-        {
-          groups: [
-            "builtin",
-            "external",
-            "internal",
-            "parent",
-            "sibling",
-            "index",
-          ],
-          "newlines-between": "always",
-        },
-      ],
-      "import/no-duplicates": "error",
-
-      // Node.js specific rules
-      "node/no-unsupported-features/es-syntax": "off",
-      "node/no-missing-import": "off",
-      "node/no-unpublished-import": [
-        "error",
-        {
-          allowModules: ["vitest", "jest", "@types/node"],
-        },
-      ],
-    },
-  },
-
   // Configuration for test files
   {
     files: ["**/*.{test,spec}.{js,ts,tsx}", "**/tests/**/*.{js,ts,tsx}"],
