@@ -2,7 +2,6 @@ import { acb3Decrypt, acb3Encrypt } from "@webbuf/acb3";
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import crypto from "crypto";
 import { z } from "zod";
 
 /** for all lowercase letters, 16 chars is ~75 bits of entropy */
@@ -125,7 +124,10 @@ export function generateSecureLowercasePassword(length: number): string {
 
     // Rejection sampling to avoid modulo bias
     do {
-      randomValue = crypto.randomBytes(1)[0] as number;
+      // randomValue = crypto.randomBytes(1)[0] as number;
+      randomValue = WebBuf.fromUint8Array(
+        crypto.getRandomValues(new Uint8Array(1)),
+      )[0] as number;
     } while (randomValue >= Math.floor(256 / charsetLength) * charsetLength);
 
     password += charset[randomValue % charsetLength];

@@ -7,6 +7,11 @@ import importPlugin from "eslint-plugin-import";
 export default [
   // Configuration for source files
   {
+    env: {
+      node: true,
+      browser: true,
+      es2022: true,
+    },
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {
       parser: typescriptParser,
