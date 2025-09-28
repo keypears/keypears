@@ -20,9 +20,12 @@ export default function AppIndex() {
 
   return (
     <div>
+      <h2 className="text-xl font-semibold">Test Generate Password</h2>
       <div>
         <Button>hello</Button>
       </div>
+      <hr className="my-4" />
+      <h2 className="text-xl font-semibold">Test Tauri</h2>
       <div>
         <form
           className="row"
