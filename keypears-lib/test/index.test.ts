@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 import { decryptKey, encryptKey, generateKey } from "~src/index";
 
 describe("Index", () => {
-  it("should generate a 32-byte secret folder key", () => {
+  it("should generate a 32-byte secret key", () => {
     const key = generateKey();
     expect(key.buf.length).toBe(32);
   });
 
   describe("encrypt, decrypt folder key", () => {
-    it("should encrypt and decrypt a folder key correctly", () => {
+    it("should encrypt and decrypt a key correctly", () => {
       const password = "thisisaverysecurepassword";
       const originalKey = generateKey();
       const encryptedKey = encryptKey(password, originalKey);

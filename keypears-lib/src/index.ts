@@ -51,13 +51,13 @@ export function derivePasswordKeyTemplate(
 }
 
 // Generate a deterministic but unique salt from password
-function derivePasswordSalt(password: string): FixedBuf<32> {
+export function derivePasswordSalt(password: string): FixedBuf<32> {
   const context = blake3Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
   const passwordBuf = WebBuf.fromUtf8(password);
   return blake3Mac(context, passwordBuf);
 }
 
-function derivePasswordKey(password: string): FixedBuf<32> {
+export function derivePasswordKey(password: string): FixedBuf<32> {
   const salt = derivePasswordSalt(password);
   return derivePasswordKeyTemplate(password, salt, 100_000);
 }
