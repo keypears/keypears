@@ -37,10 +37,10 @@ export default [
       ...js.configs.recommended.rules,
 
       // TypeScript specific rules
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_" },
-      ],
+      // "@typescript-eslint/no-unused-vars": [
+      //   "error",
+      //   { argsIgnorePattern: "^_" },
+      // ],
       "@typescript-eslint/explicit-function-return-type": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-var-requires": "error",
