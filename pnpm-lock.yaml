@@ -157,6 +157,9 @@ importers:
 
   www-keypears-com:
     dependencies:
+      '@keypears/lib':
+        specifier: workspace:^
+        version: link:../keypears-lib
       '@orpc/client':
         specifier: ^1.8.9
         version: 1.9.1
