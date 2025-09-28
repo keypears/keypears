@@ -24,7 +24,6 @@
     "eslint": "8.57.1",
     "eslint-import-resolver-typescript": "4.4.4",
     "eslint-plugin-import": "2.32.0",
-    "eslint-plugin-node": "11.1.0",
     "eslint-plugin-promise": "7.2.1",
     "typescript": "^5.9.2"
   },
@@ -33,6 +32,7 @@
     "@webbuf/blake3": "3.0.28",
     "@webbuf/fixedbuf": "3.0.28",
     "@webbuf/webbuf": "3.0.28",
+    "eslint-plugin-n": "17.23.1",
     "zod": "4.1.11"
   }
 }

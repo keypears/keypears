@@ -1,7 +1,7 @@
 import js from "@eslint/js";
 import typescript from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
-import nodePlugin from "eslint-plugin-node";
+import nodePlugin from "eslint-plugin-n";
 import importPlugin from "eslint-plugin-import";
 
 export default [
