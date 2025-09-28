@@ -67,7 +67,7 @@ export default [
             "sibling",
             "index",
           ],
-          "newlines-between": "always",
+          // "newlines-between": "always",
         },
       ],
       "import/no-duplicates": "error",
