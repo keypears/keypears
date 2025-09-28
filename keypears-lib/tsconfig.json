@@ -1,7 +1,11 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
-  "include": ["src", "test"],
+  "include": ["src", "test", "vite.config.ts"],
   "compilerOptions": {
+    "paths": {
+      "~src/*": ["./src/*"],
+      "~test/*": ["./test/*"]
+    },
     // File Layout
     "rootDir": "./",
     "outDir": "./dist",

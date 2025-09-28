@@ -26,6 +26,8 @@
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-promise": "7.2.1",
     "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "3.2.4"
   },
   "dependencies": {

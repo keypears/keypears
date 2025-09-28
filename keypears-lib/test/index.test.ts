@@ -4,7 +4,7 @@ import {
   decryptFolderKey,
   encryptFolderKey,
   generateSecretFolderKey,
-} from "../src/index";
+} from "~src/index";
 
 describe("Index", () => {
   it("should generate a 32-byte secret folder key", () => {

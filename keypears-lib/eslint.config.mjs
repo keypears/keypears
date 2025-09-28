@@ -79,7 +79,13 @@ export default [
       "node/no-unpublished-import": [
         "error",
         {
-          allowModules: ["vitest", "jest", "@types/node"],
+          allowModules: [
+            "vitest",
+            "jest",
+            "@types/node",
+            "vite",
+            "vite-tsconfig-paths",
+          ],
         },
       ],
       "node/no-extraneous-import": "error",
