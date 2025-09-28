@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import type { MetaFunction } from "react-router";
+import { Button } from "~app/components/ui/button";
 
 // import type { Route } from "./+types/_index.js";
 
@@ -19,21 +20,26 @@ export default function AppIndex() {
 
   return (
     <div>
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      <div>
+        <Button>hello</Button>
+      </div>
+      <div>
+        <form
+          className="row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            greet();
+          }}
+        >
+          <input
+            id="greet-input"
+            onChange={(e) => setName(e.currentTarget.value)}
+            placeholder="Enter a name..."
+          />
+          <Button type="submit">Greet</Button>
+        </form>
+        <p>{greetMsg}</p>
+      </div>
     </div>
   );
 }
