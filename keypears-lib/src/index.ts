@@ -62,9 +62,13 @@ function derivePasswordKey(password: string): FixedBuf<32> {
   return derivePasswordKeyTemplate(password, salt, 100_000);
 }
 
-export function encryptKey(password: string, key: FixedBuf<32>): WebBuf {
+export function encryptKey(
+  password: string,
+  key: FixedBuf<32>,
+  iv?: FixedBuf<16>,
+): WebBuf {
   const hashedPassword = derivePasswordKey(password);
-  return acb3Encrypt(key.buf, hashedPassword);
+  return acb3Encrypt(key.buf, hashedPassword, iv);
 }
 
 export function decryptKey(
