@@ -16,7 +16,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div>
       <img
-        src={$aicon("/images/keypears-4-300.webp")}
+        src={$aicon("/images/keypears-3-300.webp")}
         alt="KeyPears"
         className="m-4 mx-auto block h-[150px] w-[150px]"
       />
