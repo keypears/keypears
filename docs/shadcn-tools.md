@@ -10,17 +10,8 @@
 - [Spaceman RTA](https://spaceman-rta-vite.netlify.app/)
 - [Shadcn TipTap](https://tiptap.niazmorshed.dev/)
 - [Shadcn Prose](https://shadcn-prose.vercel.app/)
-
----
-
-Check out these awesome components from my favorite Shadcn extension libraries
-that I love to use in my projects. These extensions are awesome, filling the
-gaps when Shadcn doesn’t have every component needed.
-
-Here are the libraries!
-
-- [https://shadcn-extension.vercel.app/](https://shadcn-extension.vercel.app/)
-- [https://motion-primitives.com/](https://motion-primitives.com/)
-- [https://www.rigidui.com/](https://www.rigidui.com/)
-- [https://ui.aceternity.com/](https://ui.aceternity.com/)
-- [https://www.8bitcn.com/](https://www.8bitcn.com/)
+- [Shadcn Extension](https://shadcn-extension.vercel.app/)
+- [Motion Primitives](https://motion-primitives.com/)
+- [Rigid UI](https://www.rigidui.com/)
+- [Aceternity UI](https://ui.aceternity.com/)
+- [8bitcn](https://www.8bitcn.com/)
