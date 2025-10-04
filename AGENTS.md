@@ -182,11 +182,50 @@ Blog post filenames should follow the pattern: `YYYY-MM-DD-slug.md`
 
 ### Building the Blog
 
-- Run `pnpm run build:blog` to generate RSS, Atom, and JSON feeds
+- Run `pnpm run build:blog` from the `webapp` directory to generate RSS, Atom,
+  and JSON feeds
 - Blog posts are loaded dynamically by the webapp routes using the shared
   utilities
 - The build script uses `remark` and `rehype` to convert Markdown to HTML
 - Feed links are included in the homepage meta tags
+
+## Synchronization
+
+Password files are SQLite databases with unencrypted metadata (for indexing) and
+encrypted secrets. Each password file has an immutable 256-bit master key that
+encrypts all secrets. The master key itself is encrypted with a user-chosen
+password.
+
+### Change Tracking
+
+- Changes are tracked in an append-only, per-device log (git-like immutability)
+- Each change ("diff") is identified by a ULID and references the password's
+  ULID
+- Diffs include timestamps and originating device metadata
+- Deletions are soft deletes (tombstones), never actually removed
+- No compaction needed (password-scale data remains small)
+
+### Conflict Resolution
+
+- Last-write-wins (LWW) based on timestamps
+- Conflicts are rare in practice for password management
+- Users receive notifications when passwords are updated, including which device
+  made the change
+- Clock skew is not a concern (modern devices sync to time servers)
+
+### Sync Protocol
+
+- New devices download the entire change history on initial sync
+- Servers are dumb coordinators that store encrypted diffs
+- All sync intelligence lives in clients
+- Users can self-host servers (email-like model)
+
+### Key Management
+
+- Master key is immutable per password file
+- User password can be changed (re-encrypts the master key)
+- Master key rotation requires creating a new password file and migrating
+  secrets
 
 ## Company
 
