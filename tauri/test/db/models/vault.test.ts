@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { getTestDb, resetTestDb, closeTestDb } from "../test-utils";
-import { vaults } from "../schema";
+import { vaults } from "~app/db/schema";
 import { eq, count } from "drizzle-orm";
 
 describe("Vault Model", () => {

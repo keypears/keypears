@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "./schema";
+import * as schema from "~app/db/schema";
 import fs from "fs";
 import path from "path";
 
@@ -23,7 +23,7 @@ export function getTestDb() {
 function runTestMigrations() {
   if (!testDb) return;
 
-  const migrationsDir = path.join(__dirname, "migrations");
+  const migrationsDir = path.join(__dirname, "../../app/db/migrations");
 
   if (!fs.existsSync(migrationsDir)) {
     throw new Error("Migrations directory not found");
