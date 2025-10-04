@@ -124,3 +124,7 @@
 .keypears-prose {
   @apply prose prose-lg prose-slate dark:prose-invert text-gray-700 dark:text-gray-300;
 }
+
+.keypears-prose a {
+  color: var(--color-primary);
+}
