@@ -4,23 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Progress bar color utilities */
-.progress-red [data-slot="progress-indicator"] {
-  background: var(--red-500);
-}
-
-.progress-yellow [data-slot="progress-indicator"] {
-  background: var(--yellow-500);
-}
-
-.progress-green [data-slot="progress-indicator"] {
-  background: var(--green-500);
-}
-
-.progress-blue [data-slot="progress-indicator"] {
-  background: var(--blue-500);
-}
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

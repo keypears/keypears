@@ -59,13 +59,6 @@ export function PasswordGenerator() {
     return Math.min(90 + ((entropy - 128) / 128) * 10, 100);
   };
 
-  const getEntropyColor = (entropy: number): string => {
-    if (entropy < 75) return "progress-red";
-    if (entropy < 100) return "progress-yellow";
-    if (entropy < 128) return "progress-green";
-    return "progress-blue";
-  };
-
   return (
     <div className="rounded-lg border border-border bg-card p-8">
       <h1 className="mb-6 text-2xl font-bold">Password Generator</h1>
@@ -134,10 +127,7 @@ export function PasswordGenerator() {
             {getEntropyLabel(entropy)}
           </span>
         </div>
-        <Progress
-          value={getEntropyProgress(entropy)}
-          className={getEntropyColor(entropy)}
-        />
+        <Progress value={getEntropyProgress(entropy)} />
       </div>
 
       {/* Length Slider */}
