@@ -74,9 +74,7 @@ describe("Index", () => {
         symbols: true,
       });
       expect(password).toHaveLength(length);
-      expect(/^[a-z!@#$%^&*()\-_=+\[\]{}|;:,.<>?]+$/.test(password)).toBe(
-        true,
-      );
+      expect(/^[a-z!@#$%^&*()\-_=+[\]{}|;:,.<>?]+$/.test(password)).toBe(true);
     });
 
     it("should generate password with all character sets enabled", () => {
@@ -89,9 +87,9 @@ describe("Index", () => {
         symbols: true,
       });
       expect(password).toHaveLength(length);
-      expect(
-        /^[a-zA-Z0-9!@#$%^&*()\-_=+\[\]{}|;:,.<>?]+$/.test(password),
-      ).toBe(true);
+      expect(/^[a-zA-Z0-9!@#$%^&*()\-_=+[\]{}|;:,.<>?]+$/.test(password)).toBe(
+        true,
+      );
     });
 
     it("should throw error if no character sets are enabled", () => {

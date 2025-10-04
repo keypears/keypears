@@ -17,6 +17,7 @@
     "typecheck": "tsc -b",
     "typecheck:src": "tsc -b tsconfig.src.json --noEmit",
     "typecheck:test": "tsc -b tsconfig.test.json --noEmit",
+    "format": "prettier --write .",
     "test": "vitest run"
   },
   "devDependencies": {
