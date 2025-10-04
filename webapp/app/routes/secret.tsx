@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Slider } from "~/components/ui/slider";
 import { Progress } from "~/components/ui/progress";
+import { Copy, Check, RotateCw } from "lucide-react";
 import {
   generateSecurePassword,
   calculatePasswordEntropy,
@@ -108,37 +109,11 @@ export default function Secret() {
                 >
                   {copied ? (
                     <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-1"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <Check size={16} className="mr-1" />
                       <span className="text-xs">Copied</span>
                     </>
                   ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                    </svg>
+                    <Copy size={20} />
                   )}
                 </Button>
                 <Button
@@ -156,20 +131,7 @@ export default function Secret() {
                     setPassword(newPassword);
                   }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                    <path d="M21 3v5h-5" />
-                  </svg>
+                  <RotateCw size={20} />
                 </Button>
               </div>
             </div>
