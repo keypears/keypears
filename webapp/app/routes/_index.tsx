@@ -53,7 +53,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <h2 className="text-2xl font-bold">Recent Posts</h2>
               <Link
                 to="/blog"
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-primary hover:underline hover:opacity-80 transition-opacity"
               >
                 View all →
               </Link>
