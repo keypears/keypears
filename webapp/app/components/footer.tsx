@@ -19,6 +19,10 @@ export function Footer() {
             KeyPears
           </Link>
           <div className="flex justify-center gap-2 text-sm text-muted-foreground">
+            <Link to="/about" className="hover:text-primary transition-opacity hover:opacity-80">
+              About
+            </Link>
+            <span>·</span>
             <Link to="/privacy" className="hover:text-primary transition-opacity hover:opacity-80">
               Privacy
             </Link>
