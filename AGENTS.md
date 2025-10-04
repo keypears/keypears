@@ -76,18 +76,20 @@ At this time, there are three projects:
 Note that the project is very early in its development and will likely change in
 structure with time.
 
-### Development Workflow for `@keypears/lib`
+### Development Workflow for TypeScript Projects
 
-When making changes to the `lib` package, always run the following commands in
-order from the `lib` directory:
+When making changes to any TypeScript project (`@keypears/lib`, `@keypears/webapp`,
+or `@keypears/tauri`), always run the following commands in order from the
+respective project directory:
 
-1. `pnpm run typecheck` - Type check the TypeScript code
-2. `pnpm run lint` - Lint the code with ESLint
-3. `pnpm run format` - Format the code with Prettier
-4. `pnpm run build` - Build the package
+1. `pnpm run lint` - Lint the code with ESLint
+2. `pnpm run typecheck` - Type check the TypeScript code
+3. `pnpm run test` - Run tests with Vitest
+4. `pnpm run build` - Build the package/application
 
 All commands must pass without errors before committing changes. This ensures
-code quality and prevents breaking changes from being introduced.
+code quality and prevents breaking changes from being introduced. These commands
+must be run for every TypeScript project in the monorepo.
 
 ## Folder Layout
 
