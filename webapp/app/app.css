@@ -127,9 +127,11 @@
 
 .keypears-prose a {
   color: var(--color-primary);
+  text-decoration: none;
   transition: opacity 0.2s;
 }
 
 .keypears-prose a:hover {
   opacity: 0.8;
+  text-decoration: underline;
 }
