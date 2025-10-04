@@ -130,6 +130,64 @@ files. We use `shadcn` components for all UI elements. We support dark mode and
 light mode. Dark mode uses catppuccin-mocha and light mode uses
 catppuccin-latte.
 
+For typography, we use the `@tailwindcss/typography` plugin, which provides
+beautiful default styling for prose content (e.g., blog posts). The design
+emphasizes clean typography, generous whitespace, and subtle color accents.
+
+Common styling patterns:
+
+- Container max-widths: `max-w-2xl` for narrow content, `max-w-3xl` for blog
+  posts
+- Cards: `rounded-lg border border-border bg-card p-6`
+- Links: `text-primary hover:underline`
+- Metadata text: `text-muted-foreground`
+- Spacing: Use `space-y-4` or `space-y-6` for vertical spacing between elements
+
+## Blog
+
+The webapp includes a blog system located in `webapp/docs/blog`. Blog posts are
+written in Markdown with TOML front-matter.
+
+### Blog Structure
+
+- **Blog posts**: `webapp/docs/blog/*.md` - Markdown files with TOML
+  front-matter
+- **Blog utilities**: `webapp/app/util/blog.ts` - Shared functions for loading
+  and parsing blog posts
+- **Blog components**: `webapp/app/components/blog-post-card.tsx` - Reusable
+  blog post card component
+- **Blog routes**:
+  - `webapp/app/routes/blog._index.tsx` - All blog posts page
+  - `webapp/app/routes/blog.$slug.tsx` - Individual blog post page
+- **Feed generation**: `webapp/build-blog.ts` - Script to generate RSS, Atom,
+  and JSON feeds
+- **Feed output**: `webapp/public/blog/` - Generated feed files (feed.xml,
+  atom.xml, feed.json)
+
+### Blog Post Format
+
+Blog posts are Markdown files with TOML front-matter (delimited by `+++`):
+
+```markdown
++++
+title = "Post Title"
+date = "YYYY-MM-DD"
+author = "Author Name"
++++
+
+Post content in Markdown...
+```
+
+Blog post filenames should follow the pattern: `YYYY-MM-DD-slug.md`
+
+### Building the Blog
+
+- Run `pnpm run build:blog` to generate RSS, Atom, and JSON feeds
+- Blog posts are loaded dynamically by the webapp routes using the shared
+  utilities
+- The build script uses `remark` and `rehype` to convert Markdown to HTML
+- Feed links are included in the homepage meta tags
+
 ## Company
 
 KeyPears is an Apache 2.0-licensed project created by Identellica LLC.
