@@ -1,6 +1,7 @@
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
 import { Header } from "~/components/header";
+import { Footer } from "~/components/footer";
 import type { Route } from "./+types/blog._index";
 
 export async function loader() {
@@ -40,6 +41,7 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

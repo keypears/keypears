@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
 import { Header } from "~/components/header";
+import { Footer } from "~/components/footer";
 import type { Route } from "./+types/_index";
 
 export function meta({}: Route.MetaArgs) {
@@ -65,6 +66,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </section>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
