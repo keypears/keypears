@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "react-router typegen && tsc --noEmit",
+    "test": "vitest run",
     "build:old": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
@@ -47,12 +48,14 @@
     "@tailwindcss/typography": "0.5.19",
     "@tailwindcss/vite": "^4.1.14",
     "@tauri-apps/cli": "^2.8.4",
+    "@types/better-sqlite3": "7.6.13",
     "@types/node": "^24.6.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@typescript-eslint/eslint-plugin": "8.45.0",
     "@typescript-eslint/parser": "8.45.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "better-sqlite3": "12.4.1",
     "drizzle-kit": "0.31.5",
     "eslint": "9.37.0",
     "eslint-import-resolver-typescript": "4.4.4",
@@ -69,6 +72,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "3.2.4",
     "wait-on": "9.0.1"
   }
 }

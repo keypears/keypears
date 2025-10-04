@@ -5,6 +5,7 @@ minimumReleaseAge: 1440
 
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
+  - better-sqlite3
   - esbuild
   - sharp
   - unrs-resolver
