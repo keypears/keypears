@@ -131,10 +131,15 @@ webviews, and native platforms.
 ### Algorithms
 
 - **Hashing/KDF**: Blake3 - Modern, fast, and secure hash function
-- **Encryption**: ACB3 - Authenticated encryption with associated data (AEAD)
+- **Encryption**: ACB3 - AES-256-CBC + Blake3-MAC (Encrypt-then-MAC construction)
 - **Key Size**: 256-bit (32-byte) keys throughout
 - **Password KDF**: Custom Blake3-based KDF with 100k rounds and deterministic
   salt derivation
+
+ACB3 uses AES-256-CBC rather than AES-GCM because CBC+MAC is simpler to
+implement correctly in WASM while providing equivalent security. The
+Encrypt-then-MAC pattern prevents padding oracle attacks. AES-256 benefits from
+hardware acceleration (AES-NI) on most platforms.
 
 ### Design Rationale
 
