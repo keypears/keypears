@@ -15,15 +15,15 @@ export function Footer() {
           />
         </Link>
         <div className="space-y-2">
-          <Link to="/" className="block font-semibold text-foreground hover:text-primary">
+          <Link to="/" className="block font-semibold text-foreground hover:text-primary transition-opacity hover:opacity-80">
             KeyPears
           </Link>
           <div className="flex justify-center gap-2 text-sm text-muted-foreground">
-            <Link to="/privacy" className="hover:text-primary">
+            <Link to="/privacy" className="hover:text-primary transition-opacity hover:opacity-80">
               Privacy
             </Link>
             <span>·</span>
-            <Link to="/terms" className="hover:text-primary">
+            <Link to="/terms" className="hover:text-primary transition-opacity hover:opacity-80">
               Terms
             </Link>
           </div>
