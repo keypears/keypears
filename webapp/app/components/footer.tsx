@@ -18,7 +18,7 @@ export function Footer() {
           <Link to="/" className="block font-semibold text-foreground hover:text-primary">
             KeyPears
           </Link>
-          <div className="flex gap-4 text-sm text-muted-foreground">
+          <div className="flex justify-center gap-4 text-sm text-muted-foreground">
             <Link to="/privacy" className="hover:text-primary">
               Privacy
             </Link>
