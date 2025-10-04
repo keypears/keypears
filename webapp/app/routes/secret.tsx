@@ -69,6 +69,13 @@ export default function Secret() {
     return Math.min(90 + ((entropy - 128) / 128) * 10, 100);
   };
 
+  const getEntropyColor = (entropy: number): string => {
+    if (entropy < 75) return "progress-red";
+    if (entropy < 100) return "progress-yellow";
+    if (entropy < 128) return "progress-green";
+    return "progress-blue";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8">
@@ -151,7 +158,10 @@ export default function Secret() {
                   {getEntropyLabel(entropy)}
                 </span>
               </div>
-              <Progress value={getEntropyProgress(entropy)} />
+              <Progress
+                value={getEntropyProgress(entropy)}
+                className={getEntropyColor(entropy)}
+              />
             </div>
 
             {/* Length Slider */}
