@@ -57,7 +57,7 @@ platforms:
 
 We may also create a webapp for secret management. However, for now, the webapp
 is intended to be a landing page, blog, and API server, but with no secret
-management features. Users will be exected to download the Tauri app to manage
+management features. Users will be expected to download the Tauri app to manage
 their secrets.
 
 ## Project Structure
@@ -73,7 +73,7 @@ At this time, there are three projects:
 - `@keypears/webapp`: This is the webapp hosted at `keypears.com` and it also
   serves as a template for service providers who want to run a KeyPears node.
 
-Note that the project is very early in is development and will likely change in
+Note that the project is very early in its development and will likely change in
 structure with time.
 
 ## Folder Layout
@@ -108,7 +108,7 @@ entire monorepo:
   the orpc API definitions.
 - Always use `WebBuf` and associated tools like `FixedBuf` for binary data. The
   corresponding `npm` packages are `@webbuf/webbuf` and `@webbuf/fixedbuf`.
-- Always used `shadcn` for components. There is a catppuccin-esque theme defined
+- Always use `shadcn` for components. There is a catppuccin-esque theme defined
   in the `css` files for shadcn.
 - Always use `pnpm run lint` to lint code before committing.
 - Always use `pnpm run test` to run tests before committing.
