@@ -88,26 +88,28 @@ export function PasswordGenerator() {
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </Button>
-          <Button
-            variant="ghost"
-            size={copied ? "sm" : "icon-sm"}
-            aria-label="Copy to clipboard"
-            className={copied ? "text-green-500" : ""}
-            onClick={() => {
-              navigator.clipboard.writeText(password);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            }}
-          >
-            {copied ? (
-              <>
-                <Check size={16} className="mr-1" />
-                <span className="text-xs">Copied</span>
-              </>
-            ) : (
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Copy to clipboard"
+              onClick={() => {
+                navigator.clipboard.writeText(password);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+            >
               <Copy size={20} />
+            </Button>
+            {copied && (
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs text-primary-foreground">
+                  <Check size={12} />
+                  <span>Copied</span>
+                </div>
+              </div>
             )}
-          </Button>
+          </div>
           <Button
             variant="ghost"
             size="icon-sm"
