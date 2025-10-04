@@ -3,7 +3,7 @@ import { Button } from "~app/components/ui/button";
 import { Checkbox } from "~app/components/ui/checkbox";
 import { Slider } from "~app/components/ui/slider";
 import { Progress } from "~app/components/ui/progress";
-import { Copy, Check, RotateCw } from "lucide-react";
+import { Copy, Check, RotateCw, Eye, EyeOff } from "lucide-react";
 import {
   generateSecurePassword,
   calculatePasswordEntropy,
@@ -19,6 +19,7 @@ export function PasswordGenerator() {
   const [entropy, setEntropy] = useState(0);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Generate password whenever settings change
   useEffect(() => {
@@ -74,11 +75,19 @@ export function PasswordGenerator() {
       <div className="mb-6">
         <div className="flex items-center gap-2 rounded-md border border-border bg-secondary p-4">
           <input
-            type="text"
+            type={showPassword ? "text" : "password"}
             readOnly
             value={password}
             className="flex-1 bg-transparent font-mono text-lg text-foreground outline-none"
           />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </Button>
           <Button
             variant="ghost"
             size={copied ? "sm" : "icon-sm"}
