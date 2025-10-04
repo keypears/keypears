@@ -121,6 +121,15 @@ entire monorepo:
 - Always use `cargo fmt` to format code before committing.
 - Always use `cargo clippy` to lint code before committing.
 
+## Style
+
+All apps are mobile-first apps, meaning they are designed with one primary
+column, unless explicitly specified otherwise. For all colors, we use
+catppuccin-based themes, with all the colors hard-coded in the relevant `css`
+files. We use `shadcn` components for all UI elements. We support dark mode and
+light mode. Dark mode uses catppuccin-mocha and light mode uses
+catppuccin-latte.
+
 ## Company
 
 KeyPears is an Apache 2.0-licensed project created by Identellica LLC.
