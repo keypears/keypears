@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { loadBlogPost, formatDate } from "~/util/blog";
+import { Header } from "~/components/header";
 import type { Route } from "./+types/blog.$slug";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -29,9 +30,11 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-background">
       <article className="mx-auto max-w-3xl px-4 py-8">
+        <Header />
+
         <Link
           to="/blog"
-          className="mb-8 inline-block text-sm text-primary hover:underline"
+          className="mb-8 mt-8 inline-block text-sm text-primary hover:underline"
         >
           ← Back to blog
         </Link>

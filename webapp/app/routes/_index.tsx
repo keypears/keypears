@@ -1,7 +1,7 @@
 import { Link } from "react-router";
-import { $aicon } from "~/util/aicons";
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
+import { Header } from "~/components/header";
 import type { Route } from "./+types/_index";
 
 export function meta({}: Route.MetaArgs) {
@@ -44,17 +44,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <div className="mb-12 text-center">
-          <img
-            src={$aicon("/images/keypears-3-300.webp")}
-            alt="KeyPears"
-            className="mx-auto mb-6 block h-[150px] w-[150px]"
-          />
-          <h1 className="text-3xl font-bold">KeyPears</h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            Decentralized secret sharing.
-          </p>
-        </div>
+        <Header />
 
         {recentPosts.length > 0 && (
           <section className="mt-16">

@@ -1,5 +1,6 @@
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
+import { Header } from "~/components/header";
 import type { Route } from "./+types/blog._index";
 
 export async function loader() {
@@ -20,12 +21,14 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <header className="mb-12">
-          <h1 className="text-4xl font-bold">Blog</h1>
+        <Header />
+
+        <div className="mb-12 mt-8">
+          <h2 className="text-4xl font-bold">Blog</h2>
           <p className="mt-2 text-muted-foreground">
             Updates and insights from the KeyPears team
           </p>
-        </header>
+        </div>
 
         {posts.length === 0 ? (
           <p className="text-muted-foreground">No blog posts yet.</p>
