@@ -141,6 +141,30 @@
   color: var(--color-foreground);
 }
 
+.keypears-prose :where(h1) {
+  opacity: 1;
+}
+
+.keypears-prose :where(h2) {
+  opacity: 0.95;
+}
+
+.keypears-prose :where(h3) {
+  opacity: 0.9;
+}
+
+.keypears-prose :where(h4) {
+  opacity: 0.85;
+}
+
+.keypears-prose :where(h5) {
+  opacity: 0.8;
+}
+
+.keypears-prose :where(h6) {
+  opacity: 0.75;
+}
+
 .keypears-prose :where(strong, b) {
   color: var(--color-foreground);
 }
