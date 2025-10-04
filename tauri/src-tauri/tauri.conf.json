@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "keypears-tauri",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm dev & wait-on http://localhost:1420",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
