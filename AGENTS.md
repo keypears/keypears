@@ -129,9 +129,6 @@ entire monorepo:
   components. Import icons from `lucide-react` (e.g., `import { Copy, Check }
   from "lucide-react"`) and use them as React components with appropriate size
   props.
-- Always use `pnpm run lint` to lint code before committing.
-- Always use `pnpm run test` to run tests before committing.
-- Always use `pnpm run typecheck` to typecheck code before committing.
 
 ### Rust Patterns
 
