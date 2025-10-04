@@ -191,25 +191,25 @@ Blog post filenames should follow the pattern: `YYYY-MM-DD-slug.md`
 
 ## Synchronization
 
-Password files are SQLite databases with unencrypted metadata (for indexing) and
-encrypted secrets. Each password file has an immutable 256-bit master key that
-encrypts all secrets. The master key itself is encrypted with a user-chosen
-password.
+Clients use a SQLite database that can contain multiple "vaults". Each vault is
+an append-only log of changes plus encrypted secrets. Each vault has an
+immutable 256-bit master key that encrypts all secrets. The master key is
+encrypted with the user's (mutable) password. Sync nodes (servers like
+keypears.com) use Postgres, not SQLite.
 
 ### Change Tracking
 
-- Changes are tracked in an append-only, per-device log (git-like immutability)
-- Each change ("diff") is identified by a ULID and references the password's
-  ULID
+- Each vault maintains an append-only log of changes (git-like immutability)
+- Each change ("diff") is identified by a ULID and references the secret's ULID
 - Diffs include timestamps and originating device metadata
 - Deletions are soft deletes (tombstones), never actually removed
+- Metadata is unencrypted for indexing; only secrets are encrypted
 - No compaction needed (password-scale data remains small)
 
 ### Conflict Resolution
 
 - Last-write-wins (LWW) based on timestamps
-- Conflicts are rare in practice for password management
-- Users receive notifications when passwords are updated, including which device
+- Users receive notifications when secrets are updated, including which device
   made the change
 - Clock skew is not a concern (modern devices sync to time servers)
 
@@ -222,10 +222,9 @@ password.
 
 ### Key Management
 
-- Master key is immutable per password file
+- Master key is immutable per vault
 - User password can be changed (re-encrypts the master key)
-- Master key rotation requires creating a new password file and migrating
-  secrets
+- Master key rotation requires creating a new vault and migrating secrets
 
 ## Company
 
