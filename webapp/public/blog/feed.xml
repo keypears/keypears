@@ -4,7 +4,7 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 04 Oct 2025 21:37:34 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 04 Oct 2025 21:38:37 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -15,12 +15,10 @@
             <link>https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri</link>
             <guid isPermaLink="false">https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri</guid>
             <pubDate>Sat, 04 Oct 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[<h1>Drizzle SQLite Database Migrations in Tauri 2.0</h1>
-<p><em>Published: October 4, 2025</em></p>
+            <description><![CDATA[<p><em>Published: October 4, 2025</em></p>
 <p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
-solutions...]]></description>
-            <content:encoded><![CDATA[<h1>Drizzle SQLite Database Migrations in Tauri 2.0</h1>
-<p><em>Published: October 4, 2025</em></p>
+solutions described here are part of our development process and m...]]></description>
+            <content:encoded><![CDATA[<p><em>Published: October 4, 2025</em></p>
 <p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
 solutions described here are part of our development process and may evolve
 before our official release.</p>

@@ -4,10 +4,6 @@ date = "2025-10-04"
 author = "KeyPears Team"
 +++
 
-# Drizzle SQLite Database Migrations in Tauri 2.0
-
-_Published: October 4, 2025_
-
 **Note:** KeyPears is a work-in-progress open-source password manager. The
 solutions described here are part of our development process and may evolve
 before our official release.
@@ -410,7 +406,3 @@ compatibility and maintainability.
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [Tauri SQL Plugin](https://v2.tauri.app/plugin/sql/)
 - [Tauri Capabilities](https://v2.tauri.app/security/capabilities/)
-
----
-
-_Have questions or suggestions? We'd love to hear your feedback!_
