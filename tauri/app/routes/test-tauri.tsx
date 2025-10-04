@@ -1,6 +1,5 @@
 import type { MetaFunction } from "react-router";
 import { Navbar } from "~app/components/navbar";
-import { Footer } from "~app/components/footer";
 import { TestTauri } from "~app/components/test-tauri";
 
 export default function TestTauriPage() {
@@ -9,7 +8,6 @@ export default function TestTauriPage() {
       <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <TestTauri />
-        <Footer />
       </div>
     </div>
   );
