@@ -223,26 +223,6 @@ export function PasswordGenerator() {
           </div>
         </div>
       </div>
-
-      {/* Generate Button */}
-      <Button
-        className="w-full"
-        size="lg"
-        onClick={() => {
-          setRefreshing(true);
-          const newPassword = generateSecurePassword({
-            length,
-            lowercase,
-            uppercase,
-            numbers,
-            symbols,
-          });
-          setPassword(newPassword);
-          setTimeout(() => setRefreshing(false), 1000);
-        }}
-      >
-        Generate New Password
-      </Button>
     </div>
   );
 }
