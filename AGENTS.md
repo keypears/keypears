@@ -121,6 +121,36 @@ entire monorepo:
 - Always use `cargo fmt` to format code before committing.
 - Always use `cargo clippy` to lint code before committing.
 
+## Cryptography
+
+KeyPears uses a cross-platform cryptography stack built on WebBuf, a toolkit
+that provides Rust implementations of cryptographic primitives compiled to WASM.
+This approach ensures identical behavior across Node.js, browsers, mobile
+webviews, and native platforms.
+
+### Algorithms
+
+- **Hashing/KDF**: Blake3 - Modern, fast, and secure hash function
+- **Encryption**: ACB3 - Authenticated encryption with associated data (AEAD)
+- **Key Size**: 256-bit (32-byte) keys throughout
+- **Password KDF**: Custom Blake3-based KDF with 100k rounds and deterministic
+  salt derivation
+
+### Design Rationale
+
+- **Cross-platform consistency**: WASM ensures the same code runs everywhere,
+  avoiding platform-specific crypto API fragmentation
+- **Performance**: Blake3 and WASM provide excellent speed across all platforms
+- **Security**: Strong password requirements (16+ lowercase chars = ~75 bits
+  entropy) combined with computational hardness provides adequate protection
+- **Maintainability**: Single implementation reduces bugs and maintenance burden
+- **Modern primitives**: Blake3 is a well-vetted, modern cryptographic primitive
+
+The KDF is not memory-hard like Argon2, but this is an acceptable trade-off
+given the strong password requirements and cross-platform constraints. The
+threat model assumes high-entropy user passwords rather than defending against
+large-scale offline attacks on weak passwords.
+
 ## Style
 
 All apps are mobile-first apps, meaning they are designed with one primary
