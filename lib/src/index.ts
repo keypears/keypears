@@ -180,3 +180,48 @@ export function generateSecurePassword(options: PasswordOptions): string {
 export function generateSecureLowercasePassword(length: number): string {
   return generateSecurePassword({ length, lowercase: true });
 }
+
+/**
+ * Calculates the entropy (in bits) of a password given its length and character sets
+ * Entropy = log2(charset_size^length) = length * log2(charset_size)
+ *
+ * @param length - Length of the password
+ * @param options - Character set options (lowercase, uppercase, numbers, symbols)
+ * @returns Entropy in bits
+ */
+export function calculatePasswordEntropy(
+  length: number,
+  options: {
+    lowercase?: boolean;
+    uppercase?: boolean;
+    numbers?: boolean;
+    symbols?: boolean;
+  },
+): number {
+  const {
+    lowercase = true,
+    uppercase = false,
+    numbers = false,
+    symbols = false,
+  } = options;
+
+  // Define character set sizes
+  const LOWERCASE_SIZE = 26;
+  const UPPERCASE_SIZE = 26;
+  const NUMBERS_SIZE = 10;
+  const SYMBOLS_SIZE = 28;
+
+  // Calculate total charset size
+  let charsetSize = 0;
+  if (lowercase) charsetSize += LOWERCASE_SIZE;
+  if (uppercase) charsetSize += UPPERCASE_SIZE;
+  if (numbers) charsetSize += NUMBERS_SIZE;
+  if (symbols) charsetSize += SYMBOLS_SIZE;
+
+  if (charsetSize === 0) {
+    return 0; // No character sets enabled
+  }
+
+  // Entropy = length * log2(charset_size)
+  return length * Math.log2(charsetSize);
+}

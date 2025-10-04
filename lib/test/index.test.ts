@@ -3,6 +3,7 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { describe, expect, it } from "vitest";
 import {
+  calculatePasswordEntropy,
   decryptKey,
   encryptKey,
   generateKey,
@@ -126,6 +127,82 @@ describe("Index", () => {
       const password = generateSecureLowercasePassword(length);
       expect(password).toHaveLength(length);
       expect(/^[a-z]+$/.test(password)).toBe(true); // Only lowercase letters
+    });
+  });
+
+  describe("calculatePasswordEntropy", () => {
+    it("should calculate entropy for lowercase-only password", () => {
+      // 16 lowercase chars: 16 * log2(26) ≈ 75.2 bits
+      const entropy = calculatePasswordEntropy(16, { lowercase: true });
+      expect(entropy).toBeCloseTo(75.2, 1);
+    });
+
+    it("should calculate entropy for lowercase + uppercase password", () => {
+      // 16 chars with 52 charset: 16 * log2(52) ≈ 91.2 bits
+      const entropy = calculatePasswordEntropy(16, {
+        lowercase: true,
+        uppercase: true,
+      });
+      expect(entropy).toBeCloseTo(91.2, 1);
+    });
+
+    it("should calculate entropy for all character sets", () => {
+      // 16 chars with 90 charset (26+26+10+28): 16 * log2(90) ≈ 103.9 bits
+      const entropy = calculatePasswordEntropy(16, {
+        lowercase: true,
+        uppercase: true,
+        numbers: true,
+        symbols: true,
+      });
+      expect(entropy).toBeCloseTo(103.9, 1);
+    });
+
+    it("should calculate entropy for different lengths", () => {
+      const entropy8 = calculatePasswordEntropy(8, { lowercase: true });
+      const entropy16 = calculatePasswordEntropy(16, { lowercase: true });
+      const entropy32 = calculatePasswordEntropy(32, { lowercase: true });
+
+      // Entropy should scale linearly with length
+      expect(entropy16).toBeCloseTo(entropy8 * 2, 1);
+      expect(entropy32).toBeCloseTo(entropy16 * 2, 1);
+    });
+
+    it("should return 0 for no character sets enabled", () => {
+      const entropy = calculatePasswordEntropy(16, {
+        lowercase: false,
+        uppercase: false,
+        numbers: false,
+        symbols: false,
+      });
+      expect(entropy).toBe(0);
+    });
+
+    it("should return 0 for zero length", () => {
+      const entropy = calculatePasswordEntropy(0, { lowercase: true });
+      expect(entropy).toBe(0);
+    });
+
+    it("should calculate exact entropy for known values", () => {
+      // 16 lowercase: log2(26^16) = 16 * log2(26)
+      const entropy = calculatePasswordEntropy(16, { lowercase: true });
+      expect(entropy).toBe(16 * Math.log2(26));
+    });
+
+    it("should meet 75-bit minimum threshold for 16 lowercase chars", () => {
+      const entropy = calculatePasswordEntropy(16, { lowercase: true });
+      expect(entropy).toBeGreaterThanOrEqual(75);
+    });
+
+    it("should meet 100-bit recommended threshold for appropriate passwords", () => {
+      // 22 lowercase chars should exceed 100 bits
+      const entropy = calculatePasswordEntropy(22, { lowercase: true });
+      expect(entropy).toBeGreaterThanOrEqual(100);
+    });
+
+    it("should meet 128-bit maximum tier for strong passwords", () => {
+      // 28 lowercase chars should exceed 128 bits
+      const entropy = calculatePasswordEntropy(28, { lowercase: true });
+      expect(entropy).toBeGreaterThanOrEqual(128);
     });
   });
 });
