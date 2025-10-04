@@ -152,100 +152,100 @@
   --radius: 0.625rem;
 
   /* Catppuccin Latte - Red Scale */
-  --red-50: hsl(347 86.67% 95%);
-  --red-100: hsl(347 86.67% 85%);
-  --red-200: hsl(347 86.67% 75%);
-  --red-300: hsl(347 86.67% 65%);
-  --red-400: hsl(347 86.67% 55%);
-  --red-500: hsl(347 86.67% 44.12%);
-  --red-600: hsl(347 86.67% 38%);
-  --red-700: hsl(347 86.67% 32%);
-  --red-800: hsl(347 86.67% 26%);
-  --red-900: hsl(347 86.67% 20%);
+  --red-50: hsl(347 87% 95%);
+  --red-100: hsl(347 87% 85%);
+  --red-200: hsl(347 87% 75%);
+  --red-300: hsl(347 87% 65%);
+  --red-400: hsl(347 87% 55%);
+  --red-500: hsl(347 87% 44%);
+  --red-600: hsl(347 87% 35%);
+  --red-700: hsl(347 87% 25%);
+  --red-800: hsl(347 87% 20%);
+  --red-900: hsl(347 87% 15%);
 
   /* Catppuccin Latte - Peach Scale */
-  --peach-50: hsl(23 88% 95%);
-  --peach-100: hsl(23 88% 85%);
-  --peach-200: hsl(23 88% 75%);
-  --peach-300: hsl(23 88% 68%);
-  --peach-400: hsl(23 88% 64%);
-  --peach-500: hsl(23 88% 61%);
-  --peach-600: hsl(23 88% 54%);
-  --peach-700: hsl(23 88% 47%);
-  --peach-800: hsl(23 88% 40%);
-  --peach-900: hsl(23 88% 33%);
+  --peach-50: hsl(22 99% 95%);
+  --peach-100: hsl(22 99% 85%);
+  --peach-200: hsl(22 99% 75%);
+  --peach-300: hsl(22 99% 65%);
+  --peach-400: hsl(22 99% 58%);
+  --peach-500: hsl(22 99% 52%);
+  --peach-600: hsl(22 99% 42%);
+  --peach-700: hsl(22 99% 32%);
+  --peach-800: hsl(22 99% 22%);
+  --peach-900: hsl(22 99% 15%);
 
   /* Catppuccin Latte - Yellow Scale */
-  --yellow-50: hsl(35 61.18% 95%);
-  --yellow-100: hsl(35 61.18% 90%);
-  --yellow-200: hsl(35 61.18% 85%);
-  --yellow-300: hsl(35 61.18% 81.86%);
-  --yellow-400: hsl(35 61.18% 79.86%);
-  --yellow-500: hsl(35 61.18% 76.86%);
-  --yellow-600: hsl(35 61.18% 70%);
-  --yellow-700: hsl(35 61.18% 63%);
-  --yellow-800: hsl(35 61.18% 56%);
-  --yellow-900: hsl(35 61.18% 49%);
+  --yellow-50: hsl(35 77% 95%);
+  --yellow-100: hsl(35 77% 85%);
+  --yellow-200: hsl(35 77% 75%);
+  --yellow-300: hsl(35 77% 65%);
+  --yellow-400: hsl(35 77% 57%);
+  --yellow-500: hsl(35 77% 49%);
+  --yellow-600: hsl(35 77% 39%);
+  --yellow-700: hsl(35 77% 29%);
+  --yellow-800: hsl(35 77% 22%);
+  --yellow-900: hsl(35 77% 15%);
 
   /* Catppuccin Latte - Green Scale */
-  --green-50: hsl(109 57.64% 95%);
-  --green-100: hsl(109 57.64% 85%);
-  --green-200: hsl(109 57.64% 75%);
-  --green-300: hsl(109 57.64% 65%);
-  --green-400: hsl(109 57.64% 55%);
-  --green-500: hsl(109 57.64% 39.8%);
-  --green-600: hsl(109 57.64% 34%);
-  --green-700: hsl(109 57.64% 29%);
-  --green-800: hsl(109 57.64% 24%);
-  --green-900: hsl(109 57.64% 19%);
+  --green-50: hsl(109 58% 95%);
+  --green-100: hsl(109 58% 85%);
+  --green-200: hsl(109 58% 75%);
+  --green-300: hsl(109 58% 65%);
+  --green-400: hsl(109 58% 52%);
+  --green-500: hsl(109 58% 40%);
+  --green-600: hsl(109 58% 32%);
+  --green-700: hsl(109 58% 25%);
+  --green-800: hsl(109 58% 20%);
+  --green-900: hsl(109 58% 15%);
 
   /* Catppuccin Latte - Teal Scale */
-  --teal-50: hsl(185 37.25% 95%);
-  --teal-100: hsl(185 37.25% 88%);
-  --teal-200: hsl(185 37.25% 81%);
-  --teal-300: hsl(185 37.25% 76.59%);
-  --teal-400: hsl(185 37.25% 73.59%);
-  --teal-500: hsl(185 37.25% 70.59%);
-  --teal-600: hsl(185 37.25% 64%);
-  --teal-700: hsl(185 37.25% 57%);
-  --teal-800: hsl(185 37.25% 50%);
-  --teal-900: hsl(185 37.25% 43%);
+  --teal-50: hsl(183 74% 95%);
+  --teal-100: hsl(183 74% 85%);
+  --teal-200: hsl(183 74% 75%);
+  --teal-300: hsl(183 74% 65%);
+  --teal-400: hsl(183 74% 50%);
+  --teal-500: hsl(183 74% 35%);
+  --teal-600: hsl(183 74% 28%);
+  --teal-700: hsl(183 74% 22%);
+  --teal-800: hsl(183 74% 18%);
+  --teal-900: hsl(183 74% 15%);
 
   /* Catppuccin Latte - Blue Scale */
-  --blue-50: hsl(219 81.96% 95%);
-  --blue-100: hsl(219 81.96% 90%);
-  --blue-200: hsl(219 81.96% 85%);
-  --blue-300: hsl(219 81.96% 82.43%);
-  --blue-400: hsl(219 81.96% 80.43%);
-  --blue-500: hsl(219 81.96% 78.43%);
-  --blue-600: hsl(219 81.96% 72%);
-  --blue-700: hsl(219 81.96% 65%);
-  --blue-800: hsl(219 81.96% 58%);
-  --blue-900: hsl(219 81.96% 51%);
+  --blue-50: hsl(220 91% 95%);
+  --blue-100: hsl(220 91% 85%);
+  --blue-200: hsl(220 91% 75%);
+  --blue-300: hsl(220 91% 65%);
+  --blue-400: hsl(220 91% 60%);
+  --blue-500: hsl(220 91% 54%);
+  --blue-600: hsl(220 91% 44%);
+  --blue-700: hsl(220 91% 34%);
+  --blue-800: hsl(220 91% 24%);
+  --blue-900: hsl(220 91% 15%);
 
   /* Catppuccin Latte - Sapphire Scale */
   --sapphire-50: hsl(189 70% 95%);
   --sapphire-100: hsl(189 70% 85%);
   --sapphire-200: hsl(189 70% 75%);
   --sapphire-300: hsl(189 70% 65%);
-  --sapphire-400: hsl(189 70% 55%);
+  --sapphire-400: hsl(189 70% 53%);
   --sapphire-500: hsl(189 70% 42%);
-  --sapphire-600: hsl(189 70% 36%);
-  --sapphire-700: hsl(189 70% 30%);
-  --sapphire-800: hsl(189 70% 24%);
-  --sapphire-900: hsl(189 70% 18%);
+  --sapphire-600: hsl(189 70% 34%);
+  --sapphire-700: hsl(189 70% 26%);
+  --sapphire-800: hsl(189 70% 20%);
+  --sapphire-900: hsl(189 70% 15%);
 
   /* Catppuccin Latte - Mauve Scale */
-  --mauve-50: hsl(266 76% 95%);
-  --mauve-100: hsl(266 76% 88%);
-  --mauve-200: hsl(266 76% 81%);
-  --mauve-300: hsl(266 76% 74%);
-  --mauve-400: hsl(266 76% 70%);
-  --mauve-500: hsl(266 76% 66%);
-  --mauve-600: hsl(266 76% 59%);
-  --mauve-700: hsl(266 76% 52%);
-  --mauve-800: hsl(266 76% 45%);
-  --mauve-900: hsl(266 76% 38%);
+  --mauve-50: hsl(266 85% 95%);
+  --mauve-100: hsl(266 85% 85%);
+  --mauve-200: hsl(266 85% 75%);
+  --mauve-300: hsl(266 85% 67%);
+  --mauve-400: hsl(266 85% 62%);
+  --mauve-500: hsl(266 85% 58%);
+  --mauve-600: hsl(266 85% 48%);
+  --mauve-700: hsl(266 85% 38%);
+  --mauve-800: hsl(266 85% 28%);
+  --mauve-900: hsl(266 85% 18%);
 
   /* Base theme colors */
   --background: hsl(220 23.08% 94.9%); /* base */
@@ -288,100 +288,100 @@
   --radius: 0.625rem;
 
   /* Catppuccin Mocha - Red Scale */
-  --red-50: hsl(343 81.25% 20%);
-  --red-100: hsl(343 81.25% 28%);
-  --red-200: hsl(343 81.25% 36%);
-  --red-300: hsl(343 81.25% 44%);
-  --red-400: hsl(343 81.25% 52%);
-  --red-500: hsl(343 81.25% 74.9%);
-  --red-600: hsl(343 81.25% 79%);
-  --red-700: hsl(343 81.25% 83%);
-  --red-800: hsl(343 81.25% 87%);
-  --red-900: hsl(343 81.25% 91%);
+  --red-50: hsl(343 81% 15%);
+  --red-100: hsl(343 81% 25%);
+  --red-200: hsl(343 81% 35%);
+  --red-300: hsl(343 81% 45%);
+  --red-400: hsl(343 81% 60%);
+  --red-500: hsl(343 81% 75%);
+  --red-600: hsl(343 81% 80%);
+  --red-700: hsl(343 81% 85%);
+  --red-800: hsl(343 81% 90%);
+  --red-900: hsl(343 81% 95%);
 
   /* Catppuccin Mocha - Peach Scale */
-  --peach-50: hsl(23 88% 30%);
-  --peach-100: hsl(23 88% 38%);
-  --peach-200: hsl(23 88% 46%);
-  --peach-300: hsl(23 88% 54%);
-  --peach-400: hsl(23 88% 62%);
-  --peach-500: hsl(23 88% 70%);
-  --peach-600: hsl(23 88% 76%);
-  --peach-700: hsl(23 88% 82%);
-  --peach-800: hsl(23 88% 88%);
-  --peach-900: hsl(23 88% 94%);
+  --peach-50: hsl(23 92% 15%);
+  --peach-100: hsl(23 92% 25%);
+  --peach-200: hsl(23 92% 35%);
+  --peach-300: hsl(23 92% 45%);
+  --peach-400: hsl(23 92% 60%);
+  --peach-500: hsl(23 92% 75%);
+  --peach-600: hsl(23 92% 80%);
+  --peach-700: hsl(23 92% 85%);
+  --peach-800: hsl(23 92% 90%);
+  --peach-900: hsl(23 92% 95%);
 
   /* Catppuccin Mocha - Yellow Scale */
-  --yellow-50: hsl(30 9.41% 22%);
-  --yellow-100: hsl(30 9.41% 28%);
-  --yellow-200: hsl(30 9.41% 34%);
-  --yellow-300: hsl(30 9.41% 38%);
-  --yellow-400: hsl(30 9.41% 40.35%);
-  --yellow-500: hsl(30 9.41% 42.35%);
-  --yellow-600: hsl(30 9.41% 48%);
-  --yellow-700: hsl(30 9.41% 54%);
-  --yellow-800: hsl(30 9.41% 60%);
-  --yellow-900: hsl(30 9.41% 66%);
+  --yellow-50: hsl(41 86% 15%);
+  --yellow-100: hsl(41 86% 25%);
+  --yellow-200: hsl(41 86% 35%);
+  --yellow-300: hsl(41 86% 45%);
+  --yellow-400: hsl(41 86% 64%);
+  --yellow-500: hsl(41 86% 83%);
+  --yellow-600: hsl(41 86% 87%);
+  --yellow-700: hsl(41 86% 90%);
+  --yellow-800: hsl(41 86% 93%);
+  --yellow-900: hsl(41 86% 95%);
 
   /* Catppuccin Mocha - Green Scale */
-  --green-50: hsl(115 54.1% 25%);
-  --green-100: hsl(115 54.1% 35%);
-  --green-200: hsl(115 54.1% 45%);
-  --green-300: hsl(115 54.1% 55%);
-  --green-400: hsl(115 54.1% 65%);
-  --green-500: hsl(115 54.1% 76.08%);
-  --green-600: hsl(115 54.1% 80%);
-  --green-700: hsl(115 54.1% 84%);
-  --green-800: hsl(115 54.1% 88%);
-  --green-900: hsl(115 54.1% 92%);
+  --green-50: hsl(115 54% 15%);
+  --green-100: hsl(115 54% 25%);
+  --green-200: hsl(115 54% 35%);
+  --green-300: hsl(115 54% 46%);
+  --green-400: hsl(115 54% 61%);
+  --green-500: hsl(115 54% 76%);
+  --green-600: hsl(115 54% 81%);
+  --green-700: hsl(115 54% 85%);
+  --green-800: hsl(115 54% 90%);
+  --green-900: hsl(115 54% 95%);
 
   /* Catppuccin Mocha - Teal Scale */
-  --teal-50: hsl(188 18.82% 20%);
-  --teal-100: hsl(188 18.82% 25%);
-  --teal-200: hsl(188 18.82% 30%);
-  --teal-300: hsl(188 18.82% 34%);
-  --teal-400: hsl(188 18.82% 35.75%);
-  --teal-500: hsl(188 18.82% 37.25%);
-  --teal-600: hsl(188 18.82% 43%);
-  --teal-700: hsl(188 18.82% 49%);
-  --teal-800: hsl(188 18.82% 55%);
-  --teal-900: hsl(188 18.82% 61%);
+  --teal-50: hsl(170 57% 15%);
+  --teal-100: hsl(170 57% 25%);
+  --teal-200: hsl(170 57% 35%);
+  --teal-300: hsl(170 57% 45%);
+  --teal-400: hsl(170 57% 59%);
+  --teal-500: hsl(170 57% 73%);
+  --teal-600: hsl(170 57% 78%);
+  --teal-700: hsl(170 57% 83%);
+  --teal-800: hsl(170 57% 88%);
+  --teal-900: hsl(170 57% 93%);
 
   /* Catppuccin Mocha - Blue Scale */
-  --blue-50: hsl(221 27.45% 20%);
-  --blue-100: hsl(221 27.45% 26%);
-  --blue-200: hsl(221 27.45% 32%);
-  --blue-300: hsl(221 27.45% 36%);
-  --blue-400: hsl(221 27.45% 37.81%);
-  --blue-500: hsl(221 27.45% 39.61%);
-  --blue-600: hsl(221 27.45% 45%);
-  --blue-700: hsl(221 27.45% 51%);
-  --blue-800: hsl(221 27.45% 57%);
-  --blue-900: hsl(221 27.45% 63%);
+  --blue-50: hsl(217 92% 15%);
+  --blue-100: hsl(217 92% 25%);
+  --blue-200: hsl(217 92% 35%);
+  --blue-300: hsl(217 92% 46%);
+  --blue-400: hsl(217 92% 61%);
+  --blue-500: hsl(217 92% 76%);
+  --blue-600: hsl(217 92% 81%);
+  --blue-700: hsl(217 92% 85%);
+  --blue-800: hsl(217 92% 90%);
+  --blue-900: hsl(217 92% 95%);
 
   /* Catppuccin Mocha - Sapphire Scale */
-  --sapphire-50: hsl(189 70% 18%);
-  --sapphire-100: hsl(189 70% 24%);
-  --sapphire-200: hsl(189 70% 30%);
-  --sapphire-300: hsl(189 70% 36%);
-  --sapphire-400: hsl(189 70% 48%);
-  --sapphire-500: hsl(189 70% 60%);
-  --sapphire-600: hsl(189 70% 68%);
-  --sapphire-700: hsl(189 70% 76%);
-  --sapphire-800: hsl(189 70% 84%);
-  --sapphire-900: hsl(189 70% 92%);
+  --sapphire-50: hsl(199 76% 15%);
+  --sapphire-100: hsl(199 76% 25%);
+  --sapphire-200: hsl(199 76% 35%);
+  --sapphire-300: hsl(199 76% 45%);
+  --sapphire-400: hsl(199 76% 57%);
+  --sapphire-500: hsl(199 76% 69%);
+  --sapphire-600: hsl(199 76% 75%);
+  --sapphire-700: hsl(199 76% 81%);
+  --sapphire-800: hsl(199 76% 87%);
+  --sapphire-900: hsl(199 76% 93%);
 
   /* Catppuccin Mocha - Mauve Scale */
-  --mauve-50: hsl(266 76% 28%);
-  --mauve-100: hsl(266 76% 36%);
-  --mauve-200: hsl(266 76% 44%);
-  --mauve-300: hsl(266 76% 52%);
-  --mauve-400: hsl(266 76% 60%);
-  --mauve-500: hsl(266 76% 68%);
-  --mauve-600: hsl(266 76% 74%);
-  --mauve-700: hsl(266 76% 80%);
-  --mauve-800: hsl(266 76% 86%);
-  --mauve-900: hsl(266 76% 92%);
+  --mauve-50: hsl(267 84% 15%);
+  --mauve-100: hsl(267 84% 25%);
+  --mauve-200: hsl(267 84% 35%);
+  --mauve-300: hsl(267 84% 48%);
+  --mauve-400: hsl(267 84% 64%);
+  --mauve-500: hsl(267 84% 81%);
+  --mauve-600: hsl(267 84% 85%);
+  --mauve-700: hsl(267 84% 88%);
+  --mauve-800: hsl(267 84% 92%);
+  --mauve-900: hsl(267 84% 95%);
 
   /* Base theme colors */
   --background: hsl(240 21.05% 14.9%); /* base */
