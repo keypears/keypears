@@ -2,11 +2,6 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import toml from "toml";
-import { remark } from "remark";
-import remarkParse from "remark-parse";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkRehype from "remark-rehype";
-import rehypeStringify from "rehype-stringify";
 
 export interface BlogPost {
   slug: string;
@@ -14,24 +9,12 @@ export interface BlogPost {
   date: Date;
   author: string;
   content: string;
-  htmlContent: string;
 }
 
 interface BlogFrontmatter {
   title: string;
   date: string | Date;
   author: string;
-}
-
-async function parseMarkdown(content: string): Promise<string> {
-  const result = await remark()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ["toml"])
-    .use(remarkRehype)
-    .use(rehypeStringify)
-    .process(content);
-
-  return String(result);
 }
 
 export async function loadBlogPosts(): Promise<BlogPost[]> {
@@ -66,16 +49,12 @@ export async function loadBlogPosts(): Promise<BlogPost[]> {
     // Extract slug from filename (remove .md extension)
     const slug = filename.replace(/\.md$/, "");
 
-    // Parse markdown to HTML
-    const htmlContent = await parseMarkdown(content);
-
     posts.push({
       slug,
       title: frontmatter.title,
       date: new Date(frontmatter.date),
       author: frontmatter.author,
       content,
-      htmlContent,
     });
   }
 
@@ -102,16 +81,12 @@ export async function loadBlogPost(slug: string): Promise<BlogPost | null> {
 
   const frontmatter = data as BlogFrontmatter;
 
-  // Parse markdown to HTML
-  const htmlContent = await parseMarkdown(content);
-
   return {
     slug,
     title: frontmatter.title,
     date: new Date(frontmatter.date),
     author: frontmatter.author,
     content,
-    htmlContent,
   };
 }
 

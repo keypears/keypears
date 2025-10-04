@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import { loadBlogPost, formatDate } from "~/util/blog";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Route } from "./+types/blog.$slug";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -48,10 +50,11 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
           <hr className="border-border" />
         </article>
 
-        <div
-          className="prose prose-lg dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: post.htmlContent }}
-        />
+        <div className="prose prose-lg dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content}
+          </ReactMarkdown>
+        </div>
 
         <Footer />
       </div>
