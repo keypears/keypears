@@ -28,6 +28,10 @@ Whether you're a cryptocurrency enthusiast who needs secure wallet key managemen
 
 KeyPears is open-source software licensed under Apache 2.0. We believe security tools should be transparent and auditable by the community.
 
+## About Identellica
+
+KeyPears is owned and operated by [Identellica](https://identellica.com), a pseudonymous identity verification service. Identellica created KeyPears out of a need for secure secret management and sharing that puts users in control of their data.
+
 ## Get Started
 
 Download KeyPears for your platform and take control of your secrets today.
