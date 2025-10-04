@@ -106,15 +106,52 @@ export function decryptKey(
 }
 
 /**
- * Generates a cryptographically secure random password with lowercase letters
- * Uses rejection sampling to avoid modulo bias
+ * Options for generating a secure password
  */
-export function generateSecureLowercasePassword(length: number): string {
+export interface PasswordOptions {
+  length: number; // minimum 16 recommended for 75+ bits of entropy
+  lowercase?: boolean; // default: true
+  uppercase?: boolean; // default: false
+  numbers?: boolean; // default: false
+  symbols?: boolean; // default: false
+}
+
+/**
+ * Generates a cryptographically secure random password
+ * Uses rejection sampling to avoid modulo bias
+ *
+ * Default is lowercase-only for mobile usability and memorability.
+ * 16+ lowercase chars provides ~75 bits of entropy (log2(26^16) ≈ 75.4 bits)
+ */
+export function generateSecurePassword(options: PasswordOptions): string {
+  const {
+    length,
+    lowercase = true,
+    uppercase = false,
+    numbers = false,
+    symbols = false,
+  } = options;
+
   if (length <= 0) {
     throw new Error("Password length must be greater than 0");
   }
 
-  const charset = "abcdefghijklmnopqrstuvwxyz";
+  // Define character sets
+  const LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+  const UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const NUMBERS = "0123456789";
+  const SYMBOLS = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+
+  // Build charset from enabled options
+  let charset = "";
+  if (lowercase) charset += LOWERCASE;
+  if (uppercase) charset += UPPERCASE;
+  if (numbers) charset += NUMBERS;
+  if (symbols) charset += SYMBOLS;
+
+  if (charset.length === 0) {
+    throw new Error("At least one character set must be enabled");
+  }
 
   const charsetLength = charset.length;
   let password = "";
@@ -124,7 +161,6 @@ export function generateSecureLowercasePassword(length: number): string {
 
     // Rejection sampling to avoid modulo bias
     do {
-      // randomValue = crypto.randomBytes(1)[0] as number;
       randomValue = WebBuf.fromUint8Array(
         crypto.getRandomValues(new Uint8Array(1)),
       )[0] as number;
@@ -134,4 +170,13 @@ export function generateSecureLowercasePassword(length: number): string {
   }
 
   return password;
+}
+
+/**
+ * Generates a cryptographically secure random password with lowercase letters
+ * Uses rejection sampling to avoid modulo bias
+ * @deprecated Use generateSecurePassword instead
+ */
+export function generateSecureLowercasePassword(length: number): string {
+  return generateSecurePassword({ length, lowercase: true });
 }

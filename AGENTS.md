@@ -156,6 +156,32 @@ given the strong password requirements and cross-platform constraints. The
 threat model assumes high-entropy user passwords rather than defending against
 large-scale offline attacks on weak passwords.
 
+### Password Policy
+
+KeyPears uses a distinctive password policy optimized for usability and security:
+
+- **Minimum length**: 16 characters
+- **Default character set**: Lowercase letters only (a-z)
+- **Entropy**: 16 lowercase characters = ~75 bits of entropy (log₂(26¹⁶) ≈ 75.4
+  bits)
+- **Optional character sets**: Uppercase, numbers, and symbols can be enabled
+  for systems that require them
+
+**Rationale for lowercase-only default:**
+
+1. **Mobile usability**: Lowercase letters are the easiest to type on mobile
+   keyboards without switching character modes
+2. **Memorability**: Longer passwords with simple characters are easier to
+   remember than shorter passwords with complex character requirements
+3. **Sufficient entropy**: 75 bits of entropy exceeds the security threshold
+   for most threat models (typically 64-80 bits is considered strong)
+4. **User experience**: Reduces friction during login, especially on mobile
+   devices where the majority of users access their passwords
+
+The `generateSecurePassword` function in `@keypears/lib` supports all character
+sets but defaults to lowercase-only. Users can enable uppercase, numbers, and
+symbols when needed for legacy systems with strict password policies.
+
 ## Icons
 
 Both `webapp` and `tauri` have a `raw-icons/` folder containing source PNG
