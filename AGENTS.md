@@ -86,6 +86,7 @@ entire monorepo:
 ## Concluding Thoughts
 
 KeyPears is a new type of password manager designed for full self-custody of
-passwords while simultaneously solving the problem of synchronization and
-sharing. The basic idea is to invent a crypto-first protocol similar in
-architecture to email, but for passwords and other types of secrets.
+passwords and other secrets while simultaneously solving the problem of
+synchronization and sharing. The basic idea is to invent a crypto-first protocol
+similar in architecture to email, but based on end-to-end asymmetric
+cryptography so that users can share secrets securely.
