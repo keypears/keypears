@@ -26,6 +26,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "app", ".react-router/types"],
+  "include": ["src", "app", "test", ".react-router/types"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
