@@ -188,7 +188,13 @@ export default function Secret() {
 
             {/* Character Sets */}
             <div className="mb-6 space-y-3">
-              <div className="text-sm font-medium">Character Sets</div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Character Sets</div>
+                <p className="text-sm text-muted-foreground">
+                  We recommend all lowercase passwords for ease of typing on
+                  mobile and desktop.
+                </p>
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Checkbox
