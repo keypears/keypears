@@ -59,6 +59,13 @@ export function PasswordGenerator() {
     return Math.min(90 + ((entropy - 128) / 128) * 10, 100);
   };
 
+  const getEntropyLabelColor = (entropy: number): string => {
+    if (entropy < 75) return "text-red-500";
+    if (entropy < 100) return "text-yellow-500";
+    if (entropy < 128) return "text-green-500";
+    return "text-blue-500";
+  };
+
   return (
     <div className="rounded-lg border border-border bg-card p-8">
       <h1 className="mb-6 text-2xl font-bold">Password Generator</h1>
@@ -123,7 +130,7 @@ export function PasswordGenerator() {
           <span className="text-foreground">
             Entropy: {entropy.toFixed(1)} bits
           </span>
-          <span className="text-muted-foreground">
+          <span className={getEntropyLabelColor(entropy)}>
             {getEntropyLabel(entropy)}
           </span>
         </div>
