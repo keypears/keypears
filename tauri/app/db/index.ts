@@ -3,7 +3,7 @@ import Database from "@tauri-apps/plugin-sql";
 import * as schema from "./schema";
 
 export async function getDb() {
-  return await Database.load("sqlite:test.db");
+  return await Database.load("sqlite:keypears.db");
 }
 
 function isSelectQuery(sql: string): boolean {
