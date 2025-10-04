@@ -2,6 +2,7 @@ import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import { Slider } from "~/components/ui/slider";
 import type { Route } from "./+types/secret";
 
 export function meta({}: Route.MetaArgs) {
@@ -92,21 +93,20 @@ export default function Secret() {
 
             {/* Length Slider */}
             <div className="mb-6">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between">
                 <label htmlFor="length" className="text-sm font-medium">
                   Length
                 </label>
                 <span className="text-sm text-muted-foreground">16</span>
               </div>
-              <input
+              <Slider
                 id="length"
-                type="range"
-                min="8"
-                max="64"
-                defaultValue="16"
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+                defaultValue={[16]}
+                min={8}
+                max={64}
+                step={1}
               />
-              <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+              <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                 <span>8</span>
                 <span>64</span>
               </div>
