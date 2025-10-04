@@ -29,6 +29,7 @@ export default function Secret() {
   const [numbers, setNumbers] = useState(false);
   const [symbols, setSymbols] = useState(false);
   const [entropy, setEntropy] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   // Generate password whenever settings change
   useEffect(() => {
@@ -96,24 +97,49 @@ export default function Secret() {
                 />
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size={copied ? "sm" : "icon-sm"}
                   aria-label="Copy to clipboard"
-                  onClick={() => navigator.clipboard.writeText(password)}
+                  className={copied ? "text-green-500" : ""}
+                  onClick={() => {
+                    navigator.clipboard.writeText(password);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                  </svg>
+                  {copied ? (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-1"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span className="text-xs">Copied</span>
+                    </>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
