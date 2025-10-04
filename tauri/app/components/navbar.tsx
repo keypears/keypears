@@ -43,7 +43,7 @@ export function Navbar() {
               className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
               onClick={() => setOpen(false)}
             >
-              Home
+              Vaults
             </Link>
             <Link
               to="/generate-password"
