@@ -103,7 +103,65 @@ importers:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.2)(vite@7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6))
 
-  keypears-webapp:
+  lib:
+    dependencies:
+      '@webbuf/acb3':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/blake3@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/blake3':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
+      '@webbuf/fixedbuf':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/webbuf':
+        specifier: 3.0.28
+        version: 3.0.28
+      eslint-plugin-n:
+        specifier: 17.23.1
+        version: 17.23.1(eslint@8.57.1)(typescript@5.9.2)
+      zod:
+        specifier: 4.1.11
+        version: 4.1.11
+    devDependencies:
+      '@eslint/js':
+        specifier: 9.36.0
+        version: 9.36.0
+      '@types/node':
+        specifier: ^24.5.2
+        version: 24.5.2
+      '@typescript-eslint/eslint-plugin':
+        specifier: 8.44.1
+        version: 8.44.1(@typescript-eslint/parser@8.44.1(eslint@8.57.1)(typescript@5.9.2))(eslint@8.57.1)(typescript@5.9.2)
+      '@typescript-eslint/parser':
+        specifier: 8.44.1
+        version: 8.44.1(eslint@8.57.1)(typescript@5.9.2)
+      eslint:
+        specifier: 8.57.1
+        version: 8.57.1
+      eslint-import-resolver-typescript:
+        specifier: 4.4.4
+        version: 4.4.4(eslint-plugin-import@2.32.0)(eslint@8.57.1)
+      eslint-plugin-import:
+        specifier: 2.32.0
+        version: 2.32.0(@typescript-eslint/parser@8.44.1(eslint@8.57.1)(typescript@5.9.2))(eslint-import-resolver-typescript@4.4.4)(eslint@8.57.1)
+      eslint-plugin-promise:
+        specifier: 7.2.1
+        version: 7.2.1(eslint@8.57.1)
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+      vite:
+        specifier: ^7.1.7
+        version: 7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6)
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(typescript@5.9.2)(vite@7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6))
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6)
+
+  webapp:
     dependencies:
       '@keypears/lib':
         specifier: workspace:^
@@ -223,64 +281,6 @@ importers:
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.2)(vite@7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6))
-
-  lib:
-    dependencies:
-      '@webbuf/acb3':
-        specifier: 3.0.28
-        version: 3.0.28(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/blake3@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28))(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
-      '@webbuf/blake3':
-        specifier: 3.0.28
-        version: 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
-      '@webbuf/fixedbuf':
-        specifier: 3.0.28
-        version: 3.0.28(@webbuf/webbuf@3.0.28)
-      '@webbuf/webbuf':
-        specifier: 3.0.28
-        version: 3.0.28
-      eslint-plugin-n:
-        specifier: 17.23.1
-        version: 17.23.1(eslint@8.57.1)(typescript@5.9.2)
-      zod:
-        specifier: 4.1.11
-        version: 4.1.11
-    devDependencies:
-      '@eslint/js':
-        specifier: 9.36.0
-        version: 9.36.0
-      '@types/node':
-        specifier: ^24.5.2
-        version: 24.5.2
-      '@typescript-eslint/eslint-plugin':
-        specifier: 8.44.1
-        version: 8.44.1(@typescript-eslint/parser@8.44.1(eslint@8.57.1)(typescript@5.9.2))(eslint@8.57.1)(typescript@5.9.2)
-      '@typescript-eslint/parser':
-        specifier: 8.44.1
-        version: 8.44.1(eslint@8.57.1)(typescript@5.9.2)
-      eslint:
-        specifier: 8.57.1
-        version: 8.57.1
-      eslint-import-resolver-typescript:
-        specifier: 4.4.4
-        version: 4.4.4(eslint-plugin-import@2.32.0)(eslint@8.57.1)
-      eslint-plugin-import:
-        specifier: 2.32.0
-        version: 2.32.0(@typescript-eslint/parser@8.44.1(eslint@8.57.1)(typescript@5.9.2))(eslint-import-resolver-typescript@4.4.4)(eslint@8.57.1)
-      eslint-plugin-promise:
-        specifier: 7.2.1
-        version: 7.2.1(eslint@8.57.1)
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
-      vite:
-        specifier: ^7.1.7
-        version: 7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6)
-      vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(typescript@5.9.2)(vite@7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6))
-      vitest:
-        specifier: 3.2.4
-        version: 3.2.4(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6)
 
 packages:
 
@@ -6250,7 +6250,7 @@ snapshots:
     dependencies:
       bytes: 3.1.2
       content-type: 1.0.5
-      debug: 4.4.1
+      debug: 4.4.3
       http-errors: 2.0.0
       iconv-lite: 0.6.3
       on-finished: 2.4.1
@@ -6939,7 +6939,7 @@ snapshots:
       content-type: 1.0.5
       cookie: 0.7.2
       cookie-signature: 1.2.2
-      debug: 4.4.1
+      debug: 4.4.3
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
@@ -7007,7 +7007,7 @@ snapshots:
 
   finalhandler@2.1.0:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.3
       encodeurl: 2.0.0
       escape-html: 1.0.3
       on-finished: 2.4.1
@@ -8026,7 +8026,7 @@ snapshots:
 
   router@2.2.0:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.3
       depd: 2.0.0
       is-promise: 4.0.0
       parseurl: 1.3.3
@@ -8110,7 +8110,7 @@ snapshots:
 
   send@1.2.0:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.3
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
