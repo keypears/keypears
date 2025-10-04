@@ -1,6 +1,7 @@
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import type { Route } from "./+types/secret";
 
 export function meta({}: Route.MetaArgs) {
@@ -114,38 +115,43 @@ export default function Secret() {
             {/* Character Sets */}
             <div className="mb-6 space-y-3">
               <div className="text-sm font-medium">Character Sets</div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="h-4 w-4 rounded border-border text-primary accent-primary"
-                  />
-                  <span className="text-sm">Lowercase (a-z)</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border text-primary accent-primary"
-                  />
-                  <span className="text-sm">Uppercase (A-Z)</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border text-primary accent-primary"
-                  />
-                  <span className="text-sm">Numbers (0-9)</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border text-primary accent-primary"
-                  />
-                  <span className="text-sm">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox id="lowercase" defaultChecked />
+                  <label
+                    htmlFor="lowercase"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Lowercase (a-z)
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox id="uppercase" />
+                  <label
+                    htmlFor="uppercase"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Uppercase (A-Z)
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox id="numbers" />
+                  <label
+                    htmlFor="numbers"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Numbers (0-9)
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox id="symbols" />
+                  <label
+                    htmlFor="symbols"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
                     Symbols (!@#$%^&*()-_=+[]&#123;&#125;|;:,.&lt;&gt;?)
-                  </span>
-                </label>
+                  </label>
+                </div>
               </div>
             </div>
 
