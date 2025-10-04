@@ -188,7 +188,12 @@ Common styling patterns:
 - Container max-widths: `max-w-2xl` for narrow content, `max-w-3xl` for blog
   posts
 - Cards: `rounded-lg border border-border bg-card p-6`
-- Links: `text-primary hover:underline`
+- Links: Always use primary green color with animated hover effect. Use
+  `var(--color-primary)` in CSS or `text-primary` in Tailwind. Add smooth
+  opacity transition on hover: `transition: opacity 0.2s` and `opacity: 0.8` on
+  hover state (or `hover:opacity-80 transition-opacity` in Tailwind)
+- Prose content: Use `keypears-prose` class for all markdown/prose content,
+  which extends `@tailwindcss/typography` with brand colors
 - Metadata text: `text-muted-foreground`
 - Spacing: Use `space-y-4` or `space-y-6` for vertical spacing between elements
 
