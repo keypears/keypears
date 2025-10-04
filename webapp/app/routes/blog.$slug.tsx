@@ -50,7 +50,7 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
           <hr className="border-border" />
         </article>
 
-        <div className="prose prose-lg dark:prose-invert max-w-none">
+        <div className="keypears-prose max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {post.content}
           </ReactMarkdown>

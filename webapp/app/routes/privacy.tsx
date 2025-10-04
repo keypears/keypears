@@ -32,7 +32,7 @@ export default function Privacy({ loaderData }: Route.ComponentProps) {
       <div className="mx-auto max-w-3xl px-4 py-8">
         <Header />
 
-        <article className="prose prose-lg dark:prose-invert mt-8 max-w-none">
+        <article className="keypears-prose mt-8 max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {content}
           </ReactMarkdown>

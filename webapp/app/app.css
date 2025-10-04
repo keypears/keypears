@@ -120,3 +120,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.keypears-prose {
+  @apply prose prose-lg prose-slate dark:prose-invert text-gray-700 dark:text-gray-300;
+}
