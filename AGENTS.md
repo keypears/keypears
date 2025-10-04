@@ -44,6 +44,22 @@ just passwords. We intend to provide first-class support for:
 KeyPears may also be called a "secret manager" or "credential manager" or "key
 manager" or "password vault" or "password safe" or "digital vault."
 
+## Intended Platforms
+
+Near-term, the plan is to provide a Tauri-based native app on the following
+platforms:
+
+- Windows
+- MacOS
+- Linux
+- Android
+- iOS
+
+We may also create a webapp for secret management. However, for now, the webapp
+is intended to be a landing page, blog, and API server, but with no secret
+management features. Users will be exected to download the Tauri app to manage
+their secrets.
+
 ## Project Structure
 
 At this time, there are three projects:
