@@ -122,7 +122,8 @@
 }
 
 .keypears-prose {
-  @apply prose prose-lg prose-slate dark:prose-invert text-gray-700 dark:text-gray-300;
+  @apply prose prose-lg dark:prose-invert;
+  color: var(--color-foreground);
 }
 
 .keypears-prose a {
@@ -134,4 +135,61 @@
 .keypears-prose a:hover {
   opacity: 0.8;
   text-decoration: underline;
+}
+
+.keypears-prose :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(strong, b) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(blockquote) {
+  color: var(--color-muted-foreground);
+  border-left-color: var(--color-border);
+}
+
+.keypears-prose :where(code) {
+  color: var(--color-foreground);
+  background-color: var(--color-secondary);
+  border-color: var(--color-border);
+}
+
+.keypears-prose :where(pre) {
+  background-color: var(--color-secondary);
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(pre code) {
+  background-color: transparent;
+}
+
+.keypears-prose :where(hr) {
+  border-color: var(--color-border);
+}
+
+.keypears-prose :where(ul > li)::marker,
+.keypears-prose :where(ol > li)::marker {
+  color: var(--color-muted-foreground);
+}
+
+.keypears-prose :where(table) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(thead) {
+  border-bottom-color: var(--color-border);
+}
+
+.keypears-prose :where(thead th) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(tbody tr) {
+  border-bottom-color: var(--color-border);
+}
+
+.keypears-prose :where(figcaption) {
+  color: var(--color-muted-foreground);
 }
