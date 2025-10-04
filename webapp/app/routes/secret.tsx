@@ -1,9 +1,14 @@
+import { useState, useEffect } from "react";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Slider } from "~/components/ui/slider";
 import { Progress } from "~/components/ui/progress";
+import {
+  generateSecurePassword,
+  calculatePasswordEntropy,
+} from "@keypears/lib";
 import type { Route } from "./+types/secret";
 
 export function meta({}: Route.MetaArgs) {
@@ -17,6 +22,53 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Secret() {
+  const [password, setPassword] = useState("");
+  const [length, setLength] = useState(16);
+  const [lowercase, setLowercase] = useState(true);
+  const [uppercase, setUppercase] = useState(false);
+  const [numbers, setNumbers] = useState(false);
+  const [symbols, setSymbols] = useState(false);
+  const [entropy, setEntropy] = useState(0);
+
+  // Generate password whenever settings change
+  useEffect(() => {
+    const newPassword = generateSecurePassword({
+      length,
+      lowercase,
+      uppercase,
+      numbers,
+      symbols,
+    });
+    setPassword(newPassword);
+
+    const newEntropy = calculatePasswordEntropy(length, {
+      lowercase,
+      uppercase,
+      numbers,
+      symbols,
+    });
+    setEntropy(newEntropy);
+  }, [length, lowercase, uppercase, numbers, symbols]);
+
+  const getEntropyLabel = (entropy: number): string => {
+    if (entropy < 75) return "Weak";
+    if (entropy < 100) return "Good";
+    if (entropy < 128) return "Strong";
+    return "Excellent";
+  };
+
+  const getEntropyProgress = (entropy: number): number => {
+    // Map entropy to 0-100 scale
+    // < 75: 0-50%
+    // 75-100: 50-75%
+    // 100-128: 75-90%
+    // >= 128: 90-100%
+    if (entropy < 75) return (entropy / 75) * 50;
+    if (entropy < 100) return 50 + ((entropy - 75) / 25) * 25;
+    if (entropy < 128) return 75 + ((entropy - 100) / 28) * 15;
+    return Math.min(90 + ((entropy - 128) / 128) * 10, 100);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8">
@@ -32,13 +84,14 @@ export default function Secret() {
                 <input
                   type="text"
                   readOnly
-                  value="abcdefghijklmnop"
+                  value={password}
                   className="flex-1 bg-transparent font-mono text-lg text-foreground outline-none"
                 />
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Copy to clipboard"
+                  onClick={() => navigator.clipboard.writeText(password)}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -59,6 +112,16 @@ export default function Secret() {
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Regenerate password"
+                  onClick={() => {
+                    const newPassword = generateSecurePassword({
+                      length,
+                      lowercase,
+                      uppercase,
+                      numbers,
+                      symbols,
+                    });
+                    setPassword(newPassword);
+                  }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -81,10 +144,14 @@ export default function Secret() {
             {/* Entropy Meter */}
             <div className="mb-6">
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="text-foreground">Entropy: 75.2 bits</span>
-                <span className="text-muted-foreground">Good</span>
+                <span className="text-foreground">
+                  Entropy: {entropy.toFixed(1)} bits
+                </span>
+                <span className="text-muted-foreground">
+                  {getEntropyLabel(entropy)}
+                </span>
               </div>
-              <Progress value={60} />
+              <Progress value={getEntropyProgress(entropy)} />
             </div>
 
             {/* Length Slider */}
@@ -93,11 +160,12 @@ export default function Secret() {
                 <label htmlFor="length" className="text-sm font-medium">
                   Length
                 </label>
-                <span className="text-sm text-muted-foreground">16</span>
+                <span className="text-sm text-muted-foreground">{length}</span>
               </div>
               <Slider
                 id="length"
-                defaultValue={[16]}
+                value={[length]}
+                onValueChange={(value) => setLength(value[0] || 16)}
                 min={8}
                 max={64}
                 step={1}
@@ -113,7 +181,13 @@ export default function Secret() {
               <div className="text-sm font-medium">Character Sets</div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Checkbox id="lowercase" defaultChecked />
+                  <Checkbox
+                    id="lowercase"
+                    checked={lowercase}
+                    onCheckedChange={(checked) =>
+                      setLowercase(checked === true)
+                    }
+                  />
                   <label
                     htmlFor="lowercase"
                     className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -122,7 +196,13 @@ export default function Secret() {
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Checkbox id="uppercase" />
+                  <Checkbox
+                    id="uppercase"
+                    checked={uppercase}
+                    onCheckedChange={(checked) =>
+                      setUppercase(checked === true)
+                    }
+                  />
                   <label
                     htmlFor="uppercase"
                     className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -131,7 +211,11 @@ export default function Secret() {
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Checkbox id="numbers" />
+                  <Checkbox
+                    id="numbers"
+                    checked={numbers}
+                    onCheckedChange={(checked) => setNumbers(checked === true)}
+                  />
                   <label
                     htmlFor="numbers"
                     className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -140,7 +224,11 @@ export default function Secret() {
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Checkbox id="symbols" />
+                  <Checkbox
+                    id="symbols"
+                    checked={symbols}
+                    onCheckedChange={(checked) => setSymbols(checked === true)}
+                  />
                   <label
                     htmlFor="symbols"
                     className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -152,7 +240,20 @@ export default function Secret() {
             </div>
 
             {/* Generate Button */}
-            <Button className="w-full" size="lg">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => {
+                const newPassword = generateSecurePassword({
+                  length,
+                  lowercase,
+                  uppercase,
+                  numbers,
+                  symbols,
+                });
+                setPassword(newPassword);
+              }}
+            >
               Generate New Password
             </Button>
           </div>
