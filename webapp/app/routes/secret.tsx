@@ -1,5 +1,6 @@
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
+import { Button } from "~/components/ui/button";
 import type { Route } from "./+types/secret";
 
 export function meta({}: Route.MetaArgs) {
@@ -31,9 +32,9 @@ export default function Secret() {
                   value="abcdefghijklmnop"
                   className="flex-1 bg-transparent font-mono text-lg text-foreground outline-none"
                 />
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-primary transition-opacity hover:opacity-80"
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   aria-label="Copy to clipboard"
                 >
                   <svg
@@ -50,10 +51,10 @@ export default function Secret() {
                     <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
                     <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                   </svg>
-                </button>
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-primary transition-opacity hover:opacity-80"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   aria-label="Regenerate password"
                 >
                   <svg
@@ -70,7 +71,7 @@ export default function Secret() {
                     <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                     <path d="M21 3v5h-5" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -149,12 +150,9 @@ export default function Secret() {
             </div>
 
             {/* Generate Button */}
-            <button
-              type="button"
-              className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground transition-opacity hover:opacity-80"
-            >
+            <Button className="w-full" size="lg">
               Generate New Password
-            </button>
+            </Button>
           </div>
         </div>
 
