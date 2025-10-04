@@ -1,0 +1,27 @@
+import { db } from "../index";
+import { vaults } from "../schema";
+import { eq, count } from "drizzle-orm";
+
+export interface Vault {
+  id: number;
+  name: string;
+}
+
+export async function createVault(name: string): Promise<Vault> {
+  const result = await db.insert(vaults).values({ name }).returning();
+  return result[0];
+}
+
+export async function getVault(id: number): Promise<Vault | undefined> {
+  const result = await db.select().from(vaults).where(eq(vaults.id, id));
+  return result[0];
+}
+
+export async function getVaults(): Promise<Vault[]> {
+  return await db.select().from(vaults);
+}
+
+export async function countVaults(): Promise<number> {
+  const result = await db.select({ count: count() }).from(vaults);
+  return result[0]?.count ?? 0;
+}
