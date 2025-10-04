@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-10-04T11:35:25.752Z</updated>
+    <updated>2025-10-04T21:32:58.958Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
@@ -10,21 +10,393 @@
     <icon>https://keypears.com/favicon.ico</icon>
     <rights>Copyright 2025 Identellica LLC</rights>
     <entry>
-        <title type="html"><![CDATA[Introducing KeyPears: A New Approach to Password Management]]></title>
-        <id>https://keypears.com/blog/2025-10-04-introducing-keypears</id>
-        <link href="https://keypears.com/blog/2025-10-04-introducing-keypears"/>
+        <title type="html"><![CDATA[Drizzle SQLite Database Migrations in Tauri 2.0]]></title>
+        <id>https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri</id>
+        <link href="https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri"/>
         <updated>2025-10-04T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the modern era of digital security and self-custody.</p>
+        <summary type="html"><![CDATA[<h1>Drizzle SQLite Database Migrations in Tauri 2.0</h1>
+<p><em>Published: October 4, 2025</em></p>
+<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+solutions...]]></summary>
+        <content type="html"><![CDATA[<h1>Drizzle SQLite Database Migrations in Tauri 2.0</h1>
+<p><em>Published: October 4, 2025</em></p>
+<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+solutions described here are part of our development process and may evolve
+before our official release.</p>
+<h2>The Problem</h2>
+<p>Building a local-first application with Tauri 2.0, we needed a robust database
+solution for storing encrypted vault data on users' devices. We wanted:</p>
+<ul>
+<li>Type-safe database queries</li>
+<li>Proper schema migrations that work in production</li>
+<li>Pure TypeScript implementation (no Rust for basic DB operations)</li>
+<li>A solution that works across desktop and mobile platforms</li>
+</ul>
+<p>After evaluating options, we chose <strong>Drizzle ORM</strong> with <strong>SQLite</strong> via the
+official <strong>tauri-plugin-sql</strong>. This combination gives us TypeScript-first
+development with the reliability of SQLite.</p>
+<h2>The Challenge</h2>
+<p>Unlike traditional Node.js environments where you have direct filesystem access
+and can use drivers like <code>better-sqlite3</code>, Tauri's sandboxed environment
+requires a different approach. Drizzle's standard migration tools assume direct
+database access, but with Tauri, we need to go through the plugin system.</p>
+<p>Here's how we solved it.</p>
+<h2>Tech Stack</h2>
+<ul>
+<li><strong>Tauri 2.0</strong> - Cross-platform app framework</li>
+<li><strong>Drizzle ORM</strong> - TypeScript ORM</li>
+<li><strong>drizzle-kit</strong> - Schema migration generator</li>
+<li><strong>@tauri-apps/plugin-sql</strong> - Official Tauri SQLite plugin</li>
+<li><strong>React Router</strong> - For app routing and loaders</li>
+</ul>
+<h2>Step 1: Install Dependencies</h2>
+<p>First, add the necessary packages:</p>
+<pre><code class="language-bash"># Production dependencies
+pnpm add drizzle-orm @tauri-apps/plugin-sql
+
+# Development dependencies
+pnpm add -D drizzle-kit
+</code></pre>
+<p>Then add the Tauri plugin to your Rust dependencies in <code>src-tauri/Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+</code></pre>
+<h2>Step 2: Configure Tauri Permissions</h2>
+<p>Tauri 2.0 requires explicit permission grants. Add SQL permissions to
+<code>src-tauri/capabilities/default.json</code>:</p>
+<pre><code class="language-json">{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close"
+  ]
+}
+</code></pre>
+<p>Without these permissions, you'll get "not allowed" errors when trying to access
+the database.</p>
+<h2>Step 3: Define Your Schema</h2>
+<p>Create your Drizzle schema at <code>app/db/schema.ts</code>:</p>
+<pre><code class="language-typescript">import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+
+export const vaults = sqliteTable("vaults", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+});
+</code></pre>
+<h2>Step 4: Set Up the SQLite Proxy</h2>
+<p>Since we can't use standard SQLite drivers in Tauri, we use Drizzle's
+<code>sqlite-proxy</code> adapter. Create <code>app/db/index.ts</code>:</p>
+<pre><code class="language-typescript">import { drizzle } from "drizzle-orm/sqlite-proxy";
+import Database from "@tauri-apps/plugin-sql";
+import * as schema from "./schema";
+
+export async function getDb() {
+  return await Database.load("sqlite:keypears.db");
+}
+
+function isSelectQuery(sql: string): boolean {
+  return sql.trim().toLowerCase().startsWith("select");
+}
+
+export const db = drizzle&#x3C;typeof schema>(
+  async (sql, params, method) => {
+    const sqlite = await getDb();
+    let rows: any = [];
+
+    if (isSelectQuery(sql)) {
+      rows = await sqlite.select(sql, params).catch((e) => {
+        console.error("SQL Error:", e);
+        return [];
+      });
+    } else {
+      rows = await sqlite.execute(sql, params).catch((e) => {
+        console.error("SQL Error:", e);
+        return [];
+      });
+      return { rows: [] };
+    }
+
+    rows = rows.map((row: any) => Object.values(row));
+    const results = method === "all" ? rows : rows[0];
+    await sqlite.close();
+    return { rows: results };
+  },
+  { schema: schema, logger: true }
+);
+</code></pre>
+<p>The proxy adapter translates Drizzle queries into calls to the Tauri SQL plugin.</p>
+<h2>Step 5: Configure Migration Generation</h2>
+<p>Create <code>drizzle.config.ts</code>:</p>
+<pre><code class="language-typescript">import type { Config } from "drizzle-kit";
+
+export default {
+  schema: "./app/db/schema.ts",
+  out: "./app/db/migrations",
+  dialect: "sqlite",
+} satisfies Config;
+</code></pre>
+<p>Add a script to <code>package.json</code>:</p>
+<pre><code class="language-json">{
+  "scripts": {
+    "db:migrate": "drizzle-kit generate"
+  }
+}
+</code></pre>
+<h2>Step 6: Implement Migration Runner</h2>
+<p>Here's the key part - implementing our own migration system. Create
+<code>app/db/migrate.ts</code>:</p>
+<pre><code class="language-typescript">import { getDb } from "./index";
+
+// Dynamically import all SQL migration files
+const migrationFiles = import.meta.glob&#x3C;string>("./migrations/*.sql", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+// Create migrations tracking table
+async function ensureMigrationsTable() {
+  const sqlite = await getDb();
+  await sqlite.execute(`
+    CREATE TABLE IF NOT EXISTS __drizzle_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hash TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    )
+  `);
+  await sqlite.close();
+}
+
+// Get list of applied migrations
+async function getAppliedMigrations(): Promise&#x3C;string[]> {
+  const sqlite = await getDb();
+  const rows = await sqlite
+    .select&#x3C;Array&#x3C;{ hash: string }>>(
+      "SELECT hash FROM __drizzle_migrations ORDER BY id"
+    )
+    .catch(() => []);
+  await sqlite.close();
+  return rows.map((row) => row.hash);
+}
+
+// Record migration as applied
+async function recordMigration(hash: string) {
+  const sqlite = await getDb();
+  const timestamp = Date.now();
+  await sqlite.execute(
+    "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
+    [hash, timestamp]
+  );
+  await sqlite.close();
+}
+
+// Execute SQL file
+async function executeSqlFile(sqlContent: string) {
+  const sqlite = await getDb();
+  const statements = sqlContent
+    .split("--> statement-breakpoint")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const statement of statements) {
+    await sqlite.execute(statement).catch((e) => {
+      console.error("Migration error:", e);
+      throw e;
+    });
+  }
+
+  await sqlite.close();
+}
+
+export async function runMigrations() {
+  console.log("Running database migrations...");
+
+  try {
+    await ensureMigrationsTable();
+    const appliedMigrations = await getAppliedMigrations();
+
+    const migrationPaths = Object.keys(migrationFiles).sort();
+
+    const pendingMigrations = migrationPaths.filter((path) => {
+      const filename = path.split("/").pop() || path;
+      return !appliedMigrations.includes(filename);
+    });
+
+    if (pendingMigrations.length === 0) {
+      console.log("All migrations already applied");
+      return;
+    }
+
+    for (const path of pendingMigrations) {
+      const filename = path.split("/").pop() || path;
+      const migrationContent = migrationFiles[path];
+
+      console.log(`Executing migration: ${filename}`);
+      await executeSqlFile(migrationContent);
+      await recordMigration(filename);
+      console.log(`✓ Applied: ${filename}`);
+    }
+
+    console.log(`Successfully completed ${pendingMigrations.length} migration(s)`);
+  } catch (error) {
+    console.error("Migration failed:", error);
+    throw error;
+  }
+}
+</code></pre>
+<p>This implements Drizzle's migration tracking pattern:</p>
+<ul>
+<li>Uses <code>__drizzle_migrations</code> table to track applied migrations</li>
+<li>Only runs new migrations on subsequent app launches</li>
+<li>Supports incremental migrations as your schema evolves</li>
+</ul>
+<h2>Step 7: Run Migrations on App Startup</h2>
+<p>In your root component (<code>app/root.tsx</code>), use a clientLoader to run migrations
+before rendering:</p>
+<pre><code class="language-typescript">import { runMigrations } from "./db/migrate";
+
+export async function clientLoader() {
+  await runMigrations();
+  return null;
+}
+
+export function HydrateFallback() {
+  return (
+    &#x3C;div className="flex min-h-screen items-center justify-center">
+      &#x3C;h1>Migrating the database...&#x3C;/h1>
+    &#x3C;/div>
+  );
+}
+</code></pre>
+<p>React Router will show the fallback while migrations run, ensuring the database
+is ready before any component renders.</p>
+<h2>Step 8: Create Model Functions</h2>
+<p>With everything set up, create type-safe model functions at
+<code>app/db/models/vault.ts</code>:</p>
+<pre><code class="language-typescript">import { db } from "../index";
+import { vaults } from "../schema";
+import { eq, count } from "drizzle-orm";
+
+export interface Vault {
+  id: number;
+  name: string;
+}
+
+export async function createVault(name: string): Promise&#x3C;Vault> {
+  const result = await db.insert(vaults).values({ name }).returning();
+  return result[0];
+}
+
+export async function getVault(id: number): Promise&#x3C;Vault | undefined> {
+  const result = await db.select().from(vaults).where(eq(vaults.id, id));
+  return result[0];
+}
+
+export async function getVaults(): Promise&#x3C;Vault[]> {
+  return await db.select().from(vaults);
+}
+
+export async function countVaults(): Promise&#x3C;number> {
+  const result = await db.select({ count: count() }).from(vaults);
+  return result[0]?.count ?? 0;
+}
+</code></pre>
+<h2>Usage Workflow</h2>
+<h3>Development</h3>
+<p>When you modify your schema:</p>
+<pre><code class="language-bash"># 1. Update app/db/schema.ts
+# 2. Generate new migration
+pnpm run db:migrate
+
+# 3. Restart app - migration runs automatically
+</code></pre>
+<p>During development, you can safely delete all migrations and regenerate them
+from scratch. Just delete the database file and migration files, then
+regenerate.</p>
+<h3>Production</h3>
+<p>Before releasing v1.0:</p>
+<ol>
+<li>Delete all development migrations</li>
+<li>Generate one clean migration from your final schema</li>
+<li>Commit this as your baseline</li>
+</ol>
+<p>After release, <strong>never delete migrations</strong> - only add new ones. Users will have
+the old migrations applied, and new migrations build incrementally.</p>
+<h2>Database File Location</h2>
+<p>The Tauri SQL plugin creates the database in the app's data directory:</p>
+<ul>
+<li><strong>macOS</strong>: <code>~/Library/Application Support/{app-identifier}/keypears.db</code></li>
+<li><strong>Linux</strong>: <code>~/.local/share/{app-identifier}/keypears.db</code></li>
+<li><strong>Windows</strong>: <code>%APPDATA%\{app-identifier}\keypears.db</code></li>
+</ul>
+<h2>Troubleshooting</h2>
+<p><strong>Permission errors</strong>: Make sure you've added all SQL permissions to
+<code>capabilities/default.json</code></p>
+<p><strong>Migration fails</strong>: Check browser console in the Tauri webview for detailed
+error messages</p>
+<p><strong>Type errors</strong>: Run <code>pnpm run typecheck</code> to catch issues before runtime</p>
+<h2>Conclusion</h2>
+<p>This setup gives us:</p>
+<ul>
+<li>✅ Type-safe database queries with Drizzle</li>
+<li>✅ Proper migration tracking that works in production</li>
+<li>✅ Pure TypeScript - no Rust code needed for basic operations</li>
+<li>✅ Cross-platform compatibility (desktop &#x26; mobile)</li>
+<li>✅ Incremental migrations as the schema evolves</li>
+</ul>
+<p>The combination of Drizzle's <code>sqlite-proxy</code> adapter with Tauri's SQL plugin
+provides a robust foundation for local-first data storage. While we had to
+implement our own migration runner, we followed Drizzle's patterns to ensure
+compatibility and maintainability.</p>
+<h2>Resources</h2>
+<ul>
+<li><a href="https://orm.drizzle.team/">Drizzle ORM</a></li>
+<li><a href="https://v2.tauri.app/plugin/sql/">Tauri SQL Plugin</a></li>
+<li><a href="https://v2.tauri.app/security/capabilities/">Tauri Capabilities</a></li>
+</ul>
+<hr>
+<p><em>Have questions or suggestions? We'd love to hear your feedback!</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Introducing KeyPears: A New Approach to Password Management]]></title>
+        <id>https://keypears.com/blog/2025-10-03-introducing-keypears</id>
+        <link href="https://keypears.com/blog/2025-10-03-introducing-keypears"/>
+        <updated>2025-10-03T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the
+modern era of digital security and self-custody.</p>
 <h2>Why KeyPears?</h2>
 <p>Traditional password managers have served ...]]></summary>
-        <content type="html"><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the modern era of digital security and self-custody.</p>
+        <content type="html"><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the
+modern era of digital security and self-custody.</p>
 <h2>Why KeyPears?</h2>
-<p>Traditional password managers have served us well, but they come with limitations. Most rely on centralized services, creating single points of failure and raising questions about who truly controls your most sensitive data. KeyPears takes a different approach.</p>
+<p>Traditional password managers have served us well, but they come with
+limitations. Most rely on centralized services, creating single points of
+failure and raising questions about who truly controls your most sensitive data.
+KeyPears takes a different approach.</p>
 <h2>Local-First, Sync-Enabled</h2>
-<p>KeyPears is built on a local-first architecture. Your secrets live on your devices, encrypted with keys only you control. But unlike purely local solutions, KeyPears solves the synchronization problem through a permissionless marketplace of third-party service providers using an open protocol—similar to how email works.</p>
-<p>Anyone can run a KeyPears node. The protocol is open source. You maintain full self-custody while enjoying seamless synchronization across all your devices.</p>
+<p>KeyPears is built on a local-first architecture. Your secrets live on your
+devices, encrypted with keys only you control. But unlike purely local
+solutions, KeyPears solves the synchronization problem through a permissionless
+marketplace of third-party service providers using an open protocol—similar to
+how email works.</p>
+<p>Anyone can run a KeyPears node. The protocol is open source. You maintain full
+self-custody while enjoying seamless synchronization across all your devices.</p>
 <h2>Built for Sharing</h2>
-<p>Modern work requires secure secret sharing. KeyPears uses end-to-end encryption with public/private key pairs for each user. When alice@example.com needs to share a secret with bob@example2.com, they use Diffie-Hellman key exchange to derive a shared secret that only they know. The architecture mirrors email, but with cryptography-first design.</p>
+<p>Modern work requires secure secret sharing. KeyPears uses end-to-end encryption
+with public/private key pairs for each user. When alice@example.com needs to
+share a secret with bob@example2.com, they use Diffie-Hellman key exchange to
+derive a shared secret that only they know. The architecture mirrors email, but
+with cryptography-first design.</p>
 <h2>More Than Passwords</h2>
 <p>While we call it a password manager, KeyPears is designed to handle:</p>
 <ul>
@@ -35,10 +407,15 @@
 <li>SSH keys</li>
 <li>PGP keys</li>
 </ul>
-<p>For cryptocurrency users seeking self-custody and businesses that need secure secret sharing without expensive enterprise subscriptions, KeyPears offers a compelling alternative.</p>
+<p>For cryptocurrency users seeking self-custody and businesses that need secure
+secret sharing without expensive enterprise subscriptions, KeyPears offers a
+compelling alternative.</p>
 <h2>What's Next</h2>
-<p>KeyPears is in active development. We're building native applications for Windows, macOS, Linux, Android, and iOS using Tauri. The project is Apache 2.0 licensed and open source.</p>
-<p>This is just the beginning. We're excited to build KeyPears with the community and create a new standard for secure, self-custodied secret management.</p>
+<p>KeyPears is in active development. We're building native applications for
+Windows, macOS, Linux, Android, and iOS using Tauri. The project is Apache 2.0
+licensed and open source.</p>
+<p>This is just the beginning. We're excited to build KeyPears with the community
+and create a new standard for secure, self-custodied secret management.</p>
 <p>Stay tuned for more updates as we continue development.</p>]]></content>
         <author>
             <name>KeyPears Team</name>
