@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "~app/components/ui/button";
 import { Checkbox } from "~app/components/ui/checkbox";
 import { Slider } from "~app/components/ui/slider";
-import { Progress } from "~app/components/ui/progress";
 import { Copy, Check, RotateCw, Eye, EyeOff } from "lucide-react";
 import {
   generateSecurePassword,
@@ -41,23 +40,36 @@ export function PasswordGenerator() {
     setEntropy(newEntropy);
   }, [length, lowercase, uppercase, numbers, symbols]);
 
+  // Helper to calculate charset size
+  const getCharsetSize = () => {
+    let size = 0;
+    if (lowercase) size += 26;
+    if (uppercase) size += 26;
+    if (numbers) size += 10;
+    if (symbols) size += 33;
+    return Math.max(size, 1); // Prevent division by zero
+  };
+
+  // Calculate length from target entropy
+  const calculateLengthFromEntropy = (targetEntropy: number): number => {
+    const charsetSize = getCharsetSize();
+    const entropyPerChar = Math.log2(charsetSize);
+    const calculatedLength = Math.ceil(targetEntropy / entropyPerChar);
+    return Math.max(8, Math.min(64, calculatedLength)); // Clamp to valid range
+  };
+
+  // Handle entropy slider change
+  const handleEntropyChange = (value: number[]) => {
+    const targetEntropy = value[0] || 50;
+    const newLength = calculateLengthFromEntropy(targetEntropy);
+    setLength(newLength);
+  };
+
   const getEntropyLabel = (entropy: number): string => {
     if (entropy < 75) return "Weak";
     if (entropy < 100) return "Good";
     if (entropy < 128) return "Strong";
     return "Excellent";
-  };
-
-  const getEntropyProgress = (entropy: number): number => {
-    // Map entropy to 0-100 scale
-    // < 75: 0-50%
-    // 75-100: 50-75%
-    // 100-128: 75-90%
-    // >= 128: 90-100%
-    if (entropy < 75) return (entropy / 75) * 50;
-    if (entropy < 100) return 50 + ((entropy - 75) / 25) * 25;
-    if (entropy < 128) return 75 + ((entropy - 100) / 28) * 15;
-    return Math.min(90 + ((entropy - 128) / 128) * 10, 100);
   };
 
   const getEntropyLabelColor = (entropy: number): string => {
@@ -135,17 +147,33 @@ export function PasswordGenerator() {
         </div>
       </div>
 
-      {/* Entropy Meter */}
+      {/* Entropy Slider */}
       <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-foreground">
-            Entropy: {entropy.toFixed(1)} bits
-          </span>
-          <span className={getEntropyLabelColor(entropy)}>
-            {getEntropyLabel(entropy)}
-          </span>
+        <div className="mb-3 flex items-center justify-between">
+          <label htmlFor="entropy" className="text-sm font-medium">
+            Entropy
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {entropy.toFixed(1)} bits
+            </span>
+            <span className={`text-sm ${getEntropyLabelColor(entropy)}`}>
+              {getEntropyLabel(entropy)}
+            </span>
+          </div>
         </div>
-        <Progress value={getEntropyProgress(entropy)} />
+        <Slider
+          id="entropy"
+          value={[entropy]}
+          onValueChange={handleEntropyChange}
+          min={50}
+          max={200}
+          step={1}
+        />
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+          <span>50</span>
+          <span>200</span>
+        </div>
       </div>
 
       {/* Length Slider */}
