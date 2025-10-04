@@ -14,10 +14,15 @@ export function Footer() {
             className="h-8 w-8"
           />
         </Link>
-        <div className="space-y-1">
+        <div className="space-y-2">
           <Link to="/" className="block font-semibold text-foreground hover:text-primary">
             KeyPears
           </Link>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <Link to="/privacy" className="hover:text-primary">
+              Privacy
+            </Link>
+          </div>
           <p className="text-sm text-muted-foreground">
             © {currentYear} Identellica LLC
           </p>
