@@ -44,10 +44,10 @@ export function NewVaultName() {
   const isValid = name.length > 0 && !error;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-8">
+    <div className="border-border bg-card rounded-lg border p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create New Vault</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Step 1 of 3</p>
+        <p className="text-muted-foreground mt-2 text-sm">Step 1 of 3</p>
       </div>
 
       <div className="mb-6">
@@ -65,13 +65,13 @@ export function NewVaultName() {
             placeholder="passwords"
             className={error ? "border-red-500" : ""}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Your vault: <span className="font-mono">{name}@localhost</span>
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
 
-        <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+        <div className="text-muted-foreground mt-4 space-y-1 text-xs">
           <p>• Lowercase letters and numbers only</p>
           <p>• Must start with a letter</p>
           <p>• Name must be unique</p>
@@ -90,7 +90,7 @@ export function NewVaultName() {
         <div className="text-center">
           <Link
             to="/"
-            className="text-sm text-muted-foreground transition-opacity hover:opacity-80"
+            className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
           >
             Cancel
           </Link>

@@ -4,7 +4,7 @@ import { NewVaultName } from "~app/components/new-vault-name";
 
 export default function NewVaultStep1() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <NewVaultName />

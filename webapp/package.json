@@ -9,6 +9,8 @@
     "build": "react-router build",
     "dev": "cross-env NODE_ENV=development node server.js",
     "start": "node server.js",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -39,6 +41,14 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@eslint/js": "9.36.0",
+    "@typescript-eslint/eslint-plugin": "8.45.0",
+    "@typescript-eslint/parser": "8.44.1",
+    "eslint": "9.36.0",
+    "eslint-import-resolver-typescript": "4.4.4",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-promise": "7.2.1",
+    "eslint-plugin-n": "17.23.1",
     "@catppuccin/tailwindcss": "^1.0.0",
     "@react-router/dev": "^7.9.1",
     "@tailwindcss/typography": "0.5.19",

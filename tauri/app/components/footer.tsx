@@ -5,9 +5,12 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 border-t border-border py-8">
+    <footer className="border-border mt-16 border-t py-8">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-4 text-center">
-        <Link to="/" className="inline-block transition-opacity hover:opacity-80">
+        <Link
+          to="/"
+          className="inline-block transition-opacity hover:opacity-80"
+        >
           <img
             src={$aicon("/images/keypears-3-96.webp")}
             alt="KeyPears"
@@ -15,10 +18,13 @@ export function Footer() {
           />
         </Link>
         <div className="space-y-2">
-          <Link to="/" className="block font-semibold text-foreground hover:text-primary transition-opacity hover:opacity-80">
+          <Link
+            to="/"
+            className="text-foreground hover:text-primary block font-semibold transition-opacity hover:opacity-80"
+          >
             KeyPears
           </Link>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             © {currentYear} Identellica LLC
           </p>
         </div>

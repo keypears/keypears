@@ -24,9 +24,9 @@ async function ensureMigrationsTable() {
 async function getAppliedMigrations(): Promise<string[]> {
   const sqlite = await getDb();
   const rows = await sqlite
-    .select<Array<{ hash: string }>>(
-      "SELECT hash FROM __drizzle_migrations ORDER BY id"
-    )
+    .select<
+      Array<{ hash: string }>
+    >("SELECT hash FROM __drizzle_migrations ORDER BY id")
     .catch(() => []);
   await sqlite.close();
   return rows.map((row) => row.hash);
@@ -38,7 +38,7 @@ async function recordMigration(hash: string) {
   const timestamp = Date.now();
   await sqlite.execute(
     "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
-    [hash, timestamp]
+    [hash, timestamp],
   );
   await sqlite.close();
 }
@@ -69,7 +69,9 @@ export async function runMigrations() {
 
     // Get list of already applied migrations
     const appliedMigrations = await getAppliedMigrations();
-    console.log(`Found ${appliedMigrations.length} previously applied migration(s)`);
+    console.log(
+      `Found ${appliedMigrations.length} previously applied migration(s)`,
+    );
 
     // Get all migration files and sort them by filename (ensures order)
     const migrationPaths = Object.keys(migrationFiles).sort();
@@ -106,7 +108,9 @@ export async function runMigrations() {
       console.log(`✓ Applied: ${filename}`);
     }
 
-    console.log(`Successfully completed ${pendingMigrations.length} migration(s)`);
+    console.log(
+      `Successfully completed ${pendingMigrations.length} migration(s)`,
+    );
   } catch (error) {
     console.error("Migration failed:", error);
     throw error;

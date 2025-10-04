@@ -14,7 +14,7 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 w-full border-b border-border bg-background">
+      <nav className="border-border bg-background sticky top-0 z-40 w-full border-b">
         <div className="flex h-14 items-center justify-between px-4">
           {/* Left: Burger Menu */}
           <Button
@@ -40,21 +40,21 @@ export function Navbar() {
           <nav className="flex flex-col gap-2">
             <Link
               to="/"
-              className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Vaults
             </Link>
             <Link
               to="/generate-password"
-              className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Generate Password
             </Link>
             <Link
               to="/test-tauri"
-              className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Test Tauri

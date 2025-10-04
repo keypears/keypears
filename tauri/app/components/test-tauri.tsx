@@ -12,7 +12,7 @@ export function TestTauri() {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
+    <div className="border-border bg-card rounded-lg border p-6">
       <h2 className="mb-4 text-xl font-semibold">Test Tauri</h2>
       <form
         className="space-y-4"
@@ -25,14 +25,14 @@ export function TestTauri() {
           id="greet-input"
           onChange={(e) => setName(e.currentTarget.value)}
           placeholder="Enter a name..."
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground outline-none focus:border-primary"
+          className="border-border bg-background text-foreground focus:border-primary w-full rounded-md border px-3 py-2 outline-none"
         />
         <Button type="submit" className="w-full">
           Greet
         </Button>
       </form>
       {greetMsg && (
-        <p className="mt-4 text-center text-muted-foreground">{greetMsg}</p>
+        <p className="text-muted-foreground mt-4 text-center">{greetMsg}</p>
       )}
     </div>
   );

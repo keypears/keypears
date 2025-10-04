@@ -58,9 +58,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export function HydrateFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="bg-background flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <h1 className="text-xl font-semibold text-foreground">
+        <h1 className="text-foreground text-xl font-semibold">
           Migrating the database...
         </h1>
       </div>

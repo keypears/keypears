@@ -80,17 +80,17 @@ export function PasswordGenerator() {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-8">
+    <div className="border-border bg-card rounded-lg border p-8">
       <h1 className="mb-6 text-2xl font-bold">Password Generator</h1>
 
       {/* Password Display */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 rounded-md border border-border bg-secondary p-4">
+        <div className="border-border bg-secondary flex items-center gap-2 rounded-md border p-4">
           <input
             type={showPassword ? "text" : "password"}
             readOnly
             value={password}
-            className="flex-1 bg-transparent font-mono text-lg text-foreground outline-none"
+            className="text-foreground flex-1 bg-transparent font-mono text-lg outline-none"
           />
           <Button
             variant="ghost"
@@ -114,8 +114,8 @@ export function PasswordGenerator() {
               <Copy size={20} />
             </Button>
             {copied && (
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs text-primary-foreground">
+              <div className="animate-in fade-in slide-in-from-bottom-2 absolute -top-8 left-1/2 -translate-x-1/2 duration-200">
+                <div className="text-primary-foreground flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs">
                   <Check size={12} />
                   <span>Copied</span>
                 </div>
@@ -139,10 +139,7 @@ export function PasswordGenerator() {
               setTimeout(() => setRefreshing(false), 1000);
             }}
           >
-            <RotateCw
-              size={20}
-              className={refreshing ? "animate-spin" : ""}
-            />
+            <RotateCw size={20} className={refreshing ? "animate-spin" : ""} />
           </Button>
         </div>
       </div>
@@ -154,7 +151,7 @@ export function PasswordGenerator() {
             Entropy
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               {entropy.toFixed(1)} bits
             </span>
             <span className={`text-sm ${getEntropyLabelColor(entropy)}`}>
@@ -170,7 +167,7 @@ export function PasswordGenerator() {
           max={200}
           step={1}
         />
-        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+        <div className="text-muted-foreground mt-2 flex justify-between text-xs">
           <span>50</span>
           <span>200</span>
         </div>
@@ -182,7 +179,7 @@ export function PasswordGenerator() {
           <label htmlFor="length" className="text-sm font-medium">
             Length
           </label>
-          <span className="text-sm text-muted-foreground">{length}</span>
+          <span className="text-muted-foreground text-sm">{length}</span>
         </div>
         <Slider
           id="length"
@@ -192,7 +189,7 @@ export function PasswordGenerator() {
           max={64}
           step={1}
         />
-        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+        <div className="text-muted-foreground mt-2 flex justify-between text-xs">
           <span>8</span>
           <span>64</span>
         </div>
@@ -202,7 +199,7 @@ export function PasswordGenerator() {
       <div className="mb-6 space-y-3">
         <div className="space-y-2">
           <div className="text-sm font-medium">Character Sets</div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             We recommend all lowercase passwords for ease of typing on mobile
             and desktop.
           </p>

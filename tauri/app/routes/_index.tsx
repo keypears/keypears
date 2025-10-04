@@ -7,20 +7,20 @@ import { Button } from "~app/components/ui/button";
 
 export default function AppIndex() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
       <div className="flex flex-1 flex-col px-4 py-8">
         <div className="mx-auto w-full max-w-2xl">
           <h1 className="mb-6 text-2xl font-bold">Your Vaults</h1>
 
           {/* Empty State */}
-          <div className="rounded-lg border border-border bg-card p-8">
+          <div className="border-border bg-card rounded-lg border p-8">
             <div className="flex flex-col items-center text-center">
-              <div className="mb-4 rounded-full bg-primary/10 p-4">
-                <Lock className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 mb-4 rounded-full p-4">
+                <Lock className="text-primary h-8 w-8" />
               </div>
               <h2 className="mb-2 text-xl font-semibold">No vaults yet</h2>
-              <p className="mb-6 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mb-6 text-sm">
                 Create your first vault to get started
               </p>
               <Button size="lg" className="w-full" asChild>
@@ -33,7 +33,7 @@ export default function AppIndex() {
           <div className="mt-4 text-center">
             <Link
               to="#"
-              className="text-sm text-muted-foreground transition-opacity hover:opacity-80"
+              className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
             >
               Import Existing Vault
             </Link>
