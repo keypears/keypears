@@ -39,6 +39,13 @@ export function Navbar() {
           </SheetHeader>
           <nav className="flex flex-col gap-2">
             <Link
+              to="/"
+              className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => setOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
               to="/generate-password"
               className="block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
               onClick={() => setOpen(false)}
