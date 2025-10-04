@@ -67,9 +67,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 View all →
               </Link>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {recentPosts.map((post) => (
-                <BlogPostCard key={post.slug} post={post} compact />
+                <BlogPostCard key={post.slug} post={post} />
               ))}
             </div>
           </section>
