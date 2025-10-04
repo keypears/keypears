@@ -1,7 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Progress bar color utilities */
+.progress-red [data-slot="progress-indicator"] {
+  background: var(--red-500);
+}
+
+.progress-yellow [data-slot="progress-indicator"] {
+  background: var(--yellow-500);
+}
+
+.progress-green [data-slot="progress-indicator"] {
+  background: var(--green-500);
+}
+
+.progress-blue [data-slot="progress-indicator"] {
+  background: var(--blue-500);
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -39,17 +57,204 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Catppuccin Color Scales */
+  --color-red-50: var(--red-50);
+  --color-red-100: var(--red-100);
+  --color-red-200: var(--red-200);
+  --color-red-300: var(--red-300);
+  --color-red-400: var(--red-400);
+  --color-red-500: var(--red-500);
+  --color-red-600: var(--red-600);
+  --color-red-700: var(--red-700);
+  --color-red-800: var(--red-800);
+  --color-red-900: var(--red-900);
+
+  --color-peach-50: var(--peach-50);
+  --color-peach-100: var(--peach-100);
+  --color-peach-200: var(--peach-200);
+  --color-peach-300: var(--peach-300);
+  --color-peach-400: var(--peach-400);
+  --color-peach-500: var(--peach-500);
+  --color-peach-600: var(--peach-600);
+  --color-peach-700: var(--peach-700);
+  --color-peach-800: var(--peach-800);
+  --color-peach-900: var(--peach-900);
+
+  --color-yellow-50: var(--yellow-50);
+  --color-yellow-100: var(--yellow-100);
+  --color-yellow-200: var(--yellow-200);
+  --color-yellow-300: var(--yellow-300);
+  --color-yellow-400: var(--yellow-400);
+  --color-yellow-500: var(--yellow-500);
+  --color-yellow-600: var(--yellow-600);
+  --color-yellow-700: var(--yellow-700);
+  --color-yellow-800: var(--yellow-800);
+  --color-yellow-900: var(--yellow-900);
+
+  --color-green-50: var(--green-50);
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-900: var(--green-900);
+
+  --color-teal-50: var(--teal-50);
+  --color-teal-100: var(--teal-100);
+  --color-teal-200: var(--teal-200);
+  --color-teal-300: var(--teal-300);
+  --color-teal-400: var(--teal-400);
+  --color-teal-500: var(--teal-500);
+  --color-teal-600: var(--teal-600);
+  --color-teal-700: var(--teal-700);
+  --color-teal-800: var(--teal-800);
+  --color-teal-900: var(--teal-900);
+
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
+
+  --color-sapphire-50: var(--sapphire-50);
+  --color-sapphire-100: var(--sapphire-100);
+  --color-sapphire-200: var(--sapphire-200);
+  --color-sapphire-300: var(--sapphire-300);
+  --color-sapphire-400: var(--sapphire-400);
+  --color-sapphire-500: var(--sapphire-500);
+  --color-sapphire-600: var(--sapphire-600);
+  --color-sapphire-700: var(--sapphire-700);
+  --color-sapphire-800: var(--sapphire-800);
+  --color-sapphire-900: var(--sapphire-900);
+
+  --color-mauve-50: var(--mauve-50);
+  --color-mauve-100: var(--mauve-100);
+  --color-mauve-200: var(--mauve-200);
+  --color-mauve-300: var(--mauve-300);
+  --color-mauve-400: var(--mauve-400);
+  --color-mauve-500: var(--mauve-500);
+  --color-mauve-600: var(--mauve-600);
+  --color-mauve-700: var(--mauve-700);
+  --color-mauve-800: var(--mauve-800);
+  --color-mauve-900: var(--mauve-900);
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Catppuccin Latte - Red Scale */
+  --red-50: hsl(347 87% 95%);
+  --red-100: hsl(347 87% 85%);
+  --red-200: hsl(347 87% 75%);
+  --red-300: hsl(347 87% 65%);
+  --red-400: hsl(347 87% 55%);
+  --red-500: hsl(347 87% 44%);
+  --red-600: hsl(347 87% 35%);
+  --red-700: hsl(347 87% 25%);
+  --red-800: hsl(347 87% 20%);
+  --red-900: hsl(347 87% 15%);
+
+  /* Catppuccin Latte - Peach Scale */
+  --peach-50: hsl(22 99% 95%);
+  --peach-100: hsl(22 99% 85%);
+  --peach-200: hsl(22 99% 75%);
+  --peach-300: hsl(22 99% 65%);
+  --peach-400: hsl(22 99% 58%);
+  --peach-500: hsl(22 99% 52%);
+  --peach-600: hsl(22 99% 42%);
+  --peach-700: hsl(22 99% 32%);
+  --peach-800: hsl(22 99% 22%);
+  --peach-900: hsl(22 99% 15%);
+
+  /* Catppuccin Latte - Yellow Scale */
+  --yellow-50: hsl(35 77% 95%);
+  --yellow-100: hsl(35 77% 85%);
+  --yellow-200: hsl(35 77% 75%);
+  --yellow-300: hsl(35 77% 65%);
+  --yellow-400: hsl(35 77% 57%);
+  --yellow-500: hsl(35 77% 49%);
+  --yellow-600: hsl(35 77% 39%);
+  --yellow-700: hsl(35 77% 29%);
+  --yellow-800: hsl(35 77% 22%);
+  --yellow-900: hsl(35 77% 15%);
+
+  /* Catppuccin Latte - Green Scale */
+  --green-50: hsl(109 58% 95%);
+  --green-100: hsl(109 58% 85%);
+  --green-200: hsl(109 58% 75%);
+  --green-300: hsl(109 58% 65%);
+  --green-400: hsl(109 58% 52%);
+  --green-500: hsl(109 58% 40%);
+  --green-600: hsl(109 58% 32%);
+  --green-700: hsl(109 58% 25%);
+  --green-800: hsl(109 58% 20%);
+  --green-900: hsl(109 58% 15%);
+
+  /* Catppuccin Latte - Teal Scale */
+  --teal-50: hsl(183 74% 95%);
+  --teal-100: hsl(183 74% 85%);
+  --teal-200: hsl(183 74% 75%);
+  --teal-300: hsl(183 74% 65%);
+  --teal-400: hsl(183 74% 50%);
+  --teal-500: hsl(183 74% 35%);
+  --teal-600: hsl(183 74% 28%);
+  --teal-700: hsl(183 74% 22%);
+  --teal-800: hsl(183 74% 18%);
+  --teal-900: hsl(183 74% 15%);
+
+  /* Catppuccin Latte - Blue Scale */
+  --blue-50: hsl(220 91% 95%);
+  --blue-100: hsl(220 91% 85%);
+  --blue-200: hsl(220 91% 75%);
+  --blue-300: hsl(220 91% 65%);
+  --blue-400: hsl(220 91% 60%);
+  --blue-500: hsl(220 91% 54%);
+  --blue-600: hsl(220 91% 44%);
+  --blue-700: hsl(220 91% 34%);
+  --blue-800: hsl(220 91% 24%);
+  --blue-900: hsl(220 91% 15%);
+
+  /* Catppuccin Latte - Sapphire Scale */
+  --sapphire-50: hsl(189 70% 95%);
+  --sapphire-100: hsl(189 70% 85%);
+  --sapphire-200: hsl(189 70% 75%);
+  --sapphire-300: hsl(189 70% 65%);
+  --sapphire-400: hsl(189 70% 53%);
+  --sapphire-500: hsl(189 70% 42%);
+  --sapphire-600: hsl(189 70% 34%);
+  --sapphire-700: hsl(189 70% 26%);
+  --sapphire-800: hsl(189 70% 20%);
+  --sapphire-900: hsl(189 70% 15%);
+
+  /* Catppuccin Latte - Mauve Scale */
+  --mauve-50: hsl(266 85% 95%);
+  --mauve-100: hsl(266 85% 85%);
+  --mauve-200: hsl(266 85% 75%);
+  --mauve-300: hsl(266 85% 67%);
+  --mauve-400: hsl(266 85% 62%);
+  --mauve-500: hsl(266 85% 58%);
+  --mauve-600: hsl(266 85% 48%);
+  --mauve-700: hsl(266 85% 38%);
+  --mauve-800: hsl(266 85% 28%);
+  --mauve-900: hsl(266 85% 18%);
+
+  /* Base theme colors */
   --background: hsl(220 23.08% 94.9%); /* base */
   --foreground: hsl(234 16.02% 35.49%); /* text */
   --card: hsl(220 23.08% 94.9%); /* base */
   --card-foreground: hsl(234 16.02% 35.49%); /* text */
   --popover: hsl(220 23.08% 94.9%); /* base */
   --popover-foreground: hsl(234 16.02% 35.49%); /* text */
-  --primary: hsl(109 57.64% 39.8%); /* accent - Green */
+  --primary: var(--green-500);
   --primary-foreground: hsl(220 23.08% 94.9%); /* base */
   --secondary: hsl(223 15.91% 82.75%); /* surface0 */
   --secondary-foreground: hsl(234 16.02% 35.49%); /* text */
@@ -57,18 +262,21 @@
   --muted-foreground: hsl(233 12.8% 41.37%); /* subtext1 */
   --accent: hsl(223 15.91% 82.75%); /* surface0 */
   --accent-foreground: hsl(234 16.02% 35.49%); /* text */
-  --destructive: hsl(347 86.67% 44.12%); /* red */
+  --destructive: var(--red-500);
   --border: hsl(225 13.56% 76.86%); /* surface1 */
   --input: hsl(225 13.56% 76.86%); /* surface1 */
   --ring: hsl(234 16.02% 35.49%); /* text */
-  --chart-1: hsl(345 57.65% 74.12%); /* red */
-  --chart-2: hsl(185 37.25% 70.59%); /* teal */
-  --chart-3: hsl(219 81.96% 78.43%); /* blue */
-  --chart-4: hsl(35 61.18% 76.86%); /* yellow */
-  --chart-5: hsl(113 32.94% 73.33%); /* green */
+
+  /* Chart colors - now using semantic colors */
+  --chart-1: var(--red-500);
+  --chart-2: var(--teal-500);
+  --chart-3: var(--blue-500);
+  --chart-4: var(--yellow-500);
+  --chart-5: var(--green-500);
+
   --sidebar: hsl(218 25.1% 93.73%); /* mantle */
   --sidebar-foreground: hsl(234 16.02% 35.49%); /* text */
-  --sidebar-primary: hsl(109 57.64% 39.8%); /* accent - Green */
+  --sidebar-primary: var(--green-500);
   --sidebar-primary-foreground: hsl(220 23.08% 94.9%); /* base */
   --sidebar-accent: hsl(220 23.08% 94.9%); /* surface0 */
   --sidebar-accent-foreground: hsl(234 16.02% 35.49%); /* text */
@@ -78,13 +286,111 @@
 
 .dark {
   --radius: 0.625rem;
+
+  /* Catppuccin Mocha - Red Scale */
+  --red-50: hsl(343 81% 15%);
+  --red-100: hsl(343 81% 25%);
+  --red-200: hsl(343 81% 35%);
+  --red-300: hsl(343 81% 45%);
+  --red-400: hsl(343 81% 60%);
+  --red-500: hsl(343 81% 75%);
+  --red-600: hsl(343 81% 80%);
+  --red-700: hsl(343 81% 85%);
+  --red-800: hsl(343 81% 90%);
+  --red-900: hsl(343 81% 95%);
+
+  /* Catppuccin Mocha - Peach Scale */
+  --peach-50: hsl(23 92% 15%);
+  --peach-100: hsl(23 92% 25%);
+  --peach-200: hsl(23 92% 35%);
+  --peach-300: hsl(23 92% 45%);
+  --peach-400: hsl(23 92% 60%);
+  --peach-500: hsl(23 92% 75%);
+  --peach-600: hsl(23 92% 80%);
+  --peach-700: hsl(23 92% 85%);
+  --peach-800: hsl(23 92% 90%);
+  --peach-900: hsl(23 92% 95%);
+
+  /* Catppuccin Mocha - Yellow Scale */
+  --yellow-50: hsl(41 86% 15%);
+  --yellow-100: hsl(41 86% 25%);
+  --yellow-200: hsl(41 86% 35%);
+  --yellow-300: hsl(41 86% 45%);
+  --yellow-400: hsl(41 86% 64%);
+  --yellow-500: hsl(41 86% 83%);
+  --yellow-600: hsl(41 86% 87%);
+  --yellow-700: hsl(41 86% 90%);
+  --yellow-800: hsl(41 86% 93%);
+  --yellow-900: hsl(41 86% 95%);
+
+  /* Catppuccin Mocha - Green Scale */
+  --green-50: hsl(115 54% 15%);
+  --green-100: hsl(115 54% 25%);
+  --green-200: hsl(115 54% 35%);
+  --green-300: hsl(115 54% 46%);
+  --green-400: hsl(115 54% 61%);
+  --green-500: hsl(115 54% 76%);
+  --green-600: hsl(115 54% 81%);
+  --green-700: hsl(115 54% 85%);
+  --green-800: hsl(115 54% 90%);
+  --green-900: hsl(115 54% 95%);
+
+  /* Catppuccin Mocha - Teal Scale */
+  --teal-50: hsl(170 57% 15%);
+  --teal-100: hsl(170 57% 25%);
+  --teal-200: hsl(170 57% 35%);
+  --teal-300: hsl(170 57% 45%);
+  --teal-400: hsl(170 57% 59%);
+  --teal-500: hsl(170 57% 73%);
+  --teal-600: hsl(170 57% 78%);
+  --teal-700: hsl(170 57% 83%);
+  --teal-800: hsl(170 57% 88%);
+  --teal-900: hsl(170 57% 93%);
+
+  /* Catppuccin Mocha - Blue Scale */
+  --blue-50: hsl(217 92% 15%);
+  --blue-100: hsl(217 92% 25%);
+  --blue-200: hsl(217 92% 35%);
+  --blue-300: hsl(217 92% 46%);
+  --blue-400: hsl(217 92% 61%);
+  --blue-500: hsl(217 92% 76%);
+  --blue-600: hsl(217 92% 81%);
+  --blue-700: hsl(217 92% 85%);
+  --blue-800: hsl(217 92% 90%);
+  --blue-900: hsl(217 92% 95%);
+
+  /* Catppuccin Mocha - Sapphire Scale */
+  --sapphire-50: hsl(199 76% 15%);
+  --sapphire-100: hsl(199 76% 25%);
+  --sapphire-200: hsl(199 76% 35%);
+  --sapphire-300: hsl(199 76% 45%);
+  --sapphire-400: hsl(199 76% 57%);
+  --sapphire-500: hsl(199 76% 69%);
+  --sapphire-600: hsl(199 76% 75%);
+  --sapphire-700: hsl(199 76% 81%);
+  --sapphire-800: hsl(199 76% 87%);
+  --sapphire-900: hsl(199 76% 93%);
+
+  /* Catppuccin Mocha - Mauve Scale */
+  --mauve-50: hsl(267 84% 15%);
+  --mauve-100: hsl(267 84% 25%);
+  --mauve-200: hsl(267 84% 35%);
+  --mauve-300: hsl(267 84% 48%);
+  --mauve-400: hsl(267 84% 64%);
+  --mauve-500: hsl(267 84% 81%);
+  --mauve-600: hsl(267 84% 85%);
+  --mauve-700: hsl(267 84% 88%);
+  --mauve-800: hsl(267 84% 92%);
+  --mauve-900: hsl(267 84% 95%);
+
+  /* Base theme colors */
   --background: hsl(240 21.05% 14.9%); /* base */
   --foreground: hsl(226 63.93% 88.04%); /* text */
   --card: hsl(240 21.05% 14.9%); /* base */
   --card-foreground: hsl(226 63.93% 88.04%); /* text */
   --popover: hsl(240 21.05% 14.9%); /* base */
   --popover-foreground: hsl(226 63.93% 88.04%); /* text */
-  --primary: hsl(115 54.1% 76.08%); /* accent - Green */
+  --primary: var(--green-500);
   --primary-foreground: hsl(240 21.05% 14.9%); /* base */
   --secondary: hsl(237 16.24% 22.94%); /* surface0 */
   --secondary-foreground: hsl(226 63.93% 88.04%); /* text */
@@ -92,18 +398,21 @@
   --muted-foreground: hsl(227 35.29% 80%); /* subtext1 */
   --accent: hsl(237 16.24% 22.94%); /* surface0 */
   --accent-foreground: hsl(226 63.93% 88.04%); /* text */
-  --destructive: hsl(343 81.25% 74.9%); /* red */
+  --destructive: var(--red-500);
   --border: hsl(234 13.21% 31.18%); /* surface1 */
   --input: hsl(234 13.21% 31.18%); /* surface1 */
   --ring: hsl(226 63.93% 88.04%); /* text */
-  --chart-1: hsl(329 21.57% 37.25%); /* red */
-  --chart-2: hsl(188 18.82% 37.25%); /* teal */
-  --chart-3: hsl(221 27.45% 39.61%); /* blue */
-  --chart-4: hsl(30 9.41% 42.35%); /* yellow */
-  --chart-5: hsl(139 12.94% 38.04%); /* green */
+
+  /* Chart colors - now using semantic colors */
+  --chart-1: var(--red-500);
+  --chart-2: var(--teal-500);
+  --chart-3: var(--blue-500);
+  --chart-4: var(--yellow-500);
+  --chart-5: var(--green-500);
+
   --sidebar: hsl(240 21.18% 14.12%); /* mantle */
   --sidebar-foreground: hsl(226 63.93% 88.04%); /* text */
-  --sidebar-primary: hsl(115 54.1% 76.08%); /* accent - Green */
+  --sidebar-primary: var(--green-500);
   --sidebar-primary-foreground: hsl(240 21.05% 14.9%); /* base */
   --sidebar-accent: hsl(240 21.05% 14.9%); /* surface0 */
   --sidebar-accent-foreground: hsl(226 63.93% 88.04%); /* text */
@@ -118,4 +427,101 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.keypears-prose {
+  @apply prose prose-lg dark:prose-invert;
+  color: var(--color-foreground);
+}
+
+.keypears-prose a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.keypears-prose a:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.keypears-prose :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(h1) {
+  opacity: 1;
+}
+
+.keypears-prose :where(h2) {
+  opacity: 0.95;
+}
+
+.keypears-prose :where(h3) {
+  opacity: 0.9;
+}
+
+.keypears-prose :where(h4) {
+  opacity: 0.85;
+}
+
+.keypears-prose :where(h5) {
+  opacity: 0.8;
+}
+
+.keypears-prose :where(h6) {
+  opacity: 0.75;
+}
+
+.keypears-prose :where(strong, b) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(blockquote) {
+  color: var(--color-muted-foreground);
+  border-left-color: var(--color-border);
+}
+
+.keypears-prose :where(code) {
+  color: var(--color-foreground);
+  background-color: var(--color-secondary);
+  border-color: var(--color-border);
+}
+
+.keypears-prose :where(pre) {
+  background-color: var(--color-secondary);
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(pre code) {
+  background-color: transparent;
+}
+
+.keypears-prose :where(hr) {
+  border-color: var(--color-border);
+}
+
+.keypears-prose :where(ul > li)::marker,
+.keypears-prose :where(ol > li)::marker {
+  color: var(--color-muted-foreground);
+}
+
+.keypears-prose :where(table) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(thead) {
+  border-bottom-color: var(--color-border);
+}
+
+.keypears-prose :where(thead th) {
+  color: var(--color-foreground);
+}
+
+.keypears-prose :where(tbody tr) {
+  border-bottom-color: var(--color-border);
+}
+
+.keypears-prose :where(figcaption) {
+  color: var(--color-muted-foreground);
 }
