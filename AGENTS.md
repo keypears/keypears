@@ -76,6 +76,19 @@ At this time, there are three projects:
 Note that the project is very early in its development and will likely change in
 structure with time.
 
+### Development Workflow for `@keypears/lib`
+
+When making changes to the `lib` package, always run the following commands in
+order from the `lib` directory:
+
+1. `pnpm run typecheck` - Type check the TypeScript code
+2. `pnpm run lint` - Lint the code with ESLint
+3. `pnpm run format` - Format the code with Prettier
+4. `pnpm run build` - Build the package
+
+All commands must pass without errors before committing changes. This ensures
+code quality and prevents breaking changes from being introduced.
+
 ## Folder Layout
 
 At the top level, the repository has the following folders:
