@@ -3,6 +3,8 @@ import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
+import { Button } from "~/components/ui/button";
+import { Sparkles } from "lucide-react";
 import type { Route } from "./+types/_index";
 
 export function meta({}: Route.MetaArgs) {
@@ -46,6 +48,28 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Header />
+
+        {/* Beta Banner */}
+        <section className="mt-12">
+          <Link to="/secret">
+            <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-green-500 to-teal-500 p-8 text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] hover:shadow-xl">
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <Sparkles size={32} className="mb-4" />
+                <h2 className="mb-2 text-3xl font-bold">Try the Beta!</h2>
+                <p className="mb-6 text-lg opacity-90">
+                  Generate secure, easy-to-type passwords with our password
+                  generator
+                </p>
+                <Button
+                  size="lg"
+                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                >
+                  Launch Password Generator
+                </Button>
+              </div>
+            </div>
+          </Link>
+        </section>
 
         {recentPosts.length > 0 && (
           <section className="mt-16">
