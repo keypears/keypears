@@ -23,8 +23,8 @@ export default function AppIndex() {
               <p className="mb-6 text-sm text-muted-foreground">
                 Create your first vault to get started
               </p>
-              <Button size="lg" className="w-full">
-                Create Vault
+              <Button size="lg" className="w-full" asChild>
+                <Link to="/new-vault/1">Create Vault</Link>
               </Button>
             </div>
           </div>
