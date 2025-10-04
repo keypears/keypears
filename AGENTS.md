@@ -5,7 +5,8 @@ problems:
 
 - Allow local-first password management with synchronization across devices.
   Synchronization is handled by a permissionless marketplace of third-party
-  service providers using a common protocol, similar to email.
+  service providers using a common protocol, similar to email. The protocol and
+  most software is open-source, and anyone can run a KeyPears node for free.
 - Allow sharing secrets user-to-user with end-to-end encryption. The fundamental
   idea is that user `alice@example.com` has a public/private key pair, and
   `bob@example2.com` has another public/private key pair. Using Diffie-Hellman
@@ -14,6 +15,17 @@ problems:
   network architecture is very similar to email, except it has a
   cryptography-first design where users must have their own key pairs to share
   secrets.
+
+## Intended Users
+
+Although long-term we want KeyPears to be used by anyone, the primary initial
+users fall into two categories:
+
+- Cryptocurrency users who want self-custody of their passwords and secrets,
+  including cryptocurrency wallet keys.
+- Business users who need to share secrets securely among team members and who
+  do not have a company Bitwarden or 1Password account. KeyPears allows them to
+  run their own node completely for free, similar in principle to email.
 
 ## Project Structure
 
@@ -47,7 +59,7 @@ workspace file is `pnpm-workspace.yaml`.
 The project is primarily written in TypeScript with some Rust code in the Tauri
 application. We use node.js as the TypeScript runtime.
 
-## TypeScript Patterns
+### TypeScript Patterns
 
 We have some principles for how we write all TypeScript code throughout the
 entire monorepo:
@@ -61,3 +73,19 @@ entire monorepo:
   the orpc API definitions.
 - Always use `WebBuf` and associated tools like `FixedBuf` for binary data. The
   corresponding `npm` packages are `@webbuf/webbuf` and `@webbuf/fixedbuf`.
+- Always used `shadcn` for components. There is a catppuccin-esque theme defined
+  in the `css` files for shadcn.
+- Always use `pnpm run lint` to lint code before committing.
+- Always use `pnpm run test` to run tests before committing.
+- Always use `pnpm run typecheck` to typecheck code before committing.
+
+### Rust Patterns
+
+- Never use `unwrap` without proper handling of error-cases immediately before.
+
+## Concluding Thoughts
+
+KeyPears is a new type of password manager designed for full self-custody of
+passwords while simultaneously solving the problem of synchronization and
+sharing. The basic idea is to invent a crypto-first protocol similar in
+architecture to email, but for passwords and other types of secrets.
