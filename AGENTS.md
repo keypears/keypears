@@ -156,6 +156,20 @@ given the strong password requirements and cross-platform constraints. The
 threat model assumes high-entropy user passwords rather than defending against
 large-scale offline attacks on weak passwords.
 
+## Icons
+
+Both `webapp` and `tauri` have a `raw-icons/` folder containing source PNG
+files. Running `pnpm run build:icons` generates multiple sizes and formats to
+`public/images/` and auto-generates `app/util/aicons.ts` with type-safe icon
+paths.
+
+All icons are generated at 3x the display size to ensure crisp rendering on
+Retina and high-DPI displays (e.g., 100×100px display → 300×300px image).
+Images are output as WebP (primary), PNG (compatibility), and ICO (favicon).
+
+The `$aicon()` helper provides compile-time type safety for icon paths,
+preventing typos and enabling IDE autocomplete.
+
 ## Style
 
 All apps are mobile-first apps, meaning they are designed with one primary
