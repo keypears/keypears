@@ -40,8 +40,9 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
             ))}
           </div>
         )}
+
+        <Footer />
       </div>
-      <Footer />
     </div>
   );
 }

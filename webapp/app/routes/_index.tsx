@@ -65,8 +65,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </div>
           </section>
         )}
+
+        <Footer />
       </div>
-      <Footer />
     </div>
   );
 }

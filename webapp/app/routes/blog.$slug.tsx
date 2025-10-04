@@ -30,7 +30,7 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <article className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-3xl px-4 py-8">
         <Header />
 
         <Link
@@ -40,20 +40,21 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
           ← Back to blog
         </Link>
 
-        <header className="mb-8 space-y-4">
+        <article className="mb-8 space-y-4">
           <h1 className="text-3xl font-bold md:text-4xl">{post.title}</h1>
           <div className="text-sm text-muted-foreground">
             {formatDate(post.date)} · {post.author}
           </div>
           <hr className="border-border" />
-        </header>
+        </article>
 
         <div
           className="prose prose-lg dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: post.htmlContent }}
         />
-      </article>
-      <Footer />
+
+        <Footer />
+      </div>
     </div>
   );
 }
