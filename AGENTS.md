@@ -123,6 +123,10 @@ entire monorepo:
   corresponding `npm` packages are `@webbuf/webbuf` and `@webbuf/fixedbuf`.
 - Always use `shadcn` for components. There is a catppuccin-esque theme defined
   in the `css` files for shadcn.
+- Always use `lucide-react` for icons. Never hard-code SVG icons inline in
+  components. Import icons from `lucide-react` (e.g., `import { Copy, Check }
+  from "lucide-react"`) and use them as React components with appropriate size
+  props.
 - Always use `pnpm run lint` to lint code before committing.
 - Always use `pnpm run test` to run tests before committing.
 - Always use `pnpm run typecheck` to typecheck code before committing.
