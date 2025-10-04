@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>KeyPears Blog</title>
+        <link>https://keypears.com</link>
+        <description>Updates and insights from the KeyPears team</description>
+        <lastBuildDate>Sat, 04 Oct 2025 11:35:25 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <language>en</language>
+        <copyright>Copyright 2025 Identellica LLC</copyright>
+        <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Introducing KeyPears: A New Approach to Password Management]]></title>
+            <link>https://keypears.com/blog/2025-10-04-introducing-keypears</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-10-04-introducing-keypears</guid>
+            <pubDate>Sat, 04 Oct 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the modern era of digital security and self-custody.</p>
+<h2>Why KeyPears?</h2>
+<p>Traditional password managers have served ...]]></description>
+            <content:encoded><![CDATA[<p>We're excited to announce KeyPears, a new password manager designed for the modern era of digital security and self-custody.</p>
+<h2>Why KeyPears?</h2>
+<p>Traditional password managers have served us well, but they come with limitations. Most rely on centralized services, creating single points of failure and raising questions about who truly controls your most sensitive data. KeyPears takes a different approach.</p>
+<h2>Local-First, Sync-Enabled</h2>
+<p>KeyPears is built on a local-first architecture. Your secrets live on your devices, encrypted with keys only you control. But unlike purely local solutions, KeyPears solves the synchronization problem through a permissionless marketplace of third-party service providers using an open protocol—similar to how email works.</p>
+<p>Anyone can run a KeyPears node. The protocol is open source. You maintain full self-custody while enjoying seamless synchronization across all your devices.</p>
+<h2>Built for Sharing</h2>
+<p>Modern work requires secure secret sharing. KeyPears uses end-to-end encryption with public/private key pairs for each user. When alice@example.com needs to share a secret with bob@example2.com, they use Diffie-Hellman key exchange to derive a shared secret that only they know. The architecture mirrors email, but with cryptography-first design.</p>
+<h2>More Than Passwords</h2>
+<p>While we call it a password manager, KeyPears is designed to handle:</p>
+<ul>
+<li>Passwords</li>
+<li>Cryptocurrency wallet keys</li>
+<li>API keys</li>
+<li>Environment variables</li>
+<li>SSH keys</li>
+<li>PGP keys</li>
+</ul>
+<p>For cryptocurrency users seeking self-custody and businesses that need secure secret sharing without expensive enterprise subscriptions, KeyPears offers a compelling alternative.</p>
+<h2>What's Next</h2>
+<p>KeyPears is in active development. We're building native applications for Windows, macOS, Linux, Android, and iOS using Tauri. The project is Apache 2.0 licensed and open source.</p>
+<p>This is just the beginning. We're excited to build KeyPears with the community and create a new standard for secure, self-custodied secret management.</p>
+<p>Stay tuned for more updates as we continue development.</p>]]></content:encoded>
+        </item>
+    </channel>
+</rss>

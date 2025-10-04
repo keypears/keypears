@@ -5,6 +5,27 @@ export function meta({}: Route.MetaArgs) {
   return [
     { title: "KeyPears" },
     { name: "description", content: "Welcome to KeyPears!" },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/rss+xml",
+      title: "KeyPears Blog RSS Feed",
+      href: "/blog/feed.xml",
+    },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/atom+xml",
+      title: "KeyPears Blog Atom Feed",
+      href: "/blog/atom.xml",
+    },
+    {
+      tagName: "link",
+      rel: "alternate",
+      type: "application/json",
+      title: "KeyPears Blog JSON Feed",
+      href: "/blog/feed.json",
+    },
   ];
 }
 
