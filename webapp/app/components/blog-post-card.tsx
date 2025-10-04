@@ -12,7 +12,7 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
       <div className="space-y-1">
         <Link
           to={`/blog/${post.slug}`}
-          className="text-lg font-semibold text-primary hover:underline"
+          className="text-lg font-semibold text-primary hover:underline hover:opacity-80 transition-opacity"
         >
           {post.title}
         </Link>
@@ -29,7 +29,7 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
         to={`/blog/${post.slug}`}
         className="block space-y-3"
       >
-        <h2 className="text-xl font-semibold text-primary hover:underline">
+        <h2 className="text-xl font-semibold text-primary hover:underline hover:opacity-80 transition-opacity">
           {post.title}
         </h2>
         <div className="text-sm text-muted-foreground">
