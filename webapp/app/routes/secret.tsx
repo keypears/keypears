@@ -3,6 +3,7 @@ import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Slider } from "~/components/ui/slider";
+import { Progress } from "~/components/ui/progress";
 import type { Route } from "./+types/secret";
 
 export function meta({}: Route.MetaArgs) {
@@ -83,12 +84,7 @@ export default function Secret() {
                 <span className="text-foreground">Entropy: 75.2 bits</span>
                 <span className="text-muted-foreground">Good</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-secondary">
-                <div
-                  className="h-2 rounded-full bg-primary transition-all"
-                  style={{ width: "60%" }}
-                />
-              </div>
+              <Progress value={60} />
             </div>
 
             {/* Length Slider */}
