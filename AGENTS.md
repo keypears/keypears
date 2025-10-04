@@ -1,6 +1,6 @@
 # Guide for AI Agents Working on KeyPears
 
-The KeyPears project is a new password manager designed to solve the following
+The KeyPears project is a new secret manager designed to solve the following
 problems:
 
 - Allow local-first password management with synchronization across devices.
@@ -22,10 +22,27 @@ Although long-term we want KeyPears to be used by anyone, the primary initial
 users fall into two categories:
 
 - Cryptocurrency users who want self-custody of their passwords and secrets,
-  including cryptocurrency wallet keys.
+  including cryptocurrency wallet keys. In the future, we may even add
+  first-class support for cryptocurrency wallets directly in KeyPears.
 - Business users who need to share secrets securely among team members and who
   do not have a company Bitwarden or 1Password account. KeyPears allows them to
-  run their own node completely for free, similar in principle to email.
+  run their own node completely for free, similar in principle to email. They
+  can also sign up for the free tier of `keypears.com`.
+
+## Intended Secrets
+
+KeyPears may be called a "password manager," but the idea is to go further than
+just passwords. We intend to provide first-class support for:
+
+- Passwords
+- Cryptocurrency wallet keys
+- API keys
+- Environment variables such as database connection strings
+- SSH keys
+- PGP keys
+
+KeyPears may also be called a "secret manager" or "credential manager" or "key
+manager" or "password vault" or "password safe" or "digital vault."
 
 ## Project Structure
 
@@ -82,6 +99,15 @@ entire monorepo:
 ### Rust Patterns
 
 - Never use `unwrap` without proper handling of error-cases immediately before.
+- Never use unsafe code.
+- Always use `cargo fmt` to format code before committing.
+- Always use `cargo clippy` to lint code before committing.
+
+## Company
+
+KeyPears is an Apache 2.0-licensed project created by Identellica LLC.
+Identellica is a pseudonymous identity verification service with a need for
+secure secret management and sharing.
 
 ## Concluding Thoughts
 
