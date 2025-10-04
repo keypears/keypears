@@ -18,6 +18,7 @@ export function PasswordGenerator() {
   const [symbols, setSymbols] = useState(false);
   const [entropy, setEntropy] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Generate password whenever settings change
   useEffect(() => {
@@ -103,6 +104,7 @@ export function PasswordGenerator() {
             size="icon-sm"
             aria-label="Regenerate password"
             onClick={() => {
+              setRefreshing(true);
               const newPassword = generateSecurePassword({
                 length,
                 lowercase,
@@ -111,9 +113,13 @@ export function PasswordGenerator() {
                 symbols,
               });
               setPassword(newPassword);
+              setTimeout(() => setRefreshing(false), 1000);
             }}
           >
-            <RotateCw size={20} />
+            <RotateCw
+              size={20}
+              className={refreshing ? "animate-spin" : ""}
+            />
           </Button>
         </div>
       </div>
@@ -226,6 +232,7 @@ export function PasswordGenerator() {
         className="w-full"
         size="lg"
         onClick={() => {
+          setRefreshing(true);
           const newPassword = generateSecurePassword({
             length,
             lowercase,
@@ -234,6 +241,7 @@ export function PasswordGenerator() {
             symbols,
           });
           setPassword(newPassword);
+          setTimeout(() => setRefreshing(false), 1000);
         }}
       >
         Generate New Password
