@@ -69,7 +69,9 @@ At the top level, the repository has the following folders:
 - `webapp`: The source code for `@keypears/webapp`.
 
 All projects are managed with `pnpm` and share a common pnpm workspace. The pnpm
-workspace file is `pnpm-workspace.yaml`.
+workspace file is `pnpm-workspace.yaml`. Most likely, more projects will be
+added with time. For instance, it is likely we will create a package for the API
+client.
 
 ## Programming Languages
 
