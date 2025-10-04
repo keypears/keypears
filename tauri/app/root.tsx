@@ -8,6 +8,12 @@ import {
 } from "react-router";
 import "./app.css";
 import type { Route } from "./+types/root";
+import { runMigrations } from "./db/migrate";
+
+export async function clientLoader() {
+  await runMigrations();
+  return null;
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -50,9 +56,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// export function HydrateFallback() {
-//   return <div>Loading...</div>;
-// }
+export function HydrateFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="text-xl font-semibold text-foreground">
+          Migrating the database...
+        </h1>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   return <Outlet />;

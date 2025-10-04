@@ -11,7 +11,9 @@
     "typecheck": "react-router typegen && tsc --noEmit",
     "build:old": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "db:migrate": "drizzle-kit generate",
+    "db:delete": "rm -f ~/Library/Application\\ Support/keypears-tauri/keypears.db*"
   },
   "dependencies": {
     "@keypears/lib": "workspace:^",
