@@ -20,11 +20,11 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
       <div className="flex flex-1 flex-col px-4 py-8">
         <div className="mx-auto w-full max-w-2xl">
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Your Vaults</h1>
+            <h1 className="text-2xl font-bold">Vaults</h1>
             {vaults.length > 0 && (
               <div className="flex gap-2">
                 <Button variant="outline" asChild>
-                  <Link to="#">Import Existing Vault</Link>
+                  <Link to="#">Import Vault</Link>
                 </Button>
                 <Button asChild>
                   <Link to="/new-vault/1">Create Vault</Link>
