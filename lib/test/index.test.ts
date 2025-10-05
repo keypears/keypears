@@ -8,7 +8,6 @@ import {
   encryptKey,
   generateKey,
   generateSecurePassword,
-  generateSecureLowercasePassword,
 } from "~src/index";
 
 describe("Index", () => {
@@ -118,15 +117,6 @@ describe("Index", () => {
       const password1 = generateSecurePassword({ length: 16 });
       const password2 = generateSecurePassword({ length: 16 });
       expect(password1).not.toEqual(password2);
-    });
-  });
-
-  describe("generateSecureLowercasePassword", () => {
-    it("should generate a secure lowercase password of specified length", () => {
-      const length = 16;
-      const password = generateSecureLowercasePassword(length);
-      expect(password).toHaveLength(length);
-      expect(/^[a-z]+$/.test(password)).toBe(true); // Only lowercase letters
     });
   });
 

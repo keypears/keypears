@@ -181,15 +181,6 @@ export function generateSecurePassword(options: PasswordOptions): string {
 }
 
 /**
- * Generates a cryptographically secure random password with lowercase letters
- * Uses rejection sampling to avoid modulo bias
- * @deprecated Use generateSecurePassword instead
- */
-export function generateSecureLowercasePassword(length: number): string {
-  return generateSecurePassword({ length, lowercase: true });
-}
-
-/**
  * Calculates the entropy (in bits) of a password given its length and character sets
  * Entropy = log2(charset_size^length) = length * log2(charset_size)
  *
