@@ -3,6 +3,7 @@ import { initTestDb, resetTestDb, closeTestDb } from "../test-init";
 import {
   createVault,
   getVault,
+  getVaultByName,
   getVaults,
   countVaults,
 } from "~app/db/models/vault";
@@ -79,6 +80,24 @@ describe("Vault Model", () => {
 
     it("should return undefined for non-existent ID", async () => {
       const result = await getVault("non-existent-id");
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("getVaultByName", () => {
+    it("should retrieve a vault by name", async () => {
+      const created = await createVault("myVault");
+
+      const result = await getVaultByName("myVault");
+
+      expect(result).toBeDefined();
+      expect(result?.id).toBe(created.id);
+      expect(result?.name).toBe("myVault");
+    });
+
+    it("should return undefined for non-existent name", async () => {
+      const result = await getVaultByName("nonExistent");
 
       expect(result).toBeUndefined();
     });

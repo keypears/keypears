@@ -1,53 +1,104 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
+import { vaultNameSchema } from "@keypears/lib";
+import { createVault, getVaultByName } from "~app/db/models/vault";
+import { ZodError } from "zod";
 
 export function NewVaultName() {
   const navigate = useNavigate();
-  const [name, setName] = useState("passwords");
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const validateName = (value: string): boolean => {
-    // Must start with a letter
-    if (!/^[a-z]/.test(value)) {
-      setError("Name must start with a letter");
+  // Validate name format with Zod
+  const validateFormat = (value: string): boolean => {
+    try {
+      vaultNameSchema.parse(value);
+      setError(""); // Clear error on success
+      return true;
+    } catch (err) {
+      if (err instanceof ZodError) {
+        setError(err.issues[0]?.message || "Invalid name");
+      }
       return false;
     }
-
-    // Only lowercase letters and numbers
-    if (!/^[a-z][a-z0-9]*$/.test(value)) {
-      setError("Only lowercase letters and numbers allowed");
-      return false;
-    }
-
-    setError("");
-    return true;
   };
+
+  // Check if name already exists in database
+  const checkNameExists = async (value: string): Promise<boolean> => {
+    setIsChecking(true);
+    try {
+      const existing = await getVaultByName(value);
+      if (existing) {
+        setError("A vault with this name already exists");
+        return true;
+      }
+      return false;
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Validate name on change with debounce for database check
+  useEffect(() => {
+    if (!name) {
+      setError("");
+      return;
+    }
+
+    // First validate format
+    if (!validateFormat(name)) {
+      return;
+    }
+
+    // Then check if name exists (debounced)
+    const timer = setTimeout(() => {
+      checkNameExists(name);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [name]);
 
   const handleNameChange = (value: string) => {
     setName(value);
-    if (value) {
-      validateName(value);
-    } else {
-      setError("");
+  };
+
+  const handleCreate = async () => {
+    // Validate format
+    if (!validateFormat(name)) {
+      return;
+    }
+
+    // Check if name exists
+    const exists = await checkNameExists(name);
+    if (exists) {
+      return;
+    }
+
+    // Create vault
+    setIsCreating(true);
+    try {
+      await createVault(name);
+      // Navigate to home page on success
+      navigate("/");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create vault",
+      );
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const handleNext = () => {
-    if (validateName(name)) {
-      // Navigate to step 2 (password selection)
-      navigate("/new-vault/2");
-    }
-  };
-
-  const isValid = name.length > 0 && !error;
+  const isValid = name.length > 0 && !error && !isChecking;
 
   return (
     <div className="border-border bg-card rounded-lg border p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create New Vault</h1>
-        <p className="text-muted-foreground mt-2 text-sm">Step 1 of 3</p>
       </div>
 
       <div className="mb-6">
@@ -64,15 +115,22 @@ export function NewVaultName() {
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="passwords"
             className={error ? "border-red-500" : ""}
+            disabled={isCreating}
           />
           <p className="text-muted-foreground text-xs">
-            Your vault: <span className="font-mono">{name}@localhost</span>
+            Your vault: <span className="font-mono">{name || "___"}@localhost</span>
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
+          {isChecking && (
+            <p className="text-muted-foreground text-xs">
+              Checking availability...
+            </p>
+          )}
         </div>
 
         <div className="text-muted-foreground mt-4 space-y-1 text-xs">
-          <p>• Lowercase letters and numbers only</p>
+          <p>• 3-20 characters</p>
+          <p>• Letters and numbers only</p>
           <p>• Must start with a letter</p>
           <p>• Name must be unique</p>
         </div>
@@ -82,10 +140,10 @@ export function NewVaultName() {
         <Button
           className="w-full"
           size="lg"
-          onClick={handleNext}
-          disabled={!isValid}
+          onClick={handleCreate}
+          disabled={!isValid || isCreating}
         >
-          Next
+          {isCreating ? "Creating..." : "Create Vault"}
         </Button>
         <div className="text-center">
           <Link
