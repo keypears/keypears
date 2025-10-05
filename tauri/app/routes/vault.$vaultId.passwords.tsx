@@ -31,7 +31,7 @@ export default function VaultPasswordsLayout() {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar />
+      <Navbar showBackButton />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Outlet />
       </div>
