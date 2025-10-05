@@ -41,7 +41,8 @@
     "react-dom": "^19.2.0",
     "react-router": "^7.9.3",
     "safe-routes": "^1.0.18",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "ulid": "3.0.1"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",

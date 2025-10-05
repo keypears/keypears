@@ -3,7 +3,7 @@ import { vaults } from "../schema";
 import { eq, count } from "drizzle-orm";
 
 export interface Vault {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -12,7 +12,7 @@ export async function createVault(name: string): Promise<Vault> {
   return result[0];
 }
 
-export async function getVault(id: number): Promise<Vault | undefined> {
+export async function getVault(id: string): Promise<Vault | undefined> {
   const result = await db.select().from(vaults).where(eq(vaults.id, id));
   return result[0];
 }

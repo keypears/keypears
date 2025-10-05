@@ -49,7 +49,10 @@ describe("Vault Model", () => {
     });
 
     it("should return empty array for non-existent ID", async () => {
-      const result = await db.select().from(vaults).where(eq(vaults.id, 99999));
+      const result = await db
+        .select()
+        .from(vaults)
+        .where(eq(vaults.id, "non-existent-id"));
 
       expect(result).toHaveLength(0);
     });
