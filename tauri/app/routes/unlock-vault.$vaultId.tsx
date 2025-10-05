@@ -1,6 +1,7 @@
 import type { MetaFunction } from "react-router";
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import type { Route } from "./+types/unlock-vault.$vaultId";
+import { useState } from "react";
+import { redirect, useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -10,46 +11,39 @@ import { cn } from "~app/lib/utils";
 import { getVault } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import { useVault } from "~app/contexts/vault-context";
+import { isVaultUnlocked } from "~app/lib/vault-session";
 
-export default function UnlockVault() {
-  const params = useParams();
-  const navigate = useNavigate();
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const vaultId = params.vaultId;
+
+  if (!vaultId) {
+    throw redirect("/");
+  }
+
+  // Check if vault is already unlocked
+  if (isVaultUnlocked(vaultId)) {
+    // Redirect to vault's password page
+    throw redirect(`/vault/${vaultId}/passwords`);
+  }
+
+  // Load vault data
+  const vault = await getVault(vaultId);
+  if (!vault) {
+    throw redirect("/");
+  }
+
+  return { vault };
+}
+
+export default function UnlockVault({ loaderData }: Route.ComponentProps) {
   const { unlockVault } = useVault();
+  const navigate = useNavigate();
 
-  const [vault, setVault] = useState<{
-    id: string;
-    name: string;
-    encryptedVaultKey: string;
-    hashedVaultKey: string;
-  } | null>(null);
+  const vault = loaderData.vault;
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
-
-  // Load vault on mount
-  useEffect(() => {
-    const loadVault = async () => {
-      if (!params.vaultId) {
-        navigate("/");
-        return;
-      }
-
-      const loadedVault = await getVault(params.vaultId);
-      if (!loadedVault) {
-        navigate("/");
-        return;
-      }
-
-      setVault(loadedVault);
-    };
-
-    loadVault();
-  }, [params.vaultId, navigate]);
-
-  if (!vault) {
-    return null;
-  }
 
   const entropy =
     password.length > 0

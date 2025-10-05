@@ -19,7 +19,7 @@ export function UserMenu() {
   }
 
   const handleLockVault = () => {
-    lockVault(activeVault.vaultId);
+    lockVault();
     navigate("/", { replace: true });
   };
 

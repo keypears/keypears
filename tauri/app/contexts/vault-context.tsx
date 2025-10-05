@@ -7,6 +7,10 @@ import {
   decryptPassword as libDecryptPassword,
   WebBuf,
 } from "@keypears/lib";
+import {
+  markVaultUnlocked,
+  markVaultLocked,
+} from "~app/lib/vault-session";
 
 interface UnlockedVault {
   vaultId: string;
@@ -17,15 +21,13 @@ interface UnlockedVault {
 
 interface VaultContextType {
   activeVault: UnlockedVault | null;
-  unlockedVaults: UnlockedVault[];
   unlockVault: (
     vaultId: string,
     vaultName: string,
     passwordKey: FixedBuf<32>,
     encryptedVaultKey: string,
   ) => void;
-  lockVault: (vaultId: string) => void;
-  switchVault: (vaultId: string) => void;
+  lockVault: () => void;
   encryptPassword: (password: string) => string;
   decryptPassword: (encryptedPasswordHex: string) => string;
   getVaultKey: () => FixedBuf<32>;
@@ -34,8 +36,7 @@ interface VaultContextType {
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
 
 export function VaultProvider({ children }: { children: ReactNode }) {
-  const [unlockedVaults, setUnlockedVaults] = useState<UnlockedVault[]>([]);
-  const [activeVaultId, setActiveVaultId] = useState<string | null>(null);
+  const [activeVault, setActiveVault] = useState<UnlockedVault | null>(null);
 
   const unlockVault = (
     vaultId: string,
@@ -43,45 +44,29 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     passwordKey: FixedBuf<32>,
     encryptedVaultKey: string,
   ) => {
-    // Check if vault is already unlocked
-    const existing = unlockedVaults.find((v) => v.vaultId === vaultId);
-
-    if (!existing) {
-      // Add to unlocked vaults
-      setUnlockedVaults([
-        ...unlockedVaults,
-        { vaultId, vaultName, passwordKey, encryptedVaultKey },
-      ]);
+    // If there's a currently unlocked vault, lock it first
+    if (activeVault) {
+      markVaultLocked(activeVault.vaultId);
     }
 
-    // Set as active vault
-    setActiveVaultId(vaultId);
+    // Set the new vault as active (replaces any previous vault)
+    setActiveVault({ vaultId, vaultName, passwordKey, encryptedVaultKey });
+
+    // Mark as unlocked in shared session state
+    markVaultUnlocked(vaultId);
   };
 
-  const lockVault = (vaultId: string) => {
-    // Remove from unlocked vaults
-    setUnlockedVaults(unlockedVaults.filter((v) => v.vaultId !== vaultId));
+  const lockVault = () => {
+    if (!activeVault) return;
 
-    // If this was the active vault, clear active vault
-    if (activeVaultId === vaultId) {
-      // Try to switch to another unlocked vault if available
-      const remaining = unlockedVaults.filter((v) => v.vaultId !== vaultId);
-      setActiveVaultId(remaining.length > 0 ? remaining[0].vaultId : null);
-    }
-  };
+    // Mark as locked in shared session state
+    markVaultLocked(activeVault.vaultId);
 
-  const switchVault = (vaultId: string) => {
-    // Verify vault is unlocked
-    const vault = unlockedVaults.find((v) => v.vaultId === vaultId);
-    if (vault) {
-      setActiveVaultId(vaultId);
-    }
+    // Clear the active vault
+    setActiveVault(null);
   };
 
   const getVaultKey = (): FixedBuf<32> => {
-    const activeVault =
-      unlockedVaults.find((v) => v.vaultId === activeVaultId) || null;
-
     if (!activeVault) {
       throw new Error("No active vault");
     }
@@ -108,17 +93,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     return libDecryptPassword(encryptedPasswordHex, vaultKey);
   };
 
-  const activeVault =
-    unlockedVaults.find((v) => v.vaultId === activeVaultId) || null;
-
   return (
     <VaultContext.Provider
       value={{
         activeVault,
-        unlockedVaults,
         unlockVault,
         lockVault,
-        switchVault,
         encryptPassword,
         decryptPassword,
         getVaultKey,
