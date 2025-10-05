@@ -18,13 +18,13 @@ export function NewVaultName() {
       const vaults = await getVaults();
       const vaultNames = new Set(vaults.map((v) => v.name));
 
-      // Try "password", "password2", "password3", etc.
-      let defaultName = "password";
-      let counter = 2;
+      // Try "passwords1", "passwords2", "passwords3", etc.
+      let counter = 1;
+      let defaultName = `passwords${counter}`;
 
       while (vaultNames.has(defaultName)) {
-        defaultName = `password${counter}`;
         counter++;
+        defaultName = `passwords${counter}`;
       }
 
       setName(defaultName);
