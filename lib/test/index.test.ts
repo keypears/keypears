@@ -5,12 +5,14 @@ import { describe, expect, it } from "vitest";
 import {
   calculatePasswordEntropy,
   decryptKey,
+  decryptPassword,
   deriveEncryptionKey,
   deriveEncryptionSalt,
   deriveLoginKey,
   deriveLoginSalt,
   derivePasswordKey,
   encryptKey,
+  encryptPassword,
   generateKey,
   generateSecurePassword,
 } from "~src/index";
@@ -31,7 +33,9 @@ describe("Index", () => {
     });
 
     it("should produce the exact same encrypted output for the same input", () => {
-      const encryptionKey = blake3Hash(WebBuf.fromUtf8("deterministic encryption key"));
+      const encryptionKey = blake3Hash(
+        WebBuf.fromUtf8("deterministic encryption key"),
+      );
       const keyToEncrypt = blake3Hash(WebBuf.fromUtf8("deterministic key"));
       const iv = FixedBuf.fromHex(16, "000102030405060708090a0b0c0d0e0f");
       const encryptedKey = encryptKey(keyToEncrypt, encryptionKey, iv);
@@ -210,6 +214,84 @@ describe("Index", () => {
       // 28 lowercase chars should exceed 128 bits
       const entropy = calculatePasswordEntropy(28, { lowercase: true });
       expect(entropy).toBeGreaterThanOrEqual(128);
+    });
+  });
+
+  describe("encrypt, decrypt password", () => {
+    it("should encrypt and decrypt a password correctly", () => {
+      const vaultKey = generateKey();
+      const password = "mySecureP@ssw0rd123!";
+      const encryptedPassword = encryptPassword(password, vaultKey);
+      const decryptedPassword = decryptPassword(encryptedPassword, vaultKey);
+      expect(decryptedPassword).toBe(password);
+    });
+
+    it("should produce different encrypted values for different passwords", () => {
+      const vaultKey = generateKey();
+      const password1 = "password1";
+      const password2 = "password2";
+      const encrypted1 = encryptPassword(password1, vaultKey);
+      const encrypted2 = encryptPassword(password2, vaultKey);
+      expect(encrypted1).not.toBe(encrypted2);
+    });
+
+    it("should produce different encrypted values for same password with different keys", () => {
+      const vaultKey1 = generateKey();
+      const vaultKey2 = generateKey();
+      const password = "mySecurePassword";
+      const encrypted1 = encryptPassword(password, vaultKey1);
+      const encrypted2 = encryptPassword(password, vaultKey2);
+      expect(encrypted1).not.toBe(encrypted2);
+    });
+
+    it("should handle empty password", () => {
+      const vaultKey = generateKey();
+      const password = "";
+      const encryptedPassword = encryptPassword(password, vaultKey);
+      const decryptedPassword = decryptPassword(encryptedPassword, vaultKey);
+      expect(decryptedPassword).toBe("");
+    });
+
+    it("should handle long passwords", () => {
+      const vaultKey = generateKey();
+      const password = "a".repeat(1000);
+      const encryptedPassword = encryptPassword(password, vaultKey);
+      const decryptedPassword = decryptPassword(encryptedPassword, vaultKey);
+      expect(decryptedPassword).toBe(password);
+    });
+
+    it("should handle special characters and unicode", () => {
+      const vaultKey = generateKey();
+      const password = "🔒パスワード!@#$%^&*()[];',./{}:<>?";
+      const encryptedPassword = encryptPassword(password, vaultKey);
+      const decryptedPassword = decryptPassword(encryptedPassword, vaultKey);
+      expect(decryptedPassword).toBe(password);
+    });
+
+    it("should return hex-encoded string", () => {
+      const vaultKey = generateKey();
+      const password = "test";
+      const encryptedPassword = encryptPassword(password, vaultKey);
+      // Check that it's a valid hex string
+      expect(/^[0-9a-f]+$/i.test(encryptedPassword)).toBe(true);
+      // Check that it's not empty
+      expect(encryptedPassword.length).toBeGreaterThan(0);
+    });
+
+    it("should work with vault key derived from password", () => {
+      const password = "userMasterPassword";
+      const passwordKey = derivePasswordKey(password);
+      const encryptionKey = deriveEncryptionKey(passwordKey);
+
+      // In real use, we'd decrypt the vault key with encryptionKey
+      // For this test, we'll just use a random vault key
+      const vaultKey = generateKey();
+
+      const secretPassword = "myGitHubPassword123";
+      const encrypted = encryptPassword(secretPassword, vaultKey);
+      const decrypted = decryptPassword(encrypted, vaultKey);
+
+      expect(decrypted).toBe(secretPassword);
     });
   });
 

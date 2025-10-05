@@ -18,19 +18,24 @@ export const vaultNameSchema = z
   .regex(/^[a-z0-9]+$/, "Vault name must contain only alphanumeric characters");
 
 /**
- * the schema for an update to a secret
+ * Schema for a password update (diff)
+ * Only the password itself is encrypted - all metadata remains unencrypted
+ * for efficient searching and display
  */
-export const SecretUpdateSchema = z.object({
-  id: z.ulid(), // id of this update
-  secretId: z.ulid(), // id of the secret being updated
-  name: z.string().min(1).max(255),
-  domain: z.string().optional(),
-  label: z.string().optional(),
-  secretType: z.enum(["password", "env-var", "api-key", "cryptocurrency-key"]),
-  encryptedSecret: z.string().optional(), // encrypted secret data
-  createdAt: z.iso.datetime(),
-  deleted: z.boolean().optional(), // soft delete for sync purposes
+export const PasswordUpdateSchema = z.object({
+  id: z.string(), // ULID of this update
+  secretId: z.string(), // ULID of the password being updated
+  name: z.string().min(1).max(255), // Display name (e.g., "GitHub Account")
+  domain: z.string().max(255).optional(), // Domain (e.g., "github.com")
+  username: z.string().max(255).optional(), // Username for login
+  email: z.string().email().max(255).optional(), // Email for login
+  notes: z.string().max(4096).optional(), // Additional notes
+  encryptedPassword: z.string().optional(), // Encrypted password (hex string)
+  createdAt: z.number(), // Unix timestamp in milliseconds
+  deleted: z.boolean().optional(), // Tombstone flag for soft delete
 });
+
+export type PasswordUpdate = z.infer<typeof PasswordUpdateSchema>;
 
 /** Generates a new random 32-byte key for encrypting a secret file */
 export function generateKey(): FixedBuf<32> {
@@ -192,6 +197,44 @@ export function decryptKey(
 ): FixedBuf<32> {
   const decrypted = acb3Decrypt(encryptedKey, decryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
+}
+
+/**
+ * Encrypts a password string with the vault key
+ *
+ * Takes a plaintext password and encrypts it using ACB3 (AES-256-CBC + Blake3-MAC).
+ * Returns a hex-encoded string suitable for storage in the database.
+ *
+ * @param password - The plaintext password to encrypt
+ * @param vaultKey - The 32-byte vault key used for encryption
+ * @returns Hex-encoded encrypted password string
+ */
+export function encryptPassword(
+  password: string,
+  vaultKey: FixedBuf<32>,
+): string {
+  const passwordBuf = WebBuf.fromUtf8(password);
+  const encrypted = acb3Encrypt(passwordBuf, vaultKey);
+  return encrypted.toHex();
+}
+
+/**
+ * Decrypts an encrypted password string with the vault key
+ *
+ * Takes a hex-encoded encrypted password and decrypts it using ACB3
+ * (AES-256-CBC + Blake3-MAC), returning the plaintext password.
+ *
+ * @param encryptedPasswordHex - Hex-encoded encrypted password
+ * @param vaultKey - The 32-byte vault key used for decryption
+ * @returns Plaintext password string
+ */
+export function decryptPassword(
+  encryptedPasswordHex: string,
+  vaultKey: FixedBuf<32>,
+): string {
+  const encrypted = WebBuf.fromHex(encryptedPasswordHex);
+  const decrypted = acb3Decrypt(encrypted, vaultKey);
+  return decrypted.toUtf8();
 }
 
 /**
