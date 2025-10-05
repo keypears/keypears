@@ -36,3 +36,7 @@ export async function countVaults(): Promise<number> {
   const result = await db.select({ count: count() }).from(vaults);
   return result[0]?.count ?? 0;
 }
+
+export async function deleteVault(id: string): Promise<void> {
+  await db.delete(vaults).where(eq(vaults.id, id));
+}

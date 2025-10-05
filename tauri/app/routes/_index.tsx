@@ -1,11 +1,22 @@
 import type { MetaFunction } from "react-router";
 import type { Route } from "./+types/_index";
-import { Link } from "react-router";
-import { Lock } from "lucide-react";
+import { Link, useRevalidator } from "react-router";
+import { Lock, X } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
-import { getVaults } from "~app/db/models/vault";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~app/components/ui/alert-dialog";
+import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
+import { useState } from "react";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   const vaults = await getVaults();
@@ -14,6 +25,17 @@ export async function clientLoader(_args: Route.ClientLoaderArgs) {
 
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
   const { vaults } = loaderData;
+  const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
+  const revalidator = useRevalidator();
+
+  const handleDelete = async () => {
+    if (!vaultToDelete) return;
+
+    await deleteVault(vaultToDelete.id);
+    setVaultToDelete(null);
+    revalidator.revalidate();
+  };
+
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
@@ -64,6 +86,14 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                     <div className="flex-1">
                       <h3 className="font-semibold">{vault.name}@localhost</h3>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Delete vault"
+                      onClick={() => setVaultToDelete(vault)}
+                    >
+                      <X size={20} />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -72,6 +102,34 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
       <Footer />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!vaultToDelete}
+        onOpenChange={(open: boolean) => !open && setVaultToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Vault?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the vault{" "}
+              <span className="font-semibold">
+                {vaultToDelete?.name}@localhost
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

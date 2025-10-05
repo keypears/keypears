@@ -6,6 +6,7 @@ import {
   getVaultByName,
   getVaults,
   countVaults,
+  deleteVault,
 } from "~app/db/models/vault";
 
 describe("Vault Model", () => {
@@ -138,6 +139,31 @@ describe("Vault Model", () => {
       const count = await countVaults();
 
       expect(count).toBe(0);
+    });
+  });
+
+  describe("deleteVault", () => {
+    it("should delete a vault by ID", async () => {
+      const vault = await createVault("testdelete");
+
+      await deleteVault(vault.id);
+
+      const result = await getVault(vault.id);
+      expect(result).toBeUndefined();
+    });
+
+    it("should decrease vault count after deletion", async () => {
+      await createVault("vault1");
+      const vault2 = await createVault("vault2");
+
+      await deleteVault(vault2.id);
+
+      const count = await countVaults();
+      expect(count).toBe(1);
+    });
+
+    it("should not error when deleting non-existent vault", async () => {
+      await expect(deleteVault("non-existent-id")).resolves.not.toThrow();
     });
   });
 });
