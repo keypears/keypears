@@ -66,9 +66,14 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 <p className="text-muted-foreground mb-6 text-sm">
                   Create your first vault to get started
                 </p>
-                <Button size="lg" className="w-full" asChild>
-                  <Link to="/new-vault/1">Create Vault</Link>
-                </Button>
+                <div className="flex w-full flex-col gap-3">
+                  <Button size="lg" className="w-full" asChild>
+                    <Link to="/new-vault/1">Create Vault</Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="w-full" asChild>
+                    <Link to="#">Import Vault</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
