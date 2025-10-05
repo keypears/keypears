@@ -22,9 +22,14 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-bold">Your Vaults</h1>
             {vaults.length > 0 && (
-              <Button asChild>
-                <Link to="/new-vault/1">Create Vault</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" asChild>
+                  <Link to="#">Import Existing Vault</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/new-vault/1">Create Vault</Link>
+                </Button>
+              </div>
             )}
           </div>
 
@@ -64,16 +69,6 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
               ))}
             </div>
           )}
-
-          {/* Secondary Action */}
-          <div className="mt-4 text-center">
-            <Link
-              to="#"
-              className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
-            >
-              Import Existing Vault
-            </Link>
-          </div>
         </div>
       </div>
       <Footer />
