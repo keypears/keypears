@@ -156,25 +156,40 @@ export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
   return blake3Pbkdf(passwordKey.buf, salt, 100_000);
 }
 
-/** Encrypts a 32-byte key using a password-derived key
- * Optionally accepts an IV for deterministic encryption (for testing)
+/**
+ * Encrypts a key using another key
+ *
+ * Generic encryption function that encrypts one 32-byte key with another
+ * 32-byte key using ACB3 (AES-256-CBC + Blake3-MAC).
+ *
+ * @param keyToEncrypt - The 32-byte key to encrypt
+ * @param encryptionKey - The 32-byte key used for encryption
+ * @param iv - Optional 16-byte IV for deterministic encryption (testing only)
+ * @returns Encrypted key as WebBuf
  */
 export function encryptKey(
-  password: string,
-  key: FixedBuf<32>,
+  keyToEncrypt: FixedBuf<32>,
+  encryptionKey: FixedBuf<32>,
   iv?: FixedBuf<16>,
 ): WebBuf {
-  const hashedPassword = derivePasswordKey(password);
-  return acb3Encrypt(key.buf, hashedPassword, iv);
+  return acb3Encrypt(keyToEncrypt.buf, encryptionKey, iv);
 }
 
-/** Decrypts a 32-byte key using a password-derived key */
+/**
+ * Decrypts a key using another key
+ *
+ * Generic decryption function that decrypts an encrypted key using a
+ * 32-byte decryption key via ACB3 (AES-256-CBC + Blake3-MAC).
+ *
+ * @param encryptedKey - The encrypted key as WebBuf
+ * @param decryptionKey - The 32-byte key used for decryption
+ * @returns Decrypted 32-byte key
+ */
 export function decryptKey(
-  password: string,
   encryptedKey: WebBuf,
+  decryptionKey: FixedBuf<32>,
 ): FixedBuf<32> {
-  const hashedPassword = derivePasswordKey(password);
-  const decrypted = acb3Decrypt(encryptedKey, hashedPassword);
+  const decrypted = acb3Decrypt(encryptedKey, decryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
 }
 

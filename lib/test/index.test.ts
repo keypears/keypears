@@ -21,23 +21,35 @@ describe("Index", () => {
     expect(key.buf.length).toBe(32);
   });
 
-  describe("encrypt, decrypt folder key", () => {
+  describe("encrypt, decrypt key", () => {
     it("should encrypt and decrypt a key correctly", () => {
-      const password = "thisisaverysecurepassword";
+      const encryptionKey = generateKey();
       const originalKey = generateKey();
-      const encryptedKey = encryptKey(password, originalKey);
-      const decryptedKey = decryptKey(password, encryptedKey);
+      const encryptedKey = encryptKey(originalKey, encryptionKey);
+      const decryptedKey = decryptKey(encryptedKey, encryptionKey);
       expect(decryptedKey.buf.toHex()).toEqual(originalKey.buf.toHex());
     });
 
     it("should produce the exact same encrypted output for the same input", () => {
-      const password = "thisisaverysecurepassword";
-      const key = blake3Hash(WebBuf.fromUtf8("deterministic key"));
+      const encryptionKey = blake3Hash(WebBuf.fromUtf8("deterministic encryption key"));
+      const keyToEncrypt = blake3Hash(WebBuf.fromUtf8("deterministic key"));
       const iv = FixedBuf.fromHex(16, "000102030405060708090a0b0c0d0e0f");
-      const encryptedKey = encryptKey(password, key, iv);
+      const encryptedKey = encryptKey(keyToEncrypt, encryptionKey, iv);
       expect(encryptedKey.toHex()).toBe(
-        "4a7d9da92478b59156a4967f7d626e077ca271feddc7f380df0f689eb4e71176000102030405060708090a0b0c0d0e0fe0c1c6d13d8952fcd120b55ef52ed52db1c238b04570f7693bd0426b55d5a1802f29f3f11e0d5715c061e394942fbd80",
+        "391d2c03a37bd24cd07bafcff57819c326900425bcbfb960fb1f92b7edc8e2f9000102030405060708090a0b0c0d0e0f919023e4474560a150cc3dc8ae1740a8b56ef795beedf4c2673fd6fe3ac1e05588ecd21e431c36684a94184bebd096c9",
       );
+    });
+
+    it("should work with derived encryption key from password", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const encryptionKey = deriveEncryptionKey(passwordKey);
+
+      const originalKey = generateKey();
+      const encryptedKey = encryptKey(originalKey, encryptionKey);
+      const decryptedKey = decryptKey(encryptedKey, encryptionKey);
+
+      expect(decryptedKey.buf.toHex()).toEqual(originalKey.buf.toHex());
     });
   });
 
