@@ -30,7 +30,7 @@ export default function NewVaultStep2() {
   }
 
   const passwordsMatch = password === confirmPassword;
-  const isPasswordValid = password.length >= 16;
+  const isPasswordValid = password.length >= 8;
   const isFormValid =
     isPasswordValid && passwordsMatch && confirmPassword.length > 0;
 
@@ -76,8 +76,7 @@ export default function NewVaultStep2() {
 
               <p className="text-muted-foreground mb-4 text-sm">
                 Your password protects your vault. Longer passwords are more
-                secure. We recommend at least 16 lowercase characters (~75 bits
-                of entropy).
+                secure. We recommend at least 8 characters.
               </p>
 
               <div className="space-y-4">
@@ -137,7 +136,7 @@ export default function NewVaultStep2() {
                   </div>
                   {password.length > 0 && !isPasswordValid && (
                     <p className="text-destructive text-xs">
-                      Password must be at least 16 characters
+                      Password must be at least 8 characters
                     </p>
                   )}
                 </div>

@@ -6,8 +6,8 @@ import { z } from "zod";
 
 export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
 
-/** for all lowercase letters, 16 chars is ~75 bits of entropy */
-export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);
+/** for all lowercase letters, 8 chars is ~38 bits of entropy (development minimum) */
+export const StandardPasswordSchema = z.string().lowercase().min(8).max(128);
 
 /** Zod schema for vault name validation */
 export const vaultNameSchema = z
