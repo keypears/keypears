@@ -241,25 +241,27 @@ export function PasswordMemorizer() {
             placeholder="Type password from memory"
             autoFocus
           />
-          {lastResult !== null && (
-            <div
-              className={`flex items-center gap-2 text-sm font-medium ${
-                lastResult ? "text-green-500" : "text-destructive"
-              }`}
-            >
-              {lastResult ? (
-                <>
-                  <Check size={16} />
-                  <span>Passwords match!</span>
-                </>
-              ) : (
-                <>
-                  <X size={16} />
-                  <span>Passwords don't match</span>
-                </>
-              )}
-            </div>
-          )}
+          <div className="h-6 min-h-6">
+            {lastResult !== null && (
+              <div
+                className={`flex items-center gap-2 text-sm font-medium ${
+                  lastResult ? "text-green-500" : "text-destructive"
+                }`}
+              >
+                {lastResult ? (
+                  <>
+                    <Check size={16} />
+                    <span>Passwords match!</span>
+                  </>
+                ) : (
+                  <>
+                    <X size={16} />
+                    <span>Passwords don't match</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
