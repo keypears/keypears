@@ -56,7 +56,7 @@ export function resetTestDb() {
   // Get all table names
   const tables = testDb
     .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%'",
     )
     .all() as Array<{ name: string }>;
 

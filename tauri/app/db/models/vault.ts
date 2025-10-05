@@ -21,9 +21,7 @@ export async function getVault(id: string): Promise<Vault | undefined> {
   return result[0];
 }
 
-export async function getVaultByName(
-  name: string,
-): Promise<Vault | undefined> {
+export async function getVaultByName(name: string): Promise<Vault | undefined> {
   const result = await db.select().from(vaults).where(eq(vaults.name, name));
   return result[0];
 }

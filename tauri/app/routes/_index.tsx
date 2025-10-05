@@ -75,7 +75,12 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                   <Button size="lg" className="w-full" asChild>
                     <Link to="/new-vault/1">Create Vault</Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="w-full" asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    asChild
+                  >
                     <Link to="#">Import Vault</Link>
                   </Button>
                 </div>
@@ -87,7 +92,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
               {vaults.map((vault) => (
                 <div
                   key={vault.id}
-                  className="border-border bg-card rounded-lg border p-4 transition-colors hover:bg-accent"
+                  className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-primary/10 rounded-full p-2">

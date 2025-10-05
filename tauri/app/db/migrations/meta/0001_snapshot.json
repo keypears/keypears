@@ -25,9 +25,7 @@
       "indexes": {
         "vaults_name_unique": {
           "name": "vaults_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },
