@@ -99,13 +99,16 @@ export default function NewVaultStep3() {
                           : "pr-10"
                       }
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setShowPin(!showPin)}
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      aria-label={showPin ? "Hide PIN" : "Show PIN"}
                     >
                       {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">
@@ -148,17 +151,20 @@ export default function NewVaultStep3() {
                           : "pr-10"
                       }
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setShowConfirmPin(!showConfirmPin)}
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      aria-label={showConfirmPin ? "Hide PIN" : "Show PIN"}
                     >
                       {showConfirmPin ? (
                         <EyeOff size={18} />
                       ) : (
                         <Eye size={18} />
                       )}
-                    </button>
+                    </Button>
                   </div>
                   {confirmPin.length > 0 && !pinsMatch && (
                     <p className="text-destructive text-xs">

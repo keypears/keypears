@@ -95,13 +95,16 @@ export default function NewVaultStep2() {
                           : "pr-10"
                       }
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">
@@ -146,19 +149,22 @@ export default function NewVaultStep2() {
                           : "pr-10"
                       }
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                     >
                       {showConfirmPassword ? (
                         <EyeOff size={18} />
                       ) : (
                         <Eye size={18} />
                       )}
-                    </button>
+                    </Button>
                   </div>
                   {confirmPassword.length > 0 && !passwordsMatch && (
                     <p className="text-destructive text-xs">
