@@ -47,7 +47,7 @@ export function initTestDb() {
 
   // Create better-sqlite3 in-memory database
   testSqliteDb = new BetterSqlite(":memory:");
-  testDb = drizzle(testSqliteDb, { schema, logger: true });
+  testDb = drizzle(testSqliteDb, { schema, logger: false });
 
   // Run migrations
   runMigrations(testSqliteDb);
