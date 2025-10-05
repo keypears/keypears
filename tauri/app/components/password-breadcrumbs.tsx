@@ -43,7 +43,7 @@ export function PasswordBreadcrumbs({
           <BreadcrumbItem>
             <BreadcrumbPage className="flex items-center gap-1.5">
               <Lock size={14} />
-              {vaultName}
+              {vaultName}@localhost
             </BreadcrumbPage>
           </BreadcrumbItem>
         ) : (
@@ -52,7 +52,7 @@ export function PasswordBreadcrumbs({
               <BreadcrumbLink asChild>
                 <Link to={`/vault/${vaultId}/passwords`} className="flex items-center gap-1.5">
                   <Lock size={14} />
-                  {vaultName}
+                  {vaultName}@localhost
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
