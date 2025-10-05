@@ -136,12 +136,7 @@ export async function getCurrentPasswords(
         eq(passwordUpdates.createdAt, latestUpdates.maxCreatedAt),
       ),
     )
-    .where(
-      and(
-        eq(passwordUpdates.vaultId, vaultId),
-        eq(passwordUpdates.deleted, false),
-      ),
-    )
+    .where(eq(passwordUpdates.vaultId, vaultId))
     .orderBy(passwordUpdates.name);
 
   return results;

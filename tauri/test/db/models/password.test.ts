@@ -250,7 +250,7 @@ describe("Password Model", () => {
       expect(current[0].createdAt).toBe(3000);
     });
 
-    it("should filter out deleted passwords", async () => {
+    it("should include deleted passwords with deleted flag", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
@@ -273,8 +273,10 @@ describe("Password Model", () => {
 
       const current = await getCurrentPasswords(vault.id);
 
-      // Deleted password should not appear
-      expect(current).toHaveLength(0);
+      // Deleted password should still appear with deleted flag
+      expect(current).toHaveLength(1);
+      expect(current[0].deleted).toBe(true);
+      expect(current[0].name).toBe("Active Password");
     });
 
     it("should handle multiple passwords in one vault", async () => {
@@ -328,17 +330,22 @@ describe("Password Model", () => {
 
       const current = await getCurrentPasswords(vault.id);
 
-      // Should return 2 passwords (GitHub and Gmail, but not deleted Twitter)
-      expect(current).toHaveLength(2);
+      // Should return 3 passwords (GitHub, Gmail, and deleted Twitter)
+      expect(current).toHaveLength(3);
 
       const names = current.map((p) => p.name).sort();
-      expect(names).toEqual(["GitHub", "Gmail"]);
+      expect(names).toEqual(["GitHub", "Gmail", "Twitter"]);
 
       const github = current.find((p) => p.name === "GitHub");
       expect(github?.encryptedPassword).toBe("github2");
+      expect(github?.deleted).toBe(false);
 
       const gmail = current.find((p) => p.name === "Gmail");
       expect(gmail?.encryptedPassword).toBe("gmail1");
+      expect(gmail?.deleted).toBe(false);
+
+      const twitter = current.find((p) => p.name === "Twitter");
+      expect(twitter?.deleted).toBe(true);
     });
 
     it("should return empty array for vault with no passwords", async () => {

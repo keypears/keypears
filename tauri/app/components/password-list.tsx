@@ -84,6 +84,7 @@ export function PasswordList() {
           <Link
             key={password.id}
             to={`/vault/${activeVault.vaultId}/passwords/${password.secretId}`}
+            className="block"
           >
             <div className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors">
               <div className="flex items-start gap-3">
