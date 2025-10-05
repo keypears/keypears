@@ -170,13 +170,6 @@ export default function NewVaultStep3() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="border-border bg-muted/50 rounded-lg border p-4">
-                    <p className="text-muted-foreground text-xs">
-                      Check your browser console to see all the generated keys
-                      and encryption details.
-                    </p>
-                  </div>
                 </div>
 
                 <Button

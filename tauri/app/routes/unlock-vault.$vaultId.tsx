@@ -78,7 +78,12 @@ export default function UnlockVault() {
 
       if (result.valid && result.passwordKey) {
         // Password is correct - unlock vault
-        unlockVault(vault.id, vault.name, result.passwordKey);
+        unlockVault(
+          vault.id,
+          vault.name,
+          result.passwordKey,
+          vault.encryptedVaultKey,
+        );
         navigate(`/vault/${vault.id}/passwords`);
       } else {
         // Password is incorrect

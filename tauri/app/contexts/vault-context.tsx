@@ -1,18 +1,34 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import type { FixedBuf } from "@keypears/lib";
+import {
+  deriveEncryptionKey,
+  decryptKey,
+  encryptPassword as libEncryptPassword,
+  decryptPassword as libDecryptPassword,
+  WebBuf,
+} from "@keypears/lib";
 
 interface UnlockedVault {
   vaultId: string;
   vaultName: string;
   passwordKey: FixedBuf<32>;
+  encryptedVaultKey: string;
 }
 
 interface VaultContextType {
   activeVault: UnlockedVault | null;
   unlockedVaults: UnlockedVault[];
-  unlockVault: (vaultId: string, vaultName: string, passwordKey: FixedBuf<32>) => void;
+  unlockVault: (
+    vaultId: string,
+    vaultName: string,
+    passwordKey: FixedBuf<32>,
+    encryptedVaultKey: string,
+  ) => void;
   lockVault: (vaultId: string) => void;
   switchVault: (vaultId: string) => void;
+  encryptPassword: (password: string) => string;
+  decryptPassword: (encryptedPasswordHex: string) => string;
+  getVaultKey: () => FixedBuf<32>;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -25,13 +41,17 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     vaultId: string,
     vaultName: string,
     passwordKey: FixedBuf<32>,
+    encryptedVaultKey: string,
   ) => {
     // Check if vault is already unlocked
     const existing = unlockedVaults.find((v) => v.vaultId === vaultId);
 
     if (!existing) {
       // Add to unlocked vaults
-      setUnlockedVaults([...unlockedVaults, { vaultId, vaultName, passwordKey }]);
+      setUnlockedVaults([
+        ...unlockedVaults,
+        { vaultId, vaultName, passwordKey, encryptedVaultKey },
+      ]);
     }
 
     // Set as active vault
@@ -58,6 +78,36 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const getVaultKey = (): FixedBuf<32> => {
+    const activeVault =
+      unlockedVaults.find((v) => v.vaultId === activeVaultId) || null;
+
+    if (!activeVault) {
+      throw new Error("No active vault");
+    }
+
+    // Derive encryption key from password key
+    const encryptionKey = deriveEncryptionKey(activeVault.passwordKey);
+
+    // Decrypt vault key
+    const encryptedVaultKeyBuf = WebBuf.fromHex(
+      activeVault.encryptedVaultKey,
+    );
+    const vaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
+
+    return vaultKey;
+  };
+
+  const encryptPassword = (password: string): string => {
+    const vaultKey = getVaultKey();
+    return libEncryptPassword(password, vaultKey);
+  };
+
+  const decryptPassword = (encryptedPasswordHex: string): string => {
+    const vaultKey = getVaultKey();
+    return libDecryptPassword(encryptedPasswordHex, vaultKey);
+  };
+
   const activeVault =
     unlockedVaults.find((v) => v.vaultId === activeVaultId) || null;
 
@@ -69,6 +119,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         unlockVault,
         lockVault,
         switchVault,
+        encryptPassword,
+        decryptPassword,
+        getVaultKey,
       }}
     >
       {children}
