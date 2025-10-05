@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema } from "@keypears/lib";
-import { getVaultByName } from "~app/db/models/vault";
+import { getVaultByName, getVaults } from "~app/db/models/vault";
 import { ZodError } from "zod";
 
 export function NewVaultName() {
@@ -11,6 +11,27 @@ export function NewVaultName() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(false);
+
+  // Load default vault name on mount
+  useEffect(() => {
+    const loadDefaultName = async () => {
+      const vaults = await getVaults();
+      const vaultNames = new Set(vaults.map((v) => v.name));
+
+      // Try "password", "password2", "password3", etc.
+      let defaultName = "password";
+      let counter = 2;
+
+      while (vaultNames.has(defaultName)) {
+        defaultName = `password${counter}`;
+        counter++;
+      }
+
+      setName(defaultName);
+    };
+
+    loadDefaultName();
+  }, []);
 
   // Validate name format with Zod
   const validateFormat = (value: string): boolean => {
@@ -103,6 +124,7 @@ export function NewVaultName() {
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
+            onFocus={(e) => e.target.select()}
             onKeyDown={(e) => {
               if (e.key === "Enter" && isValid) {
                 handleContinue();
