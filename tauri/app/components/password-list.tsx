@@ -6,7 +6,11 @@ import { getCurrentPasswords } from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
 import { useVault } from "~app/contexts/vault-context";
 
-export function PasswordList() {
+interface PasswordListProps {
+  showDeleted?: boolean;
+}
+
+export function PasswordList({ showDeleted = false }: PasswordListProps) {
   const { activeVault } = useVault();
   const [passwords, setPasswords] = useState<PasswordUpdateRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +33,11 @@ export function PasswordList() {
     loadPasswords();
   }, [activeVault]);
 
+  // Filter passwords based on showDeleted prop
+  const filteredPasswords = passwords.filter(
+    (p) => p.deleted === showDeleted
+  );
+
   if (!activeVault) {
     return null;
   }
@@ -43,23 +52,29 @@ export function PasswordList() {
     );
   }
 
-  if (passwords.length === 0) {
+  if (filteredPasswords.length === 0) {
     return (
       <div className="border-border bg-card rounded-lg border p-8">
         <div className="flex flex-col items-center text-center">
           <div className="bg-primary/10 mb-4 rounded-full p-4">
             <Key className="text-primary h-8 w-8" />
           </div>
-          <h2 className="mb-2 text-xl font-semibold">No passwords yet</h2>
+          <h2 className="mb-2 text-xl font-semibold">
+            {showDeleted ? "No deleted passwords" : "No passwords yet"}
+          </h2>
           <p className="text-muted-foreground mb-6 text-sm">
-            Get started by adding your first password
+            {showDeleted
+              ? "Deleted passwords will appear here"
+              : "Get started by adding your first password"}
           </p>
-          <Button asChild size="lg" className="w-full">
-            <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
-              <Plus size={20} className="mr-2" />
-              New Password
-            </Link>
-          </Button>
+          {!showDeleted && (
+            <Button asChild size="lg" className="w-full">
+              <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
+                <Plus size={20} className="mr-2" />
+                New Password
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -69,18 +84,22 @@ export function PasswordList() {
     <div className="space-y-4">
       {/* Header with New Password button */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Passwords</h1>
-        <Button asChild>
-          <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
-            <Plus size={20} className="mr-2" />
-            New Password
-          </Link>
-        </Button>
+        <h1 className="text-2xl font-bold">
+          {showDeleted ? "Deleted Passwords" : "Passwords"}
+        </h1>
+        {!showDeleted && (
+          <Button asChild>
+            <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
+              <Plus size={20} className="mr-2" />
+              New Password
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Password list */}
       <div className="space-y-3">
-        {passwords.map((password) => (
+        {filteredPasswords.map((password) => (
           <Link
             key={password.id}
             to={`/vault/${activeVault.vaultId}/passwords/${password.secretId}`}

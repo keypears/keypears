@@ -1,7 +1,7 @@
 import type { MetaFunction } from "react-router";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router";
-import { Eye, EyeOff, Edit, Trash2, Globe, User, Mail, FileText } from "lucide-react";
+import { useParams, Link } from "react-router";
+import { Eye, EyeOff, Edit, Trash2, RotateCcw, Globe, User, Mail, FileText } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import {
   AlertDialog,
@@ -19,7 +19,6 @@ import type { PasswordUpdateRow } from "~app/db/models/password";
 
 export default function PasswordDetail() {
   const params = useParams();
-  const navigate = useNavigate();
   const { activeVault, decryptPassword } = useVault();
 
   const [password, setPassword] = useState<PasswordUpdateRow | null>(null);
@@ -73,7 +72,7 @@ export default function PasswordDetail() {
 
     setIsDeleting(true);
     try {
-      // Create a tombstone update
+      // Toggle the deleted flag
       await createPasswordUpdate({
         vaultId: activeVault.vaultId,
         secretId: password.secretId,
@@ -83,13 +82,16 @@ export default function PasswordDetail() {
         email: password.email || undefined,
         notes: password.notes || undefined,
         encryptedPassword: password.encryptedPassword || undefined,
-        deleted: true,
+        deleted: !password.deleted, // Toggle instead of always true
       });
 
-      // Navigate back to passwords list
-      navigate(`/vault/${activeVault.vaultId}/passwords`);
+      // Reload the password data to show updated state
+      const history = await getPasswordHistory(password.secretId);
+      if (history.length > 0) {
+        setPassword(history[0]);
+      }
     } catch (error) {
-      console.error("Failed to delete password:", error);
+      console.error("Failed to toggle password deleted state:", error);
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -153,9 +155,9 @@ export default function PasswordDetail() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
-                aria-label="Delete password"
+                aria-label={password.deleted ? "Restore password" : "Delete password"}
               >
-                <Trash2 size={18} />
+                {password.deleted ? <RotateCcw size={18} /> : <Trash2 size={18} />}
               </Button>
             </div>
           </div>
@@ -230,14 +232,17 @@ export default function PasswordDetail() {
             )}
       </div>
 
-      {/* Delete confirmation dialog */}
+      {/* Delete/Restore confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Password?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {password.deleted ? "Restore Password?" : "Delete Password?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will mark the password as deleted. You can still see it in the
-              list with a "DELETED" label.
+              {password.deleted
+                ? "This will restore the password and make it active again."
+                : "This will mark the password as deleted. You can still see it in the Deleted tab."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -245,9 +250,19 @@ export default function PasswordDetail() {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={
+                password.deleted
+                  ? ""
+                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              }
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting
+                ? password.deleted
+                  ? "Restoring..."
+                  : "Deleting..."
+                : password.deleted
+                  ? "Restore"
+                  : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
