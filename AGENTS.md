@@ -263,19 +263,36 @@ written in Markdown with TOML front-matter.
 
 ### Blog Post Format
 
-Blog posts are Markdown files with TOML front-matter (delimited by `+++`):
+All blog posts are located in `webapp/docs/blog/` and follow strict formatting
+conventions:
+
+**Filename Format:**
+- Pattern: `YYYY-MM-DD-slug.md`
+- Example: `2025-10-04-drizzle-sqlite-tauri.md`
+- The slug should be short and URL-friendly (lowercase, hyphens only)
+- The full filename (including date) appears in the blog post URL
+
+**Front Matter:**
+- Blog posts use TOML front-matter delimited by `+++`
+- Required fields: `title`, `date`, `author`
+- The `date` must match the date in the filename
+- Example:
 
 ```markdown
 +++
 title = "Post Title"
-date = "YYYY-MM-DD"
-author = "Author Name"
+date = "2025-10-04"
+author = "KeyPears Team"
 +++
 
 Post content in Markdown...
 ```
 
-Blog post filenames should follow the pattern: `YYYY-MM-DD-slug.md`
+**Important Rules:**
+- **Never** include the title as an `# H1` heading in the blog post content
+- The title is automatically rendered from the front-matter
+- Start your content with `## H2` headings or regular paragraphs
+- Use standard Markdown for all content formatting
 
 ### Building the Blog
 
