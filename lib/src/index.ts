@@ -40,17 +40,29 @@ export function hashKey(key: FixedBuf<32>): FixedBuf<32> {
   return blake3Hash(key.buf);
 }
 
-/** Derives a key from a password, salt, and number of rounds using Blake3-based KDF
- * This is a custom KDF using Blake3's keyed mode for HMAC-like functionality
- * Note: This is not a standard KDF like PBKDF2 or Argon2, but is designed to be secure
- * and fast while leveraging Blake3's performance and security properties.
+/**
+ * Password-Based Key Derivation Function using Blake3
+ *
+ * This is a PBKDF (Password-Based Key Derivation Function) similar to PBKDF2,
+ * but using Blake3's keyed MAC mode instead of HMAC-SHA. It's called "blake3Pbkdf"
+ * to distinguish it from standard PBKDF2 while clearly indicating it serves the
+ * same purpose: deriving a cryptographic key from a password.
+ *
+ * The function performs iterative key stretching by repeatedly applying Blake3's
+ * MAC operation. This increases the computational cost of brute-force attacks
+ * while remaining efficient for legitimate use (100,000 rounds completes in
+ * milliseconds with Blake3's speed).
+ *
+ * Algorithm:
+ * - Round 1: result = blake3_mac(salt, password)
+ * - Round N: result = blake3_mac(salt, previous_result)
  *
  * @param password - The input password as a string
  * @param salt - A 32-byte salt as FixedBuf<32>
  * @param rounds - Number of iterations (default: 100,000)
  * @returns A derived 32-byte key as FixedBuf<32>
  */
-export function derivePasswordKeyTemplate(
+export function blake3Pbkdf(
   password: string,
   salt: FixedBuf<32>,
   rounds: number = 100_000,
@@ -88,7 +100,7 @@ export function derivePasswordSalt(password: string): FixedBuf<32> {
  */
 export function derivePasswordKey(password: string): FixedBuf<32> {
   const salt = derivePasswordSalt(password);
-  return derivePasswordKeyTemplate(password, salt, 100_000);
+  return blake3Pbkdf(password, salt, 100_000);
 }
 
 /** Encrypts a 32-byte key using a password-derived key
