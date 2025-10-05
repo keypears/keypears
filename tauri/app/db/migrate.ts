@@ -29,7 +29,7 @@ async function getAppliedMigrations(): Promise<string[]> {
     >("SELECT hash FROM __drizzle_migrations ORDER BY id")
     .catch(() => []);
   await sqlite.close();
-  return rows.map((row) => row.hash);
+  return rows.map((row: { hash: string }) => row.hash);
 }
 
 // Record a migration as applied
@@ -51,7 +51,7 @@ async function executeSqlFile(sqlContent: string) {
     .filter((s) => s.length > 0);
 
   for (const statement of statements) {
-    await sqlite.execute(statement).catch((e) => {
+    await sqlite.execute(statement).catch((e: unknown) => {
       console.error("Migration error:", e);
       throw e;
     });
