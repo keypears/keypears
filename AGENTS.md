@@ -149,10 +149,7 @@ webviews, and native platforms.
 - **Hashing/KDF**: Blake3 - Modern, fast, and secure hash function
 - **Encryption**: ACB3 - AES-256-CBC + Blake3-MAC (Encrypt-then-MAC construction)
 - **Key Size**: 256-bit (32-byte) keys throughout
-- **Password KDF**: Three-tier Blake3-based KDF with 100k rounds per tier:
-  - Password Key: Derived from master password, cached on device (encrypted with PIN)
-  - Encryption Key: Derived from password key, encrypts the master vault key
-  - Login Key: Derived from password key, used for server authentication
+- **Password KDF**: Three-tier Blake3-based KDF system (see `docs/key-derivation.md`)
 
 ACB3 uses AES-256-CBC rather than AES-GCM because CBC+MAC is simpler to
 implement correctly in WASM while providing equivalent security. The
@@ -376,27 +373,13 @@ section for details on the three-tier key derivation system). Sync nodes
 
 ### Key Management
 
-KeyPears uses a three-tier key derivation system that separates authentication
-from encryption:
+KeyPears uses a three-tier key derivation system (password key, encryption key,
+login key) that separates server authentication from vault encryption. The
+master vault key is immutable and encrypted with a key derived from the user's
+password.
 
-1. **Password Key**: Derived from user's master password with 100k rounds of
-   Blake3 PBKDF. Cached on device encrypted with PIN for quick unlock. Never
-   sent to server or used directly for encryption.
-
-2. **Encryption Key**: Derived from password key with 100k rounds. Used to
-   encrypt/decrypt the master vault key. Never leaves the device.
-
-3. **Login Key**: Derived from password key with 100k rounds. Sent to server
-   for authentication. Server compromise cannot reveal password key or
-   encryption key due to computational hardness (100k rounds).
-
-**Vault Key Management:**
-- Master vault key is immutable (randomly generated 256-bit key)
-- Master vault key is encrypted with encryption key (not directly with password)
-- User password can be changed (re-derives all three keys, re-encrypts master vault key)
-- Master vault key rotation requires creating a new vault and migrating secrets
-
-See `docs/key-derivation.md` for detailed cryptographic specifications.
+**For complete details on the key derivation system, cryptographic algorithms,
+and security properties, see `docs/key-derivation.md`.**
 
 ## Company
 
