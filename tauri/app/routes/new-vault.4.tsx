@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CheckCircle } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
-import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
 import {
   calculatePasswordEntropy,
@@ -219,7 +218,6 @@ export default function NewVaultStep4() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

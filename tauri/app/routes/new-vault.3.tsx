@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
-import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { calculatePasswordEntropy } from "@keypears/lib";
@@ -199,7 +198,6 @@ export default function NewVaultStep3() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
