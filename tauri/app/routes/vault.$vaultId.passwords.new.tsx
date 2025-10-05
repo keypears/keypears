@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
+import { Navbar } from "~app/components/navbar";
 import { useVault } from "~app/contexts/vault-context";
 import { createPasswordUpdate } from "~app/db/models/password";
 import { ulid } from "ulid";
@@ -60,7 +61,10 @@ export default function NewPassword() {
   };
 
   return (
-    <div className="border-border bg-card rounded-lg border p-8">
+    <div className="bg-background min-h-screen">
+      <Navbar showBackButton />
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">New Password</h1>
             <p className="text-muted-foreground mt-1 text-sm">
@@ -184,6 +188,8 @@ export default function NewPassword() {
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link to={`/vault/${activeVault.vaultId}/passwords`}>Cancel</Link>
             </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

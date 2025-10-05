@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
+import { Navbar } from "~app/components/navbar";
 import { useVault } from "~app/contexts/vault-context";
 import { getPasswordHistory, createPasswordUpdate } from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
@@ -104,26 +105,39 @@ export default function PasswordDetail() {
 
   if (isLoading) {
     return (
-      <div className="border-border bg-card rounded-lg border p-8">
-        <p className="text-muted-foreground text-center text-sm">
-          Loading password...
-        </p>
+      <div className="bg-background min-h-screen">
+        <Navbar showBackButton />
+        <div className="mx-auto max-w-2xl px-4 py-8">
+          <div className="border-border bg-card rounded-lg border p-8">
+            <p className="text-muted-foreground text-center text-sm">
+              Loading password...
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!password) {
     return (
-      <div className="border-border bg-card rounded-lg border p-8">
-        <p className="text-muted-foreground text-center text-sm">
-          Password not found
-        </p>
+      <div className="bg-background min-h-screen">
+        <Navbar showBackButton />
+        <div className="mx-auto max-w-2xl px-4 py-8">
+          <div className="border-border bg-card rounded-lg border p-8">
+            <p className="text-muted-foreground text-center text-sm">
+              Password not found
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="border-border bg-card rounded-lg border p-8">
+    <div className="bg-background min-h-screen">
+      <Navbar showBackButton />
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6 flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -267,6 +281,8 @@ export default function PasswordDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </div>
+      </div>
     </div>
   );
 }
