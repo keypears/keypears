@@ -76,7 +76,8 @@ export default function NewVaultStep2() {
 
               <p className="text-muted-foreground mb-4 text-sm">
                 Your password protects your vault. Longer passwords are more
-                secure. We recommend at least 8 characters.
+                secure. We recommend at least 8 characters. You should memorize
+                your password as it cannot be recovered.
               </p>
 
               <div className="space-y-4">
@@ -103,7 +104,7 @@ export default function NewVaultStep2() {
                       }
                       autoFocus
                     />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <div className="absolute top-1/2 right-2 -translate-y-1/2">
                       <Button
                         type="button"
                         variant="ghost"
@@ -114,7 +115,11 @@ export default function NewVaultStep2() {
                           showPassword ? "Hide password" : "Show password"
                         }
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -166,7 +171,7 @@ export default function NewVaultStep2() {
                           : "pr-10"
                       }
                     />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <div className="absolute top-1/2 right-2 -translate-y-1/2">
                       <Button
                         type="button"
                         variant="ghost"
@@ -176,7 +181,9 @@ export default function NewVaultStep2() {
                           setShowConfirmPassword(!showConfirmPassword)
                         }
                         aria-label={
-                          showConfirmPassword ? "Hide password" : "Show password"
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
                         }
                       >
                         {showConfirmPassword ? (
