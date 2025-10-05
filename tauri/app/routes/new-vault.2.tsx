@@ -59,7 +59,7 @@ export default function NewVaultStep2() {
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
+      <div className="flex flex-1 flex-col items-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="border-border bg-card rounded-lg border p-8">
             <div className="mb-6">
@@ -91,6 +91,11 @@ export default function NewVaultStep2() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && isFormValid) {
+                          handleContinue();
+                        }
+                      }}
                       placeholder="Enter your password"
                       className={
                         password.length > 0 && !isPasswordValid
@@ -103,6 +108,7 @@ export default function NewVaultStep2() {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={
                           showPassword ? "Hide password" : "Show password"
@@ -148,6 +154,11 @@ export default function NewVaultStep2() {
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && isFormValid) {
+                          handleContinue();
+                        }
+                      }}
                       placeholder="Confirm your password"
                       className={
                         confirmPassword.length > 0 && !passwordsMatch
@@ -160,6 +171,7 @@ export default function NewVaultStep2() {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        tabIndex={-1}
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }

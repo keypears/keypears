@@ -103,6 +103,11 @@ export function NewVaultName() {
             type="text"
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && isValid) {
+                handleContinue();
+              }
+            }}
             placeholder="passwords"
             className={error ? "border-red-500" : ""}
           />

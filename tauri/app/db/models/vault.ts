@@ -12,8 +12,15 @@ export async function createVault(name: string): Promise<Vault> {
   // Validate name with Zod schema
   vaultNameSchema.parse(name);
 
-  const result = await db.insert(vaults).values({ name }).returning();
-  return result[0];
+  await db.insert(vaults).values({ name });
+
+  // Fetch the newly created vault
+  const vault = await getVaultByName(name);
+  if (!vault) {
+    throw new Error("Failed to create vault");
+  }
+
+  return vault;
 }
 
 export async function getVault(id: string): Promise<Vault | undefined> {

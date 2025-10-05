@@ -136,7 +136,7 @@ export default function NewVaultStep4() {
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
+      <div className="flex flex-1 flex-col items-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="border-border bg-card rounded-lg border p-8">
             <div className="mb-6 flex flex-col items-center text-center">
