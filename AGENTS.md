@@ -303,13 +303,50 @@ Post content in Markdown...
 - The build script uses `remark` and `rehype` to convert Markdown to HTML
 - Feed links are included in the homepage meta tags
 
+## Database
+
+KeyPears uses two different database systems depending on the platform:
+
+- **Tauri app (clients)**: SQLite with Drizzle ORM
+- **Webapp (servers)**: PostgreSQL with Drizzle ORM
+
+Both databases follow these conventions:
+
+- **Primary Keys**: All tables use ULID (Universally Unique Lexicographically
+  Sortable Identifier) for primary keys, unless explicitly specified otherwise
+- **ID Type**: ULIDs are stored as `text` in SQLite and `text` or `varchar` in
+  PostgreSQL
+- **ID Generation**: ULIDs are auto-generated using the `ulid` npm package via
+  Drizzle's `.$defaultFn(() => ulid())` pattern
+
+**Why ULID?**
+- Time-ordered: ULIDs are lexicographically sortable by creation time
+- Collision-resistant: 128-bit random component ensures uniqueness across
+  distributed systems
+- URL-safe: Base32 encoding works in all contexts
+- Better than UUID: ULIDs maintain sort order, making database indexes more
+  efficient
+
+**Example schema:**
+```typescript
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { ulid } from "ulid";
+
+export const vaults = sqliteTable("vaults", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => ulid()),
+  name: text("name").notNull(),
+});
+```
+
 ## Synchronization
 
 Clients use a SQLite database that can contain multiple "vaults". Each vault is
 an append-only log of changes plus encrypted secrets. Each vault has an
 immutable 256-bit master key that encrypts all secrets. The master key is
 encrypted with the user's (mutable) password. Sync nodes (servers like
-keypears.com) use Postgres, not SQLite.
+keypears.com) use PostgreSQL, not SQLite.
 
 ### Change Tracking
 
