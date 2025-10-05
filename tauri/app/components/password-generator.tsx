@@ -79,6 +79,16 @@ export function PasswordGenerator() {
     return "text-blue-500";
   };
 
+  // Count how many character sets are enabled
+  const getEnabledCount = () => {
+    let count = 0;
+    if (lowercase) count++;
+    if (uppercase) count++;
+    if (numbers) count++;
+    if (symbols) count++;
+    return count;
+  };
+
   return (
     <div className="border-border bg-card rounded-lg border p-8">
       <h1 className="mb-6 text-2xl font-bold">Password Generator</h1>
@@ -209,7 +219,11 @@ export function PasswordGenerator() {
             <Checkbox
               id="lowercase"
               checked={lowercase}
-              onCheckedChange={(checked) => setLowercase(checked === true)}
+              onCheckedChange={(checked) => {
+                // Prevent unchecking if this is the last enabled character set
+                if (!checked && getEnabledCount() <= 1) return;
+                setLowercase(checked === true);
+              }}
             />
             <label
               htmlFor="lowercase"
@@ -222,7 +236,11 @@ export function PasswordGenerator() {
             <Checkbox
               id="uppercase"
               checked={uppercase}
-              onCheckedChange={(checked) => setUppercase(checked === true)}
+              onCheckedChange={(checked) => {
+                // Prevent unchecking if this is the last enabled character set
+                if (!checked && getEnabledCount() <= 1) return;
+                setUppercase(checked === true);
+              }}
             />
             <label
               htmlFor="uppercase"
@@ -235,7 +253,11 @@ export function PasswordGenerator() {
             <Checkbox
               id="numbers"
               checked={numbers}
-              onCheckedChange={(checked) => setNumbers(checked === true)}
+              onCheckedChange={(checked) => {
+                // Prevent unchecking if this is the last enabled character set
+                if (!checked && getEnabledCount() <= 1) return;
+                setNumbers(checked === true);
+              }}
             />
             <label
               htmlFor="numbers"
@@ -248,7 +270,11 @@ export function PasswordGenerator() {
             <Checkbox
               id="symbols"
               checked={symbols}
-              onCheckedChange={(checked) => setSymbols(checked === true)}
+              onCheckedChange={(checked) => {
+                // Prevent unchecking if this is the last enabled character set
+                if (!checked && getEnabledCount() <= 1) return;
+                setSymbols(checked === true);
+              }}
             />
             <label
               htmlFor="symbols"
