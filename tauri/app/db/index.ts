@@ -10,8 +10,15 @@ function isSelectQuery(sql: string): boolean {
   return sql.trim().toLowerCase().startsWith("select");
 }
 
-// Initialize Tauri production database
-export function initDb() {
+// Initialize database - accepts optional override for testing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function initDb(dbOverride?: any) {
+  // If override provided, use it and cache it
+  if (dbOverride) {
+    cachedDb = dbOverride;
+    return cachedDb;
+  }
+
   // Return cached instance if already initialized
   if (cachedDb) {
     return cachedDb;
@@ -61,5 +68,11 @@ export async function getDb() {
 }
 
 // Export default database instance with production type for type safety
+// Lazy initialization: db is initialized on first access, allowing tests to inject first
 // Both drivers have compatible runtime APIs, but we type based on production
-export const db: SqliteRemoteDatabase<typeof schema> = initDb()!;
+export const db: SqliteRemoteDatabase<typeof schema> = new Proxy({} as any, {
+  get(target, prop) {
+    const instance = initDb();
+    return instance[prop];
+  },
+});

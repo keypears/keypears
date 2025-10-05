@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { getTestDb, resetTestDb, closeTestDb } from "../test-utils";
-import { vaults } from "~app/db/schema";
-import { eq, count } from "drizzle-orm";
+import { initTestDb, resetTestDb, closeTestDb } from "../test-init";
+import {
+  createVault,
+  getVault,
+  getVaults,
+  countVaults,
+} from "~app/db/models/vault";
 
 describe("Vault Model", () => {
-  const { drizzle: db } = getTestDb();
+  // Initialize test database before all tests
+  initTestDb();
 
   beforeEach(() => {
     resetTestDb();
@@ -16,55 +21,45 @@ describe("Vault Model", () => {
 
   describe("createVault", () => {
     it("should create a vault with a name", async () => {
-      const result = await db.insert(vaults).values({ name: "test-vault" }).returning();
-      const vault = result[0];
+      const vault = await createVault("testVault");
 
       expect(vault).toBeDefined();
       expect(vault.id).toBeDefined();
-      expect(vault.name).toBe("test-vault");
+      expect(vault.name).toBe("testVault");
     });
 
     it("should enforce unique names", async () => {
-      await db.insert(vaults).values({ name: "unique-vault" }).returning();
+      await createVault("uniqueVault");
 
-      await expect(
-        db.insert(vaults).values({ name: "unique-vault" }).returning()
-      ).rejects.toThrow();
+      await expect(createVault("uniqueVault")).rejects.toThrow();
     });
   });
 
   describe("getVault", () => {
     it("should retrieve a vault by ID", async () => {
-      const created = await db.insert(vaults).values({ name: "find-me" }).returning();
-      const createdVault = created[0];
+      const created = await createVault("findMe");
 
-      const result = await db
-        .select()
-        .from(vaults)
-        .where(eq(vaults.id, createdVault.id));
+      const result = await getVault(created.id);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(createdVault.id);
-      expect(result[0].name).toBe("find-me");
+      expect(result).toBeDefined();
+      expect(result?.id).toBe(created.id);
+      expect(result?.name).toBe("findMe");
     });
 
-    it("should return empty array for non-existent ID", async () => {
-      const result = await db
-        .select()
-        .from(vaults)
-        .where(eq(vaults.id, "non-existent-id"));
+    it("should return undefined for non-existent ID", async () => {
+      const result = await getVault("non-existent-id");
 
-      expect(result).toHaveLength(0);
+      expect(result).toBeUndefined();
     });
   });
 
   describe("getVaults", () => {
     it("should return all vaults", async () => {
-      await db.insert(vaults).values({ name: "vault1" });
-      await db.insert(vaults).values({ name: "vault2" });
-      await db.insert(vaults).values({ name: "vault3" });
+      await createVault("vault1");
+      await createVault("vault2");
+      await createVault("vault3");
 
-      const result = await db.select().from(vaults);
+      const result = await getVaults();
 
       expect(result).toHaveLength(3);
       expect(result.map((v) => v.name)).toContain("vault1");
@@ -73,7 +68,7 @@ describe("Vault Model", () => {
     });
 
     it("should return empty array when no vaults exist", async () => {
-      const result = await db.select().from(vaults);
+      const result = await getVaults();
 
       expect(result).toHaveLength(0);
     });
@@ -81,18 +76,18 @@ describe("Vault Model", () => {
 
   describe("countVaults", () => {
     it("should return correct count", async () => {
-      await db.insert(vaults).values({ name: "vault1" });
-      await db.insert(vaults).values({ name: "vault2" });
+      await createVault("vault1");
+      await createVault("vault2");
 
-      const result = await db.select({ count: count() }).from(vaults);
+      const count = await countVaults();
 
-      expect(result[0].count).toBe(2);
+      expect(count).toBe(2);
     });
 
     it("should return 0 when no vaults exist", async () => {
-      const result = await db.select({ count: count() }).from(vaults);
+      const count = await countVaults();
 
-      expect(result[0].count).toBe(0);
+      expect(count).toBe(0);
     });
   });
 });

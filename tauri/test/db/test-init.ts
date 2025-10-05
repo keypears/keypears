@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import BetterSqlite from "better-sqlite3";
 import * as schema from "~app/db/schema";
+import { initDb } from "~app/db/index";
 import fs from "fs";
 import path from "path";
 
@@ -37,7 +38,7 @@ function runMigrations(sqliteDb: BetterSqlite.Database) {
   }
 }
 
-// Initialize test database with migrations
+// Initialize test database with migrations and inject into app
 export function initTestDb() {
   // Return cached instance if already initialized
   if (testDb) {
@@ -50,6 +51,9 @@ export function initTestDb() {
 
   // Run migrations
   runMigrations(testSqliteDb);
+
+  // Inject test database into app/db/index.ts
+  initDb(testDb);
 
   return testDb;
 }
