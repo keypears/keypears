@@ -33,6 +33,37 @@ describe("Vault Model", () => {
 
       await expect(createVault("uniqueVault")).rejects.toThrow();
     });
+
+    it("should reject names that are too short", async () => {
+      await expect(createVault("ab")).rejects.toThrow(
+        "Vault name must be at least 3 characters",
+      );
+    });
+
+    it("should reject names that are too long", async () => {
+      await expect(createVault("a".repeat(21))).rejects.toThrow(
+        "Vault name must be at most 20 characters",
+      );
+    });
+
+    it("should reject names that start with a number", async () => {
+      await expect(createVault("1vault")).rejects.toThrow(
+        "Vault name must start with a letter",
+      );
+    });
+
+    it("should reject names with special characters", async () => {
+      await expect(createVault("vault-name")).rejects.toThrow(
+        "Vault name must contain only alphanumeric characters",
+      );
+    });
+
+    it("should accept valid alphanumeric names", async () => {
+      const vault = await createVault("vault123");
+
+      expect(vault).toBeDefined();
+      expect(vault.name).toBe("vault123");
+    });
   });
 
   describe("getVault", () => {

@@ -1,5 +1,5 @@
 import { db } from "../index";
-import { vaults } from "../schema";
+import { vaults, vaultNameSchema } from "../schema";
 import { eq, count } from "drizzle-orm";
 
 export interface Vault {
@@ -8,6 +8,9 @@ export interface Vault {
 }
 
 export async function createVault(name: string): Promise<Vault> {
+  // Validate name with Zod schema
+  vaultNameSchema.parse(name);
+
   const result = await db.insert(vaults).values({ name }).returning();
   return result[0];
 }
