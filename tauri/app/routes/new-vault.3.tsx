@@ -102,6 +102,7 @@ export default function NewVaultStep3() {
                           ? "border-destructive pr-10"
                           : "pr-10"
                       }
+                      autoFocus
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
                       <Button

@@ -110,6 +110,7 @@ export function NewVaultName() {
             }}
             placeholder="passwords"
             className={error ? "border-red-500" : ""}
+            autoFocus
           />
           <p className="text-muted-foreground text-xs">
             Your vault:{" "}

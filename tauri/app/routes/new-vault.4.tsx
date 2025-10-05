@@ -225,6 +225,9 @@ export default function NewVaultStep4() {
 export const meta: MetaFunction = () => {
   return [
     { title: "Vault Created | KeyPears" },
-    { name: "description", content: "Your vault has been created successfully" },
+    {
+      name: "description",
+      content: "Your vault has been created successfully",
+    },
   ];
 };
