@@ -32,17 +32,19 @@ export default function NewVaultStep2() {
 
   const passwordsMatch = password === confirmPassword;
   const isPasswordValid = password.length >= 16;
-  const isFormValid = isPasswordValid && passwordsMatch && confirmPassword.length > 0;
+  const isFormValid =
+    isPasswordValid && passwordsMatch && confirmPassword.length > 0;
 
   // Calculate entropy
-  const entropy = password.length > 0
-    ? calculatePasswordEntropy(password.length, {
-        lowercase: /[a-z]/.test(password),
-        uppercase: /[A-Z]/.test(password),
-        numbers: /[0-9]/.test(password),
-        symbols: /[^a-zA-Z0-9]/.test(password),
-      })
-    : 0;
+  const entropy =
+    password.length > 0
+      ? calculatePasswordEntropy(password.length, {
+          lowercase: /[a-z]/.test(password),
+          uppercase: /[A-Z]/.test(password),
+          numbers: /[0-9]/.test(password),
+          symbols: /[^a-zA-Z0-9]/.test(password),
+        })
+      : 0;
 
   const handleContinue = () => {
     if (!isFormValid) return;
@@ -69,7 +71,9 @@ export default function NewVaultStep2() {
             </div>
 
             <div className="mb-6">
-              <h2 className="mb-4 text-lg font-semibold">Choose your password</h2>
+              <h2 className="mb-4 text-lg font-semibold">
+                Choose your password
+              </h2>
 
               <p className="text-muted-foreground mb-4 text-sm">
                 Your password protects your vault. Longer passwords are more
@@ -95,16 +99,19 @@ export default function NewVaultStep2() {
                           : "pr-10"
                       }
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </Button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">
@@ -149,22 +156,25 @@ export default function NewVaultStep2() {
                           : "pr-10"
                       }
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-1 top-1/2 -translate-y-1/2"
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </Button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        aria-label={
+                          showConfirmPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   {confirmPassword.length > 0 && !passwordsMatch && (
                     <p className="text-destructive text-xs">

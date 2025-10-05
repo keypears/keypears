@@ -99,16 +99,17 @@ export default function NewVaultStep3() {
                           : "pr-10"
                       }
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setShowPin(!showPin)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2"
-                      aria-label={showPin ? "Hide PIN" : "Show PIN"}
-                    >
-                      {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </Button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setShowPin(!showPin)}
+                        aria-label={showPin ? "Hide PIN" : "Show PIN"}
+                      >
+                        {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">
@@ -151,20 +152,21 @@ export default function NewVaultStep3() {
                           : "pr-10"
                       }
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setShowConfirmPin(!showConfirmPin)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2"
-                      aria-label={showConfirmPin ? "Hide PIN" : "Show PIN"}
-                    >
-                      {showConfirmPin ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </Button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setShowConfirmPin(!showConfirmPin)}
+                        aria-label={showConfirmPin ? "Hide PIN" : "Show PIN"}
+                      >
+                        {showConfirmPin ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   {confirmPin.length > 0 && !pinsMatch && (
                     <p className="text-destructive text-xs">
