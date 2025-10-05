@@ -4,6 +4,8 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
 
+export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt };
+
 /** for all lowercase letters, 16 chars is ~75 bits of entropy */
 export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);
 
@@ -72,9 +74,8 @@ export function blake3Pbkdf(
   }
 
   // Convert password to WebBuf if it's a string
-  const passwordBuf = typeof password === "string"
-    ? WebBuf.fromUtf8(password)
-    : password;
+  const passwordBuf =
+    typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
   // First round: MAC(salt, password)
   let result = blake3Mac(salt, passwordBuf);
