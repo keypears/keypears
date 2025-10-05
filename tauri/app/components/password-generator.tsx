@@ -95,62 +95,66 @@ export function PasswordGenerator() {
 
       {/* Password Display */}
       <div className="mb-6">
-        <div className="border-border bg-secondary flex items-center gap-2 rounded-md border p-4">
-          <input
-            type={showPassword ? "text" : "password"}
-            readOnly
-            value={password}
-            className="text-foreground flex-1 bg-transparent font-mono text-lg outline-none"
-          />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </Button>
-          <div className="relative">
+        <div className="border-border bg-secondary rounded-md border">
+          {/* Password input - full width */}
+          <div className="overflow-x-auto p-4">
+            <pre className="text-foreground m-0 bg-transparent font-mono text-sm">
+              {showPassword ? password : '•'.repeat(password.length)}
+            </pre>
+          </div>
+
+          {/* Action buttons row */}
+          <div className="border-border flex items-center justify-end gap-2 border-t p-2">
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Copy to clipboard"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Copy to clipboard"
+                onClick={() => {
+                  navigator.clipboard.writeText(password);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                <Copy size={20} />
+              </Button>
+              {copied && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 absolute -top-8 left-1/2 -translate-x-1/2 duration-200">
+                  <div className="text-primary-foreground flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs">
+                    <Check size={12} />
+                    <span>Copied</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Regenerate password"
               onClick={() => {
-                navigator.clipboard.writeText(password);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                setRefreshing(true);
+                const newPassword = generateSecurePassword({
+                  length,
+                  lowercase,
+                  uppercase,
+                  numbers,
+                  symbols,
+                });
+                setPassword(newPassword);
+                setTimeout(() => setRefreshing(false), 1000);
               }}
             >
-              <Copy size={20} />
+              <RotateCw size={20} className={refreshing ? "animate-spin" : ""} />
             </Button>
-            {copied && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 absolute -top-8 left-1/2 -translate-x-1/2 duration-200">
-                <div className="text-primary-foreground flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs">
-                  <Check size={12} />
-                  <span>Copied</span>
-                </div>
-              </div>
-            )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Regenerate password"
-            onClick={() => {
-              setRefreshing(true);
-              const newPassword = generateSecurePassword({
-                length,
-                lowercase,
-                uppercase,
-                numbers,
-                symbols,
-              });
-              setPassword(newPassword);
-              setTimeout(() => setRefreshing(false), 1000);
-            }}
-          >
-            <RotateCw size={20} className={refreshing ? "animate-spin" : ""} />
-          </Button>
         </div>
       </div>
 
