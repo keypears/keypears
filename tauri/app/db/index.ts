@@ -2,9 +2,10 @@ import { drizzle, type SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import Database from "@tauri-apps/plugin-sql";
 import * as schema from "./schema";
 
-// Memoized database instance
+// Memoized database instances
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cachedDb: any = null;
+let cachedSqlite: Database | null = null;
 
 function isSelectQuery(sql: string): boolean {
   return sql.trim().toLowerCase().startsWith("select");
@@ -27,19 +28,23 @@ export function initDb(dbOverride?: any) {
   // Create Tauri proxy database for production
   cachedDb = drizzle<typeof schema>(
     async (sql, params, method) => {
-      const sqlite = await Database.load("sqlite:keypears.db");
+      // Load sqlite connection once and cache it
+      if (!cachedSqlite) {
+        cachedSqlite = await Database.load("sqlite:keypears.db");
+      }
+
       let rows: any = [];
       let results = [];
 
       // If the query is a SELECT, use the select method
       if (isSelectQuery(sql)) {
-        rows = await sqlite.select(sql, params).catch((e) => {
+        rows = await cachedSqlite.select(sql, params).catch((e) => {
           console.error("SQL Error:", e);
           return [];
         });
       } else {
         // Otherwise, use the execute method
-        rows = await sqlite.execute(sql, params).catch((e) => {
+        rows = await cachedSqlite.execute(sql, params).catch((e) => {
           console.error("SQL Error:", e);
           return [];
         });
@@ -52,7 +57,6 @@ export function initDb(dbOverride?: any) {
 
       // If the method is "all", return all rows
       results = method === "all" ? rows : rows[0];
-      await sqlite.close();
       return { rows: results };
     },
     // Pass the schema to the drizzle instance
@@ -64,7 +68,10 @@ export function initDb(dbOverride?: any) {
 
 // Export raw Tauri database for migrations
 export async function getDb() {
-  return await Database.load("sqlite:keypears.db");
+  if (!cachedSqlite) {
+    cachedSqlite = await Database.load("sqlite:keypears.db");
+  }
+  return cachedSqlite;
 }
 
 // Export default database instance with production type for type safety

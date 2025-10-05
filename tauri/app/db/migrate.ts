@@ -17,7 +17,6 @@ async function ensureMigrationsTable() {
       created_at INTEGER NOT NULL
     )
   `);
-  await sqlite.close();
 }
 
 // Get list of already applied migrations
@@ -28,7 +27,6 @@ async function getAppliedMigrations(): Promise<string[]> {
       Array<{ hash: string }>
     >("SELECT hash FROM __drizzle_migrations ORDER BY id")
     .catch(() => []);
-  await sqlite.close();
   return rows.map((row: { hash: string }) => row.hash);
 }
 
@@ -40,7 +38,6 @@ async function recordMigration(hash: string) {
     "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
     [hash, timestamp],
   );
-  await sqlite.close();
 }
 
 async function executeSqlFile(sqlContent: string) {
@@ -56,8 +53,6 @@ async function executeSqlFile(sqlContent: string) {
       throw e;
     });
   }
-
-  await sqlite.close();
 }
 
 export async function runMigrations() {
