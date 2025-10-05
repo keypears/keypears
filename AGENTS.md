@@ -149,8 +149,10 @@ webviews, and native platforms.
 - **Hashing/KDF**: Blake3 - Modern, fast, and secure hash function
 - **Encryption**: ACB3 - AES-256-CBC + Blake3-MAC (Encrypt-then-MAC construction)
 - **Key Size**: 256-bit (32-byte) keys throughout
-- **Password KDF**: Custom Blake3-based KDF with 100k rounds and deterministic
-  salt derivation
+- **Password KDF**: Three-tier Blake3-based KDF with 100k rounds per tier:
+  - Password Key: Derived from master password, cached on device (encrypted with PIN)
+  - Encryption Key: Derived from password key, encrypts the master vault key
+  - Login Key: Derived from password key, used for server authentication
 
 ACB3 uses AES-256-CBC rather than AES-GCM because CBC+MAC is simpler to
 implement correctly in WASM while providing equivalent security. The
@@ -345,8 +347,9 @@ export const vaults = sqliteTable("vaults", {
 Clients use a SQLite database that can contain multiple "vaults". Each vault is
 an append-only log of changes plus encrypted secrets. Each vault has an
 immutable 256-bit master key that encrypts all secrets. The master key is
-encrypted with the user's (mutable) password. Sync nodes (servers like
-keypears.com) use PostgreSQL, not SQLite.
+encrypted with a key derived from the user's password (see Key Management
+section for details on the three-tier key derivation system). Sync nodes
+(servers like keypears.com) use PostgreSQL, not SQLite.
 
 ### Change Tracking
 
@@ -373,9 +376,27 @@ keypears.com) use PostgreSQL, not SQLite.
 
 ### Key Management
 
-- Master key is immutable per vault
-- User password can be changed (re-encrypts the master key)
-- Master key rotation requires creating a new vault and migrating secrets
+KeyPears uses a three-tier key derivation system that separates authentication
+from encryption:
+
+1. **Password Key**: Derived from user's master password with 100k rounds of
+   Blake3 PBKDF. Cached on device encrypted with PIN for quick unlock. Never
+   sent to server or used directly for encryption.
+
+2. **Encryption Key**: Derived from password key with 100k rounds. Used to
+   encrypt/decrypt the master vault key. Never leaves the device.
+
+3. **Login Key**: Derived from password key with 100k rounds. Sent to server
+   for authentication. Server compromise cannot reveal password key or
+   encryption key due to computational hardness (100k rounds).
+
+**Vault Key Management:**
+- Master vault key is immutable (randomly generated 256-bit key)
+- Master vault key is encrypted with encryption key (not directly with password)
+- User password can be changed (re-derives all three keys, re-encrypts master vault key)
+- Master vault key rotation requires creating a new vault and migrating secrets
+
+See `docs/key-derivation.md` for detailed cryptographic specifications.
 
 ## Company
 
