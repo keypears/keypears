@@ -1,6 +1,6 @@
 import type { MetaFunction } from "react-router";
 import type { Route } from "./+types/_index";
-import { Link, useFetcher } from "react-router";
+import { Link } from "react-router";
 import { Lock, X } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
@@ -16,35 +16,28 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   const vaults = await getVaults();
   return { vaults };
 }
 
-export async function clientAction({ request }: Route.ClientActionArgs) {
-  const formData = await request.formData();
-  const vaultId = formData.get("vaultId");
-
-  if (typeof vaultId === "string") {
-    await deleteVault(vaultId);
-  }
-
-  return null;
-}
-
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
-  const { vaults } = loaderData;
+  const [vaults, setVaults] = useState(loaderData.vaults);
   const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
-  const fetcher = useFetcher();
 
-  const handleDelete = () => {
+  // Sync local state with loaderData when it changes
+  useEffect(() => {
+    setVaults(loaderData.vaults);
+  }, [loaderData.vaults]);
+
+  const handleDelete = async () => {
     if (!vaultToDelete) return;
 
-    const formData = new FormData();
-    formData.append("vaultId", vaultToDelete.id);
-    fetcher.submit(formData, { method: "post" });
+    await deleteVault(vaultToDelete.id);
+    const updatedVaults = await getVaults();
+    setVaults(updatedVaults);
     setVaultToDelete(null);
   };
 
