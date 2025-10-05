@@ -22,17 +22,17 @@ describe("Vault Model", () => {
 
   describe("createVault", () => {
     it("should create a vault with a name", async () => {
-      const vault = await createVault("testVault");
+      const vault = await createVault("testvault");
 
       expect(vault).toBeDefined();
       expect(vault.id).toBeDefined();
-      expect(vault.name).toBe("testVault");
+      expect(vault.name).toBe("testvault");
     });
 
     it("should enforce unique names", async () => {
-      await createVault("uniqueVault");
+      await createVault("uniquevault");
 
-      await expect(createVault("uniqueVault")).rejects.toThrow();
+      await expect(createVault("uniquevault")).rejects.toThrow();
     });
 
     it("should reject names that are too short", async () => {
@@ -69,13 +69,13 @@ describe("Vault Model", () => {
 
   describe("getVault", () => {
     it("should retrieve a vault by ID", async () => {
-      const created = await createVault("findMe");
+      const created = await createVault("findme");
 
       const result = await getVault(created.id);
 
       expect(result).toBeDefined();
       expect(result?.id).toBe(created.id);
-      expect(result?.name).toBe("findMe");
+      expect(result?.name).toBe("findme");
     });
 
     it("should return undefined for non-existent ID", async () => {
@@ -87,17 +87,17 @@ describe("Vault Model", () => {
 
   describe("getVaultByName", () => {
     it("should retrieve a vault by name", async () => {
-      const created = await createVault("myVault");
+      const created = await createVault("myvault");
 
-      const result = await getVaultByName("myVault");
+      const result = await getVaultByName("myvault");
 
       expect(result).toBeDefined();
       expect(result?.id).toBe(created.id);
-      expect(result?.name).toBe("myVault");
+      expect(result?.name).toBe("myvault");
     });
 
     it("should return undefined for non-existent name", async () => {
-      const result = await getVaultByName("nonExistent");
+      const result = await getVaultByName("nonexistent");
 
       expect(result).toBeUndefined();
     });
