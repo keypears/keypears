@@ -99,6 +99,42 @@ Password key is cached on device encrypted with PIN for convenience. This means:
 - **Tradeoff**: Physical device access + PIN brute-force = vault access
 - **Mitigation**: Standard practice in password managers (1Password, etc.)
 
+### PIN Expiration Strategy
+
+To limit the security exposure of PIN-based quick unlock, the PIN key expires
+after a configurable time period, requiring full password re-entry.
+
+**Storage:**
+
+- **PIN key**: In-memory only (Rust state, never persisted)
+- **Encrypted password key**: Persisted in database
+- **Last authentication timestamp**: In-memory (Rust state)
+- **Expiration policy**: Stored in database (e.g., "expire after 1 hour")
+
+**Expiration mechanism:**
+
+- **Timestamp-based**, not real-time timers (mobile platforms don't support
+  reliable background execution)
+- On app resume/foreground, check if `current_time - last_auth_time >
+  expiration_duration`
+- If expired: clear PIN key from memory, require full password
+- If not expired: allow PIN unlock
+
+**Platform-specific behavior:**
+
+- **iOS/Android**: Apps suspended in background, timers don't run reliably. OS
+  often kills process entirely (clearing memory automatically). Expiration check
+  runs on app resume.
+- **Desktop (Windows/macOS/Linux)**: Optionally run background timer for
+  real-time expiration as additional security layer. Timestamp check on app
+  focus is primary mechanism.
+
+**Key deletion:**
+
+- Use `zeroize` crate to securely overwrite key bytes in memory before dropping
+- On mobile, OS process termination provides additional security (keys cleared
+  by OS)
+
 ## Blake3 PBKDF
 
 The key derivation function uses Blake3's keyed MAC mode iteratively:
