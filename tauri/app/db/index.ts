@@ -71,7 +71,7 @@ export async function getDb() {
 // Lazy initialization: db is initialized on first access, allowing tests to inject first
 // Both drivers have compatible runtime APIs, but we type based on production
 export const db: SqliteRemoteDatabase<typeof schema> = new Proxy({} as any, {
-  get(target, prop) {
+  get(_target, prop) {
     const instance = initDb();
     return instance[prop];
   },

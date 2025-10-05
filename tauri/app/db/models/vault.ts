@@ -1,6 +1,7 @@
 import { db } from "../index";
-import { vaults, vaultNameSchema } from "../schema";
+import { vaults } from "../schema";
 import { eq, count } from "drizzle-orm";
+import { vaultNameSchema } from "@keypears/lib";
 
 export interface Vault {
   id: string;

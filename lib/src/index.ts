@@ -7,6 +7,17 @@ import { z } from "zod";
 /** for all lowercase letters, 16 chars is ~75 bits of entropy */
 export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);
 
+/** Zod schema for vault name validation */
+export const vaultNameSchema = z
+  .string()
+  .min(3, "Vault name must be at least 3 characters")
+  .max(20, "Vault name must be at most 20 characters")
+  .regex(/^[a-zA-Z]/, "Vault name must start with a letter")
+  .regex(
+    /^[a-zA-Z0-9]+$/,
+    "Vault name must contain only alphanumeric characters",
+  );
+
 /**
  * the schema for an update to a secret
  */
