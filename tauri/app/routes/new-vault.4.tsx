@@ -11,6 +11,7 @@ import {
   deriveLoginKey,
   generateKey,
   encryptKey,
+  blake3Hash,
 } from "@keypears/lib";
 import { createVault } from "~app/db/models/vault";
 import { cn } from "~app/lib/utils";
@@ -72,6 +73,11 @@ export default function NewVaultStep4() {
         const vaultKey = generateKey();
         console.log("Vault Key (master):", vaultKey.buf.toHex());
 
+        // 4.5. Hash the vault key for identification
+        console.log("\n--- Step 4.5: Hash Vault Key ---");
+        const hashedVaultKey = blake3Hash(vaultKey.buf);
+        console.log("Hashed Vault Key:", hashedVaultKey.toHex());
+
         // 5. Encrypt vault key with encryption key
         console.log("\n--- Step 5: Encrypt Vault Key ---");
         const encryptedVaultKey = encryptKey(vaultKey, encryptionKey);
@@ -109,10 +115,16 @@ export default function NewVaultStep4() {
         setPasswordEntropy(pwdEntropy);
         setPinEntropy(pinEnt);
 
-        // Save only name and ID to database
+        // Save vault with encrypted keys to database
         console.log("\n--- Step 8: Save to Database ---");
-        const vault = await createVault(vaultName);
+        const vault = await createVault(
+          vaultName,
+          encryptedVaultKey.toHex(),
+          hashedVaultKey.toHex(),
+        );
         console.log("Vault saved to database with ID:", vault.id);
+        console.log("Encrypted Vault Key (saved):", vault.encryptedVaultKey);
+        console.log("Hashed Vault Key (saved):", vault.hashedVaultKey);
 
         console.log("\n=== Vault Creation Complete ===\n");
       } catch (error) {

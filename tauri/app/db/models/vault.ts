@@ -6,13 +6,27 @@ import { vaultNameSchema } from "@keypears/lib";
 export interface Vault {
   id: string;
   name: string;
+  encryptedVaultKey: string;
+  hashedVaultKey: string;
+  createdAt: number;
 }
 
-export async function createVault(name: string): Promise<Vault> {
+export async function createVault(
+  name: string,
+  encryptedVaultKey: string,
+  hashedVaultKey: string,
+): Promise<Vault> {
   // Validate name with Zod schema
   vaultNameSchema.parse(name);
 
-  await db.insert(vaults).values({ name });
+  const createdAt = Date.now();
+
+  await db.insert(vaults).values({
+    name,
+    encryptedVaultKey,
+    hashedVaultKey,
+    createdAt,
+  });
 
   // Fetch the newly created vault
   const vault = await getVaultByName(name);

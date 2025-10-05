@@ -23,7 +23,11 @@ describe("Vault Model", () => {
 
   describe("createVault", () => {
     it("should create a vault with a name", async () => {
-      const vault = await createVault("testvault");
+      const vault = await createVault(
+        "testvault",
+        "0".repeat(64),
+        "0".repeat(64),
+      );
 
       expect(vault).toBeDefined();
       expect(vault.id).toBeDefined();
@@ -31,37 +35,39 @@ describe("Vault Model", () => {
     });
 
     it("should enforce unique names", async () => {
-      await createVault("uniquevault");
+      await createVault("uniquevault", "0".repeat(64), "0".repeat(64));
 
-      await expect(createVault("uniquevault")).rejects.toThrow();
+      await expect(
+        createVault("uniquevault", "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow();
     });
 
     it("should reject names that are too short", async () => {
-      await expect(createVault("ab")).rejects.toThrow(
-        "Vault name must be at least 3 characters",
-      );
+      await expect(
+        createVault("ab", "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must be at least 3 characters");
     });
 
     it("should reject names that are too long", async () => {
-      await expect(createVault("a".repeat(21))).rejects.toThrow(
-        "Vault name must be at most 20 characters",
-      );
+      await expect(
+        createVault("a".repeat(21), "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must be at most 20 characters");
     });
 
     it("should reject names that start with a number", async () => {
-      await expect(createVault("1vault")).rejects.toThrow(
-        "Vault name must start with a letter",
-      );
+      await expect(
+        createVault("1vault", "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must start with a letter");
     });
 
     it("should reject names with special characters", async () => {
-      await expect(createVault("vault-name")).rejects.toThrow(
-        "Vault name must contain only alphanumeric characters",
-      );
+      await expect(
+        createVault("vault-name", "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must contain only alphanumeric characters");
     });
 
     it("should accept valid alphanumeric names", async () => {
-      const vault = await createVault("vault123");
+      const vault = await createVault("vault123", "0".repeat(64), "0".repeat(64));
 
       expect(vault).toBeDefined();
       expect(vault.name).toBe("vault123");
@@ -70,7 +76,7 @@ describe("Vault Model", () => {
 
   describe("getVault", () => {
     it("should retrieve a vault by ID", async () => {
-      const created = await createVault("findme");
+      const created = await createVault("findme", "0".repeat(64), "0".repeat(64));
 
       const result = await getVault(created.id);
 
@@ -88,7 +94,7 @@ describe("Vault Model", () => {
 
   describe("getVaultByName", () => {
     it("should retrieve a vault by name", async () => {
-      const created = await createVault("myvault");
+      const created = await createVault("myvault", "0".repeat(64), "0".repeat(64));
 
       const result = await getVaultByName("myvault");
 
@@ -106,9 +112,9 @@ describe("Vault Model", () => {
 
   describe("getVaults", () => {
     it("should return all vaults", async () => {
-      await createVault("vault1");
-      await createVault("vault2");
-      await createVault("vault3");
+      await createVault("vault1", "0".repeat(64), "0".repeat(64));
+      await createVault("vault2", "0".repeat(64), "0".repeat(64));
+      await createVault("vault3", "0".repeat(64), "0".repeat(64));
 
       const result = await getVaults();
 
@@ -127,8 +133,8 @@ describe("Vault Model", () => {
 
   describe("countVaults", () => {
     it("should return correct count", async () => {
-      await createVault("vault1");
-      await createVault("vault2");
+      await createVault("vault1", "0".repeat(64), "0".repeat(64));
+      await createVault("vault2", "0".repeat(64), "0".repeat(64));
 
       const count = await countVaults();
 
@@ -144,7 +150,11 @@ describe("Vault Model", () => {
 
   describe("deleteVault", () => {
     it("should delete a vault by ID", async () => {
-      const vault = await createVault("testdelete");
+      const vault = await createVault(
+        "testdelete",
+        "0".repeat(64),
+        "0".repeat(64),
+      );
 
       await deleteVault(vault.id);
 
@@ -153,8 +163,8 @@ describe("Vault Model", () => {
     });
 
     it("should decrease vault count after deletion", async () => {
-      await createVault("vault1");
-      const vault2 = await createVault("vault2");
+      await createVault("vault1", "0".repeat(64), "0".repeat(64));
+      const vault2 = await createVault("vault2", "0".repeat(64), "0".repeat(64));
 
       await deleteVault(vault2.id);
 
