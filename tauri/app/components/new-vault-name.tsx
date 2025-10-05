@@ -85,9 +85,7 @@ export function NewVaultName() {
       // Navigate to home page on success
       navigate("/");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create vault",
-      );
+      setError(err instanceof Error ? err.message : "Failed to create vault");
     } finally {
       setIsCreating(false);
     }
@@ -118,7 +116,8 @@ export function NewVaultName() {
             disabled={isCreating}
           />
           <p className="text-muted-foreground text-xs">
-            Your vault: <span className="font-mono">{name || "___"}@localhost</span>
+            Your vault:{" "}
+            <span className="font-mono">{name || "___"}@localhost</span>
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {isChecking && (
@@ -130,7 +129,7 @@ export function NewVaultName() {
 
         <div className="text-muted-foreground mt-4 space-y-1 text-xs">
           <p>• 3-20 characters</p>
-          <p>• Letters and numbers only</p>
+          <p>• Lowercase letters and numbers only</p>
           <p>• Must start with a letter</p>
           <p>• Name must be unique</p>
         </div>
