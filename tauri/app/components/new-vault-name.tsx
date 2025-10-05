@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema } from "@keypears/lib";
-import { createVault, getVaultByName } from "~app/db/models/vault";
+import { getVaultByName } from "~app/db/models/vault";
 import { ZodError } from "zod";
 
 export function NewVaultName() {
@@ -11,7 +11,6 @@ export function NewVaultName() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
 
   // Validate name format with Zod
   const validateFormat = (value: string): boolean => {
@@ -66,7 +65,7 @@ export function NewVaultName() {
     setName(value);
   };
 
-  const handleCreate = async () => {
+  const handleContinue = async () => {
     // Validate format
     if (!validateFormat(name)) {
       return;
@@ -78,17 +77,10 @@ export function NewVaultName() {
       return;
     }
 
-    // Create vault
-    setIsCreating(true);
-    try {
-      await createVault(name);
-      // Navigate to home page on success
-      navigate("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create vault");
-    } finally {
-      setIsCreating(false);
-    }
+    // Navigate to next step with vault name in state
+    navigate("/new-vault/2", {
+      state: { vaultName: name },
+    });
   };
 
   const isValid = name.length > 0 && !error && !isChecking;
@@ -113,7 +105,6 @@ export function NewVaultName() {
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="passwords"
             className={error ? "border-red-500" : ""}
-            disabled={isCreating}
           />
           <p className="text-muted-foreground text-xs">
             Your vault:{" "}
@@ -139,10 +130,10 @@ export function NewVaultName() {
         <Button
           className="w-full"
           size="lg"
-          onClick={handleCreate}
-          disabled={!isValid || isCreating}
+          onClick={handleContinue}
+          disabled={!isValid}
         >
-          {isCreating ? "Creating..." : "Create Vault"}
+          Continue
         </Button>
         <div className="text-center">
           <Link
