@@ -1,6 +1,6 @@
 import type { MetaFunction } from "react-router";
 import type { Route } from "./+types/_index";
-import { Link, useRevalidator } from "react-router";
+import { Link, useFetcher } from "react-router";
 import { Lock, X } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
@@ -23,17 +23,29 @@ export async function clientLoader(_args: Route.ClientLoaderArgs) {
   return { vaults };
 }
 
+export async function clientAction({ request }: Route.ClientActionArgs) {
+  const formData = await request.formData();
+  const vaultId = formData.get("vaultId");
+
+  if (typeof vaultId === "string") {
+    await deleteVault(vaultId);
+  }
+
+  return null;
+}
+
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
   const { vaults } = loaderData;
   const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
-  const revalidator = useRevalidator();
+  const fetcher = useFetcher();
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!vaultToDelete) return;
 
-    await deleteVault(vaultToDelete.id);
+    const formData = new FormData();
+    formData.append("vaultId", vaultToDelete.id);
+    fetcher.submit(formData, { method: "post" });
     setVaultToDelete(null);
-    revalidator.revalidate();
   };
 
   return (
