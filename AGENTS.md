@@ -1,396 +1,188 @@
 # Guide for AI Agents Working on KeyPears
 
-The KeyPears project is a new secret manager designed to solve the following
-problems:
+## Overview
 
-- Allow local-first password management with synchronization across devices.
-  Synchronization is handled by a permissionless marketplace of third-party
-  service providers using a common protocol, similar to email. The protocol and
-  most software is open-source, and anyone can run a KeyPears node for free.
-- Allow sharing secrets user-to-user with end-to-end encryption. The fundamental
-  idea is that user `alice@example.com` has a public/private key pair, and
-  `bob@example2.com` has another public/private key pair. Using Diffie-Hellman
-  key exchange, Alice and Bob can derive a shared secret that only they know.
-  This shared secret is then used to encrypt/decrypt the shared password. The
-  network architecture is very similar to email, except it has a
-  cryptography-first design where users must have their own key pairs to share
-  secrets.
+KeyPears is a password manager designed for full self-custody with cross-device
+synchronization and secure sharing. It uses a decentralized, email-like
+architecture where users can run their own sync nodes or use hosted providers.
+
+**Key features:**
+
+- Local-first with optional cloud sync via permissionless marketplace of
+  providers
+- End-to-end encrypted secret sharing between users
+- Three-tier key derivation system separating authentication from encryption
+- Mobile-first design with cross-platform support (Windows, MacOS, Linux,
+  Android, iOS)
 
 ## Intended Users
 
-Although long-term we want KeyPears to be used by anyone, the primary initial
-users fall into two categories:
-
-- Cryptocurrency users who want self-custody of their passwords and secrets,
-  including cryptocurrency wallet keys. In the future, we may even add
-  first-class support for cryptocurrency wallets directly in KeyPears.
-- Business users who need to share secrets securely among team members and who
-  do not have a company Bitwarden or 1Password account. KeyPears allows them to
-  run their own node completely for free, similar in principle to email. They
-  can also sign up for the free tier of `keypears.com`.
+- **Cryptocurrency users**: Self-custody of passwords, wallet keys, and other
+  crypto secrets
+- **Business users**: Secure team secret sharing without enterprise password
+  manager costs
 
 ## Intended Secrets
 
-KeyPears may be called a "password manager," but the idea is to go further than
-just passwords. We intend to provide first-class support for:
+KeyPears supports multiple secret types:
 
 - Passwords
 - Cryptocurrency wallet keys
 - API keys
-- Environment variables such as database connection strings
+- Environment variables
 - SSH keys
 - PGP keys
 
-KeyPears may also be called a "secret manager" or "credential manager" or "key
-manager" or "password vault" or "password safe" or "digital vault."
-
-## Intended Platforms
-
-Near-term, the plan is to provide a Tauri-based native app on the following
-platforms:
-
-- Windows
-- MacOS
-- Linux
-- Android
-- iOS
-
-We may also create a webapp for secret management. However, for now, the webapp
-is intended to be a landing page, blog, and API server, but with no secret
-management features. Users will be expected to download the Tauri app to manage
-their secrets.
+KeyPears may also be called a "secret manager", "credential manager", "key
+manager", or "digital vault".
 
 ## Project Structure
 
-At this time, there are three projects:
+Three main packages:
 
-- `@keypears/lib`: The core library that implements the data structures,
-  cryptography.
-- `@keypears/tauri`: A cross-platform application that works on Mac, Windows,
-  Linux, Android, and iOS. It has a mobile-first design, but also supports
-  desktop-only features such as system tray icon. This is the primary end-user
-  facing application and it is built with Tauri and React Router.
-- `@keypears/webapp`: This is the webapp hosted at `keypears.com` and it also
-  serves as a template for service providers who want to run a KeyPears node.
+- **`@keypears/lib`**: Core library (data structures, cryptography)
+- **`@keypears/tauri`**: Cross-platform native app (Mac, Windows, Linux,
+  Android, iOS)
+- **`@keypears/webapp`**: Landing page, blog, API server, and template for
+  self-hosted nodes
 
-Note that the project is very early in its development and will likely change in
-structure with time.
+All projects are managed with `pnpm` in a monorepo workspace
+(`pnpm-workspace.yaml`).
 
-### Development Workflow for TypeScript Projects
+### Folder Layout
 
-When making changes to any TypeScript project (`@keypears/lib`, `@keypears/webapp`,
-or `@keypears/tauri`), always run the following commands in order from the
-respective project directory:
+```
+lib/      - @keypears/lib source
+tauri/    - @keypears/tauri source
+webapp/   - @keypears/webapp source
+docs/     - Documentation
+```
 
-1. `pnpm run lint` - Lint the code with ESLint
-2. `pnpm run typecheck` - Type check the TypeScript code
+## Development Workflow
+
+**For all TypeScript projects**, run these commands in order from the project
+directory:
+
+1. `pnpm run lint` - Lint with ESLint
+2. `pnpm run typecheck` - Type check with TypeScript
 3. `pnpm run test` - Run tests with Vitest
 4. `pnpm run build` - Build the package/application
 
-All commands must pass without errors before committing changes. This ensures
-code quality and prevents breaking changes from being introduced. These commands
-must be run for every TypeScript project in the monorepo.
-
-## Folder Layout
-
-At the top level, the repository has the following folders:
-
-- `lib`: The source code for `@keypears/lib`.
-- `tauri`: The source code for `@keypears/tauri`.
-- `webapp`: The source code for `@keypears/webapp`.
-
-All projects are managed with `pnpm` and share a common pnpm workspace. The pnpm
-workspace file is `pnpm-workspace.yaml`. Most likely, more projects will be
-added with time. For instance, it is likely we will create a package for the API
-client.
+All commands must pass before committing. Run for **every** TypeScript project
+modified.
 
 ## Programming Languages
 
-The project is primarily written in TypeScript with some Rust code in the Tauri
-application. We use node.js as the TypeScript runtime.
+- **TypeScript**: Primary language for all packages (runtime: Node.js)
+- **Rust**: Tauri backend code
 
-### TypeScript Patterns
+### Essential TypeScript Patterns
 
-We have some principles for how we write all TypeScript code throughout the
-entire monorepo:
-
-- Always use `prettier` for code formatting.
-- Always use `eslint` for linting.
-- Always use `typescript` for type checking.
-- Always use `vitest` for unit testing.
-- Always use `orpc` for the API.
-- Always use `zod` for data validation and parsing. Zod schemas are also used in
-  the orpc API definitions.
-- Always use `WebBuf` and associated tools like `FixedBuf` for binary data. The
-  corresponding `npm` packages are `@webbuf/webbuf` and `@webbuf/fixedbuf`.
-- Always use `shadcn` for components. There is a catppuccin-esque theme defined
-  in the `css` files for shadcn.
-- Always use `lucide-react` for icons. Never hard-code SVG icons inline in
-  components. Import icons from `lucide-react` (e.g., `import { Copy, Check }
-  from "lucide-react"`) and use them as React components with appropriate size
-  props.
+- **Formatting**: `prettier`
+- **Linting**: `eslint`
+- **Type checking**: `typescript`
+- **Testing**: `vitest`
+- **API**: `orpc`
+- **Validation**: `zod` (for parsing and validation)
+- **Binary data**: `WebBuf` and `FixedBuf` (`@webbuf/webbuf`,
+  `@webbuf/fixedbuf`)
+- **UI components**: `shadcn` (with Catppuccin theme)
+- **Icons**: `lucide-react` (never inline SVG)
 
 ### Rust Patterns
 
-- Never use `unwrap` without proper handling of error-cases immediately before.
-- Never use unsafe code.
-- Always use `cargo fmt` to format code before committing.
-- Always use `cargo clippy` to lint code before committing.
+- Never use `unwrap` without proper error handling
+- Never use unsafe code
+- Always run `cargo fmt` and `cargo clippy` before committing
 
-## Cryptography
+## Design Patterns
 
-KeyPears uses a cross-platform cryptography stack built on WebBuf, a toolkit
-that provides Rust implementations of cryptographic primitives compiled to WASM.
-This approach ensures identical behavior across Node.js, browsers, mobile
-webviews, and native platforms.
+KeyPears has comprehensive design pattern documentation:
 
-### Algorithms
+- **[UI/UX Patterns](docs/design-patterns-uiux.md)**: Visual design system,
+  colors (Catppuccin), typography, component patterns (shadcn, buttons, inputs,
+  forms), layout patterns, keyboard accessibility, interactions
+- **[Code Patterns](docs/design-patterns-code.md)**: File structure, naming
+  conventions, import ordering, component structure, state management with React
+  Router, multi-step wizards
+- **[Data Patterns](docs/design-patterns-data.md)**: Validation (Zod), database
+  (ULID primary keys, Drizzle ORM), performance (debouncing, optimistic
+  updates), error handling
+- **[Cryptography Patterns](docs/design-patterns-crypto.md)**: Three-tier key
+  derivation system, algorithms (Blake3, ACB3, AES-256), password policy,
+  cross-platform WASM crypto stack
 
-- **Hashing/KDF**: Blake3 - Modern, fast, and secure hash function
-- **Encryption**: ACB3 - AES-256-CBC + Blake3-MAC (Encrypt-then-MAC construction)
-- **Key Size**: 256-bit (32-byte) keys throughout
-- **Password KDF**: Three-tier Blake3-based KDF system (see `docs/key-derivation.md`)
+## Key Technical Details
 
-ACB3 uses AES-256-CBC rather than AES-GCM because CBC+MAC is simpler to
-implement correctly in WASM while providing equivalent security. The
-Encrypt-then-MAC pattern prevents padding oracle attacks. AES-256 benefits from
-hardware acceleration (AES-NI) on most platforms.
+### Cryptography
 
-### Design Rationale
+- **Algorithms**: Blake3 (hashing/KDF), ACB3 (AES-256-CBC + Blake3-MAC)
+- **Key derivation**: Three-tier system (password key → encryption key + login
+  key)
+- **Password policy**: Minimum 16 characters, default lowercase-only for mobile
+  usability (~75 bits entropy)
 
-- **Cross-platform consistency**: WASM ensures the same code runs everywhere,
-  avoiding platform-specific crypto API fragmentation
-- **Performance**: Blake3 and WASM provide excellent speed across all platforms
-- **Security**: Strong password requirements (16+ lowercase chars = ~75 bits
-  entropy) combined with computational hardness provides adequate protection
-- **Maintainability**: Single implementation reduces bugs and maintenance burden
-- **Modern primitives**: Blake3 is a well-vetted, modern cryptographic primitive
+See [`docs/design-patterns-crypto.md`](docs/design-patterns-crypto.md) for
+complete details.
 
-The KDF is not memory-hard like Argon2, but this is an acceptable trade-off
-given the strong password requirements and cross-platform constraints. The
-threat model assumes high-entropy user passwords rather than defending against
-large-scale offline attacks on weak passwords.
+### Database
 
-### Password Policy
+- **Clients**: SQLite with Drizzle ORM
+- **Servers**: PostgreSQL with Drizzle ORM
+- **Primary keys**: ULID (time-ordered, collision-resistant)
+- **Important**: Tauri SQLite doesn't support `.returning()` - always insert
+  then fetch
 
-KeyPears uses a distinctive password policy optimized for usability and security:
+See [`docs/design-patterns-data.md`](docs/design-patterns-data.md) for model
+patterns.
 
-- **Minimum length**: 16 characters
-- **Default character set**: Lowercase letters only (a-z)
-- **Entropy**: 16 lowercase characters = ~75 bits of entropy (log₂(26¹⁶) ≈ 75.4
-  bits)
-- **Optional character sets**: Uppercase, numbers, and symbols can be enabled
-  for systems that require them
+### Style & UI
 
-**Rationale for lowercase-only default:**
+- **Theme**: Catppuccin (Latte for light mode, Mocha for dark mode)
+- **Primary color**: Green
+- **Components**: Always use shadcn components
+- **Icons**: Always use lucide-react (never inline SVG)
+- **Layout**: Mobile-first, single-column design
 
-1. **Mobile usability**: Lowercase letters are the easiest to type on mobile
-   keyboards without switching character modes
-2. **Memorability**: Longer passwords with simple characters are easier to
-   remember than shorter passwords with complex character requirements
-3. **Sufficient entropy**: 75 bits of entropy exceeds the security threshold
-   for most threat models (typically 64-80 bits is considered strong)
-4. **User experience**: Reduces friction during login, especially on mobile
-   devices where the majority of users access their passwords
+See [`docs/design-patterns-uiux.md`](docs/design-patterns-uiux.md) for complete
+UI patterns.
 
-The `generateSecurePassword` function in `@keypears/lib` supports all character
-sets but defaults to lowercase-only. Users can enable uppercase, numbers, and
-symbols when needed for legacy systems with strict password policies.
+### Synchronization
 
-## Icons
+- **Client storage**: SQLite with multiple vaults, each an append-only log of
+  changes
+- **Vault encryption**: Immutable 256-bit master key per vault
+- **Conflict resolution**: Last-write-wins based on timestamps
+- **Sync protocol**: Servers are dumb coordinators, all intelligence in clients
+- **Architecture**: Email-like decentralized model
 
-Both `webapp` and `tauri` have a `raw-icons/` folder containing source PNG
-files. Running `pnpm run build:icons` generates multiple sizes and formats to
-`public/images/` and auto-generates `app/util/aicons.ts` with type-safe icon
-paths.
+### Icons
 
-All icons are generated at 3x the display size to ensure crisp rendering on
-Retina and high-DPI displays (e.g., 100×100px display → 300×300px image).
-Images are output as WebP (primary), PNG (compatibility), and ICO (favicon).
+Source PNGs in `raw-icons/` folders. Run `pnpm run build:icons` to generate
+multiple sizes/formats to `public/images/` with type-safe paths in
+`app/util/aicons.ts`.
 
-The `$aicon()` helper provides compile-time type safety for icon paths,
-preventing typos and enabling IDE autocomplete.
+### Blog (Webapp Only)
 
-## Style
+Blog posts in `webapp/docs/blog/` as Markdown with TOML front-matter:
 
-All apps are mobile-first apps, meaning they are designed with one primary
-column, unless explicitly specified otherwise. For all colors, we use
-catppuccin-based themes, with all the colors hard-coded in the relevant `css`
-files. We use `shadcn` components for all UI elements. We support dark mode and
-light mode. Dark mode uses catppuccin-mocha and light mode uses
-catppuccin-latte.
-
-For typography, we use the `@tailwindcss/typography` plugin, which provides
-beautiful default styling for prose content (e.g., blog posts). The design
-emphasizes clean typography, generous whitespace, and subtle color accents.
-
-Common styling patterns:
-
-- Container max-widths: `max-w-2xl` for narrow content, `max-w-3xl` for blog
-  posts
-- Cards: `rounded-lg border border-border bg-card p-6`
-- Links: Always use primary green color with animated hover effect. Links have no
-  underline by default but show underline on hover. Use `var(--color-primary)` in
-  CSS or `text-primary hover:underline` in Tailwind. Add smooth opacity transition
-  on hover: `transition: opacity 0.2s` and `opacity: 0.8` on hover state (or
-  `hover:opacity-80 transition-opacity` in Tailwind)
-- Prose content: Use `keypears-prose` class for all markdown/prose content,
-  which extends `@tailwindcss/typography` with brand colors
-- Metadata text: `text-muted-foreground`
-- Spacing: Use `space-y-4` or `space-y-6` for vertical spacing between elements
-
-## Blog
-
-The webapp includes a blog system located in `webapp/docs/blog`. Blog posts are
-written in Markdown with TOML front-matter.
-
-### Blog Structure
-
-- **Blog posts**: `webapp/docs/blog/*.md` - Markdown files with TOML
-  front-matter
-- **Blog utilities**: `webapp/app/util/blog.ts` - Shared functions for loading
-  and parsing blog posts
-- **Blog components**: `webapp/app/components/blog-post-card.tsx` - Reusable
-  blog post card component
-- **Blog routes**:
-  - `webapp/app/routes/blog._index.tsx` - All blog posts page
-  - `webapp/app/routes/blog.$slug.tsx` - Individual blog post page
-- **Feed generation**: `webapp/build-blog.ts` - Script to generate RSS, Atom,
-  and JSON feeds
-- **Feed output**: `webapp/public/blog/` - Generated feed files (feed.xml,
-  atom.xml, feed.json)
-
-### Blog Post Format
-
-All blog posts are located in `webapp/docs/blog/` and follow strict formatting
-conventions:
-
-**Filename Format:**
-- Pattern: `YYYY-MM-DD-slug.md`
-- Example: `2025-10-04-drizzle-sqlite-tauri.md`
-- The slug should be short and URL-friendly (lowercase, hyphens only)
-- The full filename (including date) appears in the blog post URL
-
-**Front Matter:**
-- Blog posts use TOML front-matter delimited by `+++`
-- Required fields: `title`, `date`, `author`
-- The `date` must match the date in the filename
-- Example:
-
-```markdown
-+++
-title = "Post Title"
-date = "2025-10-04"
-author = "KeyPears Team"
-+++
-
-Post content in Markdown...
-```
-
-**Important Rules:**
-- **Never** include the title as an `# H1` heading in the blog post content
-- The title is automatically rendered from the front-matter
-- Start your content with `## H2` headings or regular paragraphs
-- Use standard Markdown for all content formatting
-
-### Building the Blog
-
-- Run `pnpm run build:blog` from the `webapp` directory to generate RSS, Atom,
-  and JSON feeds
-- Blog posts are loaded dynamically by the webapp routes using the shared
-  utilities
-- The build script uses `remark` and `rehype` to convert Markdown to HTML
-- Feed links are included in the homepage meta tags
-
-## Database
-
-KeyPears uses two different database systems depending on the platform:
-
-- **Tauri app (clients)**: SQLite with Drizzle ORM
-- **Webapp (servers)**: PostgreSQL with Drizzle ORM
-
-Both databases follow these conventions:
-
-- **Primary Keys**: All tables use ULID (Universally Unique Lexicographically
-  Sortable Identifier) for primary keys, unless explicitly specified otherwise
-- **ID Type**: ULIDs are stored as `text` in SQLite and `text` or `varchar` in
-  PostgreSQL
-- **ID Generation**: ULIDs are auto-generated using the `ulid` npm package via
-  Drizzle's `.$defaultFn(() => ulid())` pattern
-
-**Why ULID?**
-- Time-ordered: ULIDs are lexicographically sortable by creation time
-- Collision-resistant: 128-bit random component ensures uniqueness across
-  distributed systems
-- URL-safe: Base32 encoding works in all contexts
-- Better than UUID: ULIDs maintain sort order, making database indexes more
-  efficient
-
-**Example schema:**
-```typescript
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { ulid } from "ulid";
-
-export const vaults = sqliteTable("vaults", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => ulid()),
-  name: text("name").notNull(),
-});
-```
-
-## Synchronization
-
-Clients use a SQLite database that can contain multiple "vaults". Each vault is
-an append-only log of changes plus encrypted secrets. Each vault has an
-immutable 256-bit master key that encrypts all secrets. The master key is
-encrypted with a key derived from the user's password (see Key Management
-section for details on the three-tier key derivation system). Sync nodes
-(servers like keypears.com) use PostgreSQL, not SQLite.
-
-### Change Tracking
-
-- Each vault maintains an append-only log of changes (git-like immutability)
-- Each change ("diff") is identified by a ULID and references the secret's ULID
-- Diffs include timestamps and originating device metadata
-- Deletions are soft deletes (tombstones), never actually removed
-- Metadata is unencrypted for indexing; only secrets are encrypted
-- No compaction needed (password-scale data remains small)
-
-### Conflict Resolution
-
-- Last-write-wins (LWW) based on timestamps
-- Users receive notifications when secrets are updated, including which device
-  made the change
-- Clock skew is not a concern (modern devices sync to time servers)
-
-### Sync Protocol
-
-- New devices download the entire change history on initial sync
-- Servers are dumb coordinators that store encrypted diffs
-- All sync intelligence lives in clients
-- Users can self-host servers (email-like model)
-
-### Key Management
-
-KeyPears uses a three-tier key derivation system (password key, encryption key,
-login key) that separates server authentication from vault encryption. The
-master vault key is immutable and encrypted with a key derived from the user's
-password.
-
-**For complete details on the key derivation system, cryptographic algorithms,
-and security properties, see `docs/key-derivation.md`.**
+- **Filename**: `YYYY-MM-DD-slug.md`
+- **Front-matter**: TOML with `title`, `date`, `author`
+- **Content**: Never include title as H1 (auto-rendered from front-matter)
+- **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
 
 ## Company
 
-KeyPears is an Apache 2.0-licensed project created by Identellica LLC.
-Identellica is a pseudonymous identity verification service with a need for
-secure secret management and sharing.
+KeyPears is an Apache 2.0-licensed project created by Identellica LLC, a
+pseudonymous identity verification service.
 
-## Concluding Thoughts
+## Quick Start
 
-KeyPears is a new type of password manager designed for full self-custody of
-passwords and other secrets while simultaneously solving the problem of
-synchronization and sharing. The basic idea is to invent a crypto-first protocol
-similar in architecture to email, but based on end-to-end asymmetric
-cryptography so that users can share secrets securely.
+When working on KeyPears:
+
+1. Read the relevant design pattern docs before starting work
+2. Follow the development workflow (lint → typecheck → test → build)
+3. Use shadcn components and Catppuccin colors
+4. Reference existing components (`PasswordGenerator`, `NewVaultName`,
+   `_index.tsx`) for patterns
+5. Always validate with Zod, use ULID for IDs, follow mobile-first design
