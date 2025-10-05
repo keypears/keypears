@@ -50,9 +50,12 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
           <div className="flex items-center gap-2">
             {activeVault && (
               <>
-                <span className="text-foreground font-mono text-sm">
+                <Link
+                  to={`/vault/${activeVault.vaultId}/passwords`}
+                  className="text-foreground hover:text-primary font-mono text-sm transition-colors"
+                >
                   {activeVault.vaultName}@localhost
-                </span>
+                </Link>
                 <UserMenu />
               </>
             )}
