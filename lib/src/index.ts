@@ -12,11 +12,8 @@ export const vaultNameSchema = z
   .string()
   .min(3, "Vault name must be at least 3 characters")
   .max(20, "Vault name must be at most 20 characters")
-  .regex(/^[a-zA-Z]/, "Vault name must start with a letter")
-  .regex(
-    /^[a-zA-Z0-9]+$/,
-    "Vault name must contain only alphanumeric characters",
-  );
+  .regex(/^[a-z]/, "Vault name must start with a letter")
+  .regex(/^[a-z0-9]+$/, "Vault name must contain only alphanumeric characters");
 
 /**
  * the schema for an update to a secret
