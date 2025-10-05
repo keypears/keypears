@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
+import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { getPasswordHistory, createPasswordUpdate } from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
@@ -131,6 +132,13 @@ export default function EditPassword() {
     <div className="bg-background min-h-screen">
       <Navbar showBackButton />
       <div className="mx-auto max-w-2xl px-4 py-8">
+        <PasswordBreadcrumbs
+          vaultId={activeVault.vaultId}
+          vaultName={activeVault.vaultName}
+          passwordName={existingPassword.name}
+          passwordSecretId={existingPassword.secretId}
+          currentPage="Edit"
+        />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Edit Password</h1>

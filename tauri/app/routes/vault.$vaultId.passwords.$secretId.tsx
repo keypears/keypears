@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { Navbar } from "~app/components/navbar";
+import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { getPasswordHistory, createPasswordUpdate } from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
@@ -137,6 +138,12 @@ export default function PasswordDetail() {
     <div className="bg-background min-h-screen">
       <Navbar showBackButton />
       <div className="mx-auto max-w-2xl px-4 py-8">
+        <PasswordBreadcrumbs
+          vaultId={activeVault.vaultId}
+          vaultName={activeVault.vaultName}
+          passwordName={password.name}
+          passwordSecretId={password.secretId}
+        />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6 flex items-start justify-between">
             <div>
