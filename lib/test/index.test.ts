@@ -5,6 +5,11 @@ import { describe, expect, it } from "vitest";
 import {
   calculatePasswordEntropy,
   decryptKey,
+  deriveEncryptionKey,
+  deriveEncryptionSalt,
+  deriveLoginKey,
+  deriveLoginSalt,
+  derivePasswordKey,
   encryptKey,
   generateKey,
   generateSecurePassword,
@@ -193,6 +198,99 @@ describe("Index", () => {
       // 28 lowercase chars should exceed 128 bits
       const entropy = calculatePasswordEntropy(28, { lowercase: true });
       expect(entropy).toBeGreaterThanOrEqual(128);
+    });
+  });
+
+  describe("three-tier key derivation", () => {
+    it("should derive password key from password", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      expect(passwordKey.buf.length).toBe(32);
+    });
+
+    it("should derive same password key for same password", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey1 = derivePasswordKey(password);
+      const passwordKey2 = derivePasswordKey(password);
+      expect(passwordKey1.buf.toHex()).toBe(passwordKey2.buf.toHex());
+    });
+
+    it("should derive different password keys for different passwords", () => {
+      const passwordKey1 = derivePasswordKey("password1");
+      const passwordKey2 = derivePasswordKey("password2");
+      expect(passwordKey1.buf.toHex()).not.toBe(passwordKey2.buf.toHex());
+    });
+
+    it("should derive encryption key from password key", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const encryptionKey = deriveEncryptionKey(passwordKey);
+      expect(encryptionKey.buf.length).toBe(32);
+    });
+
+    it("should derive login key from password key", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const loginKey = deriveLoginKey(passwordKey);
+      expect(loginKey.buf.length).toBe(32);
+    });
+
+    it("should derive different keys for encryption and login", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const encryptionKey = deriveEncryptionKey(passwordKey);
+      const loginKey = deriveLoginKey(passwordKey);
+
+      // All keys should be different
+      expect(passwordKey.buf.toHex()).not.toBe(encryptionKey.buf.toHex());
+      expect(passwordKey.buf.toHex()).not.toBe(loginKey.buf.toHex());
+      expect(encryptionKey.buf.toHex()).not.toBe(loginKey.buf.toHex());
+    });
+
+    it("should derive same encryption key from same password key", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const encryptionKey1 = deriveEncryptionKey(passwordKey);
+      const encryptionKey2 = deriveEncryptionKey(passwordKey);
+      expect(encryptionKey1.buf.toHex()).toBe(encryptionKey2.buf.toHex());
+    });
+
+    it("should derive same login key from same password key", () => {
+      const password = "thisisaverysecurepassword";
+      const passwordKey = derivePasswordKey(password);
+      const loginKey1 = deriveLoginKey(passwordKey);
+      const loginKey2 = deriveLoginKey(passwordKey);
+      expect(loginKey1.buf.toHex()).toBe(loginKey2.buf.toHex());
+    });
+
+    it("should have constant salts for encryption and login", () => {
+      const encryptionSalt1 = deriveEncryptionSalt();
+      const encryptionSalt2 = deriveEncryptionSalt();
+      const loginSalt1 = deriveLoginSalt();
+      const loginSalt2 = deriveLoginSalt();
+
+      expect(encryptionSalt1.buf.toHex()).toBe(encryptionSalt2.buf.toHex());
+      expect(loginSalt1.buf.toHex()).toBe(loginSalt2.buf.toHex());
+      expect(encryptionSalt1.buf.toHex()).not.toBe(loginSalt1.buf.toHex());
+    });
+
+    it("should produce deterministic but different keys through the full flow", () => {
+      const password = "thisisaverysecurepassword";
+
+      // First derivation
+      const passwordKey1 = derivePasswordKey(password);
+      const encryptionKey1 = deriveEncryptionKey(passwordKey1);
+      const loginKey1 = deriveLoginKey(passwordKey1);
+
+      // Second derivation
+      const passwordKey2 = derivePasswordKey(password);
+      const encryptionKey2 = deriveEncryptionKey(passwordKey2);
+      const loginKey2 = deriveLoginKey(passwordKey2);
+
+      // Same password should produce same keys
+      expect(passwordKey1.buf.toHex()).toBe(passwordKey2.buf.toHex());
+      expect(encryptionKey1.buf.toHex()).toBe(encryptionKey2.buf.toHex());
+      expect(loginKey1.buf.toHex()).toBe(loginKey2.buf.toHex());
     });
   });
 });

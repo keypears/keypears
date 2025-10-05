@@ -57,13 +57,13 @@ export function hashKey(key: FixedBuf<32>): FixedBuf<32> {
  * - Round 1: result = blake3_mac(salt, password)
  * - Round N: result = blake3_mac(salt, previous_result)
  *
- * @param password - The input password as a string
+ * @param password - The input password as a string or WebBuf
  * @param salt - A 32-byte salt as FixedBuf<32>
  * @param rounds - Number of iterations (default: 100,000)
  * @returns A derived 32-byte key as FixedBuf<32>
  */
 export function blake3Pbkdf(
-  password: string,
+  password: string | WebBuf,
   salt: FixedBuf<32>,
   rounds: number = 100_000,
 ): FixedBuf<32> {
@@ -71,8 +71,10 @@ export function blake3Pbkdf(
     throw new Error("Rounds must be at least 1");
   }
 
-  // Convert password to WebBuf
-  const passwordBuf = WebBuf.fromUtf8(password);
+  // Convert password to WebBuf if it's a string
+  const passwordBuf = typeof password === "string"
+    ? WebBuf.fromUtf8(password)
+    : password;
 
   // First round: MAC(salt, password)
   let result = blake3Mac(salt, passwordBuf);
@@ -86,7 +88,7 @@ export function blake3Pbkdf(
 }
 
 /**
- * Generate a deterministic but unique salt from password
+ * Generate a deterministic but unique salt from password for deriving the password key
  */
 export function derivePasswordSalt(password: string): FixedBuf<32> {
   const context = blake3Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
@@ -95,12 +97,63 @@ export function derivePasswordSalt(password: string): FixedBuf<32> {
 }
 
 /**
- * Derives a 32-byte key from the given password using a deterministic salt
- * and 100,000 rounds of Blake3-based key derivation
+ * Generate a deterministic salt for deriving the encryption key from the password key
+ */
+export function deriveEncryptionSalt(): FixedBuf<32> {
+  return blake3Hash(WebBuf.fromUtf8("KeyPears encryption salt v1"));
+}
+
+/**
+ * Generate a deterministic salt for deriving the login key from the password key
+ */
+export function deriveLoginSalt(): FixedBuf<32> {
+  return blake3Hash(WebBuf.fromUtf8("KeyPears login salt v1"));
+}
+
+/**
+ * Derives the password key from the user's master password
+ *
+ * This is the first key in the three-tier key hierarchy. The password key is:
+ * - Stored on device encrypted with a PIN for quick unlock
+ * - Used as input to derive both the encryption key and login key
+ * - Never sent to the server or used directly for encryption
+ *
+ * @param password - The user's master password
+ * @returns A 32-byte password key
  */
 export function derivePasswordKey(password: string): FixedBuf<32> {
   const salt = derivePasswordSalt(password);
   return blake3Pbkdf(password, salt, 100_000);
+}
+
+/**
+ * Derives the encryption key from the password key
+ *
+ * This key is used to encrypt/decrypt the master vault key. It is derived from
+ * the password key through another round of PBKDF to ensure that even if the
+ * login key is compromised, the encryption key cannot be derived from it.
+ *
+ * @param passwordKey - The password key derived from the user's master password
+ * @returns A 32-byte encryption key
+ */
+export function deriveEncryptionKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
+  const salt = deriveEncryptionSalt();
+  return blake3Pbkdf(passwordKey.buf, salt, 100_000);
+}
+
+/**
+ * Derives the login key from the password key
+ *
+ * This key is sent to the server for authentication. It is derived from the
+ * password key through another round of PBKDF to ensure that even if the server
+ * is compromised, the password key and encryption key cannot be derived from it.
+ *
+ * @param passwordKey - The password key derived from the user's master password
+ * @returns A 32-byte login key
+ */
+export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
+  const salt = deriveLoginSalt();
+  return blake3Pbkdf(passwordKey.buf, salt, 100_000);
 }
 
 /** Encrypts a 32-byte key using a password-derived key
