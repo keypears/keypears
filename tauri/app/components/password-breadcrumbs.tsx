@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Home, Lock, Key } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -29,7 +30,10 @@ export function PasswordBreadcrumbs({
         {/* Vaults link */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/">Vaults</Link>
+            <Link to="/" className="flex items-center gap-1.5">
+              <Home size={14} />
+              Vaults
+            </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
@@ -37,13 +41,19 @@ export function PasswordBreadcrumbs({
         {/* Vault name link or page */}
         {!passwordName && !currentPage ? (
           <BreadcrumbItem>
-            <BreadcrumbPage>{vaultName}</BreadcrumbPage>
+            <BreadcrumbPage className="flex items-center gap-1.5">
+              <Lock size={14} />
+              {vaultName}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         ) : (
           <>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={`/vault/${vaultId}/passwords`}>{vaultName}</Link>
+                <Link to={`/vault/${vaultId}/passwords`} className="flex items-center gap-1.5">
+                  <Lock size={14} />
+                  {vaultName}
+                </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -57,7 +67,8 @@ export function PasswordBreadcrumbs({
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to={`/vault/${vaultId}/passwords/${passwordSecretId}`}>
+                    <Link to={`/vault/${vaultId}/passwords/${passwordSecretId}`} className="flex items-center gap-1.5">
+                      <Key size={14} />
                       {passwordName}
                     </Link>
                   </BreadcrumbLink>
@@ -66,7 +77,10 @@ export function PasswordBreadcrumbs({
               </>
             ) : (
               <BreadcrumbItem>
-                <BreadcrumbPage>{passwordName}</BreadcrumbPage>
+                <BreadcrumbPage className="flex items-center gap-1.5">
+                  <Key size={14} />
+                  {passwordName}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             )}
           </>
