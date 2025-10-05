@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-10-04T21:38:37.220Z</updated>
+    <updated>2025-10-05T21:22:56.183Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
@@ -10,15 +10,135 @@
     <icon>https://keypears.com/favicon.ico</icon>
     <rights>Copyright 2025 Identellica LLC</rights>
     <entry>
+        <title type="html"><![CDATA[How KeyPears Protects Your Vault: Encryption and Key Derivation]]></title>
+        <id>https://keypears.com/blog/2025-10-05-vault-encryption-key-derivation</id>
+        <link href="https://keypears.com/blog/2025-10-05-vault-encryption-key-derivation"/>
+        <updated>2025-10-05T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault encryption keys. Today, we're diving deep into our three-tier key derivation system and explaining how we ensure that even...]]></summary>
+        <content type="html"><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault encryption keys. Today, we're diving deep into our three-tier key derivation system and explaining how we ensure that even if a server is compromised, your encrypted data remains secure.</p>
+<h2>The Problem: Authentication vs. Encryption</h2>
+<p>Most password managers face a fundamental challenge: you need to send <em>something</em> to the server to prove who you are, but you also need to keep your encryption key secret so the server can't decrypt your vault. Using the same key for both purposes creates a security vulnerability—if the server is compromised, an attacker gains access to your encryption key.</p>
+<p>KeyPears solves this by deriving two separate keys from your password: one for logging in to the server, and one for encrypting your vault. The server only ever sees the login key, never the encryption key.</p>
+<h2>Three-Tier Key Derivation</h2>
+<p>When you create a vault in KeyPears, we don't just hash your password once. Instead, we use a three-tier key derivation system:</p>
+<pre><code>Master Password
+  ↓ blake3Pbkdf (100,000 rounds)
+Password Key (stored encrypted with PIN on device)
+  ↓
+  ├→ blake3Pbkdf (100,000 rounds) → Encryption Key
+  └→ blake3Pbkdf (100,000 rounds) → Login Key
+</code></pre>
+<h3>1. Password Key: The Root of Trust</h3>
+<p>The first step derives a <strong>password key</strong> from your master password using 100,000 rounds of our Blake3-based PBKDF. This intermediate key is stored on your device, encrypted with your PIN for quick unlock. It never leaves your device and is never sent to any server.</p>
+<p>The password key acts as the root of trust for deriving the other two keys.</p>
+<h3>2. Encryption Key: Protecting Your Vault</h3>
+<p>From the password key, we derive an <strong>encryption key</strong> through another 100,000 rounds of Blake3 PBKDF. This key is used for one purpose only: encrypting and decrypting your master vault key.</p>
+<p>Wait—encrypting a key with another key? Yes! Your vault itself is encrypted with a randomly generated <strong>master vault key</strong>. This master key is immutable and never changes. The encryption key derived from your password is used to encrypt this master vault key before storing it in the database.</p>
+<p>This architecture allows you to change your password without re-encrypting your entire vault—we just re-encrypt the master vault key with the new encryption key.</p>
+<p>The encryption key is ephemeral. We derive it when needed, use it immediately, and discard it. It is never persisted to disk and never sent anywhere.</p>
+<h3>3. Login Key: Server Authentication</h3>
+<p>The third key in our hierarchy is the <strong>login key</strong>, also derived from the password key through 100,000 rounds of Blake3 PBKDF. This is the only key that gets sent to the server for authentication.</p>
+<p>Because the login key is derived separately from the encryption key, compromising one doesn't compromise the other. Even if a server is breached and the login key is stolen, the attacker cannot derive the encryption key needed to decrypt your vault.</p>
+<h2>Blake3 PBKDF: Fast and Secure</h2>
+<p>You might notice we're using 100,000 rounds of Blake3 PBKDF rather than a standard algorithm like PBKDF2. Blake3 is a modern, extremely fast cryptographic hash function. Even at 100,000 rounds, the entire key derivation completes in milliseconds on modern hardware.</p>
+<p>Our Blake3-based PBKDF works by iteratively applying Blake3's keyed MAC mode:</p>
+<pre><code>Round 1: result = blake3Mac(salt, password)
+Round 2: result = blake3Mac(salt, result_from_round_1)
+...
+Round 100,000: result = blake3Mac(salt, result_from_round_99,999)
+</code></pre>
+<p>Each round adds computational cost for attackers trying to brute-force your password, while remaining fast enough for legitimate use.</p>
+<h2>Salt Derivation</h2>
+<p>Each key derivation uses a different salt to ensure cryptographic separation:</p>
+<ul>
+<li>
+<p><strong>Password Salt</strong>: Derived deterministically from your password using <code>blake3Mac(blake3Hash("KeyPears password salt v1"), password)</code>. This ensures the same password always produces the same password key.</p>
+</li>
+<li>
+<p><strong>Encryption Salt</strong>: A global constant <code>blake3Hash("KeyPears encryption salt v1")</code> used for all users. This is safe because the encryption key is derived from the password key, not directly from the password.</p>
+</li>
+<li>
+<p><strong>Login Salt</strong>: Another global constant <code>blake3Hash("KeyPears login salt v1")</code>. Again, safe because it's derived from the password key.</p>
+</li>
+</ul>
+<h2>Security Properties</h2>
+<p>This architecture provides several important security guarantees:</p>
+<h3>Defense Against Server Compromise</h3>
+<p>If a KeyPears server is compromised, the attacker gains access to:</p>
+<ul>
+<li>Encrypted vault data</li>
+<li>Login keys for authentication</li>
+</ul>
+<p>The attacker does NOT gain access to:</p>
+<ul>
+<li>Master passwords</li>
+<li>Password keys</li>
+<li>Encryption keys</li>
+<li>Master vault keys</li>
+<li>Decrypted vault contents</li>
+</ul>
+<p>Without the encryption key, the encrypted vault data is useless to the attacker.</p>
+<h3>Defense Against Encrypted Data Theft</h3>
+<p>If someone steals your encrypted vault data but doesn't have your credentials:</p>
+<ul>
+<li>They cannot decrypt it without the encryption key</li>
+<li>The encryption key requires the password key</li>
+<li>The password key requires your master password</li>
+<li>100,000 rounds of Blake3 PBKDF make brute-forcing expensive</li>
+</ul>
+<h3>Key Separation</h3>
+<p>The three keys are cryptographically isolated. Knowing the login key doesn't help you derive the encryption key, and vice versa. Both require the password key, which requires the master password.</p>
+<h2>The Vault Key Hash: Verification</h2>
+<p>When you enter your password to unlock a vault, KeyPears needs to verify you entered it correctly. We do this by storing a Blake3 hash of the master vault key in the database.</p>
+<p>When you unlock:</p>
+<ol>
+<li>Derive password key from your password</li>
+<li>Derive encryption key from password key</li>
+<li>Decrypt the master vault key using the encryption key</li>
+<li>Hash the decrypted master vault key</li>
+<li>Compare with the stored hash</li>
+</ol>
+<p>If the hashes match, you entered the correct password. If not, the password is wrong. This verification happens entirely on your device—the master vault key never leaves your device, even temporarily.</p>
+<h2>Putting It All Together</h2>
+<p>Here's what happens when you create a new vault:</p>
+<ol>
+<li>You enter a master password</li>
+<li>KeyPears derives a password key (100k rounds Blake3)</li>
+<li>Derives an encryption key from the password key (100k rounds Blake3)</li>
+<li>Generates a random master vault key</li>
+<li>Encrypts the master vault key with the encryption key</li>
+<li>Hashes the master vault key for verification</li>
+<li>Stores the encrypted vault key and hash in your local database</li>
+</ol>
+<p>When you sync to a server:</p>
+<ol>
+<li>Derive the login key from your password key (100k rounds Blake3)</li>
+<li>Send the login key to the server for authentication</li>
+<li>Server returns your encrypted master vault key (and other encrypted vault data)</li>
+<li>Derive the encryption key (never sent to server)</li>
+<li>Decrypt the master vault key locally</li>
+<li>Use the master vault key to decrypt your secrets</li>
+</ol>
+<p>The server facilitates synchronization but never has the keys needed to decrypt your data.</p>
+<h2>Looking Ahead</h2>
+<p>This architecture lays the foundation for secure sharing between users. In future posts, we'll explore how KeyPears uses Diffie-Hellman key exchange to share secrets securely between users, and how the master vault key enables efficient re-encryption without re-deriving keys.</p>
+<p>For now, the key takeaway is simple: KeyPears separates authentication from encryption. Your server can verify who you are without ever having the ability to decrypt your data. It's cryptography working exactly as it should.</p>
+<hr>
+<p><em>KeyPears is open source and under active development. You can review our key derivation implementation in the <code>@keypears/lib</code> package on GitHub.</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
+    <entry>
         <title type="html"><![CDATA[Drizzle SQLite Database Migrations in Tauri 2.0]]></title>
         <id>https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri</id>
         <link href="https://keypears.com/blog/2025-10-04-drizzle-sqlite-tauri"/>
         <updated>2025-10-04T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[<p><em>Published: October 4, 2025</em></p>
-<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
-solutions described here are part of our development process and m...]]></summary>
-        <content type="html"><![CDATA[<p><em>Published: October 4, 2025</em></p>
-<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+        <summary type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+solutions described here are part of our development process and may evolve
+before our official release.</p>
+...]]></summary>
+        <content type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
 solutions described here are part of our development process and may evolve
 before our official release.</p>
 <h2>The Problem</h2>
@@ -358,9 +478,7 @@ compatibility and maintainability.</p>
 <li><a href="https://orm.drizzle.team/">Drizzle ORM</a></li>
 <li><a href="https://v2.tauri.app/plugin/sql/">Tauri SQL Plugin</a></li>
 <li><a href="https://v2.tauri.app/security/capabilities/">Tauri Capabilities</a></li>
-</ul>
-<hr>
-<p><em>Have questions or suggestions? We'd love to hear your feedback!</em></p>]]></content>
+</ul>]]></content>
         <author>
             <name>KeyPears Team</name>
         </author>
