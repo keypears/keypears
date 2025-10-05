@@ -22,7 +22,6 @@ export function PasswordMemorizer() {
   const [lastResult, setLastResult] = useState<boolean | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const historyEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-focus input
   useEffect(() => {
@@ -30,13 +29,6 @@ export function PasswordMemorizer() {
       inputRef.current.focus();
     }
   }, [stage, attempts.length]);
-
-  // Scroll to bottom after new attempt
-  useEffect(() => {
-    if (historyEndRef.current) {
-      historyEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [attempts.length]);
 
   const handleSetup = () => {
     if (setupInput.length === 0) return;
@@ -277,37 +269,39 @@ export function PasswordMemorizer() {
           <div className="border-border border-b p-3">
             <h3 className="text-sm font-semibold">Attempt History</h3>
           </div>
-          <div className="max-h-64 overflow-y-auto p-3">
+          <div className="p-3">
             <div className="space-y-2">
-              {attempts.map((attempt, index) => (
-                <div
-                  key={attempt.timestamp}
-                  className="border-border flex items-center gap-3 rounded-md border p-2"
-                >
+              {[...attempts].reverse().map((attempt, reverseIndex) => {
+                const index = attempts.length - 1 - reverseIndex;
+                return (
                   <div
-                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
-                      attempt.correct ? "bg-green-500/10" : "bg-red-500/10"
-                    }`}
+                    key={attempt.timestamp}
+                    className="border-border flex items-center gap-3 rounded-md border p-2"
                   >
-                    {attempt.correct ? (
-                      <Check size={14} className="text-green-500" />
-                    ) : (
-                      <X size={14} className="text-red-500" />
-                    )}
+                    <div
+                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
+                        attempt.correct ? "bg-green-500/10" : "bg-red-500/10"
+                      }`}
+                    >
+                      {attempt.correct ? (
+                        <Check size={14} className="text-green-500" />
+                      ) : (
+                        <X size={14} className="text-red-500" />
+                      )}
+                    </div>
+                    <span className="text-muted-foreground flex-1 font-mono text-sm">
+                      Attempt #{index + 1}
+                    </span>
+                    <span
+                      className={`text-xs font-medium ${
+                        attempt.correct ? "text-green-500" : "text-destructive"
+                      }`}
+                    >
+                      {attempt.correct ? "Match" : "No match"}
+                    </span>
                   </div>
-                  <span className="text-muted-foreground flex-1 font-mono text-sm">
-                    Attempt #{index + 1}
-                  </span>
-                  <span
-                    className={`text-xs font-medium ${
-                      attempt.correct ? "text-green-500" : "text-destructive"
-                    }`}
-                  >
-                    {attempt.correct ? "Match" : "No match"}
-                  </span>
-                </div>
-              ))}
-              <div ref={historyEndRef} />
+                );
+              })}
             </div>
           </div>
         </div>
