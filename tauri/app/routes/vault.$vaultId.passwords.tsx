@@ -1,5 +1,5 @@
 import type { MetaFunction } from "react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Key } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
@@ -9,10 +9,17 @@ export default function VaultPasswords() {
   const params = useParams();
   const navigate = useNavigate();
   const { activeVault } = useVault();
+  const mountedRef = useRef(true);
 
   // Redirect to unlock page if vault is not unlocked
   useEffect(() => {
-    if (!activeVault || activeVault.vaultId !== params.vaultId) {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if ((!activeVault || activeVault.vaultId !== params.vaultId) && mountedRef.current) {
       navigate(`/unlock-vault/${params.vaultId}`);
     }
   }, [activeVault, params.vaultId, navigate]);
