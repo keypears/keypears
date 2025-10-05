@@ -4,7 +4,7 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
 
-export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt };
+export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
 
 /** for all lowercase letters, 16 chars is ~75 bits of entropy */
 export const StandardPasswordSchema = z.string().lowercase().min(16).max(128);

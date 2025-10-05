@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router";
-import { Menu } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Menu, ArrowLeft } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import {
   Sheet,
@@ -8,26 +8,55 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~app/components/ui/sheet";
+import { useVault } from "~app/contexts/vault-context";
+import { UserMenu } from "./user-menu";
 
-export function Navbar() {
+interface NavbarProps {
+  showBackButton?: boolean;
+}
+
+export function Navbar({ showBackButton = false }: NavbarProps) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const { activeVault } = useVault();
 
   return (
     <>
       <nav className="border-border bg-background sticky top-0 z-40 w-full border-b">
         <div className="flex h-14 items-center justify-between px-4">
-          {/* Left: Burger Menu */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu size={20} />
-          </Button>
+          {/* Left: Burger Menu + Optional Back Button */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </Button>
+            {showBackButton && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(-1)}
+                aria-label="Go back"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+            )}
+          </div>
 
-          {/* Right: Placeholder for avatar */}
-          <div className="w-10" />
+          {/* Right: Vault Info + Avatar (if unlocked) */}
+          <div className="flex items-center gap-2">
+            {activeVault && (
+              <>
+                <span className="text-foreground font-mono text-sm">
+                  {activeVault.vaultName}@localhost
+                </span>
+                <UserMenu />
+              </>
+            )}
+          </div>
         </div>
       </nav>
 

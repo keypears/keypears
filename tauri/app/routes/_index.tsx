@@ -95,20 +95,28 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                   className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 rounded-full p-2">
-                      <Lock className="text-primary h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{vault.name}@localhost</h3>
-                      <p className="text-muted-foreground font-mono text-xs">
-                        {vault.hashedVaultKey.slice(0, 8)}
-                      </p>
-                    </div>
+                    <Link
+                      to={`/unlock-vault/${vault.id}`}
+                      className="flex flex-1 items-center gap-3"
+                    >
+                      <div className="bg-primary/10 rounded-full p-2">
+                        <Lock className="text-primary h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{vault.name}@localhost</h3>
+                        <p className="text-muted-foreground font-mono text-xs">
+                          {vault.hashedVaultKey.slice(0, 8)}
+                        </p>
+                      </div>
+                    </Link>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       aria-label="Delete vault"
-                      onClick={() => setVaultToDelete(vault)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVaultToDelete(vault);
+                      }}
                     >
                       <X size={20} />
                     </Button>
