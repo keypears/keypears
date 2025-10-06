@@ -1,5 +1,5 @@
 import { User, Lock } from "lucide-react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
 import {
   DropdownMenu,
@@ -32,7 +32,7 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem asChild>
-          <Link to={`/vault/${activeVault.vaultId}/passwords`}>
+          <Link to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}>
             {activeVault.vaultName}@localhost
           </Link>
         </DropdownMenuItem>

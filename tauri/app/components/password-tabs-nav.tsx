@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, href } from "react-router";
 import { Tabs, TabsList, TabsTrigger } from "~app/components/ui/tabs";
 
 interface PasswordTabsNavProps {
@@ -11,10 +11,10 @@ export function PasswordTabsNav({ vaultId, activeTab }: PasswordTabsNavProps) {
     <Tabs value={activeTab} className="mb-6">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="active" asChild>
-          <Link to={`/vault/${vaultId}/passwords`}>Secrets</Link>
+          <Link to={href("/vault/:vaultId/passwords", { vaultId })}>Secrets</Link>
         </TabsTrigger>
         <TabsTrigger value="deleted" asChild>
-          <Link to={`/vault/${vaultId}/passwords/deleted`}>Deleted</Link>
+          <Link to={href("/vault/:vaultId/passwords/deleted", { vaultId })}>Deleted</Link>
         </TabsTrigger>
       </TabsList>
     </Tabs>

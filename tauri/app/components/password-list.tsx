@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, href } from "react-router";
 import { Key, Plus, Globe, User } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { getCurrentPasswords } from "~app/db/models/password";
@@ -67,7 +67,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
           </p>
           {!showDeleted && (
             <Button asChild size="lg" className="w-full">
-              <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
+              <Link to={href("/vault/:vaultId/passwords/new", { vaultId: activeVault.vaultId })}>
                 <Plus size={20} className="mr-2" />
                 New Secret
               </Link>
@@ -87,7 +87,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
         </h1>
         {!showDeleted && (
           <Button asChild>
-            <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
+            <Link to={href("/vault/:vaultId/passwords/new", { vaultId: activeVault.vaultId })}>
               <Plus size={20} className="mr-2" />
               New Secret
             </Link>
@@ -100,7 +100,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
         {filteredPasswords.map((password) => (
           <Link
             key={password.id}
-            to={`/vault/${activeVault.vaultId}/passwords/${password.secretId}`}
+            to={href("/vault/:vaultId/passwords/:secretId", { vaultId: activeVault.vaultId, secretId: password.secretId })}
             className="block"
           >
             <div className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors">

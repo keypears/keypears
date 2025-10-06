@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, href } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
@@ -195,7 +195,7 @@ export default function NewPassword() {
               {isSubmitting ? "Creating..." : "Create Password"}
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
-              <Link to={`/vault/${activeVault.vaultId}/passwords`}>Cancel</Link>
+              <Link to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}>Cancel</Link>
             </Button>
           </div>
         </div>

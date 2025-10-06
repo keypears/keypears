@@ -1,5 +1,5 @@
 import type { Route } from "./+types/_index";
-import { Link } from "react-router";
+import { Link, href } from "react-router";
 import { Lock, X } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
@@ -53,7 +53,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                   <Link to="#">Import Vault</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/new-vault/1">Create Vault</Link>
+                  <Link to={href("/new-vault/1")}>Create Vault</Link>
                 </Button>
               </div>
             )}
@@ -72,7 +72,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 </p>
                 <div className="flex w-full flex-col gap-3">
                   <Button size="lg" className="w-full" asChild>
-                    <Link to="/new-vault/1">Create Vault</Link>
+                    <Link to={href("/new-vault/1")}>Create Vault</Link>
                   </Button>
                   <Button
                     size="lg"
@@ -95,7 +95,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 >
                   <div className="flex items-center gap-3">
                     <Link
-                      to={`/unlock-vault/${vault.id}`}
+                      to={href("/unlock-vault/:vaultId", { vaultId: vault.id })}
                       className="flex flex-1 items-center gap-3"
                     >
                       <div className="bg-primary/10 rounded-full p-2">
