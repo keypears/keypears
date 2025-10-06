@@ -119,7 +119,7 @@ export default function PasswordDetail() {
   if (isLoading) {
     return (
       <div className="bg-background min-h-screen">
-        <Navbar showBackButton />
+        <Navbar />
         <div className="mx-auto max-w-2xl px-4 py-8">
           <div className="border-border bg-card rounded-lg border p-8">
             <p className="text-muted-foreground text-center text-sm">
@@ -134,7 +134,7 @@ export default function PasswordDetail() {
   if (!password) {
     return (
       <div className="bg-background min-h-screen">
-        <Navbar showBackButton />
+        <Navbar />
         <div className="mx-auto max-w-2xl px-4 py-8">
           <div className="border-border bg-card rounded-lg border p-8">
             <p className="text-muted-foreground text-center text-sm">
@@ -148,7 +148,7 @@ export default function PasswordDetail() {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar showBackButton />
+      <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
@@ -181,7 +181,7 @@ export default function PasswordDetail() {
                 <Link
                   to={href("/vault/:vaultId/secrets/:secretId/edit", {
                     vaultId: activeVault.vaultId,
-                    secretId: password.secretId
+                    secretId: password.secretId,
                   })}
                 >
                   <Edit size={18} />

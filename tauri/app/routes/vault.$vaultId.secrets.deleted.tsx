@@ -13,7 +13,7 @@ export default function VaultPasswordsDeleted() {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar showBackButton />
+      <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}

@@ -66,7 +66,7 @@ export default function EditPassword() {
   if (isLoadingPassword) {
     return (
       <div className="bg-background min-h-screen">
-        <Navbar showBackButton />
+        <Navbar />
         <div className="mx-auto max-w-2xl px-4 py-8">
           <div className="border-border bg-card rounded-lg border p-8">
             <p className="text-muted-foreground text-center text-sm">
@@ -81,7 +81,7 @@ export default function EditPassword() {
   if (!existingPassword) {
     return (
       <div className="bg-background min-h-screen">
-        <Navbar showBackButton />
+        <Navbar />
         <div className="mx-auto max-w-2xl px-4 py-8">
           <div className="border-border bg-card rounded-lg border p-8">
             <p className="text-muted-foreground text-center text-sm">
@@ -123,7 +123,7 @@ export default function EditPassword() {
       navigate(
         href("/vault/:vaultId/secrets/:secretId", {
           vaultId: activeVault.vaultId,
-          secretId: existingPassword.secretId
+          secretId: existingPassword.secretId,
         }),
       );
     } catch (err) {
@@ -136,7 +136,7 @@ export default function EditPassword() {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar showBackButton />
+      <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
@@ -275,7 +275,7 @@ export default function EditPassword() {
               <Link
                 to={href("/vault/:vaultId/secrets/:secretId", {
                   vaultId: activeVault.vaultId,
-                  secretId: existingPassword.secretId
+                  secretId: existingPassword.secretId,
                 })}
               >
                 Cancel
