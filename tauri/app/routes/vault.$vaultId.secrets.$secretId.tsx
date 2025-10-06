@@ -179,7 +179,7 @@ export default function PasswordDetail() {
                 aria-label="Edit password"
               >
                 <Link
-                  to={href("/vault/:vaultId/passwords/:secretId/edit", {
+                  to={href("/vault/:vaultId/secrets/:secretId/edit", {
                     vaultId: activeVault.vaultId,
                     secretId: password.secretId
                   })}

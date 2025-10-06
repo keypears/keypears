@@ -51,7 +51,7 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
             {activeVault && (
               <>
                 <Link
-                  to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}
+                  to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}
                   className="text-foreground hover:text-primary font-mono text-sm transition-colors"
                 >
                   {activeVault.vaultName}@localhost

@@ -22,7 +22,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   // Check if vault is already unlocked
   if (isVaultUnlocked(vaultId)) {
     // Redirect to vault's password page
-    throw redirect(href("/vault/:vaultId/passwords", { vaultId }));
+    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
   }
 
   // Load vault data
@@ -77,7 +77,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
           result.passwordKey,
           vault.encryptedVaultKey,
         );
-        navigate(href("/vault/:vaultId/passwords", { vaultId: vault.id }));
+        navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
       } else {
         // Password is incorrect
         setError("Incorrect password");

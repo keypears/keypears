@@ -121,7 +121,7 @@ export default function EditPassword() {
 
       // Navigate back to password detail
       navigate(
-        href("/vault/:vaultId/passwords/:secretId", {
+        href("/vault/:vaultId/secrets/:secretId", {
           vaultId: activeVault.vaultId,
           secretId: existingPassword.secretId
         }),
@@ -273,7 +273,7 @@ export default function EditPassword() {
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
-                to={href("/vault/:vaultId/passwords/:secretId", {
+                to={href("/vault/:vaultId/secrets/:secretId", {
                   vaultId: activeVault.vaultId,
                   secretId: existingPassword.secretId
                 })}

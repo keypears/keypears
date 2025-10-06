@@ -32,7 +32,7 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem asChild>
-          <Link to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}>
+          <Link to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}>
             {activeVault.vaultName}@localhost
           </Link>
         </DropdownMenuItem>

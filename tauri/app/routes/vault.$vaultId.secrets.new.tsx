@@ -53,7 +53,7 @@ export default function NewPassword() {
       });
 
       // Navigate back to passwords list
-      navigate(href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId }));
+      navigate(href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId }));
     } catch (err) {
       console.error("Failed to create password:", err);
       setError("Failed to create password");
@@ -195,7 +195,7 @@ export default function NewPassword() {
               {isSubmitting ? "Creating..." : "Create Password"}
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
-              <Link to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}>Cancel</Link>
+              <Link to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}>Cancel</Link>
             </Button>
           </div>
         </div>
