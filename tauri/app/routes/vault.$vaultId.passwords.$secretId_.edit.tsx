@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
@@ -7,7 +6,10 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import { getPasswordHistory, createPasswordUpdate } from "~app/db/models/password";
+import {
+  getPasswordHistory,
+  createPasswordUpdate,
+} from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
 
 export default function EditPassword() {
@@ -15,7 +17,8 @@ export default function EditPassword() {
   const navigate = useNavigate();
   const { activeVault, encryptPassword } = useVault();
 
-  const [existingPassword, setExistingPassword] = useState<PasswordUpdateRow | null>(null);
+  const [existingPassword, setExistingPassword] =
+    useState<PasswordUpdateRow | null>(null);
   const [isLoadingPassword, setIsLoadingPassword] = useState(true);
 
   const [name, setName] = useState("");
@@ -219,14 +222,16 @@ export default function EditPassword() {
                   placeholder="Leave empty to keep current password"
                   className="pr-10"
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 right-2 -translate-y-1/2">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
                     tabIndex={-1}
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </Button>
@@ -276,10 +281,3 @@ export default function EditPassword() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Edit Password | KeyPears" },
-    { name: "description", content: "Edit password" },
-  ];
-};

@@ -34,9 +34,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
   }, [activeVault]);
 
   // Filter passwords based on showDeleted prop
-  const filteredPasswords = passwords.filter(
-    (p) => p.deleted === showDeleted
-  );
+  const filteredPasswords = passwords.filter((p) => p.deleted === showDeleted);
 
   if (!activeVault) {
     return null;
@@ -71,7 +69,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
             <Button asChild size="lg" className="w-full">
               <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
                 <Plus size={20} className="mr-2" />
-                New Password
+                New Secret
               </Link>
             </Button>
           )}
@@ -91,7 +89,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
           <Button asChild>
             <Link to={`/vault/${activeVault.vaultId}/passwords/new`}>
               <Plus size={20} className="mr-2" />
-              New Password
+              New Secret
             </Link>
           </Button>
         )}
@@ -110,9 +108,9 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
                 <div className="bg-primary/10 mt-1 rounded-full p-2">
                   <Key className="text-primary h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold truncate">{password.name}</h3>
+                    <h3 className="truncate font-semibold">{password.name}</h3>
                     {password.deleted && (
                       <span className="text-destructive rounded bg-red-500/10 px-2 py-0.5 text-xs font-medium">
                         DELETED

@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { Navbar } from "~app/components/navbar";
 import { TestTauri } from "~app/components/test-tauri";
 
@@ -12,10 +11,3 @@ export default function TestTauriPage() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Test Tauri | KeyPears" },
-    { name: "description", content: "Test Tauri functionality" },
-  ];
-};

@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import type { Route } from "./+types/unlock-vault.$vaultId";
 import { useState } from "react";
 import { redirect, useNavigate } from "react-router";
@@ -130,14 +129,16 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
                     className={error ? "border-destructive pr-10" : "pr-10"}
                     autoFocus
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <div className="absolute top-1/2 right-2 -translate-y-1/2">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-sm"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </Button>
@@ -179,10 +180,3 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Unlock Vault | KeyPears" },
-    { name: "description", content: "Unlock your vault" },
-  ];
-};

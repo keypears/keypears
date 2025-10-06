@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useVault } from "~app/contexts/vault-context";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
@@ -26,10 +25,3 @@ export default function VaultPasswordsIndex() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Secrets | KeyPears" },
-    { name: "description", content: "Manage your secrets" },
-  ];
-};

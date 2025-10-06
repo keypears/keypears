@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
@@ -227,10 +226,3 @@ export default function NewVaultStep2() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Choose Password | KeyPears" },
-    { name: "description", content: "Choose a password for your vault" },
-  ];
-};

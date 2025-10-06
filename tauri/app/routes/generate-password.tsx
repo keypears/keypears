@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { Navbar } from "~app/components/navbar";
 import { PasswordGenerator } from "~app/components/password-generator";
 
@@ -12,10 +11,3 @@ export default function GeneratePasswordPage() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Generate Password | KeyPears" },
-    { name: "description", content: "Generate secure passwords with KeyPears" },
-  ];
-};

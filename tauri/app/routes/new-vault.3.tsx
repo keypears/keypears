@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { CheckCircle } from "lucide-react";
@@ -188,13 +187,3 @@ export default function NewVaultStep3() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Vault Created | KeyPears" },
-    {
-      name: "description",
-      content: "Your vault has been created successfully",
-    },
-  ];
-};

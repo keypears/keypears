@@ -1,7 +1,16 @@
-import type { MetaFunction } from "react-router";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { Eye, EyeOff, Edit, Trash2, RotateCcw, Globe, User, Mail, FileText } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Edit,
+  Trash2,
+  RotateCcw,
+  Globe,
+  User,
+  Mail,
+  FileText,
+} from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import {
   AlertDialog,
@@ -16,7 +25,10 @@ import {
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import { getPasswordHistory, createPasswordUpdate } from "~app/db/models/password";
+import {
+  getPasswordHistory,
+  createPasswordUpdate,
+} from "~app/db/models/password";
 import type { PasswordUpdateRow } from "~app/db/models/password";
 
 export default function PasswordDetail() {
@@ -176,9 +188,15 @@ export default function PasswordDetail() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
-                aria-label={password.deleted ? "Restore password" : "Delete password"}
+                aria-label={
+                  password.deleted ? "Restore password" : "Delete password"
+                }
               >
-                {password.deleted ? <RotateCcw size={18} /> : <Trash2 size={18} />}
+                {password.deleted ? (
+                  <RotateCcw size={18} />
+                ) : (
+                  <Trash2 size={18} />
+                )}
               </Button>
             </div>
           </div>
@@ -233,7 +251,9 @@ export default function PasswordDetail() {
                     variant="outline"
                     size="icon"
                     onClick={handleTogglePassword}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </Button>
@@ -251,52 +271,48 @@ export default function PasswordDetail() {
                 <p className="text-sm">{password.notes}</p>
               </div>
             )}
-      </div>
+          </div>
 
-      {/* Delete/Restore confirmation dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {password.deleted ? "Restore Password?" : "Delete Password?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {password.deleted
-                ? "This will restore the password and make it active again."
-                : "This will mark the password as deleted. You can still see it in the Deleted tab."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={
-                password.deleted
-                  ? ""
-                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              }
-            >
-              {isDeleting
-                ? password.deleted
-                  ? "Restoring..."
-                  : "Deleting..."
-                : password.deleted
-                  ? "Restore"
-                  : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          {/* Delete/Restore confirmation dialog */}
+          <AlertDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {password.deleted ? "Restore Password?" : "Delete Password?"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {password.deleted
+                    ? "This will restore the password and make it active again."
+                    : "This will mark the password as deleted. You can still see it in the Deleted tab."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className={
+                    password.deleted
+                      ? ""
+                      : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  }
+                >
+                  {isDeleting
+                    ? password.deleted
+                      ? "Restoring..."
+                      : "Deleting..."
+                    : password.deleted
+                      ? "Restore"
+                      : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Password Details | KeyPears" },
-    { name: "description", content: "View password details" },
-  ];
-};

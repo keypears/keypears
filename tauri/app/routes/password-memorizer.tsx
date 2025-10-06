@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { Navbar } from "~app/components/navbar";
 import { PasswordMemorizer } from "~app/components/password-memorizer";
 
@@ -12,13 +11,3 @@ export default function PasswordMemorizerPage() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Password Memorizer | KeyPears" },
-    {
-      name: "description",
-      content: "Practice memorizing passwords through repetition",
-    },
-  ];
-};

@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useVault } from "~app/contexts/vault-context";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
@@ -27,10 +26,3 @@ export default function VaultPasswordsDeleted() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Deleted Secrets | KeyPears" },
-    { name: "description", content: "View deleted secrets" },
-  ];
-};

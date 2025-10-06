@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { Navbar } from "~app/components/navbar";
 import { NewVaultName } from "~app/components/new-vault-name";
 
@@ -12,10 +11,3 @@ export default function NewVaultStep1() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "Create Vault | KeyPears" },
-    { name: "description", content: "Create a new vault" },
-  ];
-};

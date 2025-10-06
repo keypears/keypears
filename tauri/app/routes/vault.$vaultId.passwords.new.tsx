@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
@@ -38,7 +37,9 @@ export default function NewPassword() {
 
     try {
       const secretId = ulid();
-      const encryptedPassword = password ? encryptPassword(password) : undefined;
+      const encryptedPassword = password
+        ? encryptPassword(password)
+        : undefined;
 
       await createPasswordUpdate({
         vaultId: activeVault.vaultId,
@@ -72,9 +73,9 @@ export default function NewPassword() {
         />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold">New Password</h1>
+            <h1 className="text-2xl font-bold">New Secret</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Add a new password to your vault
+              Add a new secret to your vault
             </p>
           </div>
 
@@ -150,14 +151,16 @@ export default function NewPassword() {
                   placeholder="Enter password"
                   className="pr-10"
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 right-2 -translate-y-1/2">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
                     tabIndex={-1}
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </Button>
@@ -200,10 +203,3 @@ export default function NewPassword() {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Password | KeyPears" },
-    { name: "description", content: "Add a new password" },
-  ];
-};

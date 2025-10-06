@@ -1,4 +1,3 @@
-import type { MetaFunction } from "react-router";
 import type { Route } from "./+types/_index";
 import { Link } from "react-router";
 import { Lock, X } from "lucide-react";
@@ -103,7 +102,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                         <Lock className="text-primary h-4 w-4" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{vault.name}@localhost</h3>
+                        <h3 className="font-semibold">
+                          {vault.name}@localhost
+                        </h3>
                         <p className="text-muted-foreground font-mono text-xs">
                           {vault.hashedVaultKey.slice(0, 8)}
                         </p>
@@ -159,11 +160,3 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
     </div>
   );
 }
-
-export const meta: MetaFunction = () => {
-  return [
-    // comment to force multiline with formatter
-    { title: `KeyPears` },
-    { name: "description", content: "Welcome to KeyPears!" },
-  ];
-};
