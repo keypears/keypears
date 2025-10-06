@@ -85,7 +85,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
       {/* Header with New Password button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          {showDeleted ? "Deleted Passwords" : "Passwords"}
+          {showDeleted ? "Deleted Secrets" : "Secrets"}
         </h1>
         {!showDeleted && (
           <Button asChild>

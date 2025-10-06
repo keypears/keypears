@@ -29,7 +29,7 @@ export default function VaultPasswordsIndex() {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Passwords | KeyPears" },
-    { name: "description", content: "Manage your passwords" },
+    { title: "Secrets | KeyPears" },
+    { name: "description", content: "Manage your secrets" },
   ];
 };

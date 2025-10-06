@@ -30,7 +30,7 @@ export default function VaultPasswordsDeleted() {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Deleted Passwords | KeyPears" },
-    { name: "description", content: "View deleted passwords" },
+    { title: "Deleted Secrets | KeyPears" },
+    { name: "description", content: "View deleted secrets" },
   ];
 };
