@@ -88,6 +88,9 @@ modified.
   `@webbuf/fixedbuf`)
 - **UI components**: `shadcn` (with Catppuccin theme)
 - **Icons**: `lucide-react` (never inline SVG)
+- **Routing**: React Router with type-safe `href()` function for all `<Link>`
+  components (e.g., `<Link to={href("/vault/:vaultId/passwords", { vaultId })}>`)
+  to ensure compile-time route validation
 
 ### Rust Patterns
 
