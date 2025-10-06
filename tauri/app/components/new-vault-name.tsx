@@ -18,13 +18,13 @@ export function NewVaultName() {
       const vaults = await getVaults();
       const vaultNames = new Set(vaults.map((v) => v.name));
 
-      // Try "passwords1", "passwords2", "passwords3", etc.
+      // Try "secrets", "secrets2", "secrets3", etc.
       let counter = 1;
-      let defaultName = `passwords${counter}`;
+      let defaultName = "secrets";
 
       while (vaultNames.has(defaultName)) {
         counter++;
-        defaultName = `passwords${counter}`;
+        defaultName = `secrets${counter}`;
       }
 
       setName(defaultName);
@@ -130,7 +130,7 @@ export function NewVaultName() {
                 handleContinue();
               }
             }}
-            placeholder="passwords"
+            placeholder="secrets"
             className={error ? "border-red-500" : ""}
             autoFocus
           />
