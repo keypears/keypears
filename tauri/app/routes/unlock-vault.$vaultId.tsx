@@ -1,6 +1,6 @@
 import type { Route } from "./+types/unlock-vault.$vaultId";
 import { useState } from "react";
-import { redirect, useNavigate } from "react-router";
+import { redirect, useNavigate, href } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -16,19 +16,19 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
 
   if (!vaultId) {
-    throw redirect("/");
+    throw redirect(href("/"));
   }
 
   // Check if vault is already unlocked
   if (isVaultUnlocked(vaultId)) {
     // Redirect to vault's password page
-    throw redirect(`/vault/${vaultId}/passwords`);
+    throw redirect(href("/vault/:vaultId/passwords", { vaultId }));
   }
 
   // Load vault data
   const vault = await getVault(vaultId);
   if (!vault) {
-    throw redirect("/");
+    throw redirect(href("/"));
   }
 
   return { vault };
@@ -77,7 +77,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
           result.passwordKey,
           vault.encryptedVaultKey,
         );
-        navigate(`/vault/${vault.id}/passwords`);
+        navigate(href("/vault/:vaultId/passwords", { vaultId: vault.id }));
       } else {
         // Password is incorrect
         setError("Incorrect password");

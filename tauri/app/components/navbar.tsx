@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, href } from "react-router";
 import { Menu, ArrowLeft } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import {
@@ -51,7 +51,7 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
             {activeVault && (
               <>
                 <Link
-                  to={`/vault/${activeVault.vaultId}/passwords`}
+                  to={href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId })}
                   className="text-foreground hover:text-primary font-mono text-sm transition-colors"
                 >
                   {activeVault.vaultName}@localhost

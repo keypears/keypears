@@ -53,7 +53,7 @@ export default function NewPassword() {
       });
 
       // Navigate back to passwords list
-      navigate(`/vault/${activeVault.vaultId}/passwords`);
+      navigate(href("/vault/:vaultId/passwords", { vaultId: activeVault.vaultId }));
     } catch (err) {
       console.error("Failed to create password:", err);
       setError("Failed to create password");

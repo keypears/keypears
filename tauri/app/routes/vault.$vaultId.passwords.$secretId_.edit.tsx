@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate, Link, href } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
@@ -121,7 +121,10 @@ export default function EditPassword() {
 
       // Navigate back to password detail
       navigate(
-        `/vault/${activeVault.vaultId}/passwords/${existingPassword.secretId}`,
+        href("/vault/:vaultId/passwords/:secretId", {
+          vaultId: activeVault.vaultId,
+          secretId: existingPassword.secretId
+        }),
       );
     } catch (err) {
       console.error("Failed to update password:", err);
@@ -270,7 +273,10 @@ export default function EditPassword() {
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
-                to={`/vault/${activeVault.vaultId}/passwords/${existingPassword.secretId}`}
+                to={href("/vault/:vaultId/passwords/:secretId", {
+                  vaultId: activeVault.vaultId,
+                  secretId: existingPassword.secretId
+                })}
               >
                 Cancel
               </Link>

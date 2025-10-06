@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, href } from "react-router";
 import {
   Eye,
   EyeOff,
@@ -179,7 +179,10 @@ export default function PasswordDetail() {
                 aria-label="Edit password"
               >
                 <Link
-                  to={`/vault/${activeVault.vaultId}/passwords/${password.secretId}/edit`}
+                  to={href("/vault/:vaultId/passwords/:secretId/edit", {
+                    vaultId: activeVault.vaultId,
+                    secretId: password.secretId
+                  })}
                 >
                   <Edit size={18} />
                 </Link>

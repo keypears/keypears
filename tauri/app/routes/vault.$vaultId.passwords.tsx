@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useParams, useNavigate, Outlet } from "react-router";
+import { useParams, useNavigate, Outlet, href } from "react-router";
 import { useVault } from "~app/contexts/vault-context";
 
 export default function VaultPasswordsLayout() {
@@ -18,9 +18,10 @@ export default function VaultPasswordsLayout() {
   useEffect(() => {
     if (
       (!activeVault || activeVault.vaultId !== params.vaultId) &&
-      mountedRef.current
+      mountedRef.current &&
+      params.vaultId
     ) {
-      navigate(`/unlock-vault/${params.vaultId}`);
+      navigate(href("/unlock-vault/:vaultId", { vaultId: params.vaultId }));
     }
   }, [activeVault, params.vaultId, navigate]);
 

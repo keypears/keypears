@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, href } from "react-router";
 import { CheckCircle } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -31,7 +31,7 @@ export default function NewVaultStep3() {
   // Redirect to step 1 if missing previous state
   useEffect(() => {
     if (!vaultName || !password) {
-      navigate("/new-vault/1");
+      navigate(href("/new-vault/1"));
     }
   }, [vaultName, password, navigate]);
 
@@ -120,7 +120,7 @@ export default function NewVaultStep3() {
   }
 
   const handleContinue = () => {
-    navigate("/");
+    navigate(href("/"));
   };
 
   return (

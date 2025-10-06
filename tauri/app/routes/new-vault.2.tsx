@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate, href } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -20,7 +20,7 @@ export default function NewVaultStep2() {
   // Redirect to step 1 if no vault name
   useEffect(() => {
     if (!vaultName) {
-      navigate("/new-vault/1");
+      navigate(href("/new-vault/1"));
     }
   }, [vaultName, navigate]);
 
@@ -47,7 +47,7 @@ export default function NewVaultStep2() {
   const handleContinue = () => {
     if (!isFormValid) return;
 
-    navigate("/new-vault/3", {
+    navigate(href("/new-vault/3"), {
       state: {
         vaultName,
         password,
