@@ -88,9 +88,14 @@ modified.
   `@webbuf/fixedbuf`)
 - **UI components**: `shadcn` (with Catppuccin theme)
 - **Icons**: `lucide-react` (never inline SVG)
-- **Routing**: React Router with type-safe `href()` function for all `<Link>`
-  components (e.g., `<Link to={href("/vault/:vaultId/passwords", { vaultId })}>`)
-  to ensure compile-time route validation
+- **Routing**: React Router with type-safe `href()` function for **all
+  navigation**. Use `href()` everywhere a route URL is needed to ensure
+  compile-time route validation when route files are renamed:
+  - `<Link to={href("/vault/:vaultId/passwords", { vaultId })}>`
+  - `navigate(href("/vault/:vaultId/passwords", { vaultId }))`
+  - `redirect(href("/vault/:vaultId/passwords", { vaultId }))`
+  - Any other case requiring an app route URL
+  - Never use string literals or template literals for internal routes
 
 ### Rust Patterns
 
