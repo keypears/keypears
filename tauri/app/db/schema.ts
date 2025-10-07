@@ -31,6 +31,7 @@ export const TableSecretUpdate = sqliteTable(
     secretId: text("secret_id").notNull(),
     name: text("name").notNull(),
     type: text("type").notNull().default("password"),
+    parentId: text("parent_id"),
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),
@@ -47,6 +48,7 @@ export const TableSecretUpdate = sqliteTable(
     ),
     index("idx_secret_updates_name").on(table.name),
     index("idx_secret_updates_type").on(table.type),
+    index("idx_secret_updates_parent_id").on(table.parentId),
   ],
 );
 
