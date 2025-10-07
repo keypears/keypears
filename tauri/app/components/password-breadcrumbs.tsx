@@ -32,7 +32,6 @@ export function PasswordBreadcrumbs({
           <BreadcrumbLink asChild>
             <Link to={href("/")} className="flex items-center gap-1.5">
               <Home size={14} />
-              Vaults
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
@@ -50,7 +49,10 @@ export function PasswordBreadcrumbs({
           <>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={href("/vault/:vaultId/secrets", { vaultId })} className="flex items-center gap-1.5">
+                <Link
+                  to={href("/vault/:vaultId/secrets", { vaultId })}
+                  className="flex items-center gap-1.5"
+                >
                   <Lock size={14} />
                   {vaultName}@localhost
                 </Link>
@@ -67,7 +69,13 @@ export function PasswordBreadcrumbs({
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to={href("/vault/:vaultId/secrets/:secretId", { vaultId, secretId: passwordSecretId })} className="flex items-center gap-1.5">
+                    <Link
+                      to={href("/vault/:vaultId/secrets/:secretId", {
+                        vaultId,
+                        secretId: passwordSecretId,
+                      })}
+                      className="flex items-center gap-1.5"
+                    >
                       <Key size={14} />
                       {passwordName}
                     </Link>
