@@ -1,5 +1,5 @@
 import { db } from "../index";
-import { TableSecretUpdates } from "../schema";
+import { TableSecretUpdate } from "../schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { SecretUpdateSchema } from "@keypears/lib";
 import type { SecretUpdate } from "@keypears/lib";
@@ -57,7 +57,7 @@ export async function createSecretUpdate(
   const secretUpdateJson = JSON.stringify(secretUpdate);
 
   // Insert into database - store full JSON + duplicate key fields for indexing
-  await db.insert(TableSecretUpdates).values({
+  await db.insert(TableSecretUpdate).values({
     vaultId: update.vaultId,
     secretId: update.secretId,
     name: update.name,
@@ -70,12 +70,12 @@ export async function createSecretUpdate(
   // Fetch and return the newly created update
   const result = await db
     .select()
-    .from(TableSecretUpdates)
+    .from(TableSecretUpdate)
     .where(
       and(
-        eq(TableSecretUpdates.vaultId, update.vaultId),
-        eq(TableSecretUpdates.secretId, update.secretId),
-        eq(TableSecretUpdates.createdAt, now),
+        eq(TableSecretUpdate.vaultId, update.vaultId),
+        eq(TableSecretUpdate.secretId, update.secretId),
+        eq(TableSecretUpdate.createdAt, now),
       ),
     )
     .limit(1);
@@ -113,9 +113,9 @@ export async function getSecretUpdates(
 ): Promise<SecretUpdateRow[]> {
   const results = await db
     .select()
-    .from(TableSecretUpdates)
-    .where(eq(TableSecretUpdates.vaultId, vaultId))
-    .orderBy(desc(TableSecretUpdates.createdAt));
+    .from(TableSecretUpdate)
+    .where(eq(TableSecretUpdate.vaultId, vaultId))
+    .orderBy(desc(TableSecretUpdate.createdAt));
 
   return results.map((row) => {
     const parsed = JSON.parse(row.secretUpdateJson) as SecretUpdate;
@@ -148,32 +148,32 @@ export async function getCurrentSecrets(
   // Subquery to get the maximum createdAt for each secretId
   const latestUpdates = db
     .select({
-      secretId: TableSecretUpdates.secretId,
-      maxCreatedAt: sql<number>`MAX(${TableSecretUpdates.createdAt})`.as(
+      secretId: TableSecretUpdate.secretId,
+      maxCreatedAt: sql<number>`MAX(${TableSecretUpdate.createdAt})`.as(
         "max_created_at",
       ),
     })
-    .from(TableSecretUpdates)
-    .where(eq(TableSecretUpdates.vaultId, vaultId))
-    .groupBy(TableSecretUpdates.secretId)
+    .from(TableSecretUpdate)
+    .where(eq(TableSecretUpdate.vaultId, vaultId))
+    .groupBy(TableSecretUpdate.secretId)
     .as("latest_updates");
 
   // Join with the main table to get the full records
   const results = await db
     .select({
-      id: TableSecretUpdates.id,
-      secretUpdateJson: TableSecretUpdates.secretUpdateJson,
+      id: TableSecretUpdate.id,
+      secretUpdateJson: TableSecretUpdate.secretUpdateJson,
     })
-    .from(TableSecretUpdates)
+    .from(TableSecretUpdate)
     .innerJoin(
       latestUpdates,
       and(
-        eq(TableSecretUpdates.secretId, latestUpdates.secretId),
-        eq(TableSecretUpdates.createdAt, latestUpdates.maxCreatedAt),
+        eq(TableSecretUpdate.secretId, latestUpdates.secretId),
+        eq(TableSecretUpdate.createdAt, latestUpdates.maxCreatedAt),
       ),
     )
-    .where(eq(TableSecretUpdates.vaultId, vaultId))
-    .orderBy(TableSecretUpdates.name);
+    .where(eq(TableSecretUpdate.vaultId, vaultId))
+    .orderBy(TableSecretUpdate.name);
 
   return results.map((row) => {
     const parsed = JSON.parse(row.secretUpdateJson) as SecretUpdate;
@@ -204,13 +204,13 @@ export async function getSecretHistory(
 ): Promise<SecretUpdateRow[]> {
   const results = await db
     .select({
-      id: TableSecretUpdates.id,
-      vaultId: TableSecretUpdates.vaultId,
-      secretUpdateJson: TableSecretUpdates.secretUpdateJson,
+      id: TableSecretUpdate.id,
+      vaultId: TableSecretUpdate.vaultId,
+      secretUpdateJson: TableSecretUpdate.secretUpdateJson,
     })
-    .from(TableSecretUpdates)
-    .where(eq(TableSecretUpdates.secretId, secretId))
-    .orderBy(desc(TableSecretUpdates.createdAt));
+    .from(TableSecretUpdate)
+    .where(eq(TableSecretUpdate.secretId, secretId))
+    .orderBy(desc(TableSecretUpdate.createdAt));
 
   return results.map((row) => {
     const parsed = JSON.parse(row.secretUpdateJson) as SecretUpdate;
