@@ -4,150 +4,153 @@
 
 KeyPears is the first **federated, end-to-end encrypted key & secret sharing
 platform**, designed to become the "email for secrets." It enables secure,
-cross-domain sharing of passwords, API tokens, crypto keys, and other sensitive
-credentials. Unlike traditional password managers locked into a single provider,
-KeyPears is **open source, federated, and privacy-first**. The code will be
+cross-domain sharing of passwords, API tokens, crypto keys, and cryptocurrency
+transactions. Unlike traditional password managers locked into a single
+provider, KeyPears is **open source, federated, and privacy-first**. The code is
 licensed under **Apache 2.0**, while the **KeyPears** brand is owned by
 **Identellica LLC**.
 
-KeyPears is uniquely positioned to serve:
+KeyPears’ unique model combines:
 
-- **Consumers** — Secure password management with cross-device sync.
-- **Developers & Startups** — Safe sharing of API keys, config files, and access
-  tokens.
-- **Enterprises** — Federated, auditable, and self-hostable key management for
-  compliance-sensitive industries.
-- **Cryptocurrency users** — Secure storage and sharing of private keys and seed
-  phrases.
+- **Free with ads**: Metadata-driven targeted ads, a new category of
+  monetization in password managers.
+- **Premium subscriptions**: $3–5/month per user to remove ads, unlock more
+  storage, and gain priority features.
+- **Open-source federation**: Anyone can self-host, but the brand “KeyPears”
+  requires licensing for businesses.
+- **Crypto integration**: Sending crypto like email (alice@domain → bob@domain),
+  starting with Ethereum L2 + USDC for stability, with Solana and Bitcoin to
+  follow.
 
-Over a 5–10 year horizon, KeyPears has the potential to grow from a profitable
-niche open-source project into a category-defining platform for secure secret
-sharing.
+Marketing will be **100% text-based**, focusing on developer and crypto
+communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 ---
 
 ## Market Opportunity
 
-- **Password Management Market**: Projected to surpass **\$3.1B by 2027**.
-- **Secrets Management / DevSecOps Market**: Growing rapidly as cloud adoption
-  accelerates (HashiCorp Vault, AWS Secrets Manager, Doppler).
-- **Federated Protocols Momentum**: Matrix (messaging) and Mastodon (social)
-  prove demand for decentralized, federated alternatives.
-- **Unique Positioning**: No dominant federated standard yet exists for secret
-  sharing; KeyPears can fill this gap.
+- **Password Manager Market**: ~$3.1B by 2027. Consumers already understand the
+  need.
+- **Secrets Management / DevSecOps**: Rapid growth, valued in billions (Vault,
+  Doppler).
+- **Crypto Payments**: Hundreds of millions of users, strong appetite for
+  decentralized identity and key management.
+- **Unique Positioning**: First federated system with ads + premium model,
+  text-based viral marketing, and crypto payments.
 
 ---
 
 ## Target Audiences
 
-- **Privacy-conscious Consumers**: Individuals who want open-source,
-  transparent, non-siloed password and secret management.
-- **Developers & Software Teams**: Need to securely share API keys, environment
-  variables, and credentials across organizations.
-- **Enterprises & Regulated Industries**: Require compliance features (audit
-  logs, key rotation, self-hosting) and support contracts.
-- **Crypto & Web3 Users**: Projects and DAOs that need to store and share
-  private keys or multisig credentials.
+- **Crypto Users & DAOs** — Manage wallets, multisig keys, and send crypto like
+  email.
+- **Privacy-Conscious Consumers** — Open-source password manager, no lock-in.
+- **Developers & Startups** — API key sharing, federated secret sync.
+- **Enterprises** — Compliance-ready, federated, self-hostable system.
 
 ---
 
 ## Business Model
 
-1. **Freemium SaaS (keypears.com)**
+1. **Ads (Free Tier)**
 
-   - Free tier with ads and limited storage.
-   - Premium personal plan: **\$3–5/month** (ad-free, more storage, priority
-     features).
+   - Users on keypears.com see ads tied to non-private metadata (e.g. “you have
+     a Coinbase account → crypto service ads”).
+   - Realistic CPM for targeted crypto/tech ads: $5–15.
+   - At 100k free users, with 20% ad engagement, potential **$10k–20k/month** ad
+     revenue.
 
-2. **Team & Enterprise Plans**
+2. **Premium Subscriptions**
 
-   - \$50–\$200/month depending on team size, with features like SSO, audit
-     logging, access policies, SLAs.
+   - $3–5/month to remove ads.
+   - 3–5% conversion from free → premium.
+   - At 100k users, 5% premium = 5k paying = **$15k–25k/month**.
 
-3. **Self-Hosting & Enterprise Distro**
+3. **Brand Licensing**
 
-   - Open-source under Apache 2.0.
-   - Offer premium enterprise builds (managed hosting, integrations, priority
-     support).
+   - Businesses adopting the protocol under “KeyPears” brand pay licensing.
+     (Est. $50–200 per small business client/month in later years.)
 
-4. **Consulting & Integration Services**
+4. **Enterprise & Consulting (Later)**
 
-   - Paid support for large organizations (e.g., crypto custodians, fintechs,
-     healthcare, government).
+   - Federated enterprise deployments with compliance features.
 
 ---
 
-## Go-to-Market Strategy
+## Marketing Strategy (Text-Only)
 
-### Phase 1 (0–12 months): **Developer & OSS Adoption**
+### Channels
 
-- Launch MVP open-source client + server on GitHub (with Apache 2.0 license).
-- Write thought-leadership blogs: _“Why secret sharing needs federation”_, _“The
-  Bitwarden/1Password problem.”_
-- Launch on **Hacker News, Product Hunt, Reddit (/r/selfhosted, /r/privacy)**.
-- Build community presence in privacy and developer spaces (Discord, Matrix,
-  Mastodon, Twitter/X).
+- **Reddit** — /r/crypto, /r/defi, /r/selfhosted, /r/privacy, /r/programming.
+- **X/Twitter** — Crypto Twitter for fast amplification.
+- **Blogs** — Thought-leadership posts: _“Email for crypto payments,”_ _“Why
+  password managers need federation.”_
+- **Newsletters & Forums** — Partner with crypto/OSS newsletters and developer
+  communities.
 
-**Expected revenue (end of year 1):**
+### Style
 
-- 500–1,500 users.
-- 2–5% convert to \$3–5/month.
-- Roughly **\$500–\$1,000/month**.
+- **Purely text-based** marketing, leaning into controversy (“ad-supported
+  password manager,” “send ETH like email”).
+- **Hooks**: short, viral one-liners — “Your new email is also your wallet,”
+  “Ads or privacy: you choose.”
 
-### Phase 2 (12–24 months): **Expand to Startups & Crypto**
+### Expected Eyeballs
 
-- Launch iOS/Android apps via Tauri.
-- Add integrations for GitHub Actions, AWS/GCP secrets, Docker.
-- Position KeyPears as a “federated alternative to Vault/Doppler.”
-- Partner with early-stage startups and crypto DAOs needing secure key sharing.
+- Initial Reddit/HN launch: 50k–100k views.
+- With consistent posting + crypto buzz: 200k–500k monthly impressions by
+  year 1.
+- Viral crypto posts (esp. with payments): 1M+ impressions possible.
 
-**Expected revenue (end of year 2):**
+---
 
-- 5,000–10,000 consumer users.
-- 150–300 paying teams.
-- **\$2,000–\$5,000/month**, with upside to **\$10,000/month** if early
-  enterprise pilots land.
+## Growth & Revenue Projections
 
-### Phase 3 (3–5 years): **Enterprise & Standardization**
+### Year 1 (MVP + crypto support)
 
-- Build compliance features (audit logs, SSO, role-based access, key escrow
-  options).
-- Pursue SOC2/ISO certifications.
-- Close enterprise deals (\$10k–100k ARR each).
-- Market to fintechs, healthtech, and government contractors.
-- Position KeyPears as the _federated standard_ for secret sharing, similar to
-  what **Matrix** became for messaging.
+- Users: 5k–20k.
+- Premium: 250–1,000 users.
+- Revenue: **$1k–3k/month** (ads + subs).
 
-**Expected revenue (3–5 years):**
+### Year 2 (crypto virality + federation map)
 
-- 50,000–200,000 consumer users (2–5% paying).
-- 500–2,000 SMB/enterprise clients.
-- **\$10M–30M ARR** plausible with steady growth and strong enterprise uptake.
+- Users: 50k–100k.
+- Premium: 2,500–5,000.
+- Revenue: **$10k–25k/month**.
 
-### Phase 4 (5–10 years): **Category Leader**
+### Year 3–5 (mainstream + enterprise)
 
-- Full-scale adoption across consumers and enterprises.
-- Partnerships with password managers, cloud providers, and crypto platforms.
-- Potential M\&A target for larger security or SaaS firms.
+- Users: 250k–500k.
+- Premium: 12,500–25,000.
+- Ad revenue: $50k+/month.
+- Premium revenue: $40k–100k/month.
+- Total: **$1M–2M ARR**.
 
-**Expected revenue (5–10 years):**
+### Long-Term (5–10 years)
 
-- **\$50M–100M+ ARR** if KeyPears becomes the de facto federated standard for
-  secret sharing.
-- Potential valuation: **\$500M–\$1B+**, depending on market multiples and
-  growth trajectory.
+- If KeyPears becomes _the federated standard for secrets + crypto payments_:
+
+  - Users: 1–5 million.
+  - Premium: 50k–250k.
+  - Enterprise/brand licensing: significant.
+  - Revenue: **$10M–50M+ ARR**.
 
 ---
 
 ## 📌 Summary
 
-- **Short-term (0–12m):** Build MVP, seed OSS community, aim for \~\$1k MRR.
-- **Medium-term (12–24m):** Grow developer/crypto adoption, add integrations,
-  aim for \$2–5k MRR, possibly \$10k with early enterprise traction.
-- **Long-term (3–5y):** With SMB/enterprise plans, aim for \$10–30M ARR.
-- **Aspirational (5–10y):** If federation becomes a recognized standard,
-  **\$50–100M+ ARR** potential.
+KeyPears combines:
 
-KeyPears can start as a **passion-driven OSS project** but has the **long-term
-potential to rival established password and secret management platforms** if
-executed with persistence, community trust, and smart enterprise partnerships.
+- **Open-source federation** (like email for secrets).
+- **Unique ad-supported free tier** + premium upsell.
+- **Crypto payments integration** for virality and revenue.
+- **Text-only marketing strategy** — focusing on Reddit, X/Twitter, blogs, and
+  forums for efficient reach.
+
+**Short-term (0–12m):** MVP + crypto, expect $1–3k/month. **Medium-term
+(12–24m):** Viral crypto adoption, $10–25k/month. **Long-term (5–10y):** If
+adopted as a standard, $10M–50M ARR.
+
+KeyPears has the potential to be both a profitable SaaS and a
+**category-defining federated crypto-secret platform** with purely text-driven
+marketing.
