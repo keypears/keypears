@@ -1,5 +1,5 @@
 import { db } from "../index";
-import { vaults } from "../schema";
+import { TableVaults } from "../schema";
 import { eq, count } from "drizzle-orm";
 import { vaultNameSchema } from "@keypears/lib";
 
@@ -21,7 +21,7 @@ export async function createVault(
 
   const createdAt = Date.now();
 
-  await db.insert(vaults).values({
+  await db.insert(TableVaults).values({
     name,
     encryptedVaultKey,
     hashedVaultKey,
@@ -38,24 +38,30 @@ export async function createVault(
 }
 
 export async function getVault(id: string): Promise<Vault | undefined> {
-  const result = await db.select().from(vaults).where(eq(vaults.id, id));
+  const result = await db
+    .select()
+    .from(TableVaults)
+    .where(eq(TableVaults.id, id));
   return result[0];
 }
 
 export async function getVaultByName(name: string): Promise<Vault | undefined> {
-  const result = await db.select().from(vaults).where(eq(vaults.name, name));
+  const result = await db
+    .select()
+    .from(TableVaults)
+    .where(eq(TableVaults.name, name));
   return result[0];
 }
 
 export async function getVaults(): Promise<Vault[]> {
-  return await db.select().from(vaults);
+  return await db.select().from(TableVaults);
 }
 
 export async function countVaults(): Promise<number> {
-  const result = await db.select({ count: count() }).from(vaults);
+  const result = await db.select({ count: count() }).from(TableVaults);
   return result[0]?.count ?? 0;
 }
 
 export async function deleteVault(id: string): Promise<void> {
-  await db.delete(vaults).where(eq(vaults.id, id));
+  await db.delete(TableVaults).where(eq(TableVaults.id, id));
 }

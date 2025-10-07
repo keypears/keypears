@@ -2,7 +2,7 @@ import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { ulid } from "ulid";
 
 // Vaults table - stores encrypted vault data
-export const vaults = sqliteTable("vaults", {
+export const TableVaults = sqliteTable("vaults", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => ulid()),
@@ -14,8 +14,11 @@ export const vaults = sqliteTable("vaults", {
     .$defaultFn(() => Date.now()),
 });
 
+export type SelectVaults = typeof TableVaults.$inferSelect;
+export type InsertVaults = typeof TableVaults.$inferInsert;
+
 // Secret updates table - eventually consistent append-only log
-export const secretUpdates = sqliteTable(
+export const TableSecretUpdates = sqliteTable(
   "secret_updates",
   {
     // Query/index columns (duplicated from JSON for performance)
@@ -24,7 +27,7 @@ export const secretUpdates = sqliteTable(
       .$defaultFn(() => ulid()),
     vaultId: text("vault_id")
       .notNull()
-      .references(() => vaults.id, { onDelete: "cascade" }),
+      .references(() => TableVaults.id, { onDelete: "cascade" }),
     secretId: text("secret_id").notNull(),
     name: text("name").notNull(),
     type: text("type").notNull().default("password"),
@@ -46,3 +49,6 @@ export const secretUpdates = sqliteTable(
     index("idx_secret_updates_type").on(table.type),
   ],
 );
+
+export type SelectSecretUpdates = typeof TableSecretUpdates.$inferSelect;
+export type InsertSecretUpdates = typeof TableSecretUpdates.$inferInsert;
