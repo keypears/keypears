@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { initTestDb, resetTestDb, closeTestDb } from "../test-init";
 import { createVault } from "~app/db/models/vault";
 import {
-  createPasswordUpdate,
-  getPasswordUpdates,
-  getCurrentPasswords,
-  getPasswordHistory,
+  createSecretUpdate,
+  getSecretUpdates,
+  getCurrentSecrets,
+  getSecretHistory,
 } from "~app/db/models/password";
 import { ulid } from "ulid";
 
@@ -21,12 +21,12 @@ describe("Password Model", () => {
     closeTestDb();
   });
 
-  describe("createPasswordUpdate", () => {
+  describe("createSecretUpdate", () => {
     it("should create a password update", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      const update = await createPasswordUpdate({
+      const update = await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "GitHub Account",
@@ -55,7 +55,7 @@ describe("Password Model", () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      const update = await createPasswordUpdate({
+      const update = await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Simple Password",
@@ -75,7 +75,7 @@ describe("Password Model", () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      const update = await createPasswordUpdate({
+      const update = await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Deleted Password",
@@ -90,7 +90,7 @@ describe("Password Model", () => {
       const secretId = ulid();
       const customTimestamp = Date.now() - 1000000;
 
-      const update = await createPasswordUpdate({
+      const update = await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Old Password",
@@ -102,27 +102,27 @@ describe("Password Model", () => {
     });
   });
 
-  describe("getPasswordUpdates", () => {
+  describe("getSecretUpdates", () => {
     it("should return all updates for a vault", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId1 = ulid();
       const secretId2 = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId1,
         name: "Password 1",
         encryptedPassword: "pass1",
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId2,
         name: "Password 2",
         encryptedPassword: "pass2",
       });
 
-      const updates = await getPasswordUpdates(vault.id);
+      const updates = await getSecretUpdates(vault.id);
 
       expect(updates).toHaveLength(2);
       expect(updates.map((u) => u.name)).toContain("Password 1");
@@ -132,7 +132,7 @@ describe("Password Model", () => {
     it("should return empty array for vault with no passwords", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
 
-      const updates = await getPasswordUpdates(vault.id);
+      const updates = await getSecretUpdates(vault.id);
 
       expect(updates).toHaveLength(0);
     });
@@ -141,7 +141,7 @@ describe("Password Model", () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 1",
@@ -149,7 +149,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 2",
@@ -157,7 +157,7 @@ describe("Password Model", () => {
         createdAt: 2000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 3",
@@ -165,7 +165,7 @@ describe("Password Model", () => {
         createdAt: 3000,
       });
 
-      const updates = await getPasswordUpdates(vault.id);
+      const updates = await getSecretUpdates(vault.id);
 
       expect(updates).toHaveLength(3);
       expect(updates[0].createdAt).toBe(3000);
@@ -174,13 +174,13 @@ describe("Password Model", () => {
     });
   });
 
-  describe("getCurrentPasswords", () => {
+  describe("getCurrentSecrets", () => {
     it("should return only the latest update for each password", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
       // Create multiple updates for the same password
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 1",
@@ -188,7 +188,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 2",
@@ -196,7 +196,7 @@ describe("Password Model", () => {
         createdAt: 2000,
       });
 
-      const latest = await createPasswordUpdate({
+      const latest = await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 3",
@@ -204,7 +204,7 @@ describe("Password Model", () => {
         createdAt: 3000,
       });
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       expect(current).toHaveLength(1);
       expect(current[0].name).toBe("Version 3");
@@ -218,7 +218,7 @@ describe("Password Model", () => {
       const secretId = ulid();
 
       // Insert in non-chronological order (simulating late arrival)
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 2",
@@ -226,7 +226,7 @@ describe("Password Model", () => {
         createdAt: 2000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 1",
@@ -234,7 +234,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 3",
@@ -242,7 +242,7 @@ describe("Password Model", () => {
         createdAt: 3000,
       });
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       // Should still return the one with the highest timestamp
       expect(current).toHaveLength(1);
@@ -254,7 +254,7 @@ describe("Password Model", () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Active Password",
@@ -263,7 +263,7 @@ describe("Password Model", () => {
       });
 
       // Delete the password (tombstone)
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Active Password",
@@ -271,7 +271,7 @@ describe("Password Model", () => {
         createdAt: 2000,
       });
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       // Deleted password should still appear with deleted flag
       expect(current).toHaveLength(1);
@@ -286,7 +286,7 @@ describe("Password Model", () => {
       const secretId3 = ulid();
 
       // Password 1 with multiple versions
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId1,
         name: "GitHub",
@@ -294,7 +294,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId1,
         name: "GitHub",
@@ -303,7 +303,7 @@ describe("Password Model", () => {
       });
 
       // Password 2 with one version
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId2,
         name: "Gmail",
@@ -312,7 +312,7 @@ describe("Password Model", () => {
       });
 
       // Password 3 with multiple versions, latest is deleted
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId3,
         name: "Twitter",
@@ -320,7 +320,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId3,
         name: "Twitter",
@@ -328,7 +328,7 @@ describe("Password Model", () => {
         createdAt: 3000,
       });
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       // Should return 3 passwords (GitHub, Gmail, and deleted Twitter)
       expect(current).toHaveLength(3);
@@ -351,7 +351,7 @@ describe("Password Model", () => {
     it("should return empty array for vault with no passwords", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       expect(current).toHaveLength(0);
     });
@@ -359,39 +359,39 @@ describe("Password Model", () => {
     it("should return passwords sorted by name", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: ulid(),
         name: "Zebra",
         encryptedPassword: "z",
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: ulid(),
         name: "Apple",
         encryptedPassword: "a",
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: ulid(),
         name: "Banana",
         encryptedPassword: "b",
       });
 
-      const current = await getCurrentPasswords(vault.id);
+      const current = await getCurrentSecrets(vault.id);
 
       expect(current.map((p) => p.name)).toEqual(["Apple", "Banana", "Zebra"]);
     });
   });
 
-  describe("getPasswordHistory", () => {
+  describe("getSecretHistory", () => {
     it("should return all updates for a specific password", async () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 1",
@@ -399,7 +399,7 @@ describe("Password Model", () => {
         createdAt: 1000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 2",
@@ -407,7 +407,7 @@ describe("Password Model", () => {
         createdAt: 2000,
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Version 3",
@@ -415,7 +415,7 @@ describe("Password Model", () => {
         createdAt: 3000,
       });
 
-      const history = await getPasswordHistory(secretId);
+      const history = await getSecretHistory(secretId);
 
       expect(history).toHaveLength(3);
       expect(history[0].createdAt).toBe(3000);
@@ -428,21 +428,21 @@ describe("Password Model", () => {
       const secretId1 = ulid();
       const secretId2 = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId1,
         name: "Password 1",
         encryptedPassword: "p1",
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId2,
         name: "Password 2",
         encryptedPassword: "p2",
       });
 
-      const history = await getPasswordHistory(secretId1);
+      const history = await getSecretHistory(secretId1);
 
       expect(history).toHaveLength(1);
       expect(history[0].name).toBe("Password 1");
@@ -454,14 +454,14 @@ describe("Password Model", () => {
       const vault = await createVault("vault1", "0".repeat(64), "0".repeat(64));
       const secretId = ulid();
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Password 1",
         encryptedPassword: "p1",
       });
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Password 2",
@@ -473,7 +473,7 @@ describe("Password Model", () => {
       await deleteVault(vault.id);
 
       // Password updates should be deleted
-      const updates = await getPasswordUpdates(vault.id);
+      const updates = await getSecretUpdates(vault.id);
       expect(updates).toHaveLength(0);
     });
   });

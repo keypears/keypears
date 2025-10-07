@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, href } from "react-router";
 import { Key, Plus, Globe, User } from "lucide-react";
 import { Button } from "~app/components/ui/button";
-import { getCurrentPasswords } from "~app/db/models/password";
-import type { PasswordUpdateRow } from "~app/db/models/password";
+import { getCurrentSecrets } from "~app/db/models/password";
+import type { SecretUpdateRow } from "~app/db/models/password";
 import { useVault } from "~app/contexts/vault-context";
 
 interface PasswordListProps {
@@ -12,7 +12,7 @@ interface PasswordListProps {
 
 export function PasswordList({ showDeleted = false }: PasswordListProps) {
   const { activeVault } = useVault();
-  const [passwords, setPasswords] = useState<PasswordUpdateRow[]>([]);
+  const [passwords, setPasswords] = useState<SecretUpdateRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,8 +21,8 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
 
       setIsLoading(true);
       try {
-        const currentPasswords = await getCurrentPasswords(activeVault.vaultId);
-        setPasswords(currentPasswords);
+        const currentSecrets = await getCurrentSecrets(activeVault.vaultId);
+        setPasswords(currentSecrets);
       } catch (error) {
         console.error("Failed to load passwords:", error);
       } finally {

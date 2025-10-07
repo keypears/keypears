@@ -18,13 +18,13 @@ export const vaultNameSchema = z
   .regex(/^[a-z0-9]+$/, "Vault name must contain only alphanumeric characters");
 
 /**
- * Schema for a password update (diff)
+ * Schema for a secret update (diff)
  * Only the password itself is encrypted - all metadata remains unencrypted
  * for efficient searching and display
  */
-export const PasswordUpdateSchema = z.object({
+export const SecretUpdateSchema = z.object({
   id: z.string(), // ULID of this update
-  secretId: z.string(), // ULID of the password being updated
+  secretId: z.string(), // ULID of the secret being updated
   name: z.string().min(1).max(255), // Display name (e.g., "GitHub Account")
   domain: z.string().max(255).optional(), // Domain (e.g., "github.com")
   username: z.string().max(255).optional(), // Username for login
@@ -35,7 +35,7 @@ export const PasswordUpdateSchema = z.object({
   deleted: z.boolean().optional(), // Tombstone flag for soft delete
 });
 
-export type PasswordUpdate = z.infer<typeof PasswordUpdateSchema>;
+export type SecretUpdate = z.infer<typeof SecretUpdateSchema>;
 
 /** Generates a new random 32-byte key for encrypting a secret file */
 export function generateKey(): FixedBuf<32> {

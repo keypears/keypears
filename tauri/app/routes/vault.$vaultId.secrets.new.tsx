@@ -6,7 +6,7 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import { createPasswordUpdate } from "~app/db/models/password";
+import { createSecretUpdate } from "~app/db/models/password";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
@@ -41,7 +41,7 @@ export default function NewPassword() {
         ? encryptPassword(password)
         : undefined;
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: activeVault.vaultId,
         secretId,
         name: name.trim(),

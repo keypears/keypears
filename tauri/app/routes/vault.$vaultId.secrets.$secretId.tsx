@@ -26,16 +26,16 @@ import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import {
-  getPasswordHistory,
-  createPasswordUpdate,
+  getSecretHistory,
+  createSecretUpdate,
 } from "~app/db/models/password";
-import type { PasswordUpdateRow } from "~app/db/models/password";
+import type { SecretUpdateRow } from "~app/db/models/password";
 
 export default function PasswordDetail() {
   const params = useParams();
   const { activeVault, decryptPassword } = useVault();
 
-  const [password, setPassword] = useState<PasswordUpdateRow | null>(null);
+  const [password, setPassword] = useState<SecretUpdateRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [decryptedPassword, setDecryptedPassword] = useState<string>("");
@@ -49,7 +49,7 @@ export default function PasswordDetail() {
 
       setIsLoading(true);
       try {
-        const history = await getPasswordHistory(params.secretId);
+        const history = await getSecretHistory(params.secretId);
         if (history.length > 0) {
           setPassword(history[0]); // Latest update
         }
@@ -87,7 +87,7 @@ export default function PasswordDetail() {
     setIsDeleting(true);
     try {
       // Toggle the deleted flag
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: activeVault.vaultId,
         secretId: password.secretId,
         name: password.name,
@@ -100,7 +100,7 @@ export default function PasswordDetail() {
       });
 
       // Reload the password data to show updated state
-      const history = await getPasswordHistory(password.secretId);
+      const history = await getSecretHistory(password.secretId);
       if (history.length > 0) {
         setPassword(history[0]);
       }

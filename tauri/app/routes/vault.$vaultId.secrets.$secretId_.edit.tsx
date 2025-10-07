@@ -7,10 +7,10 @@ import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import {
-  getPasswordHistory,
-  createPasswordUpdate,
+  getSecretHistory,
+  createSecretUpdate,
 } from "~app/db/models/password";
-import type { PasswordUpdateRow } from "~app/db/models/password";
+import type { SecretUpdateRow } from "~app/db/models/password";
 
 export default function EditPassword() {
   const params = useParams();
@@ -18,7 +18,7 @@ export default function EditPassword() {
   const { activeVault, encryptPassword } = useVault();
 
   const [existingPassword, setExistingPassword] =
-    useState<PasswordUpdateRow | null>(null);
+    useState<SecretUpdateRow | null>(null);
   const [isLoadingPassword, setIsLoadingPassword] = useState(true);
 
   const [name, setName] = useState("");
@@ -38,7 +38,7 @@ export default function EditPassword() {
 
       setIsLoadingPassword(true);
       try {
-        const history = await getPasswordHistory(params.secretId);
+        const history = await getSecretHistory(params.secretId);
         if (history.length > 0) {
           const current = history[0];
           setExistingPassword(current);
@@ -108,7 +108,7 @@ export default function EditPassword() {
         ? encryptPassword(password)
         : existingPassword.encryptedPassword || undefined;
 
-      await createPasswordUpdate({
+      await createSecretUpdate({
         vaultId: activeVault.vaultId,
         secretId: existingPassword.secretId,
         name: name.trim(),
