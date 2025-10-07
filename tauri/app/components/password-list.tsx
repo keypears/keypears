@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, href } from "react-router";
-import { Key, Plus, Globe, User } from "lucide-react";
+import { Key, Plus, Globe, User, Trash2 } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { getCurrentSecrets } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
@@ -58,16 +58,20 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
             <Key className="text-primary h-8 w-8" />
           </div>
           <h2 className="mb-2 text-xl font-semibold">
-            {showDeleted ? "No deleted passwords" : "No passwords yet"}
+            {showDeleted ? "No deleted secrets" : "No secrets yet"}
           </h2>
           <p className="text-muted-foreground mb-6 text-sm">
             {showDeleted
-              ? "Deleted passwords will appear here"
+              ? "Deleted secrets will appear here"
               : "Get started by adding your first password"}
           </p>
           {!showDeleted && (
             <Button asChild size="lg" className="w-full">
-              <Link to={href("/vault/:vaultId/secrets/new", { vaultId: activeVault.vaultId })}>
+              <Link
+                to={href("/vault/:vaultId/secrets/new", {
+                  vaultId: activeVault.vaultId,
+                })}
+              >
                 <Plus size={20} className="mr-2" />
                 New Secret
               </Link>
@@ -80,18 +84,34 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header with New Password button */}
+      {/* Header with buttons */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           {showDeleted ? "Deleted Secrets" : "Secrets"}
         </h1>
         {!showDeleted && (
-          <Button asChild>
-            <Link to={href("/vault/:vaultId/secrets/new", { vaultId: activeVault.vaultId })}>
-              <Plus size={20} className="mr-2" />
-              New Secret
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link
+                to={href("/vault/:vaultId/secrets/deleted", {
+                  vaultId: activeVault.vaultId,
+                })}
+              >
+                <Trash2 size={18} className="mr-2" />
+                Deleted
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link
+                to={href("/vault/:vaultId/secrets/new", {
+                  vaultId: activeVault.vaultId,
+                })}
+              >
+                <Plus size={20} className="mr-2" />
+                New Secret
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -100,7 +120,10 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
         {filteredPasswords.map((password) => (
           <Link
             key={password.id}
-            to={href("/vault/:vaultId/secrets/:secretId", { vaultId: activeVault.vaultId, secretId: password.secretId })}
+            to={href("/vault/:vaultId/secrets/:secretId", {
+              vaultId: activeVault.vaultId,
+              secretId: password.secretId,
+            })}
             className="block"
           >
             <div className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors">

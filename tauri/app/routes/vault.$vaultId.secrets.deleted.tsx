@@ -1,7 +1,6 @@
 import { useVault } from "~app/contexts/vault-context";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
-import { PasswordTabsNav } from "~app/components/password-tabs-nav";
 import { PasswordList } from "~app/components/password-list";
 
 export default function VaultPasswordsDeleted() {
@@ -20,7 +19,6 @@ export default function VaultPasswordsDeleted() {
           vaultName={activeVault.vaultName}
           currentPage="Deleted"
         />
-        <PasswordTabsNav vaultId={activeVault.vaultId} activeTab="deleted" />
         <PasswordList showDeleted={true} />
       </div>
     </div>
