@@ -29,7 +29,10 @@ export const SecretUpdateSchema = z.object({
   name: z.string().min(1).max(255), // Display name (e.g., "GitHub Account")
 
   // Secret type
-  type: z.enum(["password", "envvar", "apikey", "walletkey", "passkey"]).optional().default("password"),
+  type: z
+    .enum(["password", "envvar", "apikey", "walletkey", "passkey"])
+    .optional()
+    .default("password"),
 
   // Organizational
   folders: z.array(z.string().max(255)).max(10).optional(), // Folder path: ["Work", "AWS", "Production"]
