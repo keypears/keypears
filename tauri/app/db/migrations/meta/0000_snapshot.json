@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e7f327ee-d200-4ca5-8b01-5637cdab4bf1",
+  "id": "3e61927c-765d-4b03-a417-119f0bb317e4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "secret_updates": {
-      "name": "secret_updates",
+    "secret_update": {
+      "name": "secret_update",
       "columns": {
         "id": {
           "name": "id",
@@ -92,10 +92,10 @@
         }
       },
       "foreignKeys": {
-        "secret_updates_vault_id_vaults_id_fk": {
-          "name": "secret_updates_vault_id_vaults_id_fk",
-          "tableFrom": "secret_updates",
-          "tableTo": "vaults",
+        "secret_update_vault_id_vault_id_fk": {
+          "name": "secret_update_vault_id_vault_id_fk",
+          "tableFrom": "secret_update",
+          "tableTo": "vault",
           "columnsFrom": [
             "vault_id"
           ],
@@ -110,8 +110,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "vaults": {
-      "name": "vaults",
+    "vault": {
+      "name": "vault",
       "columns": {
         "id": {
           "name": "id",
@@ -150,8 +150,8 @@
         }
       },
       "indexes": {
-        "vaults_name_unique": {
-          "name": "vaults_name_unique",
+        "vault_name_unique": {
+          "name": "vault_name_unique",
           "columns": [
             "name"
           ],
