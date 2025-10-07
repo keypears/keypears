@@ -46,7 +46,7 @@ export default function EditPassword() {
           setDomain(current.domain || "");
           setUsername(current.username || "");
           setEmail(current.email || "");
-          setNotes(current.notes || "");
+          setNotes(current.encryptedNotes || "");
           // Do NOT pre-fill password field for security
         }
       } catch (error) {
@@ -104,9 +104,9 @@ export default function EditPassword() {
     try {
       // If password field is filled, encrypt new password
       // Otherwise, keep existing encrypted password
-      const encryptedPassword = password
+      const encryptedData = password
         ? encryptPassword(password)
-        : existingPassword.encryptedPassword || undefined;
+        : existingPassword.encryptedData || undefined;
 
       await createSecretUpdate({
         vaultId: activeVault.vaultId,
@@ -115,8 +115,8 @@ export default function EditPassword() {
         domain: domain.trim() || undefined,
         username: username.trim() || undefined,
         email: email.trim() || undefined,
-        notes: notes.trim() || undefined,
-        encryptedPassword,
+        encryptedNotes: notes.trim() || undefined,
+        encryptedData,
       });
 
       // Navigate back to password detail

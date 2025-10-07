@@ -19,18 +19,31 @@ export const vaultNameSchema = z
 
 /**
  * Schema for a secret update (diff)
- * Only the password itself is encrypted - all metadata remains unencrypted
- * for efficient searching and display
+ * Supports multiple secret types: passwords, env vars, API keys, wallet keys, passkeys
+ * Only the secret data itself is encrypted - metadata remains unencrypted for efficient searching
  */
 export const SecretUpdateSchema = z.object({
+  // Required fields
   id: z.string(), // ULID of this update
   secretId: z.string(), // ULID of the secret being updated
   name: z.string().min(1).max(255), // Display name (e.g., "GitHub Account")
+
+  // Secret type
+  type: z.enum(["password", "envvar", "apikey", "walletkey", "passkey"]).optional().default("password"),
+
+  // Organizational
+  folders: z.array(z.string().max(255)).max(10).optional(), // Folder path: ["Work", "AWS", "Production"]
+  tags: z.array(z.string().max(255)).max(20).optional(), // Tags for grouping: ["myapp-prod-env"]
+
+  // Password-specific fields (primarily for type="password")
   domain: z.string().max(255).optional(), // Domain (e.g., "github.com")
   username: z.string().max(255).optional(), // Username for login
   email: z.string().email().max(255).optional(), // Email for login
-  notes: z.string().max(4096).optional(), // Additional notes
-  encryptedPassword: z.string().optional(), // Encrypted password (hex string)
+
+  // Encrypted data (used by all types)
+  encryptedData: z.string().optional(), // The secret value itself (hex string)
+  encryptedNotes: z.string().max(4096).optional(), // Private encrypted notes
+
   createdAt: z.number(), // Unix timestamp in milliseconds
   deleted: z.boolean().optional(), // Tombstone flag for soft delete
 });

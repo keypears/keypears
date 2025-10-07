@@ -14,10 +14,11 @@ export const vaults = sqliteTable("vaults", {
     .$defaultFn(() => Date.now()),
 });
 
-// Password updates table - eventually consistent append-only log
-export const passwordUpdates = sqliteTable(
-  "password_updates",
+// Secret updates table - eventually consistent append-only log
+export const secretUpdates = sqliteTable(
+  "secret_updates",
   {
+    // Query/index columns (duplicated from JSON for performance)
     id: text("id")
       .primaryKey()
       .$defaultFn(() => ulid()),
@@ -26,21 +27,22 @@ export const passwordUpdates = sqliteTable(
       .references(() => vaults.id, { onDelete: "cascade" }),
     secretId: text("secret_id").notNull(),
     name: text("name").notNull(),
-    domain: text("domain"),
-    username: text("username"),
-    email: text("email"),
-    notes: text("notes"),
-    encryptedPassword: text("encrypted_password"),
+    type: text("type").notNull().default("password"),
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),
     deleted: integer("deleted", { mode: "boolean" }).notNull().default(false),
+
+    // Source of truth - full JSON object
+    secretUpdateJson: text("secret_update_json").notNull(),
   },
   (table) => [
-    index("idx_password_updates_vault_secret_time").on(
+    index("idx_secret_updates_vault_secret_time").on(
       table.vaultId,
       table.secretId,
       table.createdAt,
     ),
+    index("idx_secret_updates_name").on(table.name),
+    index("idx_secret_updates_type").on(table.type),
   ],
 );

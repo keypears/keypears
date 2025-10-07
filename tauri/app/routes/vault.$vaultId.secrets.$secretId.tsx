@@ -65,11 +65,11 @@ export default function PasswordDetail() {
 
   // Decrypt password when eye button is clicked
   const handleTogglePassword = () => {
-    if (!password?.encryptedPassword) return;
+    if (!password?.encryptedData) return;
 
     if (!showPassword) {
       try {
-        const decrypted = decryptPassword(password.encryptedPassword);
+        const decrypted = decryptPassword(password.encryptedData);
         setDecryptedPassword(decrypted);
         setShowPassword(true);
       } catch (error) {
@@ -94,8 +94,8 @@ export default function PasswordDetail() {
         domain: password.domain || undefined,
         username: password.username || undefined,
         email: password.email || undefined,
-        notes: password.notes || undefined,
-        encryptedPassword: password.encryptedPassword || undefined,
+        encryptedNotes: password.encryptedNotes || undefined,
+        encryptedData: password.encryptedData || undefined,
         deleted: !password.deleted, // Toggle instead of always true
       });
 
@@ -239,7 +239,7 @@ export default function PasswordDetail() {
             )}
 
             {/* Password */}
-            {password.encryptedPassword && (
+            {password.encryptedData && (
               <div className="space-y-2">
                 <label className="text-muted-foreground text-xs font-medium">
                   Password
@@ -265,13 +265,13 @@ export default function PasswordDetail() {
             )}
 
             {/* Notes */}
-            {password.notes && (
+            {password.encryptedNotes && (
               <div className="space-y-2">
                 <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <FileText size={14} />
                   Notes
                 </label>
-                <p className="text-sm">{password.notes}</p>
+                <p className="text-sm">{password.encryptedNotes}</p>
               </div>
             )}
           </div>

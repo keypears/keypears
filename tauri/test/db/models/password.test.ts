@@ -33,8 +33,8 @@ describe("Password Model", () => {
         domain: "github.com",
         username: "alice",
         email: "alice@example.com",
-        notes: "My dev account",
-        encryptedPassword: "abc123",
+        encryptedNotes: "My dev account",
+        encryptedData: "abc123",
       });
 
       expect(update).toBeDefined();
@@ -45,8 +45,8 @@ describe("Password Model", () => {
       expect(update.domain).toBe("github.com");
       expect(update.username).toBe("alice");
       expect(update.email).toBe("alice@example.com");
-      expect(update.notes).toBe("My dev account");
-      expect(update.encryptedPassword).toBe("abc123");
+      expect(update.encryptedNotes).toBe("My dev account");
+      expect(update.encryptedData).toBe("abc123");
       expect(update.deleted).toBe(false);
       expect(update.createdAt).toBeDefined();
     });
@@ -59,7 +59,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Simple Password",
-        encryptedPassword: "xyz789",
+        encryptedData: "xyz789",
       });
 
       expect(update).toBeDefined();
@@ -67,8 +67,8 @@ describe("Password Model", () => {
       expect(update.domain).toBeNull();
       expect(update.username).toBeNull();
       expect(update.email).toBeNull();
-      expect(update.notes).toBeNull();
-      expect(update.encryptedPassword).toBe("xyz789");
+      expect(update.encryptedNotes).toBeNull();
+      expect(update.encryptedData).toBe("xyz789");
     });
 
     it("should create a tombstone (deleted) update", async () => {
@@ -94,7 +94,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Old Password",
-        encryptedPassword: "old123",
+        encryptedData: "old123",
         createdAt: customTimestamp,
       });
 
@@ -112,14 +112,14 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId1,
         name: "Password 1",
-        encryptedPassword: "pass1",
+        encryptedData: "pass1",
       });
 
       await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId2,
         name: "Password 2",
-        encryptedPassword: "pass2",
+        encryptedData: "pass2",
       });
 
       const updates = await getSecretUpdates(vault.id);
@@ -145,7 +145,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 1",
-        encryptedPassword: "v1",
+        encryptedData: "v1",
         createdAt: 1000,
       });
 
@@ -153,7 +153,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 2",
-        encryptedPassword: "v2",
+        encryptedData: "v2",
         createdAt: 2000,
       });
 
@@ -161,7 +161,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 3",
-        encryptedPassword: "v3",
+        encryptedData: "v3",
         createdAt: 3000,
       });
 
@@ -184,7 +184,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 1",
-        encryptedPassword: "v1",
+        encryptedData: "v1",
         createdAt: 1000,
       });
 
@@ -192,7 +192,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 2",
-        encryptedPassword: "v2",
+        encryptedData: "v2",
         createdAt: 2000,
       });
 
@@ -200,7 +200,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 3",
-        encryptedPassword: "v3",
+        encryptedData: "v3",
         createdAt: 3000,
       });
 
@@ -208,7 +208,7 @@ describe("Password Model", () => {
 
       expect(current).toHaveLength(1);
       expect(current[0].name).toBe("Version 3");
-      expect(current[0].encryptedPassword).toBe("v3");
+      expect(current[0].encryptedData).toBe("v3");
       expect(current[0].createdAt).toBe(3000);
       expect(current[0].id).toBe(latest.id);
     });
@@ -222,7 +222,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 2",
-        encryptedPassword: "v2",
+        encryptedData: "v2",
         createdAt: 2000,
       });
 
@@ -230,7 +230,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 1",
-        encryptedPassword: "v1",
+        encryptedData: "v1",
         createdAt: 1000,
       });
 
@@ -238,7 +238,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 3",
-        encryptedPassword: "v3",
+        encryptedData: "v3",
         createdAt: 3000,
       });
 
@@ -258,7 +258,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Active Password",
-        encryptedPassword: "pass1",
+        encryptedData: "pass1",
         createdAt: 1000,
       });
 
@@ -290,7 +290,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId1,
         name: "GitHub",
-        encryptedPassword: "github1",
+        encryptedData: "github1",
         createdAt: 1000,
       });
 
@@ -298,7 +298,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId1,
         name: "GitHub",
-        encryptedPassword: "github2",
+        encryptedData: "github2",
         createdAt: 2000,
       });
 
@@ -307,7 +307,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId2,
         name: "Gmail",
-        encryptedPassword: "gmail1",
+        encryptedData: "gmail1",
         createdAt: 1500,
       });
 
@@ -316,7 +316,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId3,
         name: "Twitter",
-        encryptedPassword: "twitter1",
+        encryptedData: "twitter1",
         createdAt: 1000,
       });
 
@@ -337,11 +337,11 @@ describe("Password Model", () => {
       expect(names).toEqual(["GitHub", "Gmail", "Twitter"]);
 
       const github = current.find((p) => p.name === "GitHub");
-      expect(github?.encryptedPassword).toBe("github2");
+      expect(github?.encryptedData).toBe("github2");
       expect(github?.deleted).toBe(false);
 
       const gmail = current.find((p) => p.name === "Gmail");
-      expect(gmail?.encryptedPassword).toBe("gmail1");
+      expect(gmail?.encryptedData).toBe("gmail1");
       expect(gmail?.deleted).toBe(false);
 
       const twitter = current.find((p) => p.name === "Twitter");
@@ -363,21 +363,21 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: ulid(),
         name: "Zebra",
-        encryptedPassword: "z",
+        encryptedData: "z",
       });
 
       await createSecretUpdate({
         vaultId: vault.id,
         secretId: ulid(),
         name: "Apple",
-        encryptedPassword: "a",
+        encryptedData: "a",
       });
 
       await createSecretUpdate({
         vaultId: vault.id,
         secretId: ulid(),
         name: "Banana",
-        encryptedPassword: "b",
+        encryptedData: "b",
       });
 
       const current = await getCurrentSecrets(vault.id);
@@ -395,7 +395,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 1",
-        encryptedPassword: "v1",
+        encryptedData: "v1",
         createdAt: 1000,
       });
 
@@ -403,7 +403,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 2",
-        encryptedPassword: "v2",
+        encryptedData: "v2",
         createdAt: 2000,
       });
 
@@ -411,7 +411,7 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Version 3",
-        encryptedPassword: "v3",
+        encryptedData: "v3",
         createdAt: 3000,
       });
 
@@ -432,14 +432,14 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId: secretId1,
         name: "Password 1",
-        encryptedPassword: "p1",
+        encryptedData: "p1",
       });
 
       await createSecretUpdate({
         vaultId: vault.id,
         secretId: secretId2,
         name: "Password 2",
-        encryptedPassword: "p2",
+        encryptedData: "p2",
       });
 
       const history = await getSecretHistory(secretId1);
@@ -458,14 +458,14 @@ describe("Password Model", () => {
         vaultId: vault.id,
         secretId,
         name: "Password 1",
-        encryptedPassword: "p1",
+        encryptedData: "p1",
       });
 
       await createSecretUpdate({
         vaultId: vault.id,
         secretId,
         name: "Password 2",
-        encryptedPassword: "p2",
+        encryptedData: "p2",
       });
 
       // Delete the vault

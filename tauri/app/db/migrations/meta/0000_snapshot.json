@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "47f5af38-13c6-4644-ace4-64d32f7e5bbe",
+  "id": "e7f327ee-d200-4ca5-8b01-5637cdab4bf1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "password_updates": {
-      "name": "password_updates",
+    "secret_updates": {
+      "name": "secret_updates",
       "columns": {
         "id": {
           "name": "id",
@@ -35,40 +35,13 @@
           "notNull": true,
           "autoincrement": false
         },
-        "domain": {
-          "name": "domain",
+        "type": {
+          "name": "type",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "encrypted_password": {
-          "name": "encrypted_password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'password'"
         },
         "created_at": {
           "name": "created_at",
@@ -84,23 +57,44 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "secret_update_json": {
+          "name": "secret_update_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "idx_password_updates_vault_secret_time": {
-          "name": "idx_password_updates_vault_secret_time",
+        "idx_secret_updates_vault_secret_time": {
+          "name": "idx_secret_updates_vault_secret_time",
           "columns": [
             "vault_id",
             "secret_id",
             "created_at"
           ],
           "isUnique": false
+        },
+        "idx_secret_updates_name": {
+          "name": "idx_secret_updates_name",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "idx_secret_updates_type": {
+          "name": "idx_secret_updates_type",
+          "columns": [
+            "type"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "password_updates_vault_id_vaults_id_fk": {
-          "name": "password_updates_vault_id_vaults_id_fk",
-          "tableFrom": "password_updates",
+        "secret_updates_vault_id_vaults_id_fk": {
+          "name": "secret_updates_vault_id_vaults_id_fk",
+          "tableFrom": "secret_updates",
           "tableTo": "vaults",
           "columnsFrom": [
             "vault_id"

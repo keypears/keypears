@@ -37,7 +37,7 @@ export default function NewPassword() {
 
     try {
       const secretId = ulid();
-      const encryptedPassword = password
+      const encryptedData = password
         ? encryptPassword(password)
         : undefined;
 
@@ -48,8 +48,8 @@ export default function NewPassword() {
         domain: domain.trim() || undefined,
         username: username.trim() || undefined,
         email: email.trim() || undefined,
-        notes: notes.trim() || undefined,
-        encryptedPassword,
+        encryptedNotes: notes.trim() || undefined,
+        encryptedData,
       });
 
       // Navigate back to passwords list
