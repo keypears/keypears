@@ -41,7 +41,8 @@ export const SecretUpdateSchema = z.object({
   // Password-specific fields (primarily for type="password")
   domain: z.string().max(255).optional(), // Domain (e.g., "github.com")
   username: z.string().max(255).optional(), // Username for login
-  email: z.string().email().max(255).optional(), // Email for login
+  email: z.email().max(255).optional(), // Email for login
+  label: z.string().max(255).optional(), // Generic label
 
   // Encrypted data (used by all types)
   encryptedData: z.string().optional(), // The secret value itself (hex string)
