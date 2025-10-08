@@ -120,6 +120,20 @@ KeyPears has comprehensive design pattern documentation:
   derivation system, algorithms (Blake3, ACB3, AES-256), password policy,
   cross-platform WASM crypto stack
 
+## Business, Marketing & Fundraising
+
+KeyPears has comprehensive business strategy documentation:
+
+- **[Business Plan](docs/business.md)**: Market opportunity, target audiences,
+  business model (ads + premium + licensing), revenue projections, growth
+  strategy
+- **[Marketing Plan](docs/marketing.md)**: Go-to-market strategy, positioning,
+  phases (crypto → developers → enterprise), text-only marketing channels,
+  success metrics
+- **[Fundraising Strategy](docs/fund-raising.md)**: Target investors (crypto VCs,
+  OSS-friendly funds), pitch narrative, outreach strategy, timeline for
+  $500k–$2M raise
+
 ## Key Technical Details
 
 ### Cryptography
