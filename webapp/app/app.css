@@ -4,23 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Progress bar color utilities */
-.progress-red [data-slot="progress-indicator"] {
-  background: var(--red-500);
-}
-
-.progress-yellow [data-slot="progress-indicator"] {
-  background: var(--yellow-500);
-}
-
-.progress-green [data-slot="progress-indicator"] {
-  background: var(--green-500);
-}
-
-.progress-blue [data-slot="progress-indicator"] {
-  background: var(--blue-500);
-}
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -41,6 +24,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -263,6 +247,7 @@
   --accent: hsl(223 15.91% 82.75%); /* surface0 */
   --accent-foreground: hsl(234 16.02% 35.49%); /* text */
   --destructive: var(--red-500);
+  --destructive-foreground: hsl(220 23.08% 94.9%); /* base (light) */
   --border: hsl(225 13.56% 76.86%); /* surface1 */
   --input: hsl(225 13.56% 76.86%); /* surface1 */
   --ring: hsl(234 16.02% 35.49%); /* text */
@@ -399,6 +384,7 @@
   --accent: hsl(237 16.24% 22.94%); /* surface0 */
   --accent-foreground: hsl(226 63.93% 88.04%); /* text */
   --destructive: var(--red-500);
+  --destructive-foreground: hsl(240 21.05% 14.9%); /* base (dark) */
   --border: hsl(234 13.21% 31.18%); /* surface1 */
   --input: hsl(234 13.21% 31.18%); /* surface1 */
   --ring: hsl(226 63.93% 88.04%); /* text */
