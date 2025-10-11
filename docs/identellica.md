@@ -29,8 +29,8 @@ Identellica uses **Catppuccin** color palettes with custom semantic tokens:
 
 - **Light mode**: Catppuccin Latte
 - **Dark mode**: Catppuccin Mocha
-- **Primary color**: Green (`--green-500` / `hsl(109 58% 40%)` in light,
-  `hsl(115 54% 76%)` in dark)
+- **Primary color**: Blue (`--blue-500` / `hsl(220 91% 54%)` in light,
+  `hsl(217 92% 76%)` in dark)
 - **Destructive color**: Red (`--red-500`)
 - **Accent colors**: Full Catppuccin palette (red, peach, yellow, green, teal,
   blue, sapphire, mauve)
@@ -44,7 +44,7 @@ family. The design uses semantic color tokens (`--primary`, `--destructive`,
 - **Font stack**: System default fonts (no custom fonts)
 - **Prose content**: Use prose class for markdown/blog content
   - Extends `@tailwindcss/typography` with brand colors
-  - Links are primary green with no underline (underline on hover)
+  - Links are primary blue with no underline (underline on hover)
   - Smooth opacity transitions: `transition: opacity 0.2s` + `opacity: 0.8` on
     hover
 - **Monospace**: Use `font-mono` class for technical content
@@ -697,7 +697,7 @@ const [copied, setCopied] = useState(false);
   </Button>
   {copied && (
     <div className="animate-in fade-in slide-in-from-bottom-2 absolute -top-8 left-1/2 -translate-x-1/2">
-      <div className="flex items-center gap-1 rounded-md bg-green-500 px-2 py-1 text-xs text-white">
+      <div className="flex items-center gap-1 rounded-md bg-blue-500 px-2 py-1 text-xs text-white">
         <Check size={12} />
         <span>Copied</span>
       </div>
