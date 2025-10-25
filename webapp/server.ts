@@ -2,6 +2,7 @@ import compression from "compression";
 import express from "express";
 import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -12,6 +13,19 @@ const app = express();
 
 app.use(compression());
 app.disable("x-powered-by");
+
+// API proxy middleware - forwards all /api/* requests to the API server
+// Note: pathRewrite adds back the /api prefix that Express strips
+const API_TARGET = "http://localhost:4274";
+app.use(
+  "/api",
+  createProxyMiddleware({
+    target: API_TARGET,
+    changeOrigin: true,
+    pathRewrite: (path) => `/api${path}`,
+    logger: console,
+  }),
+);
 
 // Canonical URL redirect middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
