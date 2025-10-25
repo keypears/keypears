@@ -33,14 +33,12 @@ pnpm-debug.log*
 .env
 .env.*
 
-# Documentation (not needed in container, except blog posts)
-docs
-README.md
-*.md
-CLAUDE.md
-AGENTS.md
-GEMINI.md
-!webapp/docs/blog/*.md
+# Top-level documentation (not needed in container)
+/docs
+/README.md
+/CLAUDE.md
+/AGENTS.md
+/GEMINI.md
 
 # IDE and editor files
 .vscode
