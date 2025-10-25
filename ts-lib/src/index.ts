@@ -311,9 +311,7 @@ export function generateSecurePassword(options: PasswordOptions): string {
 
     // Rejection sampling to avoid modulo bias
     do {
-      randomValue = WebBuf.fromUint8Array(
-        crypto.getRandomValues(new Uint8Array(1)),
-      )[0] as number;
+      randomValue = FixedBuf.fromRandom(1).buf[0] as number;
     } while (randomValue >= Math.floor(256 / charsetLength) * charsetLength);
 
     password += charset[randomValue % charsetLength];
