@@ -13,29 +13,19 @@ mod tests {
     #[test]
     fn test_empty_hash() {
         let result = hash(&[]);
+        let result_hex = hex::encode(result);
         // Known Blake3 hash of empty input
-        // From: echo -n "" | b3sum
-        let expected = [
-            0xaf, 0x13, 0x49, 0xb9, 0xf5, 0xf9, 0xa1, 0xa6,
-            0xa0, 0x40, 0x4d, 0xea, 0x36, 0xdc, 0xc9, 0x49,
-            0x9b, 0xcb, 0x25, 0xc9, 0xad, 0xc1, 0x12, 0xb7,
-            0xcc, 0x9a, 0x93, 0xca, 0xe4, 0x1f, 0x32, 0x62,
-        ];
-        assert_eq!(result, expected);
-        assert_eq!(result.len(), 32);
+        let expected = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262";
+        assert_eq!(result_hex, expected);
     }
 
     #[test]
     fn test_known_input() {
         let input = b"hello world";
         let result = hash(input);
+        let result_hex = hex::encode(result);
         // Known Blake3 hash of "hello world"
-        let expected = [
-            0xd7, 0x49, 0x81, 0xef, 0xa7, 0x0a, 0x0c, 0x88,
-            0x0b, 0x8d, 0x8c, 0x19, 0x85, 0xd0, 0x75, 0xdb,
-            0xcb, 0xf6, 0x79, 0xb9, 0x9a, 0x5f, 0x99, 0x14,
-            0xe5, 0xaa, 0xf9, 0x6b, 0x83, 0x1a, 0x9e, 0x24,
-        ];
-        assert_eq!(result, expected);
+        let expected = "d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24";
+        assert_eq!(result_hex, expected);
     }
 }

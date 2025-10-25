@@ -24,6 +24,7 @@ axum = "0.7"
 
 # Cryptography
 blake3 = "1.5"
+hex = "0.4"
 
 # Tauri (for tauri app)
 tauri = { version = "2", features = [] }
