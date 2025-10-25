@@ -1,0 +1,60 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (will be installed fresh in container)
+node_modules
+**/node_modules
+
+# Build artifacts (will be built in container)
+build
+dist
+**/build
+**/dist
+.react-router
+**/.react-router
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Tests
+**/test
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+.env
+.env.*
+
+# Documentation (not needed in container, except blog posts)
+docs
+README.md
+*.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+!webapp/docs/blog/*.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Other packages not needed for webapp
+tauri
+
+# Raw assets (processed versions are in public/)
+**/raw-icons
+
+# Temporary files
+tmp
+temp
