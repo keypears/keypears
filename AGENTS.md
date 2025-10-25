@@ -5,12 +5,11 @@
 **Decentralized Diffie-Hellman Key Exchange System**
 
 KeyPears is a decentralized Diffie-Hellman key exchange platform that enables
-secure communication between any two email addresses (e.g.,
-`alice@example.com` ↔ `bob@example2.com`). Built on this foundation, it serves
-as both a password manager and cryptocurrency wallet with full self-custody,
-cross-device synchronization, and secure sharing. It uses a decentralized,
-email-like architecture where users can run their own nodes or use hosted
-providers.
+secure communication between any two email addresses (e.g., `alice@example.com`
+↔ `bob@example2.com`). Built on this foundation, it serves as both a password
+manager and cryptocurrency wallet with full self-custody, cross-device
+synchronization, and secure sharing. It uses a decentralized, email-like
+architecture where users can run their own nodes or use hosted providers.
 
 **Key features:**
 
@@ -65,9 +64,9 @@ lib/                - @keypears/lib source
 tauri/              - @keypears/tauri source
 webapp/             - @keypears/webapp source
 docs/               - Documentation
-Dockerfile          - Production Docker build (multi-stage, monorepo-aware)
-docker-compose.yml  - Docker Compose config for local testing
-package.json        - Root-level pnpm scripts (webapp:up, webapp:down)
+Dockerfile          - Production Docker build (multi-stage, monorepo-aware, linux/amd64)
+docker-compose.yml  - Docker Compose config (platform: linux/amd64 for Apple Silicon)
+package.json        - Root-level pnpm scripts (webapp, deployment)
 pnpm-workspace.yaml - Monorepo workspace configuration
 ```
 
@@ -143,15 +142,37 @@ KeyPears has comprehensive business strategy documentation:
 - **[Marketing Plan](docs/marketing.md)**: Go-to-market strategy, positioning,
   phases (crypto → developers → enterprise), text-only marketing channels,
   success metrics
-- **[Fundraising Strategy](docs/fund-raising.md)**: Target investors (crypto VCs,
-  OSS-friendly funds), pitch narrative, outreach strategy, timeline for
+- **[Fundraising Strategy](docs/fund-raising.md)**: Target investors (crypto
+  VCs, OSS-friendly funds), pitch narrative, outreach strategy, timeline for
   $500k–$2M raise
 
 ## Deployment
 
-- **[Deployment Guide](docs/deployment.md)**: Docker containerization with
-  Docker Compose, production testing with pnpm scripts (`webapp:up`,
-  `webapp:down`), AWS deployment checklist (ECR, ECS, Fargate, ALB, Route 53)
+- **[Deployment Guide](docs/deployment.md)**: Complete AWS Fargate deployment
+  guide with Docker containerization, ECR, ECS, ALB, Route 53, and SSL
+
+### Deployment Commands
+
+- **`pnpm deploy:all`** - Full deployment: build (linux/amd64) → push to ECR →
+  redeploy on ECS Fargate
+- **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
+- **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
+- **`pnpm webapp:up`** - Test production build locally with Docker Compose
+- **`pnpm webapp:down`** - Stop local Docker container
+- **`pnpm webapp:logs`** - View local container logs
+
+### Key Deployment Details
+
+- **Platform**: linux/amd64 (required for Fargate, configured in
+  docker-compose.yml)
+- **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
+- **Canonical URL**: Express middleware redirects `http://keypears.com`,
+  `http://www.keypears.com`, and `https://www.keypears.com` to
+  `https://keypears.com` (301 permanent redirect)
+- **Health checks**: Redirect logic allows ALB health checks to pass (only
+  redirects specific production URLs)
+- **Zero-downtime**: Deployment config (100% min, 400% max) allows fast rollouts
+  without service interruption
 
 ## Key Technical Details
 

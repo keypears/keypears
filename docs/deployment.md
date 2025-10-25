@@ -49,8 +49,8 @@ curl http://keypears.localhost:4273/terms
 If you prefer to use Docker commands directly:
 
 ```bash
-# Build the image
-docker buildx build -t keypears-webapp:latest .
+# Build the image (for linux/amd64 platform, required for Fargate)
+docker buildx build --platform linux/amd64 -t keypears-webapp:latest .
 
 # Run the container
 docker run -d -p 4273:4273 --name keypears-app keypears-webapp:latest
@@ -198,7 +198,7 @@ This creates:
   "family": "keypears-webapp-task",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
+  "cpu": "512",
   "memory": "1024",
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
@@ -208,7 +208,7 @@ This creates:
     {
       "name": "keypears-webapp",
       "image": "299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
-      "cpu": 256,
+      "cpu": 512,
       "memory": 1024,
       "essential": true,
       "portMappings": [
@@ -251,9 +251,14 @@ This creates:
 - [x] Go to IAM → Roles → Create role
 - [x] Trusted entity: AWS service → Elastic Container Service → Elastic
       Container Service Task
-- [x] Attach policy: `AmazonECSTaskExecutionRolePolicy`
+- [x] Attach policies:
+  - `AmazonECSTaskExecutionRolePolicy` (required for ECS)
+  - `CloudWatchLogsFullAccess` (required for container logs)
 - [x] Name: `ecsTaskExecutionRole`
 - [x] Create role
+
+**Important**: The role must have CloudWatch Logs permissions to create log groups
+and streams. Without this, tasks will fail with "AccessDeniedException" errors.
 
 ### Create ECS Service
 
@@ -264,6 +269,10 @@ This creates:
   - **Task definition**: `keypears-webapp-task` (latest)
   - **Service name**: `keypears-webapp-service`
   - **Desired tasks**: `1` (ensures always 1 container running, no cold starts)
+- [x] **Deployment configuration**:
+  - Minimum healthy percent: `100` (keeps 1 task running during deployment)
+  - Maximum percent: `400` (allows up to 4 tasks during deployment for faster
+    rollouts)
 - [x] **Networking**:
   - VPC: `keypears-vpc`
   - Subnets: Select both public subnets
@@ -289,23 +298,52 @@ This creates:
 **Note**: We're starting with HTTP only. SSL/HTTPS will be configured in Section
 5 after the service is running.
 
-**Important**: After service is created, update the security group:
+**Important**: After service is created, configure security groups properly:
 
-- [x] First, find the ALB security group ID:
-  - Go to EC2 → Security Groups
-  - Find the security group starting with `keypears-alb-` (auto-created)
-  - Copy its Security Group ID (format: `sg-xxxxxxxxx`)
-- [x] Update container security group:
-  - Go to EC2 → Security Groups → `keypears-webapp-sg`
-  - Edit inbound rules
-  - Delete the existing port 4273 rule (with source `0.0.0.0/0`)
-  - Add new rule:
-    - Type: Custom TCP
-    - Port: 4273
-    - Source: Custom → paste the ALB security group ID
-    - Select it from the dropdown (AWS will auto-suggest)
-    - Description: "Allow traffic from ALB"
-  - Save rules
+### Create Separate ALB Security Group
+
+The ALB needs its own security group (separate from the container):
+
+- [x] Go to EC2 → Security Groups → Create security group
+- [x] Settings:
+  - Name: `keypears-alb-sg`
+  - Description: "Security group for KeyPears Application Load Balancer"
+  - VPC: `keypears-vpc`
+  - **Inbound rules**:
+    - Type: HTTP, Port: 80, Source: `0.0.0.0/0`, Description: "Allow HTTP from
+      internet"
+    - Type: HTTPS, Port: 443, Source: `0.0.0.0/0`, Description: "Allow HTTPS
+      from internet"
+  - **Outbound rules**: Leave default (all traffic)
+- [x] Click "Create security group"
+
+### Attach ALB Security Group to Load Balancer
+
+- [x] Go to EC2 → Load Balancers → `keypears-alb`
+- [x] Click "Security" tab → "Edit security groups"
+- [x] Remove `keypears-webapp-sg` (the container security group)
+- [x] Add `keypears-alb-sg` (the new ALB security group)
+- [x] Save changes
+
+### Update Container Security Group
+
+Now update the container security group to only allow traffic from the ALB:
+
+- [x] Go to EC2 → Security Groups → `keypears-webapp-sg`
+- [x] Edit inbound rules
+- [x] Delete the existing port 4273 rule (with source `0.0.0.0/0`)
+- [x] Add new rule:
+  - Type: Custom TCP
+  - Port: 4273
+  - Source: Custom → search for `keypears-alb-sg` security group
+  - Select it from the dropdown (AWS will auto-suggest)
+  - Description: "Allow traffic from ALB"
+- [x] Save rules
+
+This ensures:
+- Public internet can reach the ALB on ports 80/443
+- Only the ALB can reach the container on port 4273
+- Container is not directly accessible from the internet
 
 ### Auto-Scaling (Optional)
 
@@ -326,7 +364,7 @@ If you want to scale up during high traffic (while keeping minimum at 1):
 This ensures:
 
 - Always 1 container running (no cold starts)
-- Auto-scales up to 4 containers if CPU > 70%
+- Auto-scales up to 10 containers if CPU > 70%
 - Auto-scales down to 1 container when traffic decreases
 
 ## 5. Configure Load Balancer and SSL
@@ -450,6 +488,59 @@ curl https://www.keypears.com
   - Go to EC2 → Target Groups → `keypears-tg`
   - Click "Targets" tab
   - Confirm status is "healthy"
+- [x] Test canonical URL redirects:
+  - `http://keypears.com` → redirects to `https://keypears.com`
+  - `http://www.keypears.com` → redirects to `https://keypears.com`
+  - `https://www.keypears.com` → redirects to `https://keypears.com`
+  - `https://keypears.com` → stays (canonical)
+
+## 7.1. Canonical URL Redirects
+
+The webapp includes Express middleware that automatically redirects all traffic to
+the canonical URL `https://keypears.com`. This ensures:
+
+- Consistent URLs for SEO
+- HTTPS-only access (except for health checks)
+- No `www` subdomain in URLs
+
+### How It Works:
+
+The redirect logic in `webapp/server.ts` only redirects these specific URLs:
+
+- `http://keypears.com` → `https://keypears.com`
+- `http://www.keypears.com` → `https://keypears.com`
+- `https://www.keypears.com` → `https://keypears.com`
+
+All other requests (including ALB health checks from internal IPs) pass through
+without redirect. This prevents health check failures while still enforcing
+canonical URLs for public traffic.
+
+### Implementation:
+
+```typescript
+// Canonical URL redirect middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+  const host = req.headers.host;
+
+  // Only redirect these specific non-canonical URLs
+  const shouldRedirect =
+    (protocol === "http" && host === "keypears.com") ||
+    (protocol === "http" && host === "www.keypears.com") ||
+    (protocol === "https" && host === "www.keypears.com");
+
+  if (shouldRedirect) {
+    const canonicalUrl = `https://keypears.com${req.originalUrl}`;
+    return res.redirect(301, canonicalUrl);
+  }
+
+  next();
+});
+```
+
+**Important**: This middleware only runs on production URLs. Development servers
+(localhost, keypears.localhost) are unaffected since they don't match the
+redirect conditions.
 
 ## 8. Updating Your Deployment
 
@@ -494,16 +585,21 @@ pnpm deploy:update
 
 Monthly costs for this setup (us-east-1, 24/7 operation):
 
-- **Fargate** (0.25 vCPU, 0.5 GB, 1 task): ~$15
+- **Fargate** (0.5 vCPU, 1 GB, 1 task): ~$30
 - **Application Load Balancer**: ~$20
 - **Data transfer**: ~$5-10 (depends on traffic)
 - **ECR storage**: ~$1 (per GB/month)
 - **Route 53 hosted zone**: $0.50/month + $0.40 per million queries
 
-**Total: ~$40-50/month**
+**Total: ~$55-65/month**
 
 To reduce costs:
 
-- Use a smaller Fargate task (0.25 vCPU is the minimum)
+- Use a smaller Fargate task (0.25 vCPU + 512 MB is minimum, ~$15/month, but may
+  cause deployment issues with Node.js)
 - Consider AWS Lightsail if traffic is very low (fixed $10-20/month)
 - Use CloudFront CDN to reduce ALB traffic and add caching
+
+**Note**: The 0.5 vCPU + 1 GB configuration is recommended for reliable
+deployments with Node.js + React SSR. Smaller configurations may cause
+out-of-memory errors during container startup.
