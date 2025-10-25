@@ -1,9 +1,9 @@
 # Webapp Deployment Tasklist
 
-- [ ] **1. Containerize Your Webapp**
-  - [ ] Create a `Dockerfile` in the `webapp` directory.
-  - [ ] Build the Docker image.
-  - [ ] Test the Docker image locally.
+- [x] **1. Containerize Your Webapp**
+  - [x] Create a `Dockerfile` in the `webapp` directory.
+  - [x] Build the Docker image.
+  - [x] Test the Docker image locally.
 
 - [ ] **2. Push Your Container Image to AWS ECR**
   - [ ] Create an ECR repository.

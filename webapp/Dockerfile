@@ -33,7 +33,7 @@ RUN pnpm run build
 # Stage 4: Final production image
 FROM node:24-alpine
 # Copy necessary files for running the app
-COPY ./package.json ./server.js /app/
+COPY ./package.json ./server.ts /app/
 # Copy production node_modules from production-dependencies-env stage
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 # Copy build output from build-env stage
