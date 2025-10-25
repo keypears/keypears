@@ -4,35 +4,31 @@
 
 The webapp has been successfully containerized using Docker with a multi-stage build process optimized for the pnpm monorepo structure.
 
-### Building the Docker Image
+### Building and Testing with pnpm Scripts (Recommended)
 
-From the monorepo root directory:
+The easiest way to test the production webapp locally is using the pnpm scripts:
 
 ```bash
-cd /path/to/keypears-com
-docker buildx build -t keypears-webapp:latest .
+# Start the webapp container (builds and runs in background)
+pnpm webapp:up
+
+# View live logs
+pnpm webapp:logs
+
+# Stop and remove the container
+pnpm webapp:down
 ```
 
-The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and handles:
-- Building `@keypears/lib` package
-- Building `@keypears/webapp` with React Router
-- Installing production dependencies only in the final image
-- Copying markdown content files for blog posts and static pages
+These scripts use Docker Compose (configured in `docker-compose.yml` at the monorepo root) to:
+- Build the Docker image from `Dockerfile`
+- Start the container with proper configuration
+- Handle cleanup automatically
 
-### Testing the Docker Image Locally
+### Verifying the Webapp
 
-Run the container:
-
-```bash
-docker run -d -p 4273:4273 --name keypears-app keypears-webapp:latest
-```
-
-Verify it's working:
+Once started with `pnpm webapp:up`, test the endpoints:
 
 ```bash
-# Check logs
-docker logs keypears-app
-
 # Test the homepage
 curl http://localhost:4273
 
@@ -45,12 +41,30 @@ curl http://localhost:4273/privacy
 curl http://localhost:4273/terms
 ```
 
-Stop and remove the container:
+### Manual Docker Commands (Alternative)
+
+If you prefer to use Docker commands directly:
 
 ```bash
+# Build the image
+docker buildx build -t keypears-webapp:latest .
+
+# Run the container
+docker run -d -p 4273:4273 --name keypears-app keypears-webapp:latest
+
+# Check logs
+docker logs keypears-app
+
+# Stop and remove
 docker stop keypears-app
 docker rm keypears-app
 ```
+
+The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and handles:
+- Building `@keypears/lib` package
+- Building `@keypears/webapp` with React Router
+- Installing production dependencies only in the final image
+- Copying markdown content files for blog posts and static pages
 
 ### Environment Variables
 
