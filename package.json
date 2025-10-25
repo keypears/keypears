@@ -1,10 +1,16 @@
 {
   "name": "keypears-com",
   "private": true,
+  "packageManager": "pnpm@10.17.0",
   "scripts": {
     "build:webapp": "docker compose build",
     "webapp:up": "docker compose up --build -d",
     "webapp:down": "docker compose down",
-    "webapp:logs": "docker compose logs -f webapp"
+    "webapp:logs": "docker compose logs -f webapp",
+    "deploy:login": "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 299190761597.dkr.ecr.us-east-1.amazonaws.com",
+    "deploy:tag": "docker tag keypears-webapp:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
+    "deploy:push": "docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
+    "deploy:verify": "aws ecr describe-images --repository-name keypears-webapp --region us-east-1",
+    "deploy:all": "pnpm build:webapp && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:verify"
   }
 }
