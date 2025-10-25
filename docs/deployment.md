@@ -3,17 +3,41 @@
 ## 1. Containerize Your Webapp ✅ COMPLETED
 
 The webapp has been successfully containerized using Docker with a multi-stage
-build process optimized for the pnpm monorepo structure.
+build process optimized for both the Rust backend (API server) and TypeScript
+frontend (webapp) in a pnpm/Cargo monorepo structure.
+
+### Architecture
+
+The production container runs two servers:
+
+- **API Server (Rust)**: Port 4274 - Axum-based REST API with OpenAPI
+  documentation
+- **Webapp Server (Node.js)**: Port 4273 - Express server that serves the React
+  frontend and proxies `/api/*` requests to the API server
+
+Both servers are started via `webapp/start.sh` which runs the API server in the
+background and the webapp server in the foreground.
 
 ### Building and Testing with pnpm Scripts (Recommended)
 
-The easiest way to test the production webapp locally is using the pnpm scripts:
+Before building the Docker image, you must cross-compile the Rust API server for
+Linux:
+
+```bash
+# One-time setup: Install cross-compilation toolchain (macOS only)
+bash scripts/setup-cross-compile.sh
+
+# Build everything (Rust API + TypeScript packages + Docker image)
+pnpm run build:all
+```
+
+Then test the production webapp locally:
 
 ```bash
 # Start the webapp container (builds and runs in background)
 pnpm webapp:up
 
-# View live logs
+# View live logs (you should see both API server and webapp starting)
 pnpm webapp:logs
 
 # Stop and remove the container
@@ -23,9 +47,23 @@ pnpm webapp:down
 These scripts use Docker Compose (configured in `docker-compose.yml` at the
 monorepo root) to:
 
-- Build the Docker image from `Dockerfile`
+- Build the Docker image from `Dockerfile` (includes pre-built Rust binary)
 - Start the container with proper configuration
 - Handle cleanup automatically
+
+### Build Pipeline
+
+The build process follows these steps:
+
+1. **Cross-compile Rust API**: `pnpm run build:api` compiles the API server for
+   Linux (x86_64-unknown-linux-musl) and copies it to `webapp/bin/api-server`
+2. **Build TypeScript packages**: `pnpm run build:packages` builds `ts-lib` and
+   `api-client`
+3. **Build Docker image**: `pnpm run build:webapp` creates the Docker image
+   using the pre-built binary
+
+The deployment command `pnpm run deploy:all` runs all these steps
+automatically.
 
 ### Verifying the Webapp
 
@@ -42,6 +80,14 @@ curl http://keypears.localhost:4273/blog/
 curl http://keypears.localhost:4273/about
 curl http://keypears.localhost:4273/privacy
 curl http://keypears.localhost:4273/terms
+
+# Test the API (proxied through webapp)
+curl -X POST http://keypears.localhost:4273/api/blake3 \
+  -H "Content-Type: application/json" \
+  -d '{"data":"aGVsbG8gd29ybGQ="}'
+
+# Test API documentation (Swagger UI)
+# Visit in browser: http://keypears.localhost:4273/api/docs
 ```
 
 ### Manual Docker Commands (Alternative)
@@ -66,17 +112,24 @@ docker rm keypears-app
 The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and
 handles:
 
-- Building `@keypears/lib` package
-- Building `@keypears/webapp` with React Router
+- Building `ts-lib` package (TypeScript)
+- Building `api-client` package (TypeScript)
+- Building `webapp` with React Router (TypeScript)
 - Installing production dependencies only in the final image
+- Copying pre-built API server binary from `webapp/bin/api-server` (Rust,
+  cross-compiled for Linux)
 - Copying markdown content files for blog posts and static pages
+- Copying `webapp/start.sh` to start both servers
 
 ### Environment Variables
 
-The webapp server uses the following environment variables:
+The production container uses the following environment variables:
 
-- `PORT` - Server port (default: 4273)
+- `PORT` - Webapp server port (default: 4273)
 - `NODE_ENV` - Set to `production` in Docker (automatic)
+
+The API server listens on port 4274 (hardcoded in `api-server/src/main.rs`).
+The webapp server proxies all `/api/*` requests to `http://localhost:4274`.
 
 ## 2. Push Your Container Image to AWS ECR ✅ COMPLETED
 
@@ -100,17 +153,19 @@ The webapp server uses the following environment variables:
 The easiest way to build and push to ECR:
 
 ```bash
-# Build, tag, and push to ECR
+# Build everything, tag, and push to ECR
 pnpm deploy:build
 ```
 
 This command will:
 
 1. Authenticate Docker with ECR
-2. Build the Docker image (for linux/amd64 platform)
-3. Tag the image for ECR
-4. Push to ECR
-5. Verify the push succeeded
+2. Cross-compile Rust API server for Linux (x86_64-unknown-linux-musl)
+3. Build TypeScript packages (ts-lib, api-client)
+4. Build the Docker image (for linux/amd64 platform) with pre-built API binary
+5. Tag the image for ECR
+6. Push to ECR
+7. Verify the push succeeded
 
 ### Individual Deployment Commands
 
@@ -120,17 +175,34 @@ If you prefer to run steps individually:
 # 1. Authenticate Docker with ECR (token valid for 12 hours)
 pnpm deploy:login
 
-# 2. Build the Docker image
+# 2. Build Rust API server for Linux
+pnpm build:api
+
+# 3. Build TypeScript packages
+pnpm build:packages
+
+# 4. Build the Docker image
 pnpm build:webapp
 
-# 3. Tag the image for ECR
+# 5. Tag the image for ECR
 pnpm deploy:tag
 
-# 4. Push to ECR
+# 6. Push to ECR
 pnpm deploy:push
 
-# 5. Verify the image was pushed
+# 7. Verify the image was pushed
 pnpm deploy:verify
+```
+
+Or use the combined commands:
+
+```bash
+# Build everything (API + packages + Docker image)
+pnpm build:all
+
+# Then push to ECR
+pnpm deploy:tag
+pnpm deploy:push
 ```
 
 **Note**: The ECR authentication token expires after 12 hours. If you get a
@@ -479,6 +551,22 @@ curl https://www.keypears.com
   - About: `https://keypears.com/about`
   - Privacy: `https://keypears.com/privacy`
   - Terms: `https://keypears.com/terms`
+  - API Test Page: `https://keypears.com/api-test` (Blake3 hashing demo)
+  - API Docs (Swagger UI): `https://keypears.com/api/docs`
+- [x] Test API endpoints directly:
+  ```bash
+  # Test Blake3 hashing endpoint (base64 input "hello world")
+  curl -X POST https://keypears.com/api/blake3 \
+    -H "Content-Type: application/json" \
+    -d '{"data":"aGVsbG8gd29ybGQ="}'
+
+  # Expected output:
+  # {"hash":"d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"}
+
+  # Test health endpoint
+  curl https://keypears.com/api/health
+  # Expected output: OK
+  ```
 - [x] Check ECS service health:
   - Go to ECS → Clusters → `keypears-cluster` → Services →
     `keypears-webapp-service`
@@ -547,22 +635,24 @@ redirect conditions.
 When you make code changes and want to deploy a new version:
 
 ```bash
-# Full deployment (build, push, and redeploy)
-pnpm deploy
+# Full deployment (build everything, push, and redeploy)
+pnpm deploy:all
 ```
 
 This single command will:
 
 1. Authenticate Docker with ECR
-2. Build the Docker image for linux/amd64
-3. Tag and push the image to ECR
-4. Force ECS to pull the new image and redeploy
+2. Cross-compile Rust API server for Linux (x86_64-unknown-linux-musl)
+3. Build TypeScript packages (ts-lib, api-client)
+4. Build the Docker image for linux/amd64 with pre-built API binary
+5. Tag and push the image to ECR
+6. Force ECS to pull the new image and redeploy
 
 ECS will:
 
 1. Pull the new `latest` image from ECR
 2. Start a new task with the new image
-3. Wait for health checks to pass
+3. Wait for health checks to pass on the webapp (port 4273)
 4. Stop the old task (zero-downtime deployment)
 
 ### Alternative Commands
@@ -578,6 +668,28 @@ If the image is already in ECR and you just want to redeploy:
 
 ```bash
 # Force redeployment without rebuilding
+pnpm deploy:update
+```
+
+If you only changed Rust code:
+
+```bash
+# Rebuild just the Rust API and redeploy
+pnpm build:api
+pnpm build:webapp
+pnpm deploy:tag
+pnpm deploy:push
+pnpm deploy:update
+```
+
+If you only changed TypeScript code:
+
+```bash
+# Rebuild TypeScript packages and redeploy
+pnpm build:packages
+pnpm build:webapp
+pnpm deploy:tag
+pnpm deploy:push
 pnpm deploy:update
 ```
 
