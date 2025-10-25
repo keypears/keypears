@@ -1,8 +1,11 @@
 services:
   webapp:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
     image: keypears-webapp:latest
     container_name: keypears-app
     ports:
