@@ -16,6 +16,11 @@ dist
 *.tsbuildinfo
 **/*.tsbuildinfo
 
+# EXCEPT: Allow pre-built API server binary and start script
+!webapp/bin/
+!webapp/bin/api-server
+!webapp/start.sh
+
 # Tests
 **/test
 **/*.test.ts
