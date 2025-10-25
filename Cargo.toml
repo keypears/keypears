@@ -1,5 +1,5 @@
 [workspace]
-members = ["rs-lib", "api", "tauri/src-tauri"]
+members = ["rs-lib", "api-server", "tauri/src-tauri"]
 resolver = "2"
 
 [workspace.package]
