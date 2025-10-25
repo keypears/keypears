@@ -46,31 +46,50 @@ manager", or "digital vault".
 
 ## Project Structure
 
-Three main packages:
+Five main packages:
 
-- **`@keypears/lib`**: Core library (data structures, cryptography)
-- **`@keypears/tauri`**: Cross-platform native app (Mac, Windows, Linux,
-  Android, iOS)
-- **`@keypears/webapp`**: Landing page, blog, API server, and template for
+- **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
+  cryptography utilities)
+- **`rs-lib`** (Rust): Core Rust library (cryptography implementations, shared
+  utilities)
+- **`api-server`** (Rust): Backend API server using rs-lib
+- **`@keypears/api-client`** (TypeScript): Type-safe API client for consuming
+  the Rust backend
+- **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
+  Windows, Linux, Android, iOS)
+- **`@keypears/webapp`** (TypeScript): Landing page, blog, and template for
   self-hosted nodes
 
-All projects are managed with `pnpm` in a monorepo workspace
-(`pnpm-workspace.yaml`).
+All TypeScript projects are managed with `pnpm` in a monorepo workspace
+(`pnpm-workspace.yaml`). All Rust projects are managed with `cargo` in a
+workspace (`Cargo.toml` at root).
 
 ### Folder Layout
 
 ```
-lib/                - @keypears/lib source
-tauri/              - @keypears/tauri source
-webapp/             - @keypears/webapp source
+ts-lib/             - @keypears/lib source (TypeScript)
+rs-lib/             - rs-lib source (Rust library)
+api-server/         - API server source (Rust binary using rs-lib)
+api-client/         - @keypears/api-client source (TypeScript)
+tauri/              - @keypears/tauri source (Rust + TypeScript)
+webapp/             - @keypears/webapp source (TypeScript)
+  ├── bin/          - Pre-built API server binary (cross-compiled for Linux)
+  └── start.sh      - Production startup script (runs both API + webapp)
 docs/               - Documentation
+scripts/            - Build and deployment scripts
+  ├── setup-cross-compile.sh  - One-time setup for cross-compilation
+  └── build-api-linux.sh      - Cross-compile API server for Linux
+Cargo.toml          - Rust workspace configuration
 Dockerfile          - Production Docker build (multi-stage, monorepo-aware, linux/amd64)
 docker-compose.yml  - Docker Compose config (platform: linux/amd64 for Apple Silicon)
-package.json        - Root-level pnpm scripts (webapp, deployment)
-pnpm-workspace.yaml - Monorepo workspace configuration
+package.json        - Root-level pnpm scripts (build, webapp, deployment)
+pnpm-workspace.yaml - TypeScript monorepo workspace configuration
+.cargo/config.toml  - Cargo cross-compilation configuration
 ```
 
 ## Development Workflow
+
+### TypeScript Projects
 
 **For all TypeScript projects**, run these commands in order from the project
 directory:
@@ -83,10 +102,53 @@ directory:
 All commands must pass before committing. Run for **every** TypeScript project
 modified.
 
+### Rust Projects
+
+**For all Rust projects**, run these commands in order from the root directory:
+
+1. `cargo fmt --all` - Format code with rustfmt
+2. `cargo clippy --all-targets --all-features` - Lint with Clippy
+3. `cargo test --all` - Run all tests
+4. `cargo build --all` - Build all workspace members
+
+All commands must pass before committing. Run for **every** Rust project
+modified.
+
+### Cross-Compilation for Production
+
+The API server must be cross-compiled for Linux (x86_64-unknown-linux-musl)
+before deployment:
+
+1. **One-time setup**: `bash scripts/setup-cross-compile.sh`
+2. **Build for Linux**: `pnpm run build:api` (runs
+   `scripts/build-api-linux.sh`)
+3. **Build all packages**: `pnpm run build:all` (builds API + TypeScript
+   packages + Docker image)
+
+The deployment pipeline automatically handles cross-compilation via `pnpm run
+deploy:all`.
+
 ## Programming Languages
 
-- **TypeScript**: Primary language for all packages (runtime: Node.js)
-- **Rust**: Tauri backend code
+- **TypeScript**: Frontend, API client, and webapp server (runtime: Node.js)
+- **Rust**: Backend API server, core cryptography library, and Tauri native app
+  backend
+
+### Backend Architecture
+
+The backend is being built entirely in Rust for performance, security, and
+cross-platform compatibility:
+
+- **`rs-lib`**: Shared Rust library containing cryptography implementations
+  (Blake3, ACB3), data structures, and utilities
+- **`api-server`**: Axum-based REST API server that uses `rs-lib` for all core
+  operations
+- **OpenAPI**: Full OpenAPI 3.0 specification generated from Rust code using
+  `utoipa`, with Swagger UI at `/api/docs`
+- **Current status**: Proof-of-concept complete with Blake3 hashing endpoint
+  (`/api/blake3`)
+- **Future work**: All backend cryptography, vault operations, and sync protocol
+  will be implemented in Rust and exposed via REST API
 
 ### Essential TypeScript Patterns
 
@@ -94,10 +156,15 @@ modified.
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
-- **API**: `orpc`
+- **API client**: `@keypears/api-client` (type-safe client for Rust backend)
 - **Validation**: `zod` (for parsing and validation)
 - **Binary data**: `WebBuf` and `FixedBuf` (`@webbuf/webbuf`,
   `@webbuf/fixedbuf`)
+  - **`WebBuf`**: IS a Uint8Array with extra methods like `.toHex()`,
+    `.toBase64()`, `.toUtf8()`
+  - **`FixedBuf<N>`**: Container with `.buf` property (which is a WebBuf) for
+    fixed-size data like hashes
+  - Example: `FixedBuf<32>` for Blake3 hashes (32 bytes)
 - **UI components**: `shadcn` (with Catppuccin theme)
 - **Icons**: `lucide-react` (never inline SVG)
 - **Routing**: React Router with type-safe `href()` function for **all
@@ -109,11 +176,19 @@ modified.
   - Any other case requiring an app route URL
   - Never use string literals or template literals for internal routes
 
-### Rust Patterns
+### Essential Rust Patterns
 
-- Never use `unwrap` without proper error handling
-- Never use unsafe code
-- Always run `cargo fmt` and `cargo clippy` before committing
+- **Web framework**: `axum` (modern, type-safe HTTP framework from Tokio team)
+- **OpenAPI**: `utoipa` + `utoipa-axum` + `utoipa-swagger-ui` for compile-time
+  validated API documentation
+- **Serialization**: `serde` with `#[derive(Serialize, Deserialize)]`
+- **Testing**: Built-in `#[cfg(test)]` modules with `#[test]` functions
+- **Error handling**: Never use `unwrap()` without proper error handling; prefer
+  `?` operator and `Result<T, E>`
+- **Safety**: Never use `unsafe` code
+- **Code quality**: Always run `cargo fmt` and `cargo clippy` before committing
+- **Cryptography**: Use `rs-lib` for all crypto operations (Blake3, ACB3,
+  etc.)
 
 ## Design Patterns
 
@@ -153,10 +228,16 @@ KeyPears has comprehensive business strategy documentation:
 
 ### Deployment Commands
 
-- **`pnpm deploy:all`** - Full deployment: build (linux/amd64) → push to ECR →
-  redeploy on ECS Fargate
+- **`pnpm deploy:all`** - Full deployment: cross-compile Rust API → build all
+  packages → build Docker image (linux/amd64) → push to ECR → redeploy on ECS
+  Fargate
 - **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
+- **`pnpm build:all`** - Build everything: Rust API (cross-compile) +
+  TypeScript packages + Docker image
+- **`pnpm build:api`** - Cross-compile Rust API server for Linux only
+- **`pnpm build:packages`** - Build TypeScript packages only (ts-lib +
+  api-client)
 - **`pnpm webapp:up`** - Test production build locally with Docker Compose
 - **`pnpm webapp:down`** - Stop local Docker container
 - **`pnpm webapp:logs`** - View local container logs
@@ -166,6 +247,17 @@ KeyPears has comprehensive business strategy documentation:
 - **Platform**: linux/amd64 (required for Fargate, configured in
   docker-compose.yml)
 - **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
+- **Dual-server setup**: Production container runs both servers via
+  `webapp/start.sh`:
+  - API server (Rust): Port 4274, runs in background
+  - Webapp server (Node.js): Port 4273, runs in foreground, proxies `/api/*`
+    requests to API server
+- **API proxy**: Webapp server uses `http-proxy-middleware` to forward all
+  `/api/*` requests to the Rust API server at `localhost:4274`, avoiding CORS
+  issues
+- **Cross-compilation**: API server is cross-compiled on macOS for Linux
+  (x86_64-unknown-linux-musl) using musl-cross toolchain, then copied to
+  `webapp/bin/api-server` for Docker deployment
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to
   `https://keypears.com` (301 permanent redirect)
