@@ -2,7 +2,8 @@
 
 ## 1. Containerize Your Webapp ✅ COMPLETED
 
-The webapp has been successfully containerized using Docker with a multi-stage build process optimized for the pnpm monorepo structure.
+The webapp has been successfully containerized using Docker with a multi-stage
+build process optimized for the pnpm monorepo structure.
 
 ### Building and Testing with pnpm Scripts (Recommended)
 
@@ -19,7 +20,9 @@ pnpm webapp:logs
 pnpm webapp:down
 ```
 
-These scripts use Docker Compose (configured in `docker-compose.yml` at the monorepo root) to:
+These scripts use Docker Compose (configured in `docker-compose.yml` at the
+monorepo root) to:
+
 - Build the Docker image from `Dockerfile`
 - Start the container with proper configuration
 - Handle cleanup automatically
@@ -30,15 +33,15 @@ Once started with `pnpm webapp:up`, test the endpoints:
 
 ```bash
 # Test the homepage
-curl http://localhost:4273
+curl http://keypears.localhost:4273
 
 # Test the blog
-curl http://localhost:4273/blog/
+curl http://keypears.localhost:4273/blog/
 
 # Test other pages
-curl http://localhost:4273/about
-curl http://localhost:4273/privacy
-curl http://localhost:4273/terms
+curl http://keypears.localhost:4273/about
+curl http://keypears.localhost:4273/privacy
+curl http://keypears.localhost:4273/terms
 ```
 
 ### Manual Docker Commands (Alternative)
@@ -60,7 +63,9 @@ docker stop keypears-app
 docker rm keypears-app
 ```
 
-The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and handles:
+The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and
+handles:
+
 - Building `@keypears/lib` package
 - Building `@keypears/webapp` with React Router
 - Installing production dependencies only in the final image
@@ -69,6 +74,7 @@ The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and handle
 ### Environment Variables
 
 The webapp server uses the following environment variables:
+
 - `PORT` - Server port (default: 4273)
 - `NODE_ENV` - Set to `production` in Docker (automatic)
 

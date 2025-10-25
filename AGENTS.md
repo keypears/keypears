@@ -61,10 +61,14 @@ All projects are managed with `pnpm` in a monorepo workspace
 ### Folder Layout
 
 ```
-lib/      - @keypears/lib source
-tauri/    - @keypears/tauri source
-webapp/   - @keypears/webapp source
-docs/     - Documentation
+lib/                - @keypears/lib source
+tauri/              - @keypears/tauri source
+webapp/             - @keypears/webapp source
+docs/               - Documentation
+Dockerfile          - Production Docker build (multi-stage, monorepo-aware)
+docker-compose.yml  - Docker Compose config for local testing
+package.json        - Root-level pnpm scripts (webapp:up, webapp:down)
+pnpm-workspace.yaml - Monorepo workspace configuration
 ```
 
 ## Development Workflow
@@ -143,6 +147,12 @@ KeyPears has comprehensive business strategy documentation:
   OSS-friendly funds), pitch narrative, outreach strategy, timeline for
   $500k–$2M raise
 
+## Deployment
+
+- **[Deployment Guide](docs/deployment.md)**: Docker containerization with
+  Docker Compose, production testing with pnpm scripts (`webapp:up`,
+  `webapp:down`), AWS deployment checklist (ECR, ECS, Fargate, ALB, Route 53)
+
 ## Key Technical Details
 
 ### Cryptography
@@ -193,14 +203,17 @@ Source PNGs in `raw-icons/` folders. Run `pnpm run build:icons` to generate
 multiple sizes/formats to `public/images/` with type-safe paths in
 `app/util/aicons.ts`.
 
-### Blog (Webapp Only)
+### Markdown Content (Webapp Only)
 
-Blog posts in `webapp/docs/blog/` as Markdown with TOML front-matter:
+All webapp markdown content is in `webapp/markdown/`:
 
-- **Filename**: `YYYY-MM-DD-slug.md`
-- **Front-matter**: TOML with `title`, `date`, `author`
-- **Content**: Never include title as H1 (auto-rendered from front-matter)
-- **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
+- **Blog posts**: `webapp/markdown/blog/` as Markdown with TOML front-matter
+  - **Filename**: `YYYY-MM-DD-slug.md`
+  - **Front-matter**: TOML with `title`, `date`, `author`
+  - **Content**: Never include title as H1 (auto-rendered from front-matter)
+  - **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
+- **Static pages**: `about.md`, `privacy.md`, `terms.md` - loaded at runtime by
+  their respective routes
 
 ## Company
 
