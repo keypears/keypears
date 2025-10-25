@@ -199,7 +199,7 @@ This creates:
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
-  "memory": "512",
+  "memory": "1024",
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
@@ -209,7 +209,7 @@ This creates:
       "name": "keypears-webapp",
       "image": "299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
       "cpu": 256,
-      "memory": 512,
+      "memory": 1024,
       "essential": true,
       "portMappings": [
         {
