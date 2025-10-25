@@ -1,0 +1,43 @@
+{
+  "name": "@keypears/api-client",
+  "version": "1.0.0",
+  "description": "API client for KeyPears API server",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.17.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b tsconfig.src.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:check": "eslint . --max-warnings 0",
+    "typecheck": "tsc -b",
+    "typecheck:src": "tsc -b tsconfig.src.json --noEmit",
+    "typecheck:test": "tsc -b tsconfig.test.json --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.37.0",
+    "@types/node": "^24.6.2",
+    "@typescript-eslint/eslint-plugin": "8.45.0",
+    "@typescript-eslint/parser": "8.45.0",
+    "eslint": "9.37.0",
+    "eslint-import-resolver-typescript": "4.4.4",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-n": "17.23.1",
+    "eslint-plugin-promise": "7.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "3.2.4"
+  },
+  "dependencies": {
+    "@webbuf/fixedbuf": "3.0.28",
+    "@webbuf/webbuf": "3.0.28",
+    "zod": "4.1.11"
+  }
+}
