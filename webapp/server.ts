@@ -13,23 +13,23 @@ const app = express();
 app.use(compression());
 app.disable("x-powered-by");
 
-// Canonical URL redirect middleware (production only)
-if (!DEVELOPMENT) {
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.headers.host;
-
-    // Canonical URL is https://keypears.com
-    const isCanonical = protocol === "https" && host === "keypears.com";
-
-    if (!isCanonical) {
-      const canonicalUrl = `https://keypears.com${req.originalUrl}`;
-      return res.redirect(301, canonicalUrl);
-    }
-
-    next();
-  });
-}
+// // Canonical URL redirect middleware (production only)
+// if (!DEVELOPMENT) {
+//   app.use((req: Request, res: Response, next: NextFunction) => {
+//     const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+//     const host = req.headers.host;
+//
+//     // Canonical URL is https://keypears.com
+//     const isCanonical = protocol === "https" && host === "keypears.com";
+//
+//     if (!isCanonical) {
+//       const canonicalUrl = `https://keypears.com${req.originalUrl}`;
+//       return res.redirect(301, canonicalUrl);
+//     }
+//
+//     next();
+//   });
+// }
 
 if (DEVELOPMENT) {
   console.log("Starting development server");
@@ -64,3 +64,4 @@ if (DEVELOPMENT) {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
