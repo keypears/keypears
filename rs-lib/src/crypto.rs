@@ -1,10 +1,7 @@
 // Cryptography module
-// Will contain Blake3, ACB3, and key derivation functions
+// Contains Blake3, ACB3, and key derivation functions
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn placeholder() {
-        // Crypto tests will go here
-    }
-}
+pub mod blake3;
+
+// Re-export hash function for convenience
+pub use blake3::hash;
