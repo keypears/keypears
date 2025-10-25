@@ -2,6 +2,7 @@
   "name": "keypears-com",
   "private": true,
   "scripts": {
+    "build:webapp": "docker compose build",
     "webapp:up": "docker compose up --build -d",
     "webapp:down": "docker compose down",
     "webapp:logs": "docker compose logs -f webapp"
