@@ -1,6 +1,7 @@
 import compression from "compression";
 import express from "express";
 import morgan from "morgan";
+import type { Request, Response, NextFunction } from "express";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -20,7 +21,7 @@ if (DEVELOPMENT) {
     }),
   );
   app.use(viteDevServer.middlewares);
-  app.use(async (req, res, next) => {
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
     try {
       const source = await viteDevServer.ssrLoadModule("./server/app.ts");
       return await source.app(req, res, next);
