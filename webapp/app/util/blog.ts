@@ -18,7 +18,7 @@ interface BlogFrontmatter {
 }
 
 export async function loadBlogPosts(): Promise<BlogPost[]> {
-  const BLOG_DIR = path.resolve(process.cwd(), "docs/blog");
+  const BLOG_DIR = path.resolve(process.cwd(), "markdown/blog");
 
   if (!fs.existsSync(BLOG_DIR)) {
     return [];
@@ -67,7 +67,7 @@ export async function loadBlogPosts(): Promise<BlogPost[]> {
 }
 
 export async function loadBlogPost(slug: string): Promise<BlogPost | null> {
-  const BLOG_DIR = path.resolve(process.cwd(), "docs/blog");
+  const BLOG_DIR = path.resolve(process.cwd(), "markdown/blog");
   const filePath = path.join(BLOG_DIR, `${slug}.md`);
 
   if (!fs.existsSync(filePath)) {

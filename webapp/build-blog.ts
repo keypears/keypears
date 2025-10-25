@@ -30,7 +30,7 @@ interface BlogFrontmatter {
   author: string;
 }
 
-const BLOG_DIR = path.resolve(__dirname, "docs/blog");
+const BLOG_DIR = path.resolve(__dirname, "markdown/blog");
 const OUTPUT_DIR = path.resolve(__dirname, "public/blog");
 
 // Ensure output directory exists

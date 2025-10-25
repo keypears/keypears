@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 function loadPrivacyContent(): string {
-  const filePath = path.resolve(process.cwd(), "docs/privacy.md");
+  const filePath = path.resolve(process.cwd(), "markdown/privacy.md");
   const fileContent = fs.readFileSync(filePath, "utf-8");
   return fileContent;
 }

@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 function loadAboutContent(): string {
-  const filePath = path.resolve(process.cwd(), "docs/about.md");
+  const filePath = path.resolve(process.cwd(), "markdown/about.md");
   const fileContent = fs.readFileSync(filePath, "utf-8");
   return fileContent;
 }

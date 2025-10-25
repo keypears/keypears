@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 function loadTermsContent(): string {
-  const filePath = path.resolve(process.cwd(), "docs/terms.md");
+  const filePath = path.resolve(process.cwd(), "markdown/terms.md");
   const fileContent = fs.readFileSync(filePath, "utf-8");
   return fileContent;
 }

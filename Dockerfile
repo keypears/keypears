@@ -70,8 +70,8 @@ COPY lib/package.json /app/lib/
 COPY --from=build-lib /app/lib/dist /app/lib/dist/
 # Copy webapp package and server files
 COPY webapp/package.json webapp/server.ts /app/webapp/
-# Copy webapp docs (needed for blog at runtime)
-COPY webapp/docs /app/webapp/docs/
+# Copy webapp markdown files (needed for blog at runtime)
+COPY webapp/markdown /app/webapp/markdown/
 # Copy webapp build output
 COPY --from=build-webapp /app/webapp/build /app/webapp/build/
 # Copy production node_modules

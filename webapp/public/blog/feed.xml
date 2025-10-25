@@ -4,24 +4,343 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sun, 05 Oct 2025 21:22:56 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 25 Oct 2025 14:29:28 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
         <item>
+            <title><![CDATA[Progress on Secret Synchronization: A Future-Proof Schema]]></title>
+            <link>https://keypears.com/blog/2025-10-07-progress-on-secret-synchronization</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-10-07-progress-on-secret-synchronization</guid>
+            <pubDate>Tue, 07 Oct 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+design decisions described here represent our development approach and may
+evolve before our official release...]]></description>
+            <content:encoded><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The
+design decisions described here represent our development approach and may
+evolve before our official release.</p>
+<p>We've made significant progress on KeyPears' secret synchronization
+architecture. Today we're sharing how we redesigned our schema to support
+diverse secret types while maintaining the small-sync-unit principle that makes
+our synchronization protocol efficient and reliable.</p>
+<h2>The Problem</h2>
+<p>Our original schema was built around passwords. It had fields like
+<code>encryptedPassword</code>, <code>username</code>, <code>domain</code>, and <code>notes</code>. This worked fine for
+basic password management, but it created limitations:</p>
+<ul>
+<li><strong>Type inflexibility</strong>: How do you store an API key? A cryptocurrency wallet
+with multiple components? Environment variables?</li>
+<li><strong>No grouping</strong>: Secrets existed in isolation. There was no way to represent
+"this API token belongs to this account" or "these 20 environment variables
+form one .env file"</li>
+<li><strong>No hierarchy</strong>: No folders, no organization beyond a flat list</li>
+<li><strong>KeePass import impossible</strong>: KeePass has groups (folders) and custom fields
+(additional key-value pairs per entry). We couldn't represent either.</li>
+</ul>
+<p>We needed a more flexible schema without abandoning our core architectural
+principle: <strong>every secret must sync independently</strong> to keep network overhead
+small and conflict resolution simple.</p>
+<h2>The Solution: Three Changes</h2>
+<p>We evolved the <code>SecretUpdate</code> schema with three key additions: multi-type
+support, dual hierarchy mechanisms, and JSON-based storage.</p>
+<h3>1. Multi-Type Support</h3>
+<p>First, we made the schema generic enough to handle any small secret:</p>
+<pre><code class="language-typescript">type: "password" | "envvar" | "apikey" | "walletkey" | "passkey"
+encryptedData: string  // Previously: encryptedPassword
+encryptedNotes: string // Previously: notes
+</code></pre>
+<p>The <code>type</code> field distinguishes what kind of secret this is. The generic
+<code>encryptedData</code> field holds the actual secret value (password, API key, private
+key, etc.). Password-specific fields like <code>domain</code>, <code>username</code>, and <code>email</code>
+remain in the schema but are optional—used primarily when <code>type</code> is <code>password</code>.</p>
+<p>This small change opens up KeyPears to handle:</p>
+<ul>
+<li><strong>Environment variables</strong>: Type <code>envvar</code>, name <code>DATABASE_URL</code>, encrypted value
+in <code>encryptedData</code></li>
+<li><strong>API keys</strong>: Type <code>apikey</code>, service name in a <code>label</code> field, key in
+<code>encryptedData</code></li>
+<li><strong>Wallet keys</strong>: Type <code>walletkey</code>, blockchain type in metadata, private key in
+<code>encryptedData</code></li>
+<li><strong>Passkeys</strong>: Type <code>passkey</code>, credential ID and public key in metadata,
+private key in <code>encryptedData</code></li>
+</ul>
+<h3>2. Dual Hierarchy: Folders and ParentId</h3>
+<p>The second change introduces two different hierarchy mechanisms, each serving a
+specific purpose:</p>
+<pre><code class="language-typescript">folders: string[]      // ["Work", "Projects", "Client A"]
+tags: string[]         // ["production", "critical"]
+parentId: string       // ULID of parent secret (max depth 1)
+</code></pre>
+<p><strong>Folders</strong> provide unlimited-depth organizational hierarchy. They're just an
+array of strings representing the path:</p>
+<pre><code class="language-typescript">folders: ["Work", "AWS", "Production"]
+folders: ["Personal", "Banking"]
+folders: []  // Root level
+</code></pre>
+<p>This maps perfectly to KeePass Groups and lets users organize thousands of
+secrets into a familiar folder structure.</p>
+<p><strong>Tags</strong> provide orthogonal categorization. A secret can have multiple tags for
+cross-cutting concerns:</p>
+<pre><code class="language-typescript">tags: ["production-env", "requires-rotation", "shared-with-team"]
+</code></pre>
+<p><strong>ParentId</strong> creates actual parent-child relationships between secrets. This is
+where it gets interesting.</p>
+<h2>ParentId: Secrets Containing Secrets</h2>
+<p>The <code>parentId</code> field lets one secret "contain" other secrets. A simple example:</p>
+<pre><code class="language-typescript">// Parent: The main account
+{
+  secretId: "abc123",
+  name: "GitHub Account",
+  type: "password",
+  encryptedData: "&#x3C;main password>"
+}
+
+// Child: API token for the same account
+{
+  secretId: "def456",
+  name: "API Token",
+  type: "apikey",
+  parentId: "abc123",
+  encryptedData: "&#x3C;token>"
+}
+</code></pre>
+<p>This models KeePass's custom fields—additional key-value pairs that belong to an
+entry. In KeePass, you might have a GitHub entry with standard fields (username,
+password, URL) plus custom fields for API tokens, 2FA backup codes, or recovery
+emails.</p>
+<p>In KeyPears, each custom field becomes its own secret with a <code>parentId</code> pointing
+to the parent. Each syncs independently (small sync units!), but they're
+logically grouped.</p>
+<h3>The Depth Limit: Security Through Simplicity</h3>
+<p>Here's the critical constraint: <strong>a secret can have a parent, but that parent
+cannot have a parent</strong>. Maximum depth is 1. No grandparents allowed.</p>
+<p>Why? Three reasons:</p>
+<p><strong>1. Security</strong>: Client-generated IDs open an attack vector for malicious
+clients creating circular references or extremely deep chains. With depth=1, the
+validation is trivial:</p>
+<pre><code class="language-typescript">async function validateParentChain(secretId: string, parentId?: string) {
+  if (!parentId) return; // No parent, valid
+  if (parentId === secretId) throw new Error("Cannot self-reference");
+
+  const parent = await getSecretHistory(parentId);
+  if (parent.length > 0 &#x26;&#x26; parent[0].parentId) {
+    throw new Error("Cannot nest more than one level deep");
+  }
+}
+</code></pre>
+<p>One database lookup. No recursion. No visited sets. O(1) validation that
+attackers can't exploit.</p>
+<p><strong>2. Performance</strong>: Validating unlimited depth requires recursive queries.
+Validating depth=1 requires one query. Simple.</p>
+<p><strong>3. Sufficient for real use cases</strong>:</p>
+<ul>
+<li>Folder with secrets ✓</li>
+<li>Entry with custom fields ✓</li>
+<li>Environment variable group ✓</li>
+</ul>
+<p>What we lose: deeply nested folder hierarchies via <code>parentId</code>. But we have
+<code>folders</code> for that! The two mechanisms complement each other perfectly.</p>
+<h2>Why Two Hierarchy Systems?</h2>
+<p>It might seem redundant to have both <code>folders</code> and <code>parentId</code>, but they serve
+different purposes:</p>
+<p><strong>Folders</strong> are for <strong>organizational hierarchy</strong>. They map to KeePass Groups.
+They're pure metadata—just strings representing a path. They have unlimited
+depth because they're just labels, not database relationships.</p>
+<p><strong>ParentId</strong> is for <strong>data relationships</strong>. It maps to KeePass custom fields. It
+creates actual parent-child relationships where one secret logically contains
+others. Each child syncs independently, maintaining small sync units.</p>
+<p>Together, they enable full KeePass import:</p>
+<pre><code class="language-typescript">// KeePass structure:
+// Work/Projects/GitHub (Group path)
+//   - GitHub Account (Entry)
+//     - Username: alice
+//     - Password: ••••••
+//     - Custom: API Token (protected)
+//     - Custom: 2FA Codes (protected)
+
+// KeyPears representation:
+{
+  secretId: "main",
+  name: "GitHub Account",
+  type: "password",
+  folders: ["Work", "Projects", "GitHub"],
+  username: "alice",
+  encryptedData: "&#x3C;password>"
+}
+{
+  secretId: "token",
+  name: "API Token",
+  type: "apikey",
+  folders: ["Work", "Projects", "GitHub"], // Inherits folder
+  parentId: "main",
+  encryptedData: "&#x3C;token>"
+}
+{
+  secretId: "codes",
+  name: "2FA Codes",
+  type: "password",
+  folders: ["Work", "Projects", "GitHub"],
+  parentId: "main",
+  encryptedData: "&#x3C;codes>"
+}
+</code></pre>
+<p>The folder path provides organization. The <code>parentId</code> relationships show which
+secrets belong together. Each secret syncs independently.</p>
+<h2>JSON-Based Storage: Migration-Proof Architecture</h2>
+<p>The third major change is how we store secrets in the database. We moved to a
+hybrid approach:</p>
+<pre><code class="language-sql">CREATE TABLE secret_update (
+  id TEXT PRIMARY KEY,
+  vault_id TEXT NOT NULL,
+  secret_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'password',
+  parent_id TEXT,
+  created_at INTEGER NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,
+
+  -- Source of truth: full JSON object
+  secret_update_json TEXT NOT NULL
+);
+
+CREATE INDEX idx_secret_updates_name ON secret_update(name);
+CREATE INDEX idx_secret_updates_type ON secret_update(type);
+CREATE INDEX idx_secret_updates_parent_id ON secret_update(parent_id);
+</code></pre>
+<p>Notice what's happening here. We store the <strong>entire <code>SecretUpdate</code> object</strong> as
+JSON in <code>secret_update_json</code>. The other columns (<code>name</code>, <code>type</code>, <code>parent_id</code>,
+etc.) are duplicates of data from the JSON, extracted for indexing.</p>
+<p>The JSON is the source of truth. The columns are for performance.</p>
+<h3>Why This Approach?</h3>
+<p><strong>Adding fields requires no migration</strong>. Want to add a <code>label</code> field? Update the
+Zod schema, start writing it to the JSON, and you're done. The database doesn't
+care—it's just storing JSON.</p>
+<p>When we added <code>parentId</code> to the schema, we:</p>
+<ol>
+<li>Updated the Zod schema in TypeScript</li>
+<li>Added <code>parent_id</code> column to the database (for indexing)</li>
+<li>Started serializing <code>parentId</code> to the JSON</li>
+</ol>
+<p>Users with existing vaults see <code>parentId: undefined</code> in their JSON. No
+migration, no data transformation. Just works.</p>
+<p>This architecture is <strong>future-proof</strong>. We can evolve the schema rapidly during
+development without worrying about breaking existing databases.</p>
+<h3>When We Ship v1.0</h3>
+<p>Before our first production release, we'll generate one clean migration from the
+final schema. That becomes our baseline. After that, we'll only add new
+migrations—never delete old ones—because users will have the old migrations
+applied.</p>
+<p>But during development? We delete and regenerate migrations freely. The JSON
+storage strategy makes this painless.</p>
+<h2>What This Enables</h2>
+<p>With these changes in place, KeyPears can now handle:</p>
+<h3>KeePass Import (Future Feature)</h3>
+<p>Full KeePass <code>.kdbx</code> import support, including:</p>
+<ul>
+<li>Nested groups → <code>folders</code> array</li>
+<li>Entries → secrets with <code>type: "password"</code></li>
+<li>Custom protected fields → child secrets with <code>parentId</code></li>
+<li>Entry metadata → password-specific fields</li>
+</ul>
+<p>The only thing we won't import: file attachments. By design. We're optimizing
+for small secrets that sync efficiently.</p>
+<h3>Environment Variables</h3>
+<p>Create a parent secret "Production Environment" and attach child secrets for
+each variable:</p>
+<pre><code class="language-typescript">{ name: "Production Env", type: "folder" }  // Parent
+{ name: "DATABASE_URL", type: "envvar", parentId: "..." }
+{ name: "API_SECRET", type: "envvar", parentId: "..." }
+{ name: "STRIPE_KEY", type: "envvar", parentId: "..." }
+</code></pre>
+<p>Or use tags instead:</p>
+<pre><code class="language-typescript">{ name: "DATABASE_URL", type: "envvar", tags: ["prod-env"] }
+{ name: "API_SECRET", type: "envvar", tags: ["prod-env"] }
+</code></pre>
+<p>Both approaches work. <code>parentId</code> creates explicit grouping. Tags create implicit
+sets.</p>
+<h3>Cryptocurrency Wallets</h3>
+<p>Store wallet keys with relevant metadata:</p>
+<pre><code class="language-typescript">{
+  name: "Ethereum Main Wallet",
+  type: "walletkey",
+  encryptedData: "&#x3C;private key>",
+  folders: ["Crypto", "Ethereum"],
+  tags: ["high-value", "cold-storage"]
+}
+</code></pre>
+<h3>API Keys with Secrets</h3>
+<p>Store API key pairs as parent-child:</p>
+<pre><code class="language-typescript">{ name: "Stripe", type: "apikey", encryptedData: "&#x3C;public key>" }
+{ name: "Secret Key", type: "apikey", parentId: "...", encryptedData: "&#x3C;secret>" }
+</code></pre>
+<h2>Synchronization Properties</h2>
+<p>These changes maintain our core synchronization principles:</p>
+<p><strong>Small sync units</strong>: Each secret syncs independently. A 50-entry KeePass import
+becomes 50 individual secrets, each a few hundred bytes. If two users edit
+different entries, no conflicts.</p>
+<p><strong>Atomic updates</strong>: Each <code>SecretUpdate</code> is immutable once created. Updates
+create new records in an append-only log. The latest update wins
+(last-write-wins conflict resolution).</p>
+<p><strong>Efficient</strong>: Only changed secrets sync. If you update one child secret, you
+sync one small object, not the entire parent-child group.</p>
+<p><strong>Validated</strong>: The <code>parentId</code> depth limit prevents malicious clients from
+creating expensive recursive structures.</p>
+<h2>Looking Ahead</h2>
+<p>This schema evolution lays the groundwork for several future features:</p>
+<ul>
+<li><strong>UI for child secrets</strong>: Show "API Token" nested under "GitHub Account" in
+the secret list</li>
+<li><strong>KeePass import</strong>: Full <code>.kdbx</code> file import with groups and custom fields</li>
+<li><strong>Environment variable templates</strong>: Quick creation of common .env structures</li>
+<li><strong>Bulk operations</strong>: Delete/restore an entire group by operating on all
+children</li>
+</ul>
+<p>The foundation is solid. The architecture is flexible. The sync protocol remains
+simple and efficient.</p>
+<p>We're building KeyPears to be more than a password manager—it's a secure,
+self-custodied secret manager that handles everything from passwords to
+environment variables to cryptocurrency keys. And it all syncs seamlessly across
+your devices without trusting a central authority with your encryption keys.</p>
+<h2>Technical Details</h2>
+<p>For those interested in the implementation:</p>
+<ul>
+<li><strong>Schema definition</strong>: Zod validation in TypeScript, ensuring type safety</li>
+<li><strong>Database</strong>: SQLite via Drizzle ORM with the sqlite-proxy adapter</li>
+<li><strong>Migration</strong>: Custom migration runner that tracks applied migrations</li>
+<li><strong>Validation</strong>: O(1) parent chain validation with single database lookup</li>
+<li><strong>Indexes</strong>: <code>name</code>, <code>type</code>, <code>parent_id</code>, and composite
+<code>vault_id + secret_id + created_at</code></li>
+</ul>
+<p>The code is Apache 2.0 licensed and available on GitHub. We're building in the
+open, one commit at a time.</p>
+<p>More updates coming soon.</p>]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[How KeyPears Protects Your Vault: Encryption and Key Derivation]]></title>
             <link>https://keypears.com/blog/2025-10-05-vault-encryption-key-derivation</link>
             <guid isPermaLink="false">https://keypears.com/blog/2025-10-05-vault-encryption-key-derivation</guid>
             <pubDate>Sun, 05 Oct 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault encryption keys. Today, we're diving deep into our three-tier key derivation system and explaining how we ensure that even...]]></description>
-            <content:encoded><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault encryption keys. Today, we're diving deep into our three-tier key derivation system and explaining how we ensure that even if a server is compromised, your encrypted data remains secure.</p>
+            <description><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault
+encryption keys. Today, we're diving deep into our three-tier key derivation
+system and explaining how we ensure that even...]]></description>
+            <content:encoded><![CDATA[<p>One of the core security features of KeyPears is how we protect your vault
+encryption keys. Today, we're diving deep into our three-tier key derivation
+system and explaining how we ensure that even if a server is compromised, your
+encrypted data remains secure.</p>
 <h2>The Problem: Authentication vs. Encryption</h2>
-<p>Most password managers face a fundamental challenge: you need to send <em>something</em> to the server to prove who you are, but you also need to keep your encryption key secret so the server can't decrypt your vault. Using the same key for both purposes creates a security vulnerability—if the server is compromised, an attacker gains access to your encryption key.</p>
-<p>KeyPears solves this by deriving two separate keys from your password: one for logging in to the server, and one for encrypting your vault. The server only ever sees the login key, never the encryption key.</p>
+<p>Most password managers face a fundamental challenge: you need to send
+<em>something</em> to the server to prove who you are, but you also need to keep your
+encryption key secret so the server can't decrypt your vault. Using the same key
+for both purposes creates a security vulnerability—if the server is compromised,
+an attacker gains access to your encryption key.</p>
+<p>KeyPears solves this by deriving two separate keys from your password: one for
+logging in to the server, and one for encrypting your vault. The server only
+ever sees the login key, never the encryption key.</p>
 <h2>Three-Tier Key Derivation</h2>
-<p>When you create a vault in KeyPears, we don't just hash your password once. Instead, we use a three-tier key derivation system:</p>
+<p>When you create a vault in KeyPears, we don't just hash your password once.
+Instead, we use a three-tier key derivation system:</p>
 <pre><code>Master Password
   ↓ blake3Pbkdf (100,000 rounds)
 Password Key (stored encrypted with PIN on device)
@@ -30,36 +349,63 @@ Password Key (stored encrypted with PIN on device)
   └→ blake3Pbkdf (100,000 rounds) → Login Key
 </code></pre>
 <h3>1. Password Key: The Root of Trust</h3>
-<p>The first step derives a <strong>password key</strong> from your master password using 100,000 rounds of our Blake3-based PBKDF. This intermediate key is stored on your device, encrypted with your PIN for quick unlock. It never leaves your device and is never sent to any server.</p>
+<p>The first step derives a <strong>password key</strong> from your master password using
+100,000 rounds of our Blake3-based PBKDF. This intermediate key is stored on
+your device, encrypted with your PIN for quick unlock. It never leaves your
+device and is never sent to any server.</p>
 <p>The password key acts as the root of trust for deriving the other two keys.</p>
 <h3>2. Encryption Key: Protecting Your Vault</h3>
-<p>From the password key, we derive an <strong>encryption key</strong> through another 100,000 rounds of Blake3 PBKDF. This key is used for one purpose only: encrypting and decrypting your master vault key.</p>
-<p>Wait—encrypting a key with another key? Yes! Your vault itself is encrypted with a randomly generated <strong>master vault key</strong>. This master key is immutable and never changes. The encryption key derived from your password is used to encrypt this master vault key before storing it in the database.</p>
-<p>This architecture allows you to change your password without re-encrypting your entire vault—we just re-encrypt the master vault key with the new encryption key.</p>
-<p>The encryption key is ephemeral. We derive it when needed, use it immediately, and discard it. It is never persisted to disk and never sent anywhere.</p>
+<p>From the password key, we derive an <strong>encryption key</strong> through another 100,000
+rounds of Blake3 PBKDF. This key is used for one purpose only: encrypting and
+decrypting your master vault key.</p>
+<p>Wait—encrypting a key with another key? Yes! Your vault itself is encrypted with
+a randomly generated <strong>master vault key</strong>. This master key is immutable and
+never changes. The encryption key derived from your password is used to encrypt
+this master vault key before storing it in the database.</p>
+<p>This architecture allows you to change your password without re-encrypting your
+entire vault—we just re-encrypt the master vault key with the new encryption
+key.</p>
+<p>The encryption key is ephemeral. We derive it when needed, use it immediately,
+and discard it. It is never persisted to disk and never sent anywhere.</p>
 <h3>3. Login Key: Server Authentication</h3>
-<p>The third key in our hierarchy is the <strong>login key</strong>, also derived from the password key through 100,000 rounds of Blake3 PBKDF. This is the only key that gets sent to the server for authentication.</p>
-<p>Because the login key is derived separately from the encryption key, compromising one doesn't compromise the other. Even if a server is breached and the login key is stolen, the attacker cannot derive the encryption key needed to decrypt your vault.</p>
+<p>The third key in our hierarchy is the <strong>login key</strong>, also derived from the
+password key through 100,000 rounds of Blake3 PBKDF. This is the only key that
+gets sent to the server for authentication.</p>
+<p>Because the login key is derived separately from the encryption key,
+compromising one doesn't compromise the other. Even if a server is breached and
+the login key is stolen, the attacker cannot derive the encryption key needed to
+decrypt your vault.</p>
 <h2>Blake3 PBKDF: Fast and Secure</h2>
-<p>You might notice we're using 100,000 rounds of Blake3 PBKDF rather than a standard algorithm like PBKDF2. Blake3 is a modern, extremely fast cryptographic hash function. Even at 100,000 rounds, the entire key derivation completes in milliseconds on modern hardware.</p>
+<p>You might notice we're using 100,000 rounds of Blake3 PBKDF rather than a
+standard algorithm like PBKDF2. Blake3 is a modern, extremely fast cryptographic
+hash function. Even at 100,000 rounds, the entire key derivation completes in
+milliseconds on modern hardware.</p>
 <p>Our Blake3-based PBKDF works by iteratively applying Blake3's keyed MAC mode:</p>
 <pre><code>Round 1: result = blake3Mac(salt, password)
 Round 2: result = blake3Mac(salt, result_from_round_1)
 ...
 Round 100,000: result = blake3Mac(salt, result_from_round_99,999)
 </code></pre>
-<p>Each round adds computational cost for attackers trying to brute-force your password, while remaining fast enough for legitimate use.</p>
+<p>Each round adds computational cost for attackers trying to brute-force your
+password, while remaining fast enough for legitimate use.</p>
 <h2>Salt Derivation</h2>
 <p>Each key derivation uses a different salt to ensure cryptographic separation:</p>
 <ul>
 <li>
-<p><strong>Password Salt</strong>: Derived deterministically from your password using <code>blake3Mac(blake3Hash("KeyPears password salt v1"), password)</code>. This ensures the same password always produces the same password key.</p>
+<p><strong>Password Salt</strong>: Derived deterministically from your password using
+<code>blake3Mac(blake3Hash("KeyPears password salt v1"), password)</code>. This ensures
+the same password always produces the same password key.</p>
 </li>
 <li>
-<p><strong>Encryption Salt</strong>: A global constant <code>blake3Hash("KeyPears encryption salt v1")</code> used for all users. This is safe because the encryption key is derived from the password key, not directly from the password.</p>
+<p><strong>Encryption Salt</strong>: A global constant
+<code>blake3Hash("KeyPears encryption salt v1")</code> used for all users. This is safe
+because the encryption key is derived from the password key, not directly from
+the password.</p>
 </li>
 <li>
-<p><strong>Login Salt</strong>: Another global constant <code>blake3Hash("KeyPears login salt v1")</code>. Again, safe because it's derived from the password key.</p>
+<p><strong>Login Salt</strong>: Another global constant
+<code>blake3Hash("KeyPears login salt v1")</code>. Again, safe because it's derived from
+the password key.</p>
 </li>
 </ul>
 <h2>Security Properties</h2>
@@ -88,9 +434,13 @@ Round 100,000: result = blake3Mac(salt, result_from_round_99,999)
 <li>100,000 rounds of Blake3 PBKDF make brute-forcing expensive</li>
 </ul>
 <h3>Key Separation</h3>
-<p>The three keys are cryptographically isolated. Knowing the login key doesn't help you derive the encryption key, and vice versa. Both require the password key, which requires the master password.</p>
+<p>The three keys are cryptographically isolated. Knowing the login key doesn't
+help you derive the encryption key, and vice versa. Both require the password
+key, which requires the master password.</p>
 <h2>The Vault Key Hash: Verification</h2>
-<p>When you enter your password to unlock a vault, KeyPears needs to verify you entered it correctly. We do this by storing a Blake3 hash of the master vault key in the database.</p>
+<p>When you enter your password to unlock a vault, KeyPears needs to verify you
+entered it correctly. We do this by storing a Blake3 hash of the master vault
+key in the database.</p>
 <p>When you unlock:</p>
 <ol>
 <li>Derive password key from your password</li>
@@ -99,7 +449,9 @@ Round 100,000: result = blake3Mac(salt, result_from_round_99,999)
 <li>Hash the decrypted master vault key</li>
 <li>Compare with the stored hash</li>
 </ol>
-<p>If the hashes match, you entered the correct password. If not, the password is wrong. This verification happens entirely on your device—the master vault key never leaves your device, even temporarily.</p>
+<p>If the hashes match, you entered the correct password. If not, the password is
+wrong. This verification happens entirely on your device—the master vault key
+never leaves your device, even temporarily.</p>
 <h2>Putting It All Together</h2>
 <p>Here's what happens when you create a new vault:</p>
 <ol>
@@ -115,17 +467,22 @@ Round 100,000: result = blake3Mac(salt, result_from_round_99,999)
 <ol>
 <li>Derive the login key from your password key (100k rounds Blake3)</li>
 <li>Send the login key to the server for authentication</li>
-<li>Server returns your encrypted master vault key (and other encrypted vault data)</li>
+<li>Server returns your encrypted master vault key (and other encrypted vault
+data)</li>
 <li>Derive the encryption key (never sent to server)</li>
 <li>Decrypt the master vault key locally</li>
 <li>Use the master vault key to decrypt your secrets</li>
 </ol>
-<p>The server facilitates synchronization but never has the keys needed to decrypt your data.</p>
+<p>The server facilitates synchronization but never has the keys needed to decrypt
+your data.</p>
 <h2>Looking Ahead</h2>
-<p>This architecture lays the foundation for secure sharing between users. In future posts, we'll explore how KeyPears uses Diffie-Hellman key exchange to share secrets securely between users, and how the master vault key enables efficient re-encryption without re-deriving keys.</p>
-<p>For now, the key takeaway is simple: KeyPears separates authentication from encryption. Your server can verify who you are without ever having the ability to decrypt your data. It's cryptography working exactly as it should.</p>
-<hr>
-<p><em>KeyPears is open source and under active development. You can review our key derivation implementation in the <code>@keypears/lib</code> package on GitHub.</em></p>]]></content:encoded>
+<p>This architecture lays the foundation for secure sharing between users. In
+future posts, we'll explore how KeyPears uses Diffie-Hellman key exchange to
+share secrets securely between users, and how the master vault key enables
+efficient re-encryption without re-deriving keys.</p>
+<p>For now, the key takeaway is simple: KeyPears separates authentication from
+encryption. Your server can verify who you are without ever having the ability
+to decrypt your data. It's cryptography working exactly as it should.</p>]]></content:encoded>
         </item>
         <item>
             <title><![CDATA[Drizzle SQLite Database Migrations in Tauri 2.0]]></title>
