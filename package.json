@@ -11,6 +11,8 @@
     "deploy:tag": "docker tag keypears-webapp:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
     "deploy:push": "docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
     "deploy:verify": "aws ecr describe-images --repository-name keypears-webapp --region us-east-1",
-    "deploy:all": "pnpm deploy:login && pnpm build:webapp && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:verify"
+    "deploy:build": "pnpm deploy:login && pnpm build:webapp && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:verify",
+    "deploy:update": "aws ecs update-service --cluster keypears-cluster --service keypears-webapp-task-service-2hw3gtif --force-new-deployment --region us-east-1",
+    "deploy": "pnpm deploy:login && pnpm build:webapp && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:update"
   }
 }

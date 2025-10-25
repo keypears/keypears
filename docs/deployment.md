@@ -97,17 +97,17 @@ The webapp server uses the following environment variables:
 
 ### Deploy to ECR with pnpm Scripts
 
-The easiest way to deploy is using the provided pnpm scripts:
+The easiest way to build and push to ECR:
 
 ```bash
-# Build, tag, and push to ECR (all-in-one)
-pnpm deploy:all
+# Build, tag, and push to ECR
+pnpm deploy:build
 ```
 
-This single command will:
+This command will:
 
 1. Authenticate Docker with ECR
-2. Build the Docker image
+2. Build the Docker image (for linux/amd64 platform)
 3. Tag the image for ECR
 4. Push to ECR
 5. Verify the push succeeded
@@ -333,74 +333,74 @@ This ensures:
 
 ### Request SSL Certificate
 
-- [ ] Go to AWS Console → Certificate Manager (ACM)
-- [ ] Ensure you're in `us-east-1` region
-- [ ] Click "Request certificate"
-- [ ] Certificate type: Request a public certificate
-- [ ] Domain names:
+- [x] Go to AWS Console → Certificate Manager (ACM)
+- [x] Ensure you're in `us-east-1` region
+- [x] Click "Request certificate"
+- [x] Certificate type: Request a public certificate
+- [x] Domain names:
   - `keypears.com`
   - `www.keypears.com`
   - `*.keypears.com` (optional, for subdomains)
-- [ ] Validation method: DNS validation
-- [ ] Click "Request"
-- [ ] Click on the certificate ID
-- [ ] Click "Create records in Route 53" (if using Route 53)
-- [ ] Wait for status to change to "Issued" (5-30 minutes)
+- [x] Validation method: DNS validation
+- [x] Click "Request"
+- [x] Click on the certificate ID
+- [x] Click "Create records in Route 53" (if using Route 53)
+- [x] Wait for status to change to "Issued" (5-30 minutes)
 
 ### Configure Application Load Balancer
 
 The ALB was created automatically during ECS service creation. Now configure
 listeners:
 
-- [ ] Go to EC2 → Load Balancers → `keypears-alb`
-- [ ] Click "Listeners and rules" tab
+- [x] Go to EC2 → Load Balancers → `keypears-alb`
+- [x] Click "Listeners and rules" tab
 
 #### HTTP Listener (Redirect to HTTPS)
 
-- [ ] Click "Add listener"
-- [ ] Protocol: HTTP
-- [ ] Port: 80
-- [ ] Default actions: Redirect to HTTPS
+- [x] Click "Add listener"
+- [x] Protocol: HTTP
+- [x] Port: 80
+- [x] Default actions: Redirect to HTTPS
   - Protocol: HTTPS
   - Port: 443
   - Status code: 301 (Permanent)
-- [ ] Click "Add"
+- [x] Click "Add"
 
 #### HTTPS Listener (Forward to Target Group)
 
-- [ ] Click "Add listener"
-- [ ] Protocol: HTTPS
-- [ ] Port: 443
-- [ ] Default SSL/TLS certificate: Select your ACM certificate
-- [ ] Default actions: Forward to
+- [x] Click "Add listener"
+- [x] Protocol: HTTPS
+- [x] Port: 443
+- [x] Default SSL/TLS certificate: Select your ACM certificate
+- [x] Default actions: Forward to
   - Target group: `keypears-tg`
-- [ ] Click "Add"
+- [x] Click "Add"
 
 ### Update Security Groups
 
-- [ ] Go to EC2 → Security Groups
-- [ ] Find ALB security group (auto-created, starts with `keypears-alb`)
-- [ ] Edit inbound rules:
+- [x] Go to EC2 → Security Groups
+- [x] Find ALB security group (auto-created, starts with `keypears-alb`)
+- [x] Edit inbound rules:
   - Add rule: HTTP (80) from Anywhere-IPv4 (0.0.0.0/0)
   - Add rule: HTTPS (443) from Anywhere-IPv4 (0.0.0.0/0)
-- [ ] Save rules
+- [x] Save rules
 
 ## 6. Configure DNS with AWS Route 53
 
 ### Create Hosted Zone
 
-- [ ] Go to AWS Console → Route 53 → Hosted zones
-- [ ] Click "Create hosted zone"
-- [ ] Domain name: `keypears.com`
-- [ ] Type: Public hosted zone
-- [ ] Click "Create hosted zone"
-- [ ] Note the 4 NS (nameserver) records provided
-- [ ] Update your domain registrar's nameservers to point to these 4 NS records
+- [x] Go to AWS Console → Route 53 → Hosted zones
+- [x] Click "Create hosted zone"
+- [x] Domain name: `keypears.com`
+- [x] Type: Public hosted zone
+- [x] Click "Create hosted zone"
+- [x] Note the 4 NS (nameserver) records provided
+- [x] Update your domain registrar's nameservers to point to these 4 NS records
 
 ### Create Alias Records
 
-- [ ] In the hosted zone, click "Create record"
-- [ ] **Root domain** (`keypears.com`):
+- [x] In the hosted zone, click "Create record"
+- [x] **Root domain** (`keypears.com`):
   - Record name: (leave blank)
   - Record type: A
   - Alias: Yes
@@ -408,7 +408,7 @@ listeners:
   - Region: us-east-1
   - Load balancer: `keypears-alb`
   - Click "Create records"
-- [ ] **WWW subdomain** (`www.keypears.com`):
+- [x] **WWW subdomain** (`www.keypears.com`):
   - Record name: `www`
   - Record type: A
   - Alias: Yes
@@ -433,20 +433,20 @@ curl https://www.keypears.com
 
 ## 7. Verify Deployment
 
-- [ ] Visit `https://keypears.com` in your browser
-- [ ] Confirm HTTPS is working (green lock icon)
-- [ ] Test all pages:
+- [x] Visit `https://keypears.com` in your browser
+- [x] Confirm HTTPS is working (green lock icon)
+- [x] Test all pages:
   - Homepage: `https://keypears.com`
   - Blog: `https://keypears.com/blog/`
   - About: `https://keypears.com/about`
   - Privacy: `https://keypears.com/privacy`
   - Terms: `https://keypears.com/terms`
-- [ ] Check ECS service health:
+- [x] Check ECS service health:
   - Go to ECS → Clusters → `keypears-cluster` → Services →
     `keypears-webapp-service`
   - Confirm "Running count" is 1
   - Click "Tasks" tab → Click task ID → "Logs" tab to view logs
-- [ ] Check ALB target health:
+- [x] Check ALB target health:
   - Go to EC2 → Target Groups → `keypears-tg`
   - Click "Targets" tab
   - Confirm status is "healthy"
@@ -456,16 +456,16 @@ curl https://www.keypears.com
 When you make code changes and want to deploy a new version:
 
 ```bash
-# 1. Build and push new image to ECR
-pnpm deploy:all
-
-# 2. Force ECS to pull new image and redeploy
-aws ecs update-service \
-  --cluster keypears-cluster \
-  --service keypears-webapp-service \
-  --force-new-deployment \
-  --region us-east-1
+# Full deployment (build, push, and redeploy)
+pnpm deploy
 ```
+
+This single command will:
+
+1. Authenticate Docker with ECR
+2. Build the Docker image for linux/amd64
+3. Tag and push the image to ECR
+4. Force ECS to pull the new image and redeploy
 
 ECS will:
 
@@ -473,6 +473,22 @@ ECS will:
 2. Start a new task with the new image
 3. Wait for health checks to pass
 4. Stop the old task (zero-downtime deployment)
+
+### Alternative Commands
+
+If you only want to build/push without redeploying:
+
+```bash
+# Build and push to ECR only
+pnpm deploy:build
+```
+
+If the image is already in ECR and you just want to redeploy:
+
+```bash
+# Force redeployment without rebuilding
+pnpm deploy:update
+```
 
 ## Cost Estimate
 
