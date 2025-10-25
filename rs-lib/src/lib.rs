@@ -1,7 +1,7 @@
 // rs-lib: Rust library for KeyPears
 // Provides cryptography, data models, and API client functionality
 
-pub mod crypto;
+pub mod blake3;
 pub mod models;
 
 #[cfg(test)]
