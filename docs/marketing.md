@@ -2,16 +2,26 @@
 
 ## 🎯 1. Define Core Positioning
 
+**Decentralized Diffie-Hellman Key Exchange System**
+
 **Message:**\
-“KeyPears is the first federated, open-source, end-to-end encrypted platform for
-sharing passwords, API keys, and **cryptocurrency payments** across domains.”
+"KeyPears is the first federated, open-source, end-to-end encrypted
+**Diffie-Hellman key exchange platform** enabling secure communication between
+any two email addresses (`alice@example.com` ↔ `bob@example2.com`). Built on
+this foundation: password management, cryptocurrency wallets, and secure secret
+sharing across domains."
 
 **Differentiator vs incumbents:**
 
+- **Decentralized DH key exchange:** Email-based addresses that enable secure
+  key exchange across any provider without central coordination.
+- **Dual-purpose platform:** Both password manager AND cryptocurrency wallet
+  built on the same DH exchange foundation.
 - **Federation:** Email-like addresses (`alice@domain`) that work across
   providers.
 - **Open-source transparency:** Licensed under Apache 2.0, community-driven.
-- **Crypto-first:** Send secrets _and_ crypto transactions like email.
+- **Crypto-native:** DH key exchange enables both secret sharing _and_ crypto
+  wallet functionality.
 - **Dual monetization:** Ads (metadata-driven) for free tier, subscriptions to
   remove ads.
 
@@ -23,14 +33,16 @@ sharing passwords, API keys, and **cryptocurrency payments** across domains.”
 
 - **Target:** crypto users, DAOs, open-source developers, privacy advocates.
 - **Tactics:**
-  - Launch GitHub repo with clean docs and crypto-ready demo.
-  - Blog posts: “Email for crypto payments,” “Why crypto needs federated key
-    sharing.”
+  - Launch GitHub repo with clean docs emphasizing decentralized DH key
+    exchange.
+  - Blog posts: "Decentralized Diffie-Hellman for email addresses," "Why crypto
+    needs DH-based key exchange," "Email addresses as wallet identities."
   - Engage text-first on **Reddit (/r/crypto, /r/defi, /r/selfhosted)**,\
     **X/Twitter (Crypto Twitter)**, and privacy/OSS forums.
-  - Partner with DAOs or NFT projects for secure multisig/treasury key sharing.
+  - Partner with DAOs or NFT projects for secure multisig/treasury management.
 
-> Goal: virality in crypto, early traction among builders.
+> Goal: virality in crypto, early traction among builders who understand the
+> power of decentralized DH key exchange.
 
 ---
 
@@ -38,12 +50,15 @@ sharing passwords, API keys, and **cryptocurrency payments** across domains.”
 
 - **Target:** individuals managing wallets, DAOs, multisigs, or crypto accounts.
 - **Tactics:**
-  - Market as **“Send crypto like email”** with receipts and E2E encryption.
-  - Publish tutorials: “How to share a multisig key securely” or\
-    “How to send ETH to alice@keypears.com.”
+  - Market as **"Your email address is your wallet"** with DH-based secure
+    communication.
+  - Publish tutorials: "How DH key exchange enables secure wallet-to-wallet
+    communication" or\
+    "Send crypto to alice@example.com using decentralized key exchange."
   - Drive adoption through word-of-mouth in crypto Discords/Telegram groups.
 
-> Goal: user growth and daily active use for secrets + payments.
+> Goal: user growth and daily active use for DH-based wallet functionality and
+> secret sharing.
 
 ---
 
@@ -51,12 +66,14 @@ sharing passwords, API keys, and **cryptocurrency payments** across domains.”
 
 - **Target:** dev teams managing API keys + crypto integration projects.
 - **Tactics:**
-  - Guides: “Stop pasting API keys in Slack,” “Federated secrets for Web3 devs.”
-  - Compare against Vault, Doppler, Bitwarden Secrets — highlight federation and
-    crypto support.
+  - Guides: "Stop pasting API keys in Slack," "Decentralized DH key exchange for
+    secure API key sharing."
+  - Compare against Vault, Doppler, Bitwarden Secrets — highlight DH-based
+    federation and dual wallet/password manager functionality.
   - Sponsor text-based developer newsletters.
 
-> Goal: establish KeyPears as both crypto + dev secret manager.
+> Goal: establish KeyPears as the DH-based platform for both crypto wallets and
+> secret management.
 
 ---
 
@@ -119,11 +136,13 @@ sharing passwords, API keys, and **cryptocurrency payments** across domains.”
 ---
 
 👉 **Summary:**\
-KeyPears goes **crypto-first**, positioning as “**email for secrets and
-money**.”\
+KeyPears goes **crypto-first**, positioning as a "**Decentralized Diffie-Hellman
+Key Exchange System**" — the first platform enabling secure key exchange between
+any email addresses.\
 Text-only marketing (Reddit, Twitter, blogs, forums) amplifies reach with
 minimal overhead.\
 Revenue comes from ads + premium subs in the near term, licensing and enterprise
 later.\
-If the crypto + federation angle takes off, KeyPears can grow from an OSS
-project to a **category-defining platform** in secret management and payments.
+If the decentralized DH key exchange angle takes off, KeyPears can grow from an
+OSS project to a **category-defining platform** unifying password management,
+cryptocurrency wallets, and secure communication.

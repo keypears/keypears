@@ -1,6 +1,8 @@
 # About KeyPears
 
-KeyPears is a new approach to password management that puts you in control of your secrets while making it easy to sync across devices and share with others.
+**Decentralized Diffie-Hellman Key Exchange System**
+
+KeyPears is a decentralized Diffie-Hellman key exchange platform that enables secure communication between any two email addresses (e.g., `alice@example.com` ↔ `bob@example2.com`). Built on this foundation, it serves as both a password manager and cryptocurrency wallet that puts you in complete control while making it easy to sync across devices and share with others.
 
 ## Our Mission
 
@@ -13,11 +15,13 @@ We believe that managing passwords and secrets should be:
 
 ## The KeyPears Approach
 
-Unlike traditional password managers, KeyPears uses a decentralized architecture similar to email. You can:
+Unlike traditional password managers and wallets, KeyPears uses decentralized Diffie-Hellman key exchange with an email-like architecture. You can:
 
+- Establish secure communication channels with any email address across any domain
 - Run your own KeyPears node for complete self-custody
 - Choose from multiple service providers
-- Share secrets securely with end-to-end encryption
+- Share secrets securely with end-to-end encryption via DH key exchange
+- Use it as both a password manager and cryptocurrency wallet
 - Sync seamlessly across all your devices
 
 ## For Everyone

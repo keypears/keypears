@@ -1,5 +1,6 @@
 {
   "name": "@keypears/webapp",
+  "description": "KeyPears webapp - Decentralized Diffie-Hellman Key Exchange System",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.17.0",

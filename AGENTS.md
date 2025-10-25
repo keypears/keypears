@@ -2,16 +2,25 @@
 
 ## Overview
 
-KeyPears is a password manager designed for full self-custody with cross-device
-synchronization and secure sharing. It uses a decentralized, email-like
-architecture where users can run their own sync nodes or use hosted providers.
+**Decentralized Diffie-Hellman Key Exchange System**
+
+KeyPears is a decentralized Diffie-Hellman key exchange platform that enables
+secure communication between any two email addresses (e.g.,
+`alice@example.com` ↔ `bob@example2.com`). Built on this foundation, it serves
+as both a password manager and cryptocurrency wallet with full self-custody,
+cross-device synchronization, and secure sharing. It uses a decentralized,
+email-like architecture where users can run their own nodes or use hosted
+providers.
 
 **Key features:**
 
+- Decentralized Diffie-Hellman key exchange between email addresses across
+  domains
 - Local-first with optional cloud sync via permissionless marketplace of
   providers
 - End-to-end encrypted secret sharing between users
 - Three-tier key derivation system separating authentication from encryption
+- Password manager and cryptocurrency wallet built on DH exchange foundation
 - Mobile-first design with cross-platform support (Windows, MacOS, Linux,
   Android, iOS)
 

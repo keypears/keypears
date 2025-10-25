@@ -1,7 +1,7 @@
 {
   "name": "@keypears/lib",
   "version": "1.0.0",
-  "description": "",
+  "description": "Core library for KeyPears - Decentralized Diffie-Hellman Key Exchange System",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [],

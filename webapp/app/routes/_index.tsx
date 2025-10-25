@@ -7,8 +7,8 @@ import type { Route } from "./+types/_index";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "KeyPears" },
-    { name: "description", content: "Welcome to KeyPears!" },
+    { title: "KeyPears - Decentralized Diffie-Hellman Key Exchange System" },
+    { name: "description", content: "KeyPears is a decentralized Diffie-Hellman key exchange platform enabling secure communication between any two email addresses. Password manager and cryptocurrency wallet built on DH exchange foundation." },
     {
       tagName: "link",
       rel: "alternate",

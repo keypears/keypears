@@ -2,25 +2,32 @@
 
 ## Executive Summary
 
-KeyPears is the first **federated, end-to-end encrypted key & secret sharing
-platform**, designed to become the "email for secrets." It enables secure,
-cross-domain sharing of passwords, API tokens, crypto keys, and cryptocurrency
-transactions. Unlike traditional password managers locked into a single
-provider, KeyPears is **open source, federated, and privacy-first**. The code is
-licensed under **Apache 2.0**, while the **KeyPears** brand is owned by
+**Decentralized Diffie-Hellman Key Exchange System**
+
+KeyPears is the first **federated, end-to-end encrypted Diffie-Hellman key
+exchange platform**, enabling secure communication between any two email
+addresses (e.g., `alice@example.com` ↔ `bob@example2.com`). Built on this DH
+exchange foundation, it unifies password management, cryptocurrency wallets, and
+secure secret sharing across domains. Unlike traditional systems locked into a
+single provider, KeyPears is **open source, federated, and privacy-first**. The
+code is licensed under **Apache 2.0**, while the **KeyPears** brand is owned by
 **Identellica LLC**.
 
-KeyPears’ unique model combines:
+KeyPears' unique model combines:
 
+- **Decentralized DH key exchange**: Core differentiator enabling secure
+  email-to-email key exchange across any domain.
+- **Dual-purpose platform**: Both password manager AND cryptocurrency wallet
+  built on the same DH foundation.
 - **Free with ads**: Metadata-driven targeted ads, a new category of
-  monetization in password managers.
+  monetization.
 - **Premium subscriptions**: $3–5/month per user to remove ads, unlock more
   storage, and gain priority features.
-- **Open-source federation**: Anyone can self-host, but the brand “KeyPears”
+- **Open-source federation**: Anyone can self-host, but the brand "KeyPears"
   requires licensing for businesses.
-- **Crypto integration**: Sending crypto like email (alice@domain → bob@domain),
-  starting with Ethereum L2 + USDC for stability, with Solana and Bitcoin to
-  follow.
+- **Crypto wallet integration**: Email addresses as wallet identities
+  (alice@domain ↔ bob@domain), starting with Ethereum L2 + USDC for stability,
+  with Solana and Bitcoin to follow.
 
 Marketing will be **100% text-based**, focusing on developer and crypto
 communities: Reddit, X/Twitter, blogs, newsletters, and forums.
@@ -31,22 +38,29 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 - **Password Manager Market**: ~$3.1B by 2027. Consumers already understand the
   need.
+- **Cryptocurrency Wallet Market**: Multi-billion dollar market with hundreds of
+  millions of users seeking better self-custody solutions.
 - **Secrets Management / DevSecOps**: Rapid growth, valued in billions (Vault,
   Doppler).
-- **Crypto Payments**: Hundreds of millions of users, strong appetite for
-  decentralized identity and key management.
-- **Unique Positioning**: First federated system with ads + premium model,
-  text-based viral marketing, and crypto payments.
+- **Decentralized Identity & Key Exchange**: Growing need for cross-domain secure
+  communication without central authorities.
+- **Unique Positioning**: First decentralized DH key exchange system unifying
+  password management and crypto wallets, with federated architecture, ads +
+  premium model, and text-based viral marketing.
 
 ---
 
 ## Target Audiences
 
-- **Crypto Users & DAOs** — Manage wallets, multisig keys, and send crypto like
-  email.
-- **Privacy-Conscious Consumers** — Open-source password manager, no lock-in.
-- **Developers & Startups** — API key sharing, federated secret sync.
-- **Enterprises** — Compliance-ready, federated, self-hostable system.
+- **Crypto Users & DAOs** — Use email addresses as wallet identities with
+  DH-based secure key exchange, manage wallets, multisig keys, and communicate
+  securely across domains.
+- **Privacy-Conscious Consumers** — Open-source decentralized key exchange
+  platform, password manager, no lock-in.
+- **Developers & Startups** — DH-based secure API key sharing, federated secret
+  sync across teams and organizations.
+- **Enterprises** — Compliance-ready, decentralized DH key exchange, federated,
+  self-hostable system.
 
 ---
 
@@ -90,10 +104,10 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 ### Style
 
-- **Purely text-based** marketing, leaning into controversy (“ad-supported
-  password manager,” “send ETH like email”).
-- **Hooks**: short, viral one-liners — “Your new email is also your wallet,”
-  “Ads or privacy: you choose.”
+- **Purely text-based** marketing, leaning into technical differentiation
+  ("Decentralized DH key exchange," "Email addresses as wallet identities").
+- **Hooks**: short, viral one-liners — "Decentralized Diffie-Hellman for email
+  addresses," "Your email is your wallet," "Ads or privacy: you choose."
 
 ### Expected Eyeballs
 
@@ -128,7 +142,8 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 ### Long-Term (5–10 years)
 
-- If KeyPears becomes _the federated standard for secrets + crypto payments_:
+- If KeyPears becomes _the decentralized standard for DH key exchange, password
+  management, and crypto wallets_:
 
   - Users: 1–5 million.
   - Premium: 50k–250k.
@@ -141,16 +156,22 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 KeyPears combines:
 
-- **Open-source federation** (like email for secrets).
+- **Decentralized Diffie-Hellman key exchange** enabling secure communication
+  between any email addresses.
+- **Unified platform** for password management AND cryptocurrency wallets built
+  on DH foundation.
+- **Open-source federation** (like email for secrets and wallets).
 - **Unique ad-supported free tier** + premium upsell.
-- **Crypto payments integration** for virality and revenue.
+- **Crypto wallet integration** with email-based identities for virality and
+  revenue.
 - **Text-only marketing strategy** — focusing on Reddit, X/Twitter, blogs, and
   forums for efficient reach.
 
-**Short-term (0–12m):** MVP + crypto, expect $1–3k/month. **Medium-term
-(12–24m):** Viral crypto adoption, $10–25k/month. **Long-term (5–10y):** If
-adopted as a standard, $10M–50M ARR.
+**Short-term (0–12m):** MVP + DH infrastructure + crypto, expect $1–3k/month.
+**Medium-term (12–24m):** Viral crypto adoption with DH-based wallets,
+$10–25k/month. **Long-term (5–10y):** If adopted as the decentralized standard,
+$10M–50M ARR.
 
 KeyPears has the potential to be both a profitable SaaS and a
-**category-defining federated crypto-secret platform** with purely text-driven
-marketing.
+**category-defining decentralized DH key exchange platform** unifying password
+management and crypto wallets with purely text-driven marketing.

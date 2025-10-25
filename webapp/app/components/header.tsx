@@ -13,7 +13,7 @@ export function Header() {
       </Link>
       <h1 className="text-3xl font-bold">KeyPears</h1>
       <p className="mt-2 text-lg text-muted-foreground">
-        Decentralized secret sharing.
+        Decentralized Diffie-Hellman Key Exchange System
       </p>
     </header>
   );

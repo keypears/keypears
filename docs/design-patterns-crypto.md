@@ -1,3 +1,57 @@
+# Cryptography Patterns
+
+**Decentralized Diffie-Hellman Key Exchange System**
+
+KeyPears is built on a foundation of decentralized Diffie-Hellman (DH) key
+exchange, enabling secure communication between any two email addresses (e.g.,
+`alice@example.com` ↔ `bob@example2.com`). This core capability supports both
+password management and cryptocurrency wallet functionality.
+
+## Decentralized Diffie-Hellman Key Exchange
+
+**Note**: The DH key exchange infrastructure is planned and will be built on top
+of the existing synchronization system already in place.
+
+### Overview
+
+KeyPears enables email-based identities to establish secure communication
+channels via Diffie-Hellman key exchange:
+
+- Each email address corresponds to a public/private key pair
+- Users can establish shared secrets with any other email address across any
+  domain
+- No central authority needed for key exchange coordination
+- Enables secure secret sharing and cryptocurrency wallet functionality
+
+### Architecture
+
+```
+alice@example.com                    bob@example2.com
+      ↓                                      ↓
+  [DH Public Key A]    ←exchange→      [DH Public Key B]
+  [DH Private Key A]                   [DH Private Key B]
+      ↓                                      ↓
+  Shared Secret = DH(Private A, Public B) = DH(Private B, Public A)
+```
+
+### Use Cases
+
+1. **Secret Sharing**: Encrypt secrets with shared DH key for secure
+   cross-domain sharing
+2. **Cryptocurrency Wallets**: Use email addresses as wallet identities with
+   DH-based secure communication
+3. **Secure Messaging**: End-to-end encrypted messaging between any email
+   addresses
+
+### Implementation Status
+
+- ✅ Synchronization infrastructure (completed)
+- ⏳ DH key generation and management (planned)
+- ⏳ Cross-domain key exchange protocol (planned)
+- ⏳ Wallet integration (planned)
+
+---
+
 # Key Derivation System
 
 KeyPears uses a three-tier key derivation system to protect user passwords and

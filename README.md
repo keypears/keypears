@@ -1,32 +1,37 @@
 # KeyPears
 
-**Decentralized secret sharing system**
+**Decentralized Diffie-Hellman Key Exchange System**
 
 ---
 
-**KeyPears** is the first **federated, end-to-end encrypted key & secret sharing
-platform.**\
-Like email, but for secrets — passwords, API tokens, crypto keys, and more.\
-Unlike traditional password managers locked inside one provider, KeyPears
-enables **secure, cross-domain sharing** while giving users the freedom to
-self-host, federate, and retain complete control.
+**KeyPears** is the first **federated, end-to-end encrypted Diffie-Hellman key
+exchange platform.**\
+Like email, but for cryptographic key exchange — enabling secure communication
+between any two email addresses (`alice@example.com` ↔ `bob@example2.com`).\
+Unlike traditional systems locked inside one provider, KeyPears enables
+**secure, cross-domain key exchange** for passwords, crypto wallets, and secret
+sharing while giving users the freedom to self-host, federate, and retain
+complete control.
 
 ---
 
 ## 🌍 Vision
 
-Our vision is to make **secure secret sharing as universal as email**:
+Our vision is to make **secure Diffie-Hellman key exchange as universal as
+email**:
 
 - Open-source clients and servers anyone can run.
-- Identities that work across domains (`alice@keypears.com` →
+- Identities that work across domains (`alice@keypears.com` ↔
   `bob@example.org`).
-- End-to-end encryption for every secret — whether it’s a password, API key, or
+- Decentralized Diffie-Hellman key exchange enabling secure communication
+  between any two email addresses.
+- End-to-end encryption for every secret — whether it's a password, API key, or
   crypto wallet.
 - A federated network that empowers individuals, teams, and enterprises to
-  collaborate securely without lock-in.
+  establish secure communication channels without lock-in.
 
-KeyPears is not just a tool — it’s a protocol for how humans and machines can
-exchange secrets safely in a connected world.
+KeyPears is not just a tool — it's a protocol for how humans and machines can
+exchange cryptographic keys and secrets safely in a connected world.
 
 ---
 
@@ -70,15 +75,19 @@ The **open-source KeyPears server** hosts user identities and encrypted secrets.
 
 ---
 
-## 🔑 Federated Secret Sharing
+## 🔑 Decentralized Diffie-Hellman Key Exchange
 
-KeyPears introduces a **peer-to-peer, federated system** for sharing secrets:
+KeyPears introduces a **peer-to-peer, federated Diffie-Hellman key exchange
+system**:
 
-- A user at one node can securely send an encrypted secret to a user at another
-  node.
-- Example: `a@example1.com` → `b@example2.com`
-- Under the hood, each address corresponds to a **public key**, enabling **true
-  end-to-end encryption** across domains.
+- Any user at one node can establish a secure communication channel with a user
+  at another node via Diffie-Hellman key exchange.
+- Example: `alice@example1.com` ↔ `bob@example2.com`
+- Under the hood, each email address corresponds to a **public key**, enabling
+  **decentralized Diffie-Hellman key exchange** and **true end-to-end
+  encryption** across domains.
+- This enables secure secret sharing, encrypted messaging, and cryptocurrency
+  wallet functionality all built on the same DH exchange foundation.
 
 This makes KeyPears uniquely suited for collaboration across organizations,
 vendors, and teams — no more being locked into a single provider.
