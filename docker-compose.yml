@@ -1,0 +1,12 @@
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: keypears-webapp:latest
+    container_name: keypears-app
+    ports:
+      - "4273:4273"
+    environment:
+      - NODE_ENV=production
+      - PORT=4273
