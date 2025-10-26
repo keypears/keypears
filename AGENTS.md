@@ -1,6 +1,7 @@
 # Guide for AI Agents Working on KeyPears
 
-> **Note**: `CLAUDE.md` is a symlink to this file (`AGENTS.md`). Only edit `AGENTS.md` - changes will automatically appear in `CLAUDE.md`.
+> **Note**: `CLAUDE.md` is a symlink to this file (`AGENTS.md`). Only edit
+> `AGENTS.md` - changes will automatically appear in `CLAUDE.md`.
 
 ## Overview
 
@@ -54,7 +55,8 @@ Five main packages:
   cryptography utilities)
 - **`rs-lib`** (Rust): Core Rust library (cryptography implementations, shared
   utilities)
-- **`rs-node`** (Rust): KeyPears node (backend API server) using rs-lib - binary name: `keypears-node`
+- **`rs-node`** (Rust): KeyPears node (backend API server) using rs-lib - binary
+  name: `keypears-node`
 - **`@keypears/api-client`** (TypeScript): Type-safe API client for consuming
   the KeyPears node API
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
@@ -68,7 +70,8 @@ workspace (`Cargo.toml` at root).
 
 ### Folder Layout
 
-All source folders are prefixed with their language (`ts-*` for TypeScript, `rs-*` for Rust):
+All source folders are prefixed with their language (`ts-*` for TypeScript,
+`rs-*` for Rust):
 
 ```
 ts-lib/             - @keypears/lib source (TypeScript)
@@ -126,19 +129,19 @@ The KeyPears node must be cross-compiled for Linux (x86_64-unknown-linux-musl)
 before deployment:
 
 1. **One-time setup**: `bash scripts/setup-cross-compile.sh`
-2. **Build for Linux**: `pnpm run build:api` (runs
-   `scripts/build-api-linux.sh`)
-3. **Build all packages**: `pnpm run build:all` (builds KeyPears node + TypeScript
-   packages + Docker image)
+2. **Build for Linux**: `pnpm run build:api` (runs `scripts/build-api-linux.sh`)
+3. **Build all packages**: `pnpm run build:all` (builds KeyPears node +
+   TypeScript packages + Docker image)
 
-The deployment pipeline automatically handles cross-compilation via `pnpm run
+The deployment pipeline automatically handles cross-compilation via
+`pnpm run
 deploy:all`.
 
 ## Programming Languages
 
 - **TypeScript**: Frontend, API client, and webapp server (runtime: Node.js)
-- **Rust**: KeyPears node (backend API), core cryptography library, and Tauri native app
-  backend
+- **Rust**: KeyPears node (backend API), core cryptography library, and Tauri
+  native app backend
 
 ### Backend Architecture
 
@@ -147,16 +150,17 @@ cross-platform compatibility:
 
 - **`rs-lib`**: Shared Rust library containing cryptography implementations
   (Blake3, ACB3), data structures, and utilities
-- **`rs-node` (binary: `keypears-node`)**: Axum-based REST API server that uses `rs-lib` for all core
-  operations. This is the KeyPears node that can be run by anyone.
+- **`rs-node` (binary: `keypears-node`)**: Axum-based REST API server that uses
+  `rs-lib` for all core operations. This is the KeyPears node that can be run by
+  anyone.
 - **OpenAPI**: Full OpenAPI 3.0 specification generated from Rust code using
   `utoipa`, with Swagger UI at `/api/docs`
 - **Current status**: Proof-of-concept complete with Blake3 hashing endpoint
   (`/api/blake3`)
 - **Future work**: All backend cryptography, vault operations, and sync protocol
   will be implemented in Rust and exposed via REST API
-- **Branding**: The API server is called a "KeyPears node" to emphasize the decentralized,
-  network-oriented architecture similar to cryptocurrency nodes
+- **Branding**: The API server is called a "KeyPears node" to emphasize the
+  decentralized, network-oriented architecture similar to cryptocurrency nodes
 
 ### Essential TypeScript Patterns
 
@@ -195,8 +199,7 @@ cross-platform compatibility:
   `?` operator and `Result<T, E>`
 - **Safety**: Never use `unsafe` code
 - **Code quality**: Always run `cargo fmt` and `cargo clippy` before committing
-- **Cryptography**: Use `rs-lib` for all crypto operations (Blake3, ACB3,
-  etc.)
+- **Cryptography**: Use `rs-lib` for all crypto operations (Blake3, ACB3, etc.)
 
 ## Design Patterns
 
@@ -241,8 +244,8 @@ KeyPears has comprehensive business strategy documentation:
   Fargate
 - **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
-- **`pnpm build:all`** - Build everything: Rust API (cross-compile) +
-  TypeScript packages + Docker image
+- **`pnpm build:all`** - Build everything: Rust API (cross-compile) + TypeScript
+  packages + Docker image
 - **`pnpm build:api`** - Cross-compile KeyPears node for Linux only
 - **`pnpm build:packages`** - Build TypeScript packages only (ts-lib +
   api-client)
