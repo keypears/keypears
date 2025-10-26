@@ -4,12 +4,182 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 25 Oct 2025 14:29:28 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 26 Oct 2025 11:20:39 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Building KeyPears with Rust: Backend Architecture and Blake3 Proof-of-Concept]]></title>
+            <link>https://keypears.com/blog/2025-10-25-rust-backend-architecture</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-10-25-rust-backend-architecture</guid>
+            <pubDate>Sat, 25 Oct 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and cryptocurrency wallet. The design decisions described here represent our development approach and may evolve b...]]></description>
+            <content:encoded><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and cryptocurrency wallet. The design decisions described here represent our development approach and may evolve before our official release.</p>
+<p>We're excited to share a major architectural milestone: KeyPears now has a working Rust backend with our first proof-of-concept endpoint. This marks a significant shift in our technical approach, bringing the performance, security, and cross-platform benefits of Rust to our core cryptography and API layer.</p>
+<h2>Why Rust for the Backend?</h2>
+<p>When we started building KeyPears, we knew cryptography and security would be central to everything we do. After evaluating different approaches, we chose to build our backend entirely in Rust for several compelling reasons:</p>
+<h3>Performance</h3>
+<p>Cryptographic operations—hashing, encryption, key derivation—are CPU-intensive. Rust's zero-cost abstractions and lack of garbage collection mean we can achieve performance comparable to C/C++ without sacrificing safety. For operations users will perform thousands of times (encrypting secrets, computing hashes, deriving keys), this performance matters.</p>
+<h3>Memory Safety</h3>
+<p>Password managers and cryptocurrency wallets are high-value targets for attackers. Rust's ownership system and borrow checker eliminate entire classes of vulnerabilities at compile time:</p>
+<ul>
+<li>No buffer overflows</li>
+<li>No use-after-free bugs</li>
+<li>No data races in concurrent code</li>
+<li>No null pointer dereferences</li>
+</ul>
+<p>These guarantees mean our cryptographic code has fewer attack surfaces by design.</p>
+<h3>Cross-Platform Consistency</h3>
+<p>KeyPears needs to run everywhere: Windows, macOS, Linux, Android, and iOS. Rust compiles to native code on all these platforms with consistent behavior. The same cryptographic library (<code>rs-lib</code>) that powers our server also powers our Tauri desktop app and will eventually power our mobile apps.</p>
+<p>This eliminates the "works on my machine" problem and ensures that a secret encrypted on iOS can be decrypted on Windows with identical cryptographic operations.</p>
+<h3>Strong Type System</h3>
+<p>Rust's type system helps us encode security invariants at compile time. For example, we can use the type system to ensure that:</p>
+<ul>
+<li>Encryption keys are never accidentally logged or serialized</li>
+<li>Sensitive data is properly zeroed after use</li>
+<li>API responses match their OpenAPI specifications exactly</li>
+</ul>
+<p>This compile-time verification catches bugs before they reach production.</p>
+<h2>Architecture Overview</h2>
+<p>Our Rust backend consists of two main packages:</p>
+<h3><code>rs-lib</code>: Core Cryptography Library</h3>
+<p><code>rs-lib</code> is a shared Rust library containing all our cryptographic implementations:</p>
+<ul>
+<li><strong>Blake3</strong>: Fast, secure hashing and key derivation</li>
+<li><strong>ACB3</strong>: AES-256-CBC + Blake3-MAC for authenticated encryption</li>
+<li><strong>Key derivation</strong>: Three-tier system separating authentication from encryption</li>
+<li><strong>Data structures</strong>: Core types for vaults, secrets, and synchronization</li>
+</ul>
+<p>This library is pure Rust with no external dependencies beyond well-audited cryptography crates. It's designed to be portable and reusable across all our platforms.</p>
+<h3><code>rs-node</code>: KeyPears Node (API Server)</h3>
+<p><code>rs-node</code> is our API server—what we call a "KeyPears node." It uses the Axum web framework to expose REST endpoints that clients can use for cryptographic operations and vault synchronization.</p>
+<p>Key features:</p>
+<ul>
+<li><strong>Axum framework</strong>: Modern, type-safe HTTP server from the Tokio team</li>
+<li><strong>OpenAPI 3.0</strong>: Full API specification generated from Rust code using <code>utoipa</code></li>
+<li><strong>Swagger UI</strong>: Interactive API documentation at <code>/api/docs</code></li>
+<li><strong>Type safety</strong>: Request/response types validated at compile time</li>
+</ul>
+<p>The node is designed to be self-hostable. Anyone can run their own KeyPears node for full sovereignty over their data.</p>
+<h2>Blake3 Proof-of-Concept</h2>
+<p>Our first working endpoint is a Blake3 hashing service at <code>/api/blake3</code>. You can try it right now:</p>
+<pre><code class="language-bash">curl -X POST https://keypears.com/api/blake3 \
+  -H "Content-Type: application/json" \
+  -d '{"data": "Hello, KeyPears!"}'
+</code></pre>
+<p>This returns:</p>
+<pre><code class="language-json">{
+  "hash": "a1b2c3d4..."
+}
+</code></pre>
+<p>Blake3 is our hashing algorithm of choice for KeyPears. It's:</p>
+<ul>
+<li><strong>Fast</strong>: Significantly faster than SHA-256 or SHA-3</li>
+<li><strong>Secure</strong>: 256-bit security with no known attacks</li>
+<li><strong>Versatile</strong>: Works as both a hash function and a key derivation function</li>
+<li><strong>Modern</strong>: Designed in 2020 with modern CPU features in mind</li>
+</ul>
+<p>We use Blake3 throughout KeyPears:</p>
+<ul>
+<li>Deriving encryption keys from passwords</li>
+<li>Generating message authentication codes (MACs)</li>
+<li>Computing content hashes for deduplication</li>
+<li>Creating deterministic IDs</li>
+</ul>
+<p>This proof-of-concept demonstrates the full stack working:</p>
+<ol>
+<li>Rust backend (<code>rs-node</code>) receives the request</li>
+<li>Rust library (<code>rs-lib</code>) performs the Blake3 hash</li>
+<li>Result is serialized and returned via Axum</li>
+<li>OpenAPI documentation describes the endpoint</li>
+<li>Node.js webapp proxies <code>/api/*</code> requests to the Rust node</li>
+</ol>
+<h2>TypeScript Frontend + Rust Backend</h2>
+<p>While our backend is Rust, our frontend remains TypeScript. This gives us the best of both worlds:</p>
+<ul>
+<li><strong>Rust</strong>: Performance and security for cryptography and core logic</li>
+<li><strong>TypeScript</strong>: Rapid development and rich ecosystem for UI</li>
+</ul>
+<p>Our architecture uses:</p>
+<ul>
+<li><strong>Tauri</strong>: Native desktop apps with Rust backend + web frontend</li>
+<li><strong>React Router</strong>: Type-safe routing for web and desktop apps</li>
+<li><strong>shadcn</strong>: UI components with Catppuccin theme</li>
+<li><strong>Type-safe API client</strong>: Generated from OpenAPI spec for compile-time safety</li>
+</ul>
+<p>The Tauri app embeds the same <code>rs-lib</code> cryptography that powers the KeyPears node. This means the desktop app has full offline capability—it doesn't need a server for cryptographic operations. The server is only needed for synchronization across devices.</p>
+<h2>Deployment Architecture</h2>
+<p>In production, we run a dual-server setup:</p>
+<ol>
+<li><strong>KeyPears node (Rust)</strong>: Runs on port 4274, handles API requests</li>
+<li><strong>Webapp server (Node.js)</strong>: Runs on port 4273, serves the landing page and proxies API requests</li>
+</ol>
+<p>The Node.js server forwards all <code>/api/*</code> requests to the Rust node via <code>http-proxy-middleware</code>. This gives us:</p>
+<ul>
+<li>Single-domain simplicity (no CORS issues)</li>
+<li>Independent scaling of API and web traffic</li>
+<li>Clean separation of concerns</li>
+</ul>
+<p>Both services run in a single Docker container on AWS Fargate, deployed via ECS.</p>
+<h2>Interactive API Documentation</h2>
+<p>One of the benefits of Rust's <code>utoipa</code> library is automatic OpenAPI documentation generation. You can explore our API interactively at:</p>
+<p><strong>https://keypears.com/api/docs</strong></p>
+<p>This Swagger UI is generated directly from our Rust code. Every endpoint, request type, and response type is documented with examples. As we add new endpoints, the documentation updates automatically.</p>
+<h2>What's Next?</h2>
+<p>The Blake3 endpoint is just the beginning. We're actively building:</p>
+<h3>Vault Operations</h3>
+<ul>
+<li>Create and encrypt vaults</li>
+<li>Derive encryption keys from passwords</li>
+<li>Store and retrieve encrypted secrets</li>
+</ul>
+<h3>Synchronization Protocol</h3>
+<ul>
+<li>Append-only logs for conflict-free sync</li>
+<li>Server-side coordination for multi-device sync</li>
+<li>End-to-end encryption (servers never see plaintext)</li>
+</ul>
+<h3>Diffie-Hellman Key Exchange</h3>
+<ul>
+<li>Peer-to-peer secret sharing across domains</li>
+<li>Email-style addressing (<code>alice@example.com</code> ↔ <code>bob@example2.com</code>)</li>
+<li>Public key discovery via federated nodes</li>
+</ul>
+<h3>Cross-Platform Clients</h3>
+<ul>
+<li>Desktop apps (Windows, macOS, Linux) via Tauri</li>
+<li>Mobile apps (Android, iOS) - coming soon</li>
+<li>Web interface for emergency access</li>
+</ul>
+<p>All of these features will be built on the same foundation: Rust for security-critical operations, TypeScript for user interfaces.</p>
+<h2>Open Source and Self-Hostable</h2>
+<p>Everything we're building is open source under Apache 2.0. You can:</p>
+<ul>
+<li>Review the code for security</li>
+<li>Run your own KeyPears node</li>
+<li>Contribute improvements</li>
+<li>Build custom clients</li>
+</ul>
+<p>The KeyPears node is designed to be self-hostable. Our deployment documentation walks through:</p>
+<ul>
+<li>Cross-compiling for Linux (even from macOS)</li>
+<li>Docker containerization</li>
+<li>AWS Fargate deployment</li>
+<li>Domain configuration and SSL</li>
+</ul>
+<p>We want KeyPears to be decentralized by default. Anyone should be able to run a node, just like anyone can run an email server.</p>
+<h2>Conclusion</h2>
+<p>Building KeyPears with Rust has been an excellent decision. The language's emphasis on safety, performance, and correctness aligns perfectly with our security requirements. The Blake3 proof-of-concept validates our architecture: Rust backend for cryptography, TypeScript frontend for user experience, and a clean API boundary between them.</p>
+<p>We're excited to continue building. If you're interested in following along, check out:</p>
+<ul>
+<li><strong>Live demo</strong>: Try the Blake3 endpoint at https://keypears.com/api/blake3</li>
+<li><strong>API docs</strong>: Explore the OpenAPI spec at https://keypears.com/api/docs</li>
+<li><strong>Source code</strong>: Coming soon on GitHub</li>
+</ul>
+<p>We'll continue sharing our progress through these blog posts. Next up: vault encryption and key derivation in Rust.</p>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Progress on Secret Synchronization: A Future-Proof Schema]]></title>
             <link>https://keypears.com/blog/2025-10-07-progress-on-secret-synchronization</link>
