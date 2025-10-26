@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { WebBuf } from "@keypears/lib";
-import { blake3Hash } from "@keypears/api-client";
+import { KeyPearsClient } from "@keypears/api-client";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";
@@ -23,6 +23,9 @@ export default function ApiTest() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Create API client once
+  const client = useMemo(() => new KeyPearsClient({ url: "" }), []);
+
   async function handleHash(): Promise<void> {
     if (!inputText) {
       setError("Please enter some text to hash");
@@ -34,7 +37,7 @@ export default function ApiTest() {
 
     try {
       const inputBuf = WebBuf.fromUtf8(inputText);
-      const result = await blake3Hash(inputBuf, "");
+      const result = await client.blake3(inputBuf);
       setHash(result.toHex());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to hash data");

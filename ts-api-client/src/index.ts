@@ -1,2 +1,2 @@
-export { blake3Hash } from "./blake3.js";
+export { KeyPearsClient, type KeyPearsClientConfig } from "./client.js";
 export * from "./schemas.js";
