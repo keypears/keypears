@@ -1,5 +1,5 @@
 [workspace]
-members = ["rs-lib", "rs-node", "rs-tauri"]
+members = ["rs-lib", "rs-node", "rs-tauri", "rs-api-client"]
 resolver = "2"
 
 [workspace.package]
@@ -29,6 +29,12 @@ utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 blake3 = "1.5"
 hex = "0.4"
 base64 = "0.22"
+
+# HTTP client (for API client)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Error handling
+thiserror = "2.0"
 
 # Tauri (for tauri app)
 tauri = { version = "2", features = [] }

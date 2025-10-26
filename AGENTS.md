@@ -125,6 +125,13 @@ modified.
 All commands must pass before committing. Run for **every** Rust project
 modified.
 
+**Running integration tests** (tests marked with `#[ignore]`):
+
+- `cargo test --package <package-name> -- -- --ignored` - Run only ignored tests
+- `cargo test --package <package-name> -- -- --include-ignored` - Run all tests (unit + integration)
+
+Note the double `--`: the first separates cargo arguments from test binary arguments, the second separates test name filters from test harness flags. Integration tests require external dependencies (e.g., a running server) and are ignored by default to keep CI/CD fast and reliable.
+
 ### Cross-Compilation for Production
 
 The KeyPears node must be cross-compiled for Linux (x86_64-unknown-linux-musl)
