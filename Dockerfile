@@ -35,7 +35,7 @@ FROM node:24-alpine AS build-api-client
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy api-client source code
-COPY api-client /app/ts-api-client/
+COPY ts-api-client /app/ts-api-client/
 # Copy ts-lib and webapp package.json for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
 COPY ts-webapp/package.json /app/ts-webapp/
@@ -56,7 +56,7 @@ FROM node:24-alpine AS build-webapp
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy webapp source code
-COPY webapp /app/ts-webapp/
+COPY ts-webapp /app/ts-webapp/
 # Copy package.json files for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
 COPY ts-api-client/package.json /app/ts-api-client/
