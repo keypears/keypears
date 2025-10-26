@@ -85,6 +85,8 @@ ts-webapp/          - @keypears/webapp source (TypeScript)
   ├── bin/          - Pre-built KeyPears node binary (cross-compiled for Linux)
   └── start.sh      - Production startup script (runs both node + webapp)
 docs/               - Documentation
+whitepaper/         - Technical whitepaper (Typst format)
+  └── keypears.typ  - Main whitepaper document
 scripts/            - Build and deployment scripts
   ├── setup-cross-compile.sh  - One-time setup for cross-compilation
   └── build-api-linux.sh      - Cross-compile KeyPears node for Linux
