@@ -117,7 +117,7 @@ RUN chmod +x /app/bin/keypears-node
 COPY ts-webapp/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 # Set working directory to webapp
-WORKDIR /app/webapp
+WORKDIR /app/ts-webapp
 # Install pnpm globally for the start command
 RUN npm install -g pnpm@10.17.0
 # Start both servers via script
