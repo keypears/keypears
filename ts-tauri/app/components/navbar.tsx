@@ -98,6 +98,13 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
             >
               Test Tauri
             </Link>
+            <Link
+              to="/test-blake3"
+              className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              Test Blake3
+            </Link>
           </nav>
         </SheetContent>
       </Sheet>

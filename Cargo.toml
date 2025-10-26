@@ -11,6 +11,7 @@ authors = ["Identellica LLC"]
 [workspace.dependencies]
 # Shared library
 rs-lib = { path = "./rs-lib" }
+rs-api-client = { path = "./rs-api-client" }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
