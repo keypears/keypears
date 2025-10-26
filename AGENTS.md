@@ -54,7 +54,7 @@ Five main packages:
   cryptography utilities)
 - **`rs-lib`** (Rust): Core Rust library (cryptography implementations, shared
   utilities)
-- **`node`** (Rust): KeyPears node (backend API server) using rs-lib - binary name: `keypears-node`
+- **`rs-node`** (Rust): KeyPears node (backend API server) using rs-lib - binary name: `keypears-node`
 - **`@keypears/api-client`** (TypeScript): Type-safe API client for consuming
   the KeyPears node API
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
@@ -68,13 +68,17 @@ workspace (`Cargo.toml` at root).
 
 ### Folder Layout
 
+All source folders are prefixed with their language (`ts-*` for TypeScript, `rs-*` for Rust):
+
 ```
 ts-lib/             - @keypears/lib source (TypeScript)
 rs-lib/             - rs-lib source (Rust library)
-node/               - KeyPears node source (Rust binary using rs-lib)
-api-client/         - @keypears/api-client source (TypeScript)
-tauri/              - @keypears/tauri source (Rust + TypeScript)
-webapp/             - @keypears/webapp source (TypeScript)
+rs-node/            - KeyPears node source (Rust binary using rs-lib)
+ts-api-client/      - @keypears/api-client source (TypeScript)
+ts-tauri/           - @keypears/tauri source (TypeScript frontend)
+  └── src-tauri/    - Symlink to ../rs-tauri (for Tauri CLI compatibility)
+rs-tauri/           - @keypears/tauri source (Rust backend)
+ts-webapp/          - @keypears/webapp source (TypeScript)
   ├── bin/          - Pre-built KeyPears node binary (cross-compiled for Linux)
   └── start.sh      - Production startup script (runs both node + webapp)
 docs/               - Documentation
@@ -143,7 +147,7 @@ cross-platform compatibility:
 
 - **`rs-lib`**: Shared Rust library containing cryptography implementations
   (Blake3, ACB3), data structures, and utilities
-- **`node` (binary: `keypears-node`)**: Axum-based REST API server that uses `rs-lib` for all core
+- **`rs-node` (binary: `keypears-node`)**: Axum-based REST API server that uses `rs-lib` for all core
   operations. This is the KeyPears node that can be run by anyone.
 - **OpenAPI**: Full OpenAPI 3.0 specification generated from Rust code using
   `utoipa`, with Swagger UI at `/api/docs`
@@ -252,7 +256,7 @@ KeyPears has comprehensive business strategy documentation:
   docker-compose.yml)
 - **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
 - **Dual-server setup**: Production container runs both servers via
-  `webapp/start.sh`:
+  `ts-webapp/start.sh`:
   - KeyPears node (Rust): Port 4274, runs in background
   - Webapp server (Node.js): Port 4273, runs in foreground, proxies `/api/*`
     requests to KeyPears node
@@ -261,7 +265,7 @@ KeyPears has comprehensive business strategy documentation:
   issues
 - **Cross-compilation**: KeyPears node is cross-compiled on macOS for Linux
   (x86_64-unknown-linux-musl) using musl-cross toolchain, then copied to
-  `webapp/bin/keypears-node` for Docker deployment
+  `ts-webapp/bin/keypears-node` for Docker deployment
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to
   `https://keypears.com` (301 permanent redirect)
@@ -322,9 +326,9 @@ multiple sizes/formats to `public/images/` with type-safe paths in
 
 ### Markdown Content (Webapp Only)
 
-All webapp markdown content is in `webapp/markdown/`:
+All webapp markdown content is in `ts-webapp/markdown/`:
 
-- **Blog posts**: `webapp/markdown/blog/` as Markdown with TOML front-matter
+- **Blog posts**: `ts-webapp/markdown/blog/` as Markdown with TOML front-matter
   - **Filename**: `YYYY-MM-DD-slug.md`
   - **Front-matter**: TOML with `title`, `date`, `author`
   - **Content**: Never include title as H1 (auto-rendered from front-matter)
