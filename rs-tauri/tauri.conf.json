@@ -7,7 +7,7 @@
     "beforeDevCommand": "pnpm dev & wait-on http://localhost:1420",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
+    "frontendDist": "../ts-tauri/dist"
   },
   "app": {
     "windows": [

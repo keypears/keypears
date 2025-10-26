@@ -17,9 +17,9 @@ dist
 **/*.tsbuildinfo
 
 # EXCEPT: Allow pre-built KeyPears node binary and start script
-!webapp/bin/
-!webapp/bin/keypears-node
-!webapp/start.sh
+!ts-webapp/bin/
+!ts-webapp/bin/keypears-node
+!ts-webapp/start.sh
 
 # Tests
 **/test

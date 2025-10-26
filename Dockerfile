@@ -4,8 +4,8 @@ FROM node:24-alpine AS dependencies-env
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy package.json files for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
-COPY api-client/package.json /app/api-client/
-COPY webapp/package.json /app/webapp/
+COPY ts-api-client/package.json /app/ts-api-client/
+COPY ts-webapp/package.json /app/ts-webapp/
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
@@ -19,8 +19,8 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy ts-lib source code
 COPY ts-lib /app/ts-lib/
 # Copy other package.json files for workspace resolution
-COPY api-client/package.json /app/api-client/
-COPY webapp/package.json /app/webapp/
+COPY ts-api-client/package.json /app/ts-api-client/
+COPY ts-webapp/package.json /app/ts-webapp/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/ts-lib/node_modules /app/ts-lib/node_modules
@@ -35,16 +35,16 @@ FROM node:24-alpine AS build-api-client
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy api-client source code
-COPY api-client /app/api-client/
+COPY api-client /app/ts-api-client/
 # Copy ts-lib and webapp package.json for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
-COPY webapp/package.json /app/webapp/
+COPY ts-webapp/package.json /app/ts-webapp/
 # Copy built ts-lib from previous stage
 COPY --from=build-ts-lib /app/ts-lib/dist /app/ts-lib/dist/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/ts-lib/node_modules /app/ts-lib/node_modules
-COPY --from=dependencies-env /app/api-client/node_modules /app/api-client/node_modules
+COPY --from=dependencies-env /app/ts-api-client/node_modules /app/ts-api-client/node_modules
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
@@ -56,18 +56,18 @@ FROM node:24-alpine AS build-webapp
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy webapp source code
-COPY webapp /app/webapp/
+COPY webapp /app/ts-webapp/
 # Copy package.json files for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
-COPY api-client/package.json /app/api-client/
+COPY ts-api-client/package.json /app/ts-api-client/
 # Copy built packages from previous stages
 COPY --from=build-ts-lib /app/ts-lib/dist /app/ts-lib/dist/
-COPY --from=build-api-client /app/api-client/dist /app/api-client/dist/
+COPY --from=build-api-client /app/ts-api-client/dist /app/ts-api-client/dist/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/ts-lib/node_modules /app/ts-lib/node_modules
-COPY --from=dependencies-env /app/api-client/node_modules /app/api-client/node_modules
-COPY --from=dependencies-env /app/webapp/node_modules /app/webapp/node_modules
+COPY --from=dependencies-env /app/ts-api-client/node_modules /app/ts-api-client/node_modules
+COPY --from=dependencies-env /app/ts-webapp/node_modules /app/ts-webapp/node_modules
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
@@ -80,8 +80,8 @@ FROM node:24-alpine AS production-dependencies-env
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy package.json files for workspace resolution
 COPY ts-lib/package.json /app/ts-lib/
-COPY api-client/package.json /app/api-client/
-COPY webapp/package.json /app/webapp/
+COPY ts-api-client/package.json /app/ts-api-client/
+COPY ts-webapp/package.json /app/ts-webapp/
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
@@ -96,25 +96,25 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 COPY ts-lib/package.json /app/ts-lib/
 COPY --from=build-ts-lib /app/ts-lib/dist /app/ts-lib/dist/
 # Copy api-client package files
-COPY api-client/package.json /app/api-client/
-COPY --from=build-api-client /app/api-client/dist /app/api-client/dist/
+COPY ts-api-client/package.json /app/ts-api-client/
+COPY --from=build-api-client /app/ts-api-client/dist /app/ts-api-client/dist/
 # Copy webapp package and server files
-COPY webapp/package.json webapp/server.ts /app/webapp/
+COPY ts-webapp/package.json ts-webapp/server.ts /app/ts-webapp/
 # Copy webapp markdown files (needed for blog at runtime)
-COPY webapp/markdown /app/webapp/markdown/
+COPY ts-webapp/markdown /app/ts-webapp/markdown/
 # Copy webapp build output
-COPY --from=build-webapp /app/webapp/build /app/webapp/build/
+COPY --from=build-webapp /app/ts-webapp/build /app/ts-webapp/build/
 # Copy production node_modules
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=production-dependencies-env /app/ts-lib/node_modules /app/ts-lib/node_modules
-COPY --from=production-dependencies-env /app/api-client/node_modules /app/api-client/node_modules
-COPY --from=production-dependencies-env /app/webapp/node_modules /app/webapp/node_modules
+COPY --from=production-dependencies-env /app/ts-api-client/node_modules /app/ts-api-client/node_modules
+COPY --from=production-dependencies-env /app/ts-webapp/node_modules /app/ts-webapp/node_modules
 # Copy pre-built KeyPears node binary
 RUN mkdir -p /app/bin
-COPY webapp/bin/keypears-node /app/bin/keypears-node
+COPY ts-webapp/bin/keypears-node /app/bin/keypears-node
 RUN chmod +x /app/bin/keypears-node
 # Copy start script
-COPY webapp/start.sh /app/start.sh
+COPY ts-webapp/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 # Set working directory to webapp
 WORKDIR /app/webapp
