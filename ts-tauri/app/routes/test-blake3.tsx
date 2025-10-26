@@ -3,8 +3,15 @@ import { useState } from "react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
+import type { Route } from "./+types/test-blake3";
 
-export default function TestBlake3Page() {
+export async function clientLoader(_args: Route.ClientLoaderArgs) {
+  const apiUrl = await invoke<string>("get_api_url_command");
+  return { apiUrl };
+}
+
+export default function TestBlake3Page({ loaderData }: Route.ComponentProps) {
+  const { apiUrl } = loaderData;
   const [inputText, setInputText] = useState("");
   const [hash, setHash] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,8 +47,11 @@ export default function TestBlake3Page() {
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="border-border bg-card rounded-lg border p-6">
           <h2 className="mb-4 text-xl font-semibold">Test Blake3</h2>
-          <p className="text-muted-foreground mb-4 text-sm">
+          <p className="text-muted-foreground mb-2 text-sm">
             Test the Blake3 hashing API via Tauri backend
+          </p>
+          <p className="text-muted-foreground mb-4 text-xs">
+            API URL: <span className="font-mono">{apiUrl}</span>
           </p>
 
           <form
