@@ -1,6 +1,6 @@
 +++
 title = "Drizzle SQLite Database Migrations in Tauri 2.0"
-date = "2025-10-04"
+date = "2025-10-04T06:00:00-05:00"
 author = "KeyPears Team"
 +++
 

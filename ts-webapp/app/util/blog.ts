@@ -49,15 +49,13 @@ export async function loadBlogPosts(): Promise<BlogPost[]> {
     // Extract slug from filename (remove .md extension)
     const slug = filename.replace(/\.md$/, "");
 
-    // Parse date as local date, not UTC
-    const dateStr = typeof frontmatter.date === 'string' ? frontmatter.date : frontmatter.date.toISOString();
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
+    // Parse date (handles ISO 8601 with timezone)
+    const date = new Date(frontmatter.date);
 
     posts.push({
       slug,
       title: frontmatter.title,
-      date: localDate,
+      date,
       author: frontmatter.author,
       content,
     });
@@ -86,15 +84,13 @@ export async function loadBlogPost(slug: string): Promise<BlogPost | null> {
 
   const frontmatter = data as BlogFrontmatter;
 
-  // Parse date as local date, not UTC
-  const dateStr = typeof frontmatter.date === 'string' ? frontmatter.date : frontmatter.date.toISOString();
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const localDate = new Date(year, month - 1, day);
+  // Parse date (handles ISO 8601 with timezone)
+  const date = new Date(frontmatter.date);
 
   return {
     slug,
     title: frontmatter.title,
-    date: localDate,
+    date,
     author: frontmatter.author,
     content,
   };

@@ -1,6 +1,6 @@
 +++
 title = "Introducing KeyPears: A New Approach to Password Management"
-date = "2025-10-03"
+date = "2025-10-03T06:00:00-05:00"
 author = "KeyPears Team"
 +++
 

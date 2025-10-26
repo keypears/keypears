@@ -336,6 +336,7 @@ All webapp markdown content is in `ts-webapp/markdown/`:
 - **Blog posts**: `ts-webapp/markdown/blog/` as Markdown with TOML front-matter
   - **Filename**: `YYYY-MM-DD-slug.md`
   - **Front-matter**: TOML with `title`, `date`, `author`
+    - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am Central Time)
   - **Content**: Never include title as H1 (auto-rendered from front-matter)
   - **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
 - **Static pages**: `about.md`, `privacy.md`, `terms.md` - loaded at runtime by

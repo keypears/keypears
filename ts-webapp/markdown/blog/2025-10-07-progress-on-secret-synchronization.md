@@ -1,6 +1,6 @@
 +++
 title = "Progress on Secret Synchronization: A Future-Proof Schema"
-date = "2025-10-07"
+date = "2025-10-07T06:00:00-05:00"
 author = "KeyPears Team"
 +++
 

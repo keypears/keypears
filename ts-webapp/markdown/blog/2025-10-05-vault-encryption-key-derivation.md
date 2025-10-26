@@ -1,6 +1,6 @@
 +++
 title = "How KeyPears Protects Your Vault: Encryption and Key Derivation"
-date = "2025-10-05"
+date = "2025-10-05T06:00:00-05:00"
 author = "KeyPears Team"
 +++
 

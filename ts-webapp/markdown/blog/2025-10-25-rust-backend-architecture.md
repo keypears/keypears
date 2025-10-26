@@ -1,6 +1,6 @@
 +++
 title = "Building KeyPears with Rust: Backend Architecture and Blake3 Proof-of-Concept"
-date = "2025-10-25"
+date = "2025-10-25T06:00:00-05:00"
 author = "KeyPears Team"
 +++
 
