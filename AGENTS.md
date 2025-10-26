@@ -1,5 +1,7 @@
 # Guide for AI Agents Working on KeyPears
 
+> **Note**: `CLAUDE.md` is a symlink to this file (`AGENTS.md`). Only edit `AGENTS.md` - changes will automatically appear in `CLAUDE.md`.
+
 ## Overview
 
 **Decentralized Diffie-Hellman Key Exchange System**
@@ -52,9 +54,9 @@ Five main packages:
   cryptography utilities)
 - **`rs-lib`** (Rust): Core Rust library (cryptography implementations, shared
   utilities)
-- **`api-server`** (Rust): Backend API server using rs-lib
+- **`node`** (Rust): KeyPears node (backend API server) using rs-lib - binary name: `keypears-node`
 - **`@keypears/api-client`** (TypeScript): Type-safe API client for consuming
-  the Rust backend
+  the KeyPears node API
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
   Windows, Linux, Android, iOS)
 - **`@keypears/webapp`** (TypeScript): Landing page, blog, and template for
@@ -69,16 +71,16 @@ workspace (`Cargo.toml` at root).
 ```
 ts-lib/             - @keypears/lib source (TypeScript)
 rs-lib/             - rs-lib source (Rust library)
-api-server/         - API server source (Rust binary using rs-lib)
+node/               - KeyPears node source (Rust binary using rs-lib)
 api-client/         - @keypears/api-client source (TypeScript)
 tauri/              - @keypears/tauri source (Rust + TypeScript)
 webapp/             - @keypears/webapp source (TypeScript)
-  ├── bin/          - Pre-built API server binary (cross-compiled for Linux)
-  └── start.sh      - Production startup script (runs both API + webapp)
+  ├── bin/          - Pre-built KeyPears node binary (cross-compiled for Linux)
+  └── start.sh      - Production startup script (runs both node + webapp)
 docs/               - Documentation
 scripts/            - Build and deployment scripts
   ├── setup-cross-compile.sh  - One-time setup for cross-compilation
-  └── build-api-linux.sh      - Cross-compile API server for Linux
+  └── build-api-linux.sh      - Cross-compile KeyPears node for Linux
 Cargo.toml          - Rust workspace configuration
 Dockerfile          - Production Docker build (multi-stage, monorepo-aware, linux/amd64)
 docker-compose.yml  - Docker Compose config (platform: linux/amd64 for Apple Silicon)
@@ -116,13 +118,13 @@ modified.
 
 ### Cross-Compilation for Production
 
-The API server must be cross-compiled for Linux (x86_64-unknown-linux-musl)
+The KeyPears node must be cross-compiled for Linux (x86_64-unknown-linux-musl)
 before deployment:
 
 1. **One-time setup**: `bash scripts/setup-cross-compile.sh`
 2. **Build for Linux**: `pnpm run build:api` (runs
    `scripts/build-api-linux.sh`)
-3. **Build all packages**: `pnpm run build:all` (builds API + TypeScript
+3. **Build all packages**: `pnpm run build:all` (builds KeyPears node + TypeScript
    packages + Docker image)
 
 The deployment pipeline automatically handles cross-compilation via `pnpm run
@@ -131,7 +133,7 @@ deploy:all`.
 ## Programming Languages
 
 - **TypeScript**: Frontend, API client, and webapp server (runtime: Node.js)
-- **Rust**: Backend API server, core cryptography library, and Tauri native app
+- **Rust**: KeyPears node (backend API), core cryptography library, and Tauri native app
   backend
 
 ### Backend Architecture
@@ -141,14 +143,16 @@ cross-platform compatibility:
 
 - **`rs-lib`**: Shared Rust library containing cryptography implementations
   (Blake3, ACB3), data structures, and utilities
-- **`api-server`**: Axum-based REST API server that uses `rs-lib` for all core
-  operations
+- **`node` (binary: `keypears-node`)**: Axum-based REST API server that uses `rs-lib` for all core
+  operations. This is the KeyPears node that can be run by anyone.
 - **OpenAPI**: Full OpenAPI 3.0 specification generated from Rust code using
   `utoipa`, with Swagger UI at `/api/docs`
 - **Current status**: Proof-of-concept complete with Blake3 hashing endpoint
   (`/api/blake3`)
 - **Future work**: All backend cryptography, vault operations, and sync protocol
   will be implemented in Rust and exposed via REST API
+- **Branding**: The API server is called a "KeyPears node" to emphasize the decentralized,
+  network-oriented architecture similar to cryptocurrency nodes
 
 ### Essential TypeScript Patterns
 
@@ -235,7 +239,7 @@ KeyPears has comprehensive business strategy documentation:
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
 - **`pnpm build:all`** - Build everything: Rust API (cross-compile) +
   TypeScript packages + Docker image
-- **`pnpm build:api`** - Cross-compile Rust API server for Linux only
+- **`pnpm build:api`** - Cross-compile KeyPears node for Linux only
 - **`pnpm build:packages`** - Build TypeScript packages only (ts-lib +
   api-client)
 - **`pnpm webapp:up`** - Test production build locally with Docker Compose
@@ -249,15 +253,15 @@ KeyPears has comprehensive business strategy documentation:
 - **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
 - **Dual-server setup**: Production container runs both servers via
   `webapp/start.sh`:
-  - API server (Rust): Port 4274, runs in background
+  - KeyPears node (Rust): Port 4274, runs in background
   - Webapp server (Node.js): Port 4273, runs in foreground, proxies `/api/*`
-    requests to API server
+    requests to KeyPears node
 - **API proxy**: Webapp server uses `http-proxy-middleware` to forward all
-  `/api/*` requests to the Rust API server at `localhost:4274`, avoiding CORS
+  `/api/*` requests to the KeyPears node at `localhost:4274`, avoiding CORS
   issues
-- **Cross-compilation**: API server is cross-compiled on macOS for Linux
+- **Cross-compilation**: KeyPears node is cross-compiled on macOS for Linux
   (x86_64-unknown-linux-musl) using musl-cross toolchain, then copied to
-  `webapp/bin/api-server` for Docker deployment
+  `webapp/bin/keypears-node` for Docker deployment
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to
   `https://keypears.com` (301 permanent redirect)

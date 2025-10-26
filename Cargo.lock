@@ -67,22 +67,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
-name = "api-server"
-version = "0.1.0"
-dependencies = [
- "axum",
- "base64 0.22.1",
- "hex",
- "rs-lib",
- "serde",
- "serde_json",
- "tokio",
- "utoipa",
- "utoipa-axum",
- "utoipa-swagger-ui",
-]
-
-[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2404,6 +2388,22 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "memoffset",
+]
+
+[[package]]
+name = "node"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "hex",
+ "rs-lib",
+ "serde",
+ "serde_json",
+ "tokio",
+ "utoipa",
+ "utoipa-axum",
+ "utoipa-swagger-ui",
 ]
 
 [[package]]

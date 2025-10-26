@@ -16,9 +16,9 @@ dist
 *.tsbuildinfo
 **/*.tsbuildinfo
 
-# EXCEPT: Allow pre-built API server binary and start script
+# EXCEPT: Allow pre-built KeyPears node binary and start script
 !webapp/bin/
-!webapp/bin/api-server
+!webapp/bin/keypears-node
 !webapp/start.sh
 
 # Tests

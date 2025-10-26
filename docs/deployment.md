@@ -3,7 +3,7 @@
 ## 1. Containerize Your Webapp ✅ COMPLETED
 
 The webapp has been successfully containerized using Docker with a multi-stage
-build process optimized for both the Rust backend (API server) and TypeScript
+build process optimized for both the Rust backend (KeyPears node) and TypeScript
 frontend (webapp) in a pnpm/Cargo monorepo structure.
 
 ### Architecture
@@ -13,14 +13,14 @@ The production container runs two servers:
 - **API Server (Rust)**: Port 4274 - Axum-based REST API with OpenAPI
   documentation
 - **Webapp Server (Node.js)**: Port 4273 - Express server that serves the React
-  frontend and proxies `/api/*` requests to the API server
+  frontend and proxies `/api/*` requests to the KeyPears node
 
-Both servers are started via `webapp/start.sh` which runs the API server in the
+Both servers are started via `webapp/start.sh` which runs the KeyPears node in the
 background and the webapp server in the foreground.
 
 ### Building and Testing with pnpm Scripts (Recommended)
 
-Before building the Docker image, you must cross-compile the Rust API server for
+Before building the Docker image, you must cross-compile the Rust KeyPears node for
 Linux:
 
 ```bash
@@ -37,7 +37,7 @@ Then test the production webapp locally:
 # Start the webapp container (builds and runs in background)
 pnpm webapp:up
 
-# View live logs (you should see both API server and webapp starting)
+# View live logs (you should see both KeyPears node and webapp starting)
 pnpm webapp:logs
 
 # Stop and remove the container
@@ -55,8 +55,8 @@ monorepo root) to:
 
 The build process follows these steps:
 
-1. **Cross-compile Rust API**: `pnpm run build:api` compiles the API server for
-   Linux (x86_64-unknown-linux-musl) and copies it to `webapp/bin/api-server`
+1. **Cross-compile Rust API**: `pnpm run build:api` compiles the KeyPears node for
+   Linux (x86_64-unknown-linux-musl) and copies it to `webapp/bin/keypears-node`
 2. **Build TypeScript packages**: `pnpm run build:packages` builds `ts-lib` and
    `api-client`
 3. **Build Docker image**: `pnpm run build:webapp` creates the Docker image
@@ -116,7 +116,7 @@ handles:
 - Building `api-client` package (TypeScript)
 - Building `webapp` with React Router (TypeScript)
 - Installing production dependencies only in the final image
-- Copying pre-built API server binary from `webapp/bin/api-server` (Rust,
+- Copying pre-built KeyPears node binary from `webapp/bin/keypears-node` (Rust,
   cross-compiled for Linux)
 - Copying markdown content files for blog posts and static pages
 - Copying `webapp/start.sh` to start both servers
@@ -128,7 +128,7 @@ The production container uses the following environment variables:
 - `PORT` - Webapp server port (default: 4273)
 - `NODE_ENV` - Set to `production` in Docker (automatic)
 
-The API server listens on port 4274 (hardcoded in `api-server/src/main.rs`).
+The KeyPears node listens on port 4274 (hardcoded in `node/src/main.rs`).
 The webapp server proxies all `/api/*` requests to `http://localhost:4274`.
 
 ## 2. Push Your Container Image to AWS ECR ✅ COMPLETED
@@ -160,7 +160,7 @@ pnpm deploy:build
 This command will:
 
 1. Authenticate Docker with ECR
-2. Cross-compile Rust API server for Linux (x86_64-unknown-linux-musl)
+2. Cross-compile Rust KeyPears node for Linux (x86_64-unknown-linux-musl)
 3. Build TypeScript packages (ts-lib, api-client)
 4. Build the Docker image (for linux/amd64 platform) with pre-built API binary
 5. Tag the image for ECR
@@ -175,7 +175,7 @@ If you prefer to run steps individually:
 # 1. Authenticate Docker with ECR (token valid for 12 hours)
 pnpm deploy:login
 
-# 2. Build Rust API server for Linux
+# 2. Build Rust KeyPears node for Linux
 pnpm build:api
 
 # 3. Build TypeScript packages
@@ -642,7 +642,7 @@ pnpm deploy:all
 This single command will:
 
 1. Authenticate Docker with ECR
-2. Cross-compile Rust API server for Linux (x86_64-unknown-linux-musl)
+2. Cross-compile Rust KeyPears node for Linux (x86_64-unknown-linux-musl)
 3. Build TypeScript packages (ts-lib, api-client)
 4. Build the Docker image for linux/amd64 with pre-built API binary
 5. Tag and push the image to ECR

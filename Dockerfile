@@ -109,10 +109,10 @@ COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=production-dependencies-env /app/ts-lib/node_modules /app/ts-lib/node_modules
 COPY --from=production-dependencies-env /app/api-client/node_modules /app/api-client/node_modules
 COPY --from=production-dependencies-env /app/webapp/node_modules /app/webapp/node_modules
-# Copy pre-built API server binary
+# Copy pre-built KeyPears node binary
 RUN mkdir -p /app/bin
-COPY webapp/bin/api-server /app/bin/api-server
-RUN chmod +x /app/bin/api-server
+COPY webapp/bin/keypears-node /app/bin/keypears-node
+RUN chmod +x /app/bin/keypears-node
 # Copy start script
 COPY webapp/start.sh /app/start.sh
 RUN chmod +x /app/start.sh

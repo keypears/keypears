@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "Building API server for Linux x86_64..."
+echo "Building KeyPears node for Linux x86_64..."
 
-# Build API server for Linux with musl (static linking for Alpine)
-cargo build --release --target x86_64-unknown-linux-musl -p api-server
+# Build KeyPears node for Linux with musl (static linking for Alpine)
+cargo build --release --target x86_64-unknown-linux-musl -p node
 
 echo "Copying binary to webapp/bin/..."
 
@@ -12,10 +12,10 @@ echo "Copying binary to webapp/bin/..."
 mkdir -p webapp/bin
 
 # Copy the compiled binary
-cp target/x86_64-unknown-linux-musl/release/api-server webapp/bin/api-server
+cp target/x86_64-unknown-linux-musl/release/keypears-node webapp/bin/keypears-node
 
 # Make it executable
-chmod +x webapp/bin/api-server
+chmod +x webapp/bin/keypears-node
 
-echo "✓ API server built successfully!"
-echo "  Binary location: webapp/bin/api-server"
+echo "✓ KeyPears node built successfully!"
+echo "  Binary location: webapp/bin/keypears-node"
