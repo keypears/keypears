@@ -455,6 +455,9 @@ importers:
       '@types/node':
         specifier: ^24.6.2
         version: 24.6.2
+      '@types/pg':
+        specifier: 8.15.6
+        version: 8.15.6
       '@types/react':
         specifier: ^19.2.0
         version: 19.2.0
@@ -470,6 +473,9 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      drizzle-kit:
+        specifier: 0.31.5
+        version: 0.31.5
       eslint:
         specifier: 9.37.0
         version: 9.37.0(jiti@2.6.1)
