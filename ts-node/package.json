@@ -10,6 +10,10 @@
   "packageManager": "pnpm@10.17.0",
   "type": "module",
   "scripts": {
+    "db:staging:clear": "dotenvx run -f .env.staging -- drizzle-kit push --config=drizzle-clear.config.ts",
+    "db:staging:push": "dotenvx run -f .env.staging -- drizzle-kit push --config=drizzle.config.ts",
+    "db:dev:clear": "dotenvx run -f .env.development -- drizzle-kit push --config=drizzle-clear.config.ts",
+    "db:dev:push": "dotenvx run -f .env.development -- drizzle-kit push --config=drizzle.config.ts",
     "build": "tsc -b tsconfig.src.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
