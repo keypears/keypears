@@ -2,7 +2,8 @@ import compression from "compression";
 import express from "express";
 import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
-import { createProxyMiddleware } from "http-proxy-middleware";
+import { router } from "@keypears/node";
+import { RPCHandler } from "@orpc/server/node";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -14,18 +15,21 @@ const app = express();
 app.use(compression());
 app.disable("x-powered-by");
 
-// API proxy middleware - forwards all /api/* requests to the API server
-// Note: pathRewrite adds back the /api prefix that Express strips
-const API_TARGET = "http://localhost:4274";
-app.use(
-  "/api",
-  createProxyMiddleware({
-    target: API_TARGET,
-    changeOrigin: true,
-    pathRewrite: (path) => `/api${path}`,
-    logger: console,
-  }),
-);
+// Mount oRPC API handler at /api
+const apiHandler = new RPCHandler(router, {});
+
+app.use("/api{/*path}", async (req: Request, res: Response, next: NextFunction) => {
+  const { matched } = await apiHandler.handle(req, res, {
+    prefix: "/api",
+    context: {},
+  });
+
+  if (matched) {
+    return;
+  }
+
+  next();
+});
 
 // Canonical URL redirect middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
