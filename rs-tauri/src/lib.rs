@@ -1,6 +1,6 @@
 fn get_api_url() -> &'static str {
     match std::env::var("KEYPEARS_ENV").as_deref() {
-        Ok("development") => "http://keypears.localhost:4274",
+        Ok("development") => "http://keypears.localhost:4273",
         _ => "https://keypears.com",
     }
 }
