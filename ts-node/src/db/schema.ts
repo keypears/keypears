@@ -1,6 +1,36 @@
-import { pgTable, varchar, timestamp, text } from 'drizzle-orm/pg-core';
+import { count, sql } from "drizzle-orm";
+import {
+  bigint,
+  bigserial,
+  boolean,
+  char,
+  customType,
+  date,
+  decimal,
+  doublePrecision,
+  index,
+  integer,
+  interval,
+  json,
+  jsonb,
+  numeric,
+  pgSchema,
+  pgTable,
+  primaryKey,
+  real,
+  serial,
+  smallint,
+  text,
+  time,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { z } from "zod";
+import { ulid } from "ulid";
 
-export const vault = pgTable('vault', {
+export const TableVault = pgTable('vault', {
   // Primary key - ULID for time-ordered, collision-resistant IDs
   id: varchar('id', { length: 26 }).primaryKey(),
 
@@ -26,3 +56,6 @@ export const vault = pgTable('vault', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export type SelectVault = typeof TableVault.$inferSelect;
+export type InsertVault = typeof TableVault.$inferInsert;
