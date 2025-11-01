@@ -1,6 +1,7 @@
+import type { RouterClient } from "@orpc/server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
-import { router } from "./index.js";
+import type { router } from "./index.js";
 
 export interface ClientConfig {
   url: string;
@@ -21,11 +22,11 @@ export interface ClientConfig {
  * const result = await client.blake3({ data: "aGVsbG8=" });
  * ```
  */
-export function createClient(config: ClientConfig) {
+export function createClient(config: ClientConfig): RouterClient<typeof router> {
   const link = new RPCLink({
     url: config.url,
     ...(config.headers && { headers: config.headers }),
   });
 
-  return createORPCClient(link);
+  return createORPCClient(link) as RouterClient<typeof router>;
 }

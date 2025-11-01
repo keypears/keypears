@@ -371,18 +371,12 @@ importers:
 
   ts-webapp:
     dependencies:
-      '@keypears/api-client':
-        specifier: workspace:^
-        version: link:../ts-api-client
       '@keypears/lib':
         specifier: workspace:^
         version: link:../ts-lib
       '@keypears/node':
         specifier: workspace:^
         version: link:../ts-node
-      '@orpc/client':
-        specifier: ^1.9.2
-        version: 1.9.2
       '@orpc/server':
         specifier: ^1.9.2
         version: 1.9.2
