@@ -1,5 +1,5 @@
 use crate::error::ClientError;
-use crate::models::{Blake3Request, Blake3Response};
+use crate::models::{Blake3Request, Blake3Response, RpcRequest, RpcResponse};
 use base64::Engine;
 
 pub struct KeyPearsClient {
@@ -24,15 +24,15 @@ impl KeyPearsClient {
     }
 
     pub async fn blake3(&self, data: Vec<u8>) -> Result<[u8; 32], ClientError> {
-        let base64_data =
-            base64::engine::general_purpose::STANDARD.encode(&data);
+        let base64_data = base64::engine::general_purpose::STANDARD.encode(&data);
 
         let request = Blake3Request { data: base64_data };
+        let wrapped_request = RpcRequest { json: request };
 
         let response = self
             .client
             .post(format!("{}/api/blake3", self.url))
-            .json(&request)
+            .json(&wrapped_request)
             .send()
             .await?;
 
@@ -43,16 +43,14 @@ impl KeyPearsClient {
             )));
         }
 
-        let response_data: Blake3Response = response.json().await?;
+        let wrapped_response: RpcResponse<Blake3Response> = response.json().await?;
+        let response_data = wrapped_response.json;
 
-        let hash_bytes = hex::decode(&response_data.hash).map_err(|e| {
-            ClientError::InvalidResponse(format!("Invalid hex: {e}"))
-        })?;
+        let hash_bytes = hex::decode(&response_data.hash)
+            .map_err(|e| ClientError::InvalidResponse(format!("Invalid hex: {e}")))?;
 
         let hash: [u8; 32] = hash_bytes.try_into().map_err(|_| {
-            ClientError::InvalidResponse(
-                "Hash must be exactly 32 bytes".to_string(),
-            )
+            ClientError::InvalidResponse("Hash must be exactly 32 bytes".to_string())
         })?;
 
         Ok(hash)
@@ -72,7 +70,7 @@ mod tests {
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(
-                r#"{"hash":"d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"}"#,
+                r#"{"json":{"hash":"d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"}}"#,
             )
             .create_async()
             .await;
@@ -118,7 +116,7 @@ mod tests {
         let mock = server
             .mock("POST", "/api/blake3")
             .with_status(200)
-            .with_body(r#"{"invalid":"response"}"#)
+            .with_body(r#"{"json":{"invalid":"response"}}"#)
             .create_async()
             .await;
 
@@ -141,7 +139,7 @@ mod tests {
         let mock = server
             .mock("POST", "/api/blake3")
             .with_status(200)
-            .with_body(r#"{"hash":"not-valid-hex"}"#)
+            .with_body(r#"{"json":{"hash":"not-valid-hex"}}"#)
             .create_async()
             .await;
 
@@ -164,7 +162,7 @@ mod tests {
         let mock = server
             .mock("POST", "/api/blake3")
             .with_status(200)
-            .with_body(r#"{"hash":"abcd"}"#) // Too short
+            .with_body(r#"{"json":{"hash":"abcd"}}"#) // Too short
             .create_async()
             .await;
 
