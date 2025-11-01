@@ -1,7 +1,7 @@
 services:
   # PostgreSQL database for development
   postgres-main:
-    image: postgres:18-alpine
+    image: postgres:17.5-alpine
     container_name: keypears-postgres-main
     ports:
       - "5432:5432"
