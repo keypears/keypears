@@ -1,4 +1,18 @@
 services:
+  # PostgreSQL database for development
+  postgres-main:
+    image: postgres:18-alpine
+    container_name: keypears-postgres-main
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: keypears
+      POSTGRES_PASSWORD: keypears_dev
+      POSTGRES_DB: keypears_main
+    volumes:
+      - postgres-main-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   webapp:
     platform: linux/amd64
     build:
@@ -13,3 +27,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4273
+
+volumes:
+  postgres-main-data:
