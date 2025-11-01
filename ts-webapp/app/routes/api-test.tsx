@@ -23,9 +23,6 @@ export default function ApiTest() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Create API client once
-  const client = useMemo(() => createClient({ url: "" }), []);
-
   async function handleHash(): Promise<void> {
     if (!inputText) {
       setError("Please enter some text to hash");
@@ -36,6 +33,7 @@ export default function ApiTest() {
     setError(null);
 
     try {
+      const client = createClient();
       const inputBuf = WebBuf.fromUtf8(inputText);
       const base64Data = inputBuf.toBase64();
       const result = await client.blake3({ data: base64Data });
