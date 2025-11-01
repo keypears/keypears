@@ -17,6 +17,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "rm -rf .react-router && KEYPEARS_ENV=development tauri dev",
+    "tauri:prod": "rm -rf .react-router && KEYPEARS_ENV=production tauri dev",
     "db:migrate": "drizzle-kit generate",
     "db:delete": "rm -f ~/Library/Application\\ Support/keypears-tauri/keypears.db*"
   },
