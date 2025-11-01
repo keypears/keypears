@@ -1,7 +1,7 @@
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { ORPCError, os } from "@orpc/server";
-import { Blake3RequestSchema, Blake3ResponseSchema } from "../schemas.js";
+import { Blake3RequestSchema, Blake3ResponseSchema } from "../zod-schemas.js";
 
 /**
  * Blake3 hash procedure

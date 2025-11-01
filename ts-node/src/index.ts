@@ -12,7 +12,7 @@ export const router = {
 export type Router = typeof router;
 
 // Re-export schemas for convenience
-export * from "./schemas.js";
+export * from "./zod-schemas.js";
 
 // Re-export client for convenience
 export * from "./client.js";
