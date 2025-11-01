@@ -12,24 +12,28 @@ const PORT = Number.parseInt(process.env.PORT || "4273");
 
 const app = express();
 
-app.use(compression());
 app.disable("x-powered-by");
 
-// Mount oRPC API handler at /api
+// Mount oRPC API handler at /api BEFORE compression
 const apiHandler = new RPCHandler(router, {});
 
-app.use("/api{/*path}", async (req: Request, res: Response, next: NextFunction) => {
-  const { matched } = await apiHandler.handle(req, res, {
-    prefix: "/api",
-    context: {},
-  });
-
-  if (matched) {
-    return;
+app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await apiHandler.handle(req, res, {
+      prefix: "/api",
+      context: { headers: req.headers, res },
+    });
+    if (!result.matched) {
+      next(); // let other middlewares handle it
+    }
+  } catch (error) {
+    console.error("oRPC handler error:", error);
+    throw error;
   }
-
-  next();
 });
+
+// Compression for non-API routes
+app.use(compression());
 
 // Canonical URL redirect middleware
 app.use((req: Request, res: Response, next: NextFunction) => {

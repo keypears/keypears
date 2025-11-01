@@ -19,18 +19,20 @@ export class KeyPearsClient {
   async blake3(data: WebBuf): Promise<FixedBuf<32>> {
     const base64Data = data.toBase64();
 
+    // Wrap request in orpc RPC format
     const response = await fetch(`${this.url}/api/blake3`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: base64Data }),
+      body: JSON.stringify({ json: { data: base64Data } }),
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const json = await response.json();
-    const parsed = Blake3ResponseSchema.parse(json);
+    // Unwrap response from orpc RPC format
+    const responseData = (await response.json()) as { json: unknown };
+    const parsed = Blake3ResponseSchema.parse(responseData.json);
 
     return FixedBuf.fromHex(32, parsed.hash);
   }

@@ -18,10 +18,13 @@
     "typecheck:src": "tsc -b tsconfig.src.json --noEmit",
     "typecheck:test": "tsc -b tsconfig.test.json --noEmit",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:server": "tsx test/server.ts",
+    "test:manual": "tsx test/manual-test.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
+    "@types/express": "^5.0.3",
     "@types/node": "^24.6.2",
     "@typescript-eslint/eslint-plugin": "8.45.0",
     "@typescript-eslint/parser": "8.45.0",
@@ -30,13 +33,16 @@
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-n": "17.23.1",
     "eslint-plugin-promise": "7.2.1",
+    "express": "^5.1.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "3.2.4"
   },
   "dependencies": {
+    "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",
     "@webbuf/blake3": "3.0.28",
     "@webbuf/fixedbuf": "3.0.28",
