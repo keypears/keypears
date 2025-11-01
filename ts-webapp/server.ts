@@ -4,6 +4,7 @@ import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
 import { router } from "@keypears/node";
 import { RPCHandler } from "@orpc/server/node";
+import { CORSPlugin } from "@orpc/server/plugins";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -15,7 +16,10 @@ const app = express();
 app.disable("x-powered-by");
 
 // Mount oRPC API handler at /api BEFORE compression
-const apiHandler = new RPCHandler(router, {});
+// Enable CORS for Tauri app (which makes cross-origin requests)
+const apiHandler = new RPCHandler(router, {
+  plugins: [new CORSPlugin()],
+});
 
 app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
   try {

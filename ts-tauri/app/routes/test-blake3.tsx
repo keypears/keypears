@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
+import { WebBuf } from "@keypears/lib";
+import { createClient } from "@keypears/node";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
@@ -28,12 +30,17 @@ export default function TestBlake3Page({ loaderData }: Route.ComponentProps) {
     setHash(null);
 
     try {
-      const encoder = new TextEncoder();
-      const data = Array.from(encoder.encode(inputText));
+      // Create orpc client with API URL from Tauri command
+      const client = createClient({ url: `${apiUrl}/api` });
 
-      const hashHex = await invoke<string>("blake3_hash", { data });
+      // Convert text to base64 using WebBuf
+      const inputBuf = WebBuf.fromUtf8(inputText);
+      const base64Data = inputBuf.toBase64();
 
-      setHash(hashHex);
+      // Call blake3 API via orpc client
+      const result = await client.blake3({ data: base64Data });
+
+      setHash(result.hash);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to hash data");
     } finally {
