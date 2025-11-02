@@ -102,6 +102,8 @@ COPY --from=build-node /app/node/dist /app/node/dist/
 COPY webapp/package.json webapp/server.ts /app/webapp/
 # Copy webapp markdown files (needed for blog at runtime)
 COPY webapp/markdown /app/webapp/markdown/
+# Copy webapp public directory (needed for .well-known at runtime)
+COPY webapp/public /app/webapp/public/
 # Copy webapp build output
 COPY --from=build-webapp /app/webapp/build /app/webapp/build/
 # Copy production node_modules

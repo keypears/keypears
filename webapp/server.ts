@@ -1,10 +1,15 @@
 import compression from "compression";
 import express from "express";
 import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
 import { router } from "@keypears/node";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -14,6 +19,9 @@ const PORT = Number.parseInt(process.env.PORT || "4273");
 const app = express();
 
 app.disable("x-powered-by");
+
+// Serve .well-known directory BEFORE API handler
+app.use("/.well-known", express.static(path.join(__dirname, "public/.well-known")));
 
 // Mount oRPC API handler at /api BEFORE compression
 // Enable CORS for Tauri app (which makes cross-origin requests)
