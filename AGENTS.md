@@ -70,7 +70,7 @@ lib/                - @keypears/lib source (TypeScript)
 api-server/               - @keypears/api-server source (TypeScript API server using orpc)
 tauri-rs/           - @keypears/tauri source (Rust backend)
 tauri-ts/           - @keypears/tauri source (TypeScript frontend)
-  └── src-tauri/    - Symlink to ../../tauri-rs (for Tauri CLI compatibility)
+  └── src-tauri/    - Symlink to ../tauri-rs (for Tauri CLI compatibility)
 webapp/             - @keypears/webapp source (TypeScript)
   └── start.sh      - Production startup script (runs webapp with integrated API)
 docs/               - Documentation
@@ -99,6 +99,20 @@ directory:
 All commands must pass before committing. Run for **every** TypeScript project
 modified.
 
+### Tauri Development
+
+When running the Tauri app (`pnpm tauri:dev` from `tauri-ts/`), Vite is configured to pre-optimize all dependencies upfront to avoid stale cache issues:
+
+```typescript
+// tauri-ts/vite.config.ts
+optimizeDeps: {
+  entries: ['app/**/*.tsx', 'app/**/*.ts'], // Scan all app code upfront
+  force: true, // Always rebuild optimization cache on server start
+}
+```
+
+This ensures all route dependencies are optimized before the app loads, preventing 504 errors during navigation.
+
 ### Rust Projects
 
 **For all Rust projects**, run these commands in order from the root directory:
@@ -122,7 +136,7 @@ Note the double `--`: the first separates cargo arguments from test binary argum
 
 The TypeScript packages must be built before deployment:
 
-1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and node)
+1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and api-server)
 2. **Build webapp**: Built automatically during Docker image creation
 3. **Build all**: `pnpm run build:all` (builds TypeScript packages + Docker image)
 
@@ -231,10 +245,18 @@ KeyPears has comprehensive business strategy documentation:
 - **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
 - **`pnpm build:all`** - Build everything: TypeScript packages + Docker image
-- **`pnpm build:packages`** - Build TypeScript packages only (lib + node)
+- **`pnpm build:packages`** - Build TypeScript packages only (lib + api-server)
 - **`pnpm webapp:up`** - Test production build locally with Docker Compose
 - **`pnpm webapp:down`** - Stop local Docker container
 - **`pnpm webapp:logs`** - View local container logs
+
+### Database Commands (Development)
+
+- **`pnpm db:up`** - Start Postgres 17.5 database in Docker
+- **`pnpm db:down`** - Stop Postgres database
+- **`pnpm db:reset`** - Reset database (deletes volume, clears all data)
+
+The development database runs on `localhost:5432` with credentials `keypears/keypears_dev` and database name `keypears_main`.
 
 ### Key Deployment Details
 
@@ -261,7 +283,7 @@ KeyPears has comprehensive business strategy documentation:
 - **Algorithms**: Blake3 (hashing/KDF), ACB3 (AES-256-CBC + Blake3-MAC)
 - **Key derivation**: Three-tier system (password key → encryption key + login
   key)
-- **Password policy**: Minimum 16 characters, default lowercase-only for mobile
+- **Password policy**: Minimum 8 characters, default lowercase-only for mobile
   usability (~75 bits entropy)
 
 See [`docs/design-patterns-crypto.md`](docs/design-patterns-crypto.md) for
