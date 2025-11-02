@@ -53,7 +53,7 @@ Four main packages:
 
 - **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
   cryptography utilities)
-- **`@keypears/node`** (TypeScript): KeyPears node (backend API server) using orpc
+- **`@keypears/api-server`** (TypeScript): KeyPears API server (backend API server) using orpc
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
   Windows, Linux, Android, iOS)
 - **`@keypears/webapp`** (TypeScript): Landing page, blog, and production webapp
@@ -67,7 +67,7 @@ workspace (`Cargo.toml` at root).
 
 ```
 lib/                - @keypears/lib source (TypeScript)
-node/               - @keypears/node source (TypeScript API server using orpc)
+api-server/               - @keypears/api-server source (TypeScript API server using orpc)
 tauri-rs/           - @keypears/tauri source (Rust backend)
 tauri-ts/           - @keypears/tauri source (TypeScript frontend)
   └── src-tauri/    - Symlink to ../../tauri-rs (for Tauri CLI compatibility)
@@ -137,7 +137,7 @@ The deployment pipeline is fully TypeScript-based with no Rust cross-compilation
 
 The backend is built entirely in TypeScript using orpc for type-safe RPC:
 
-- **`@keypears/node`**: TypeScript API server using orpc for end-to-end type safety.
+- **`@keypears/api-server`**: TypeScript API server using orpc for end-to-end type safety.
   Exports both the router (for server-side integration) and client factory (for
   client-side usage).
 - **orpc**: Modern TypeScript RPC framework with full type safety, similar to tRPC
@@ -146,7 +146,7 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
   (`/api/blake3`)
 - **Future work**: All backend vault operations and sync protocol will be
   implemented in TypeScript and exposed via orpc procedures
-- **Branding**: The API server is called a "KeyPears node" to emphasize the
+- **Branding**: The API server is called a "KeyPears API server" to emphasize the
   decentralized, network-oriented architecture similar to cryptocurrency nodes
 
 ### Essential TypeScript Patterns
@@ -155,7 +155,7 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
-- **API client**: `@keypears/node` exports `createClient()` for type-safe orpc client
+- **API client**: `@keypears/api-server` exports `createClient()` for type-safe orpc client
 - **Validation**: `zod` (for parsing and validation)
 - **RPC framework**: `orpc` (`@orpc/server` and `@orpc/client`) for end-to-end type safety
 - **Binary data**: `WebBuf` and `FixedBuf` (`@webbuf/webbuf`,
@@ -244,7 +244,7 @@ KeyPears has comprehensive business strategy documentation:
 - **Integrated API**: Production webapp has integrated orpc API server - single
   Express server handles both webapp routes and `/api/*` endpoints via `RPCHandler`
 - **Port**: Webapp runs on port 4273 with integrated API
-- **orpc Integration**: Webapp imports router from `@keypears/node` and mounts it
+- **orpc Integration**: Webapp imports router from `@keypears/api-server` and mounts it
   at `/api` using `RPCHandler` from `@orpc/server/node`
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to

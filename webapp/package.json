@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@keypears/lib": "workspace:^",
-    "@keypears/node": "workspace:^",
+    "@keypears/api-server": "workspace:^",
     "@orpc/server": "^1.9.2",
     "@radix-ui/react-checkbox": "1.3.3",
     "@radix-ui/react-progress": "1.1.7",

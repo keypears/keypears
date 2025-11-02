@@ -4,7 +4,7 @@ FROM node:24-alpine AS dependencies-env
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy package.json files for workspace resolution
 COPY lib/package.json /app/lib/
-COPY node/package.json /app/node/
+COPY api-server/package.json /app/api-server/
 COPY webapp/package.json /app/webapp/
 WORKDIR /app
 # Install pnpm globally
@@ -19,7 +19,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy lib source code
 COPY lib /app/lib/
 # Copy other package.json files for workspace resolution
-COPY node/package.json /app/node/
+COPY api-server/package.json /app/api-server/
 COPY webapp/package.json /app/webapp/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
@@ -31,11 +31,11 @@ RUN npm install -g pnpm@10.17.0
 RUN pnpm --filter @keypears/lib build
 
 # Stage 3: Build node package
-FROM node:24-alpine AS build-node
+FROM node:24-alpine AS build-api-server
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy node source code
-COPY node /app/node/
+COPY api-server /app/api-server/
 # Copy lib and webapp package.json for workspace resolution
 COPY lib/package.json /app/lib/
 COPY webapp/package.json /app/webapp/
@@ -44,7 +44,7 @@ COPY --from=build-lib /app/lib/dist /app/lib/dist/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/lib/node_modules /app/lib/node_modules
-COPY --from=dependencies-env /app/node/node_modules /app/node/node_modules
+COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_modules
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
@@ -59,14 +59,14 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 COPY webapp /app/webapp/
 # Copy package.json files for workspace resolution
 COPY lib/package.json /app/lib/
-COPY node/package.json /app/node/
+COPY api-server/package.json /app/api-server/
 # Copy built packages from previous stages
 COPY --from=build-lib /app/lib/dist /app/lib/dist/
-COPY --from=build-node /app/node/dist /app/node/dist/
+COPY --from=build-api-server /app/api-server/dist /app/api-server/dist/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/lib/node_modules /app/lib/node_modules
-COPY --from=dependencies-env /app/node/node_modules /app/node/node_modules
+COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_modules
 COPY --from=dependencies-env /app/webapp/node_modules /app/webapp/node_modules
 WORKDIR /app
 # Install pnpm globally
@@ -80,7 +80,7 @@ FROM node:24-alpine AS production-dependencies-env
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy package.json files for workspace resolution
 COPY lib/package.json /app/lib/
-COPY node/package.json /app/node/
+COPY api-server/package.json /app/api-server/
 COPY webapp/package.json /app/webapp/
 WORKDIR /app
 # Install pnpm globally
@@ -96,8 +96,8 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 COPY lib/package.json /app/lib/
 COPY --from=build-lib /app/lib/dist /app/lib/dist/
 # Copy node package files
-COPY node/package.json /app/node/
-COPY --from=build-node /app/node/dist /app/node/dist/
+COPY api-server/package.json /app/api-server/
+COPY --from=build-api-server /app/api-server/dist /app/api-server/dist/
 # Copy webapp package and server files
 COPY webapp/package.json webapp/server.ts /app/webapp/
 # Copy webapp markdown files (needed for blog at runtime)
@@ -109,7 +109,7 @@ COPY --from=build-webapp /app/webapp/build /app/webapp/build/
 # Copy production node_modules
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=production-dependencies-env /app/lib/node_modules /app/lib/node_modules
-COPY --from=production-dependencies-env /app/node/node_modules /app/node/node_modules
+COPY --from=production-dependencies-env /app/api-server/node_modules /app/api-server/node_modules
 COPY --from=production-dependencies-env /app/webapp/node_modules /app/webapp/node_modules
 # Set working directory to webapp
 WORKDIR /app/webapp

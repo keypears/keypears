@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { WebBuf } from "@keypears/lib";
-import { createClient } from "@keypears/node";
+import { createClient } from "@keypears/api-server";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import { Button } from "~/components/ui/button";

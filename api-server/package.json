@@ -1,5 +1,5 @@
 {
-  "name": "@keypears/node",
+  "name": "@keypears/api-server",
   "version": "1.0.0",
   "description": "KeyPears API server library - TypeScript implementation",
   "main": "dist/index.js",

@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.17.0",
   "scripts": {
-    "build:packages": "pnpm --filter @keypears/lib build && pnpm --filter @keypears/node build",
+    "build:packages": "pnpm --filter @keypears/lib build && pnpm --filter @keypears/api-server build",
     "build:all": "pnpm build:packages && pnpm build:webapp",
     "build:webapp": "docker compose build webapp",
     "webapp:up": "docker compose up --build -d",

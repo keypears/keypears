@@ -4,7 +4,7 @@ import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
-import { router } from "@keypears/node";
+import { router } from "@keypears/api-server";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
 
