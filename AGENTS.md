@@ -49,12 +49,10 @@ manager", or "digital vault".
 
 ## Project Structure
 
-Five main packages:
+Four main packages:
 
 - **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
   cryptography utilities)
-- **`rs-lib`** (Rust): Core Rust library (cryptography implementations, shared
-  utilities)
 - **`@keypears/node`** (TypeScript): KeyPears node (backend API server) using orpc
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
   Windows, Linux, Android, iOS)
@@ -67,17 +65,13 @@ workspace (`Cargo.toml` at root).
 
 ### Folder Layout
 
-All source folders are prefixed with their language (`ts-*` for TypeScript,
-`rs-*` for Rust):
-
 ```
-ts-lib/             - @keypears/lib source (TypeScript)
-rs-lib/             - rs-lib source (Rust library)
-ts-node/            - @keypears/node source (TypeScript API server using orpc)
-ts-tauri/           - @keypears/tauri source (TypeScript frontend)
-  └── src-tauri/    - Symlink to ../rs-tauri (for Tauri CLI compatibility)
-rs-tauri/           - @keypears/tauri source (Rust backend)
-ts-webapp/          - @keypears/webapp source (TypeScript)
+lib/                - @keypears/lib source (TypeScript)
+node/               - @keypears/node source (TypeScript API server using orpc)
+tauri-rs/           - @keypears/tauri source (Rust backend)
+tauri-ts/           - @keypears/tauri source (TypeScript frontend)
+  └── src-tauri/    - Symlink to ../../tauri-rs (for Tauri CLI compatibility)
+webapp/             - @keypears/webapp source (TypeScript)
   └── start.sh      - Production startup script (runs webapp with integrated API)
 docs/               - Documentation
 whitepaper/         - Technical whitepaper (Typst format)
@@ -128,7 +122,7 @@ Note the double `--`: the first separates cargo arguments from test binary argum
 
 The TypeScript packages must be built before deployment:
 
-1. **Build TypeScript packages**: `pnpm run build:packages` (builds ts-lib and ts-node)
+1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and node)
 2. **Build webapp**: Built automatically during Docker image creation
 3. **Build all**: `pnpm run build:all` (builds TypeScript packages + Docker image)
 
@@ -137,14 +131,12 @@ The deployment pipeline is fully TypeScript-based with no Rust cross-compilation
 ## Programming Languages
 
 - **TypeScript**: Frontend, API server, and webapp (runtime: Node.js)
-- **Rust**: Core cryptography library (rs-lib) and Tauri native app backend
+- **Rust**: Tauri native app backend only
 
 ### Backend Architecture
 
-The backend is built in TypeScript using orpc for type-safe RPC:
+The backend is built entirely in TypeScript using orpc for type-safe RPC:
 
-- **`rs-lib`**: Shared Rust library containing cryptography implementations
-  (Blake3, ACB3), data structures, and utilities
 - **`@keypears/node`**: TypeScript API server using orpc for end-to-end type safety.
   Exports both the router (for server-side integration) and client factory (for
   client-side usage).
@@ -192,8 +184,8 @@ The backend is built in TypeScript using orpc for type-safe RPC:
   `?` operator and `Result<T, E>`
 - **Safety**: Never use `unsafe` code
 - **Code quality**: Always run `cargo fmt` and `cargo clippy` before committing
-- **Cryptography**: Use `rs-lib` for all crypto operations (Blake3, ACB3, etc.)
-- **Note**: Rust is only used for rs-lib (cryptography) and rs-tauri (Tauri backend).
+- **Cryptography**: Use `@keypears/lib` for all crypto operations (Blake3, ACB3, etc.)
+- **Note**: Rust is only used for tauri-rs (Tauri backend). All cryptography is in TypeScript.
   The API server is now TypeScript-based.
 
 ## Design Patterns
@@ -239,7 +231,7 @@ KeyPears has comprehensive business strategy documentation:
 - **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
 - **`pnpm build:all`** - Build everything: TypeScript packages + Docker image
-- **`pnpm build:packages`** - Build TypeScript packages only (ts-lib + ts-node)
+- **`pnpm build:packages`** - Build TypeScript packages only (lib + node)
 - **`pnpm webapp:up`** - Test production build locally with Docker Compose
 - **`pnpm webapp:down`** - Stop local Docker container
 - **`pnpm webapp:logs`** - View local container logs
@@ -314,9 +306,9 @@ multiple sizes/formats to `public/images/` with type-safe paths in
 
 ### Markdown Content (Webapp Only)
 
-All webapp markdown content is in `ts-webapp/markdown/`:
+All webapp markdown content is in `webapp/markdown/`:
 
-- **Blog posts**: `ts-webapp/markdown/blog/` as Markdown with TOML front-matter
+- **Blog posts**: `webapp/markdown/blog/` as Markdown with TOML front-matter
   - **Filename**: `YYYY-MM-DD-slug.md`
   - **Front-matter**: TOML with `title`, `date`, `author`
     - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am Central Time)
