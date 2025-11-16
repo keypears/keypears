@@ -48,8 +48,8 @@ COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_m
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.17.0
-# Build node package
-RUN pnpm --filter @keypears/node build
+# Build api-server package
+RUN pnpm --filter @keypears/api-server build
 
 # Stage 4: Build webapp
 FROM node:24-alpine AS build-webapp
