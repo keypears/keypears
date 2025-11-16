@@ -15,60 +15,75 @@ endpoint. We had plans for `rs-lib` and `rs-node` packages.
 
 Today, we're writing to tell you we've changed direction.
 
-The current KeyPears codebase is **almost entirely TypeScript**. The "Rust
-backend" from our October post never materialized beyond that single
-proof-of-concept endpoint. And after several weeks of development, we've
-concluded this is actually the right architecture for our MVP.
+The current KeyPears codebase is **almost entirely TypeScript**. The Rust
+backend from our October post—`rs-lib` for cryptography and `rs-node` for the
+API server—was fully built and working. And then we deleted it. After several
+weeks of development with both implementations side by side, we concluded that
+TypeScript is the right architecture for our MVP.
 
-This post explains why.
+This post explains why we made that decision.
 
 ## What Actually Happened
 
-Let's start with the facts. Here's what the KeyPears codebase looks like today:
+Let's start with the facts. Here's what we did:
 
-**Rust code:** 33 lines total
+**October 2025:** Built a complete Rust backend
+- `rs-lib`: Full cryptography library (Blake3, ACB3, key derivation)
+- `rs-node`: Axum-based API server with OpenAPI via utoipa
+- Dual-server deployment: Node.js webapp proxying to Rust API
+- Everything worked as described in the October blog post
 
-- `tauri-rs/src/lib.rs`: 27 lines (environment configuration + hello world)
-- `tauri-rs/src/main.rs`: 6 lines (Tauri app entry point)
-- **Zero** cryptography code
-- **Zero** API server code
-- **Zero** business logic
+**November 2025:** Removed the entire Rust backend
+- Deleted `rs-lib` package completely
+- Deleted `rs-node` package completely
+- Rewrote cryptography in TypeScript using `@webbuf` WASM packages
+- Rewrote API server in TypeScript using orpc
+- Integrated API server directly into Express webapp
 
-**TypeScript code:** ~5,400 lines
+**Current state:**
+- **Rust code:** 33 lines total (just the minimal Tauri shell)
+- **TypeScript code:** ~5,400 lines (lib, api-server, tauri app, webapp)
+- All cryptography now TypeScript + WASM
+- All API endpoints now orpc (TypeScript RPC)
+- Single-server deployment (no more Node → Rust proxy)
 
-- `@keypears/lib`: 366 lines (complete cryptography library)
-- `@keypears/api-server`: Full orpc-based API with Blake3 endpoint
-- `keypears-tauri`: ~5,020 lines (complete vault management UI)
-- `@keypears/webapp`: Production web app + integrated API server
+This wasn't a case of the Rust backend "not working out." It worked perfectly.
+We had working Blake3 hashing, working key derivation, working API endpoints. We
+deleted it anyway because **TypeScript simplifies development in ways that
+matter more than Rust's advantages for our MVP.**
 
-The Rust packages mentioned in the October blog post (`rs-lib` for cryptography,
-`rs-node` for the API server) don't exist. They were never built. The only Rust
-code is the minimal Tauri shell that every Tauri app requires.
+## Why We Removed the Rust Backend
 
-## Why We Moved Away from Rust
+With both implementations working, we had to make a choice: continue maintaining
+two parallel implementations (Rust for crypto/API, TypeScript for UI) or
+consolidate on one language. We chose TypeScript for three critical reasons:
 
-After publishing that October post, we started implementing the actual features
-users need: vault creation, password storage, secret encryption, database
-operations, synchronization protocols. And we kept hitting the same wall:
-**Rust's ecosystem doesn't have the mature tooling TypeScript has for building
-web APIs and database-backed applications.**
+**1. Better API tooling** - orpc provides superior type safety compared to
+Axum + utoipa + openapi-generator
 
-Here's what we discovered:
+**2. Better database tooling** - Drizzle ORM supports both SQLite and PostgreSQL
+with the same API (no Rust equivalent exists)
 
-### 1. No Rust Equivalent to orpc
+**3. Single-language simplicity** - Avoiding context switching between Rust and
+TypeScript saves mental overhead on a side project
 
-The October post mentioned using Axum with `utoipa` for OpenAPI generation.
-Sounds great in theory. In practice:
+Here's what we learned by building and then removing the Rust backend:
 
-**The Rust approach:**
+### 1. orpc vs Axum + utoipa: Type Safety Without Codegen
+
+We built the Rust API server with Axum and `utoipa` for OpenAPI generation. It
+worked, but the workflow had friction:
+
+**The Rust approach we actually used:**
 
 1. Define routes in Rust with Axum
 2. Generate OpenAPI spec with `utoipa` macros
 3. Run `openapi-generator` to create TypeScript client
-4. Hope the generated client matches your frontend needs
-5. Discover type mismatches at runtime
+4. Discover generated client doesn't match our TypeScript patterns
+5. Manually adjust generated code or fix Rust annotations
+6. Repeat on every schema change
 
-**The TypeScript approach (orpc):**
+**The TypeScript approach (orpc) we switched to:**
 
 ```typescript
 // Define the procedure
@@ -89,10 +104,14 @@ const result = await client.blake3({ data: "..." });
 
 **Zero codegen. Complete type safety. Instant IDE autocomplete.**
 
-The client knows every endpoint, every parameter type, every response shape.
-Change the server? The client errors appear immediately in your IDE. This is
-what modern TypeScript can do that Rust fundamentally cannot—share type
-information across the network boundary without code generation.
+The difference is night and day. With orpc, the client knows every endpoint,
+every parameter type, every response shape—all inferred directly from the server
+code. Change the server? Client errors appear immediately in your IDE, not at
+runtime. No build step, no generated files, no version mismatches.
+
+This is what made us delete working Rust code. The Axum + utoipa + codegen
+workflow worked, but orpc's zero-codegen type safety is so much better that
+maintaining the Rust version wasn't worth it.
 
 ### 2. No Rust ORM Supports Both SQLite and PostgreSQL Well
 
@@ -120,56 +139,74 @@ export const TableVault = sqliteTable("vault", {
 });
 ```
 
-The Rust ecosystem doesn't have this. **Diesel** supports Postgres and MySQL but
-has poor SQLite support. **SeaORM** is newer but still requires separate schema
+We looked for Rust equivalents. **Diesel** supports Postgres and MySQL but has
+poor SQLite support. **SeaORM** is newer but still requires separate schema
 definitions for different databases. Neither provides the unified, type-safe
 query builder that Drizzle gives us.
 
 When you're building a sync protocol where the client and server need matching
-schemas, having one ORM that works everywhere is critical.
+schemas, having one ORM that works everywhere is critical. This was the second
+reason we deleted the Rust backend—we would have needed two separate database
+implementations (one for Tauri's SQLite, one for the server's Postgres) with
+manual work to keep them in sync.
 
-### 3. Development Velocity Matters for an MVP
+### 3. Single Language Reduces Mental Overhead
 
-Hot reload times tell the story:
+The final reason we removed the Rust backend: **context switching costs.**
 
-- **TypeScript (Vite):** ~100ms to see changes
-- **Rust (Axum):** ~3-10 seconds to recompile and restart
+With the dual-language architecture, every feature required:
+- Writing Rust for crypto/API logic
+- Writing TypeScript for UI/database logic
+- Translating between Rust and TypeScript idioms
+- Maintaining two build systems (Cargo + pnpm)
+- Debugging across language boundaries
+- Different testing frameworks (Cargo test + Vitest)
 
 For a side project where development happens in short evening sessions, this
-compounds quickly. Ten changes in an hour means you're waiting 90 seconds total
-with TypeScript or 5 minutes with Rust.
+mental overhead compounds. You spend the first 10 minutes remembering whether
+you're writing Rust or TypeScript, and the last 10 minutes before bed context
+switching back.
 
-Over weeks of development, that's hours of time saved.
+With TypeScript-only:
+- One type system
+- One package manager
+- One testing framework
+- One set of idioms
+- Hot reload in ~100ms (vs 3-10s Rust recompile)
 
-### 4. TypeScript Has Better Web-Focused Libraries
+The productivity gain isn't just about compile times. It's about flow state.
+When you're not context switching between languages, you write more code and
+make fewer mistakes.
 
-Building a modern web application requires:
+### 4. Deployment Simplification
 
-- Session management
-- Request validation
-- Middleware chains
-- SSR with React
-- Type-safe routing
-- Testing frameworks
+The Rust backend also complicated deployment:
 
-The TypeScript ecosystem has mature solutions for all of these:
+**With Rust (October architecture):**
+- Dual-server: Node.js webapp (port 4273) + Rust API (port 4274)
+- HTTP proxy from webapp to Rust server
+- Docker image: Node + Rust toolchain + cross-compilation
+- Larger image size (~500MB with Rust)
+- More complex service coordination
 
-- **Zod** for validation (with TypeScript inference)
-- **React Router 7** for SSR + client routing
-- **Vitest** for fast ESM-native testing
-- **orpc** for RPC with end-to-end types
+**With TypeScript-only (current):**
+- Single Express server (port 4273)
+- orpc API mounted directly at `/api`
+- Docker image: Just Node.js (~200MB)
+- Simpler deployment (one service, one port)
+- No HTTP proxy overhead
 
-The Rust ecosystem has alternatives, but they're less mature and require more
-glue code. We found ourselves constantly translating between Rust idioms and web
-development patterns, whereas TypeScript libraries are designed for the web from
-the ground up.
+Removing the Rust backend made deployment cleaner and faster.
 
 ## What We Didn't Lose: Rust Cryptography via WASM
 
-Here's the key insight that made this pivot work: **We still use Rust for
-cryptography. We just use it through WebAssembly instead of native Rust.**
+Here's the critical insight that made removing the Rust backend viable: **We
+still use Rust for cryptography. We just use it through WebAssembly instead of
+writing it ourselves.**
 
-Our entire crypto stack comes from the `@webbuf` packages:
+When we deleted `rs-lib` (our Rust cryptography library), we didn't rewrite
+crypto in pure JavaScript. We switched to the `@webbuf` packages, which compile
+Rust cryptography to WebAssembly:
 
 - **`@webbuf/blake3`**: Blake3 hashing (Rust → WASM)
 - **`@webbuf/acb3`**: AES-256-CBC + Blake3-MAC (Rust → WASM)
@@ -223,9 +260,13 @@ export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
 
 This is production-ready cryptography. It's type-safe. It's fast (200,000 Blake3
 operations complete in milliseconds). And the actual hashing happens in
-Rust-compiled WASM.
+Rust-compiled WASM—the same Rust cryptography we had in `rs-lib`, just
+packaged differently.
 
-**We didn't abandon Rust's security properties. We just stopped writing Rust.**
+**We didn't abandon Rust's security properties. We just stopped maintaining our
+own Rust codebase.** The cryptography is still Rust. It's just compiled to WASM
+and consumed as TypeScript packages, which eliminates the build complexity of a
+dual-language project.
 
 ## The Architecture That Emerged
 
@@ -367,11 +408,12 @@ enough).
 
 ## What We Learned
 
-**1. Blog posts are aspirational, code is truth**
+**1. Working code isn't always the right code**
 
-That October post was honest about our intentions. We really did plan to build a
-Rust backend. But intentions don't ship products—working code does. When we
-started building features instead of infrastructure, TypeScript kept winning.
+The Rust backend worked perfectly. Blake3 hashing worked. Key derivation worked.
+The API server worked. We shipped it to production. But "working" doesn't mean
+"optimal for the constraints." When we evaluated developer experience vs
+performance gains, TypeScript won decisively for our MVP.
 
 **2. Ecosystem maturity matters more than language performance**
 
@@ -384,14 +426,25 @@ These don't exist in Rust.
 
 Ten years ago, you had to choose: safe languages (Ruby, Python, JavaScript) or
 fast languages (C, C++, Rust). Today, you can write your performance-critical
-code in Rust, compile it to WASM, and use it from any language. Best of both
-worlds.
+code in Rust, compile it to WASM, and use it from any language. This is what
+made deleting our Rust backend viable—we didn't lose Rust's performance, we just
+stopped writing it ourselves.
 
-**4. Ship first, optimize later**
+**4. Deleting working code is liberating**
 
-Premature optimization is still the root of all evil. We don't need Rust's 10x
-performance improvement for an API server that handles 10 requests per second.
-We need working features that users can try. TypeScript gets us there faster.
+We spent weeks building `rs-lib` and `rs-node`. They worked. They were deployed.
+And we deleted them anyway because the TypeScript alternative was better for our
+constraints. This felt wrong at first—"But we already built it!"—but the
+productivity gain from consolidating on one language was immediate and
+substantial.
+
+**5. Side project constraints are different**
+
+If KeyPears were a VC-funded startup with a team of 5 engineers, we'd keep the
+Rust backend. Someone could own the Rust API while others work on the TypeScript
+UI. But for a solo side project with limited evening/weekend hours, the mental
+overhead of context switching between Rust and TypeScript was too high. One
+language means more velocity.
 
 ## The Current Priority: Shipping the MVP
 
@@ -434,15 +487,24 @@ end-to-end.
 
 ## Conclusion
 
-We're not building KeyPears with Rust. We're building it with **TypeScript +
-WASM**, which gives us Rust's security properties without Rust's ecosystem
-limitations.
+We built a Rust backend. It worked. We deployed it. And then we deleted it.
 
-This is the right call for our MVP. It lets us move faster, iterate quicker, and
-ship working features instead of rewriting infrastructure.
+This wasn't a failure of Rust or a mistake in architecture. It was a deliberate
+choice to optimize for **developer velocity over theoretical performance** at
+this stage of the project. The Rust backend would have been fine for production,
+but the TypeScript backend is better for rapid MVP development.
 
-Rust is an incredible language. But for this project, at this stage, TypeScript
-is the pragmatic choice.
+We're building KeyPears with **TypeScript + WASM**, which gives us Rust's
+security properties (via WASM crypto) without the complexity of maintaining a
+dual-language codebase.
+
+For a solo side project with MVP goals, this is the right architecture. If we
+scale to millions of users and need extreme performance, we can always bring
+Rust back for specific hot paths. But we're not starting there.
+
+Rust is an incredible language. We proved that by building a working backend
+with it. But for this project, at this stage, TypeScript is the pragmatic
+choice—and we're comfortable deleting working Rust code to prove it.
 
 We'll keep sharing our progress—both the wins and the pivots. If you're
 interested in following along:
