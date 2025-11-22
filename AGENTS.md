@@ -115,6 +115,10 @@ This ensures all route dependencies are optimized before the app loads, preventi
 
 ### Rust Projects
 
+**Note**: Rust code in KeyPears is minimal (only Tauri shell). Most development
+is TypeScript. These commands are for the rare cases when modifying the Tauri
+backend.
+
 **For all Rust projects**, run these commands in order from the root directory:
 
 1. `cargo fmt --all` - Format code with rustfmt
@@ -198,9 +202,15 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
   `?` operator and `Result<T, E>`
 - **Safety**: Never use `unsafe` code
 - **Code quality**: Always run `cargo fmt` and `cargo clippy` before committing
-- **Cryptography**: Use `@keypears/lib` for all crypto operations (Blake3, ACB3, etc.)
+- **Cryptography**: Never implement crypto in Rust. Use `@keypears/lib` (TypeScript)
+  which wraps WASM-compiled cryptography (`@webbuf/*` packages).
 - **Note**: Rust is only used for tauri-rs (Tauri backend). All cryptography is in TypeScript.
   The API server is now TypeScript-based.
+
+**Architecture Note**: KeyPears uses a TypeScript-first architecture. The Rust
+codebase is minimal (~33 lines for Tauri shell only). All cryptography, API
+logic, and business logic is in TypeScript. See the blog post "TypeScript for
+the KeyPears MVP" for the reasoning behind this decision.
 
 ## Design Patterns
 
