@@ -12,8 +12,8 @@ export const StandardPasswordSchema = z.string().lowercase().min(8).max(128);
 /** Zod schema for vault name validation */
 export const vaultNameSchema = z
   .string()
-  .min(7, "Vault name must be at least 7 characters")
-  .max(20, "Vault name must be at most 20 characters")
+  .min(1, "Vault name must be at least 1 character")
+  .max(30, "Vault name must be at most 30 characters")
   .regex(/^[a-z]/, "Vault name must start with a letter")
   .regex(/^[a-z0-9]+$/, "Vault name must contain only alphanumeric characters");
 

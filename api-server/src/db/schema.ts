@@ -34,8 +34,8 @@ export const TableVault = pgTable('vault', {
   // Primary key - ULID for time-ordered, collision-resistant IDs
   id: varchar('id', { length: 26 }).primaryKey(),
 
-  // Vault name (10-20 characters, unique across system)
-  name: varchar('name', { length: 20 }).notNull().unique(),
+  // Vault name (1-30 characters, unique across system)
+  name: varchar('name', { length: 30 }).notNull().unique(),
 
   // Hashed login key - server hashes the login key the user sends
   // Client derives: password → password key → login key

@@ -147,7 +147,7 @@ export function NewVaultName() {
         </div>
 
         <div className="text-muted-foreground mt-4 space-y-1 text-xs">
-          <p>• 7-20 characters</p>
+          <p>• 1-30 characters</p>
           <p>• Lowercase letters and numbers only</p>
           <p>• Must start with a letter</p>
           <p>• Name must be unique</p>

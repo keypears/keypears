@@ -44,14 +44,14 @@ describe("Vault Model", () => {
 
     it("should reject names that are too short", async () => {
       await expect(
-        createVault("ab", "0".repeat(64), "0".repeat(64)),
-      ).rejects.toThrow("Vault name must be at least 3 characters");
+        createVault("", "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must be at least 1 character");
     });
 
     it("should reject names that are too long", async () => {
       await expect(
-        createVault("a".repeat(21), "0".repeat(64), "0".repeat(64)),
-      ).rejects.toThrow("Vault name must be at most 20 characters");
+        createVault("a".repeat(31), "0".repeat(64), "0".repeat(64)),
+      ).rejects.toThrow("Vault name must be at most 30 characters");
     });
 
     it("should reject names that start with a number", async () => {
