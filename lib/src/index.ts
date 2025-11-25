@@ -37,7 +37,6 @@ export const SecretUpdateSchema = z.object({
   // Organizational
   folders: z.array(z.string().max(255)).max(10).optional(), // Folder path: ["Work", "AWS", "Production"]
   tags: z.array(z.string().max(255)).max(20).optional(), // Tags for grouping: ["myapp-prod-env"]
-  parentId: z.string().optional(), // Parent secret ID (max depth 1: parent cannot have a parent)
 
   // Password-specific fields (primarily for type="password")
   domain: z.string().max(255).optional(), // Domain (e.g., "github.com")
