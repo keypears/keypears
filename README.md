@@ -40,8 +40,8 @@ exchange cryptographic keys and secrets safely in a connected world.
 - **Node.js + TypeScript** — Core server and client logic.
 - **React Router 7** — Modern front-end routing for the web client.
 - **WebBuf** — High-performance buffer library for Node.js and browsers.
-- **Rust + WASM** — Custom cryptography written in Rust, compiled to
-  WebAssembly, using WebBuf for efficient buffer handling.
+- **WASM Cryptography** — Blake3 and ACB3 encryption via TypeScript WASM
+  packages (`@webbuf/blake3`, `@webbuf/acb3`).
 - **Tauri** — Cross-platform native apps for **Windows, macOS, Linux, Android,
   and iOS**. One codebase, all platforms.
 
@@ -97,9 +97,8 @@ vendors, and teams — no more being locked into a single provider.
 ## 🏛️ Main Node: [keypears.com](https://keypears.com)
 
 - The **primary public node** will be hosted at `keypears.com`.
-- Users can join for free and use the service with ads.
-- Premium users can pay a small subscription fee to **remove ads** and help
-  support the network.
+- **Free tier**: 300 syncs/month, 50 shares/month, 500 secrets, 1GB storage.
+- **Premium tier**: $99/year for unlimited usage and custom domain support.
 - Anyone can also self-host a node for private or enterprise use.
 
 ---
@@ -125,6 +124,20 @@ KeyPears is designed for a broad set of use cases:
 This README is currently **for internal use only**.\
 Future versions will include installation instructions, developer guides, and
 contribution guidelines once the codebase is ready for public release.
+
+---
+
+## 📚 Documentation
+
+- **[TODO.md](TODO.md)** — MVP task list organized by phase
+- **[AGENTS.md](AGENTS.md)** — Guide for AI agents working on KeyPears
+- **[docs/mvp.md](docs/mvp.md)** — Complete MVP requirements and success criteria
+- **[docs/business.md](docs/business.md)** — Business model, pricing, and strategy
+- **[docs/deployment.md](docs/deployment.md)** — AWS deployment guide
+- **[docs/code.md](docs/code.md)** — Code patterns and conventions
+- **[docs/crypto.md](docs/crypto.md)** — Cryptography patterns and key derivation
+- **[docs/data.md](docs/data.md)** — Database and data handling patterns
+- **[docs/uiux.md](docs/uiux.md)** — UI/UX design patterns
 
 ---
 
