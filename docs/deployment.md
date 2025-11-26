@@ -3,31 +3,24 @@
 ## 1. Containerize Your Webapp ✅ COMPLETED
 
 The webapp has been successfully containerized using Docker with a multi-stage
-build process optimized for both the Rust backend (KeyPears node) and TypeScript
-frontend (webapp) in a pnpm/Cargo monorepo structure.
+build process optimized for the TypeScript monorepo structure (webapp with
+integrated orpc API).
 
 ### Architecture
 
-The production container runs two servers:
+The production container runs a single Express server on port 4273:
 
-- **API Server (Rust)**: Port 4274 - Axum-based REST API with OpenAPI
-  documentation
-- **Webapp Server (Node.js)**: Port 4273 - Express server that serves the React
-  frontend and proxies `/api/*` requests to the KeyPears node
+- **Integrated Server (Node.js)**: Port 4273 - Express server serving the React
+  Router 7 webapp with integrated orpc API at `/api/*`
 
-Both servers are started via `webapp/start.sh` which runs the KeyPears node in the
-background and the webapp server in the foreground.
+The server runs in a Docker container and is load-balanced through AWS ALB.
 
 ### Building and Testing with pnpm Scripts (Recommended)
 
-Before building the Docker image, you must cross-compile the Rust KeyPears node for
-Linux:
+Before building the Docker image, you must build the TypeScript packages:
 
 ```bash
-# One-time setup: Install cross-compilation toolchain (macOS only)
-bash scripts/setup-cross-compile.sh
-
-# Build everything (Rust API + TypeScript packages + Docker image)
+# Build everything (TypeScript packages + Docker image)
 pnpm run build:all
 ```
 
@@ -37,7 +30,7 @@ Then test the production webapp locally:
 # Start the webapp container (builds and runs in background)
 pnpm webapp:up
 
-# View live logs (you should see both KeyPears node and webapp starting)
+# View live logs (you should see the Express server starting)
 pnpm webapp:logs
 
 # Stop and remove the container
@@ -47,7 +40,7 @@ pnpm webapp:down
 These scripts use Docker Compose (configured in `docker-compose.yml` at the
 monorepo root) to:
 
-- Build the Docker image from `Dockerfile` (includes pre-built Rust binary)
+- Build the Docker image from `Dockerfile`
 - Start the container with proper configuration
 - Handle cleanup automatically
 
@@ -55,15 +48,12 @@ monorepo root) to:
 
 The build process follows these steps:
 
-1. **Cross-compile Rust API**: `pnpm run build:api` compiles the KeyPears node for
-   Linux (x86_64-unknown-linux-musl) and copies it to `webapp/bin/keypears-node`
-2. **Build TypeScript packages**: `pnpm run build:packages` builds `ts-lib` and
-   `api-client`
-3. **Build Docker image**: `pnpm run build:webapp` creates the Docker image
-   using the pre-built binary
+1. **Build TypeScript packages**: `pnpm run build:packages` builds
+   `@keypears/lib` and `@keypears/api-server`
+2. **Build Docker image**: `pnpm run build:webapp` creates the Docker image
+   (linux/amd64)
 
-The deployment command `pnpm run deploy:all` runs all these steps
-automatically.
+The deployment command `pnpm run deploy:all` runs all these steps automatically.
 
 ### Verifying the Webapp
 
@@ -81,13 +71,10 @@ curl http://keypears.localhost:4273/about
 curl http://keypears.localhost:4273/privacy
 curl http://keypears.localhost:4273/terms
 
-# Test the API (proxied through webapp)
+# Test the API (integrated orpc API)
 curl -X POST http://keypears.localhost:4273/api/blake3 \
   -H "Content-Type: application/json" \
   -d '{"data":"aGVsbG8gd29ybGQ="}'
-
-# Test API documentation (Swagger UI)
-# Visit in browser: http://keypears.localhost:4273/api/docs
 ```
 
 ### Manual Docker Commands (Alternative)
@@ -112,14 +99,11 @@ docker rm keypears-app
 The Dockerfile is located at the root of the monorepo (`/Dockerfile`) and
 handles:
 
-- Building `ts-lib` package (TypeScript)
-- Building `api-client` package (TypeScript)
+- Building `@keypears/lib` package (TypeScript)
+- Building `@keypears/api-server` package (TypeScript)
 - Building `webapp` with React Router (TypeScript)
 - Installing production dependencies only in the final image
-- Copying pre-built KeyPears node binary from `webapp/bin/keypears-node` (Rust,
-  cross-compiled for Linux)
 - Copying markdown content files for blog posts and static pages
-- Copying `webapp/start.sh` to start both servers
 
 ### Environment Variables
 
@@ -128,8 +112,8 @@ The production container uses the following environment variables:
 - `PORT` - Webapp server port (default: 4273)
 - `NODE_ENV` - Set to `production` in Docker (automatic)
 
-The KeyPears node listens on port 4274 (hardcoded in `node/src/main.rs`).
-The webapp server proxies all `/api/*` requests to `http://localhost:4274`.
+The Express server handles both webapp routes and integrated orpc API at
+`/api/*`.
 
 ## 2. Push Your Container Image to AWS ECR ✅ COMPLETED
 
@@ -160,12 +144,11 @@ pnpm deploy:build
 This command will:
 
 1. Authenticate Docker with ECR
-2. Cross-compile Rust KeyPears node for Linux (x86_64-unknown-linux-musl)
-3. Build TypeScript packages (ts-lib, api-client)
-4. Build the Docker image (for linux/amd64 platform) with pre-built API binary
-5. Tag the image for ECR
-6. Push to ECR
-7. Verify the push succeeded
+2. Build TypeScript packages (`@keypears/lib` and `@keypears/api-server`)
+3. Build the Docker image (for linux/amd64 platform)
+4. Tag the image for ECR
+5. Push to ECR
+6. Verify the push succeeded
 
 ### Individual Deployment Commands
 
@@ -175,29 +158,26 @@ If you prefer to run steps individually:
 # 1. Authenticate Docker with ECR (token valid for 12 hours)
 pnpm deploy:login
 
-# 2. Build Rust KeyPears node for Linux
-pnpm build:api
-
-# 3. Build TypeScript packages
+# 2. Build TypeScript packages
 pnpm build:packages
 
-# 4. Build the Docker image
+# 3. Build the Docker image
 pnpm build:webapp
 
-# 5. Tag the image for ECR
+# 4. Tag the image for ECR
 pnpm deploy:tag
 
-# 6. Push to ECR
+# 5. Push to ECR
 pnpm deploy:push
 
-# 7. Verify the image was pushed
+# 6. Verify the image was pushed
 pnpm deploy:verify
 ```
 
 Or use the combined commands:
 
 ```bash
-# Build everything (API + packages + Docker image)
+# Build everything (TypeScript packages + Docker image)
 pnpm build:all
 
 # Then push to ECR
@@ -329,8 +309,9 @@ This creates:
 - [x] Name: `ecsTaskExecutionRole`
 - [x] Create role
 
-**Important**: The role must have CloudWatch Logs permissions to create log groups
-and streams. Without this, tasks will fail with "AccessDeniedException" errors.
+**Important**: The role must have CloudWatch Logs permissions to create log
+groups and streams. Without this, tasks will fail with "AccessDeniedException"
+errors.
 
 ### Create ECS Service
 
@@ -413,6 +394,7 @@ Now update the container security group to only allow traffic from the ALB:
 - [x] Save rules
 
 This ensures:
+
 - Public internet can reach the ALB on ports 80/443
 - Only the ALB can reach the container on port 4273
 - Container is not directly accessible from the internet
@@ -552,7 +534,6 @@ curl https://www.keypears.com
   - Privacy: `https://keypears.com/privacy`
   - Terms: `https://keypears.com/terms`
   - API Test Page: `https://keypears.com/api-test` (Blake3 hashing demo)
-  - API Docs (Swagger UI): `https://keypears.com/api/docs`
 - [x] Test API endpoints directly:
   ```bash
   # Test Blake3 hashing endpoint (base64 input "hello world")
@@ -562,10 +543,6 @@ curl https://www.keypears.com
 
   # Expected output:
   # {"hash":"d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"}
-
-  # Test health endpoint
-  curl https://keypears.com/api/health
-  # Expected output: OK
   ```
 - [x] Check ECS service health:
   - Go to ECS → Clusters → `keypears-cluster` → Services →
@@ -584,8 +561,8 @@ curl https://www.keypears.com
 
 ## 7.1. Canonical URL Redirects
 
-The webapp includes Express middleware that automatically redirects all traffic to
-the canonical URL `https://keypears.com`. This ensures:
+The webapp includes Express middleware that automatically redirects all traffic
+to the canonical URL `https://keypears.com`. This ensures:
 
 - Consistent URLs for SEO
 - HTTPS-only access (except for health checks)
@@ -642,11 +619,10 @@ pnpm deploy:all
 This single command will:
 
 1. Authenticate Docker with ECR
-2. Cross-compile Rust KeyPears node for Linux (x86_64-unknown-linux-musl)
-3. Build TypeScript packages (ts-lib, api-client)
-4. Build the Docker image for linux/amd64 with pre-built API binary
-5. Tag and push the image to ECR
-6. Force ECS to pull the new image and redeploy
+2. Build TypeScript packages (`@keypears/lib` and `@keypears/api-server`)
+3. Build the Docker image for linux/amd64
+4. Tag and push the image to ECR
+5. Force ECS to pull the new image and redeploy
 
 ECS will:
 
@@ -668,17 +644,6 @@ If the image is already in ECR and you just want to redeploy:
 
 ```bash
 # Force redeployment without rebuilding
-pnpm deploy:update
-```
-
-If you only changed Rust code:
-
-```bash
-# Rebuild just the Rust API and redeploy
-pnpm build:api
-pnpm build:webapp
-pnpm deploy:tag
-pnpm deploy:push
 pnpm deploy:update
 ```
 
