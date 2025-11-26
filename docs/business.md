@@ -2,32 +2,39 @@
 
 ## Executive Summary
 
-**Decentralized Diffie-Hellman Key Exchange System**
+**Decentralized Vault Hosting for the Modern Web**
 
-KeyPears is the first **federated, end-to-end encrypted Diffie-Hellman key
-exchange platform**, enabling secure communication between any two email
-addresses (e.g., `alice@example.com` ↔ `bob@example2.com`). Built on this DH
-exchange foundation, it unifies password management, cryptocurrency wallets, and
-secure secret sharing across domains. Unlike traditional systems locked into a
-single provider, KeyPears is **open source, federated, and privacy-first**. The
-code is licensed under **Apache 2.0**, while the **KeyPears** brand is owned by
-**Identellica LLC**.
+KeyPears is a **decentralized password manager and cryptocurrency wallet** with
+an email-like architecture. Users create vaults in the format
+`alice@keypears.com` (or any custom domain), enabling cross-device
+synchronization and secure secret sharing between any two addresses (e.g.,
+`alice@keypears.com` ↔ `bob@company.com`). Unlike traditional password managers
+locked to a single provider, KeyPears is **open source, federated, and
+zero-knowledge encrypted**.
+
+**Key Innovation**: **Vault hosting** - similar to email hosting services like
+HEY.com or ProtonMail, KeyPears allows custom domain hosting
+(`alice@yourdomain.com`) while maintaining zero-knowledge encryption. Even
+metadata (domain names, usernames) is encrypted on the server.
+
+The code is licensed under **Apache 2.0**, while the **KeyPears** brand and
+hosted services are owned by **Identellica LLC**.
 
 KeyPears' unique model combines:
 
-- **Decentralized DH key exchange**: Core differentiator enabling secure
-  email-to-email key exchange across any domain.
-- **Dual-purpose platform**: Both password manager AND cryptocurrency wallet
-  built on the same DH foundation.
-- **Free with ads**: Metadata-driven targeted ads, a new category of
-  monetization.
-- **Premium subscriptions**: $3–5/month per user to remove ads, unlock more
-  storage, and gain priority features.
-- **Open-source federation**: Anyone can self-host, but the brand "KeyPears"
-  requires licensing for businesses.
-- **Crypto wallet integration**: Email addresses as wallet identities
-  (alice@domain ↔ bob@domain), starting with Ethereum L2 + USDC for stability,
-  with Solana and Bitcoin to follow.
+- **Vault hosting with custom domains**: Use `alice@yourdomain.com` hosted by
+  keypears.com (like custom email domains)
+- **Zero-knowledge + encrypted metadata**: Server cannot see secret metadata
+  (domain, username) or data (passwords)
+- **Freemium with generous limits**: Cost-based free tier covers 95%+ of users
+- **Premium custom domains**: $4.99/month for custom domain hosting + unlimited
+  usage
+- **Business multi-user hosting**: $4.99/month base + $5/user/month for team
+  vault management
+- **Open-source federation**: Anyone can run their own KeyPears server (Apache
+  2.0)
+- **Cryptocurrency wallet integration**: Self-custody wallet keys with secure DH
+  key exchange
 
 Marketing will be **100% text-based**, focusing on developer and crypto
 communities: Reddit, X/Twitter, blogs, newsletters, and forums.
@@ -36,142 +43,646 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 ## Market Opportunity
 
-- **Password Manager Market**: ~$3.1B by 2027. Consumers already understand the
-  need.
-- **Cryptocurrency Wallet Market**: Multi-billion dollar market with hundreds of
-  millions of users seeking better self-custody solutions.
-- **Secrets Management / DevSecOps**: Rapid growth, valued in billions (Vault,
-  Doppler).
-- **Decentralized Identity & Key Exchange**: Growing need for cross-domain secure
-  communication without central authorities.
-- **Unique Positioning**: First decentralized DH key exchange system unifying
-  password management and crypto wallets, with federated architecture, ads +
-  premium model, and text-based viral marketing.
+- **Password Manager Market**: ~$3.1B by 2027, growing at 15% CAGR
+  - 1Password, Bitwarden, LastPass dominate but lack true decentralization
+  - No competitor offers custom domain hosting for vaults
+- **Cryptocurrency Wallet Market**: Multi-billion dollar market with
+  self-custody demand
+  - KeyPears differentiator: vault-based key management with DH secret sharing
+- **Secrets Management / DevSecOps**: $2B+ market (HashiCorp Vault, Doppler)
+  - Teams need secure credential sharing without enterprise complexity
+- **Decentralized Identity & Key Exchange**: Growing need for federated systems
+  without central authorities
+- **Unique Positioning**: First vault hosting service with encrypted metadata,
+  custom domains, and email-like federation
 
 ---
 
 ## Target Audiences
 
-- **Crypto Users & DAOs** — Use email addresses as wallet identities with
-  DH-based secure key exchange, manage wallets, multisig keys, and communicate
-  securely across domains.
-- **Privacy-Conscious Consumers** — Open-source decentralized key exchange
-  platform, password manager, no lock-in.
-- **Developers & Startups** — DH-based secure API key sharing, federated secret
-  sync across teams and organizations.
-- **Enterprises** — Compliance-ready, decentralized DH key exchange, federated,
-  self-hostable system.
+### Phase 1: Individual Users (Months 0-12)
+
+- **Crypto Users** — Self-custody wallet keys, secure sharing between addresses,
+  DH key exchange
+- **Privacy-Conscious Consumers** — Zero-knowledge encryption, encrypted
+  metadata, open source
+- **Tech Early Adopters** — Custom domain support, federated architecture,
+  email-like vault addresses
+
+### Phase 2: Teams & Developers (Months 12-24)
+
+- **Small Teams & Startups** — Secure API key sharing, team credential
+  management, affordable pricing
+- **Developers** — Self-hostable, open source, API-first design, text-based
+  marketing resonates
+
+### Phase 3: Enterprise (Months 24+)
+
+- **Enterprises** — Compliance-ready, self-hostable, federated, encrypted
+  metadata for regulatory requirements
+- **Cryptocurrency Companies** — Wallet key management for teams, multi-sig
+  coordination
 
 ---
 
-## Business Model
+## Business Model: Vault Hosting (Email-Style Freemium)
 
-1. **Ads (Free Tier)**
+### Free Tier: $0/month
 
-   - Users on keypears.com see ads tied to non-private metadata (e.g. “you have
-     a Coinbase account → crypto service ads”).
-   - Realistic CPM for targeted crypto/tech ads: $5–15.
-   - At 100k free users, with 20% ad engagement, potential **$10k–20k/month** ad
-     revenue.
+**Hosted at**: `@keypears.com`, `@wokerium.com`, or `@hevybags.com`
 
-2. **Premium Subscriptions**
+**Generous limits based on actual server costs**:
 
-   - $3–5/month to remove ads.
-   - 3–5% conversion from free → premium.
-   - At 100k users, 5% premium = 5k paying = **$15k–25k/month**.
+- ✅ **300 syncs/month** (~10/day across all devices)
+- ✅ **50 secret shares/month** (~1.6/day for personal sharing)
+- ✅ **500 secrets maximum** (average user has ~80 passwords)
+- ✅ **1GB encrypted storage** (future-proofing for file attachments)
+- ✅ **Unlimited devices** (mobile, desktop, tablet)
+- ✅ **Zero-knowledge encryption** (server cannot see secret data or metadata)
 
-3. **Brand Licensing**
+**Cost per free user**: ~$0.04/month average (at 30% limit usage), ~$0.13/month
+at full limits
 
-   - Businesses adopting the protocol under “KeyPears” brand pay licensing.
-     (Est. $50–200 per small business client/month in later years.)
+**Target**: 95%+ of users stay on free tier forever
 
-4. **Enterprise & Consulting (Later)**
+**Why this works**:
 
-   - Federated enterprise deployments with compliance features.
+- Limits are 10x more generous than minimum viable usage
+- Normal users use ~30% of limits (100 syncs/month, 5 shares/month, 100 secrets)
+- Only true power users hit limits
+- Sustainable at scale (10,000 free users = ~$400/month server costs)
+
+### Premium Tier: $4.99/month ($50/year annual, 17% discount)
+
+**Hosted at**: Custom domain (e.g., `alice@ryanxcharles.com` hosted by
+keypears.com)
+
+**Premium Features**:
+
+- ✅ **Custom domain support** - Use your own domain via
+  `.well-known/keypears.json` protocol
+- ✅ **Unlimited syncs** - No sync operation limits
+- ✅ **Unlimited secret sharing** - Share secrets without monthly caps
+- ✅ **Unlimited secrets** - Store as many as needed (no 500 secret cap)
+- ✅ **10GB encrypted storage** - For future file attachments, documents
+- ✅ **Priority support** - Email support within 24 hours
+- ✅ **Advanced features** - Audit logs (client-side encrypted), export, backup
+- ✅ **Early access** - New features before free tier
+
+**Why $4.99/month**:
+
+- Custom domain hosting is premium feature (comparable to ProtonMail custom
+  domains at $4.99/month)
+- Covers server costs even for heavy users (~$0.80/month worst case = 90% profit
+  margin)
+- Lower than HEY.com email hosting ($99/year = $8.25/month)
+- Justifies premium pricing (tangible value: custom domain branding and control)
+
+**Target conversion**: 5% of free users upgrade to premium
+
+### Business Tier: $4.99/month base + $5/user/month (3-user minimum)
+
+**Hosted at**: Custom domain (e.g., `team@company.com` hosted by keypears.com)
+
+**Business Features**:
+
+- ✅ Everything in Premium tier
+- ✅ **Multi-user management** - Multiple vault accounts under one domain
+- ✅ **Admin dashboard** - User provisioning, access control, usage monitoring
+- ✅ **Team vault sharing** - Shared credential collections for teams
+- ✅ **SLA guarantee** - 99.9% uptime commitment
+- ✅ **Compliance features** - Audit logs, access reports, activity tracking
+- ✅ **Priority support** - 12-hour email response, dedicated account manager at
+  50+ users
+
+**Pricing examples**:
+
+- 5-user team: $4.99 + ($5 × 5) = **$29.99/month** (~$6/user)
+- 10-user team: $4.99 + ($5 × 10) = **$54.99/month** (~$5.50/user)
+- 50-user team: $4.99 + ($5 × 50) = **$254.99/month** (~$5.10/user)
+
+**Why this structure**:
+
+- Base fee covers domain setup, DNS configuration, proof generation overhead
+- Per-user pricing scales with actual server costs
+- Competitive with Bitwarden Teams ($3/user), 1Password Business ($7.99/user)
+- Companies expect to pay for custom branded domains
+
+**Target**: 20-50 small business customers by Year 2
+
+---
+
+## Custom Domain Protocol: `.well-known/keypears.json`
+
+### Technical Implementation
+
+KeyPears uses a federated domain discovery protocol similar to
+Matrix/ActivityPub:
+
+**Domain Configuration File**:
+`https://yourdomain.com/.well-known/keypears.json`
+
+```json
+{
+  "version": "1.0",
+  "api": "https://keypears.com/api",
+  "domain": "yourdomain.com",
+  "proof": "kp_live_1a2b3c4d5e6f7g8h9i0j...",
+  "created_at": "2025-11-26T12:00:00Z",
+  "expires_at": "2026-11-26T12:00:00Z"
+}
+```
+
+**Fields**:
+
+- `version`: Protocol version (semver, allows future upgrades)
+- `api`: KeyPears API endpoint hosting this domain's vaults
+- `domain`: The domain being hosted (prevents domain spoofing)
+- `proof`: Cryptographic proof of ownership (HMAC-Blake3 signature by hosting
+  provider)
+- `created_at`: When domain was linked to hosting provider
+- `expires_at`: Proof expiration (forces periodic revalidation, prevents
+  abandoned domain hijacking)
+
+**Security Model**:
+
+1. User controls DNS → can add `.well-known/keypears.json` file
+2. Hosting provider (keypears.com) signs proof with server secret key
+3. Client verifies proof with hosting provider's public API
+4. Expiration forces annual renewal (prevents stale configurations)
+
+**User Flow** (Premium user adding custom domain):
+
+1. User upgrades to Premium ($4.99/month)
+2. User enters domain: `ryanxcharles.com`
+3. KeyPears generates signed proof and shows instructions
+4. User uploads `.well-known/keypears.json` to their domain (via Cloudflare
+   Pages, Vercel, Netlify, or any static host)
+5. User clicks "Verify Domain"
+6. Client fetches file, verifies proof with keypears.com API
+7. Success: User can now create vaults like `alice@ryanxcharles.com`
+
+**Why This Works**:
+
+- **Federated**: Any domain can host vaults at any KeyPears-compatible API
+  endpoint
+- **Decentralized**: No central authority controls domain-to-provider mappings
+- **Secure**: Cryptographic proof prevents spoofing
+- **Open protocol**: Anyone can implement a KeyPears hosting provider
+- **Email-compatible**: Future email clients could support KeyPears protocol for
+  secure attachments
+
+---
+
+## Revenue Model & Unit Economics
+
+### Cost Analysis (Per User)
+
+**Average User** (10 syncs/day, 1 share/week, 100 secrets):
+
+- Storage: $0.000023/month (PostgreSQL)
+- Compute: $0.015/month (Fargate CPU time)
+- Transfer: $0.0005/month (data transfer)
+- **Total cost: ~$0.016/month**
+
+**Power User** (100 syncs/day, 10 shares/day, 1,000 secrets):
+
+- Storage: $0.00023/month
+- Compute: $0.15/month
+- Transfer: $0.005/month
+- Sharing: $0.0045/month
+- **Total cost: ~$0.16/month**
+
+**Heavy Power User** (500 syncs/day, 50 shares/day, 5,000 secrets):
+
+- Storage: $0.0012/month
+- Compute: $0.75/month
+- Transfer: $0.025/month
+- Sharing: $0.0225/month
+- **Total cost: ~$0.80/month**
+
+**Premium Tier Profit Margins**:
+
+- Premium at $4.99/month
+- Average user cost: $0.016/month → **99.7% profit margin**
+- Power user cost: $0.16/month → **96.8% profit margin**
+- Heavy power user cost: $0.80/month → **84% profit margin**
+
+**Conclusion**: Even heavy power users are profitable at $4.99/month premium
+pricing.
+
+### Revenue Projections
+
+#### Year 1: MVP Launch + Early Adopters
+
+**Users**:
+
+- 1,000 free users
+- 25 premium users (2.5% conversion)
+- 0 business customers
+
+**Costs**:
+
+- Free users: ~$16/month (1,000 × $0.016)
+- Premium users: ~$4/month (25 × $0.16 heavy usage assumption)
+- Infrastructure: ~$70/month (Fargate + RDS + ALB)
+- **Total costs: ~$90/month = $1,080/year**
+
+**Revenue**:
+
+- Premium: $125/month (25 × $4.99) = **$1,500/year**
+
+**Profit**: ~$420/year (break-even+ in Year 1)
+
+#### Year 2: Growth Phase
+
+**Users**:
+
+- 10,000 free users
+- 500 premium users (5% conversion)
+- 5 business teams (10 users avg)
+
+**Costs**:
+
+- Free users: ~$160/month
+- Premium users: ~$80/month (500 × $0.16)
+- Business users: ~$25/month (50 × $0.50 moderate usage)
+- Infrastructure: ~$200/month (scaled Fargate + RDS)
+- **Total costs: ~$465/month = $5,580/year**
+
+**Revenue**:
+
+- Premium: $2,495/month (500 × $4.99) = $29,940/year
+- Business: $275/month (5 × $54.99) = $3,300/year
+- **Total revenue: $33,240/year**
+
+**Profit**: ~$27,660/year (83% profit margin)
+
+#### Year 3: Scale & Profitability
+
+**Users**:
+
+- 100,000 free users
+- 5,000 premium users (5% conversion)
+- 50 business teams (15 users avg)
+
+**Costs**:
+
+- Free users: ~$1,600/month
+- Premium users: ~$800/month (5,000 × $0.16)
+- Business users: ~$375/month (750 × $0.50)
+- Infrastructure: ~$1,500/month (multi-region, redundancy)
+- **Total costs: ~$4,275/month = $51,300/year**
+
+**Revenue**:
+
+- Premium: $24,950/month (5,000 × $4.99) = $299,400/year
+- Business: $4,124/month (50 × $82.49 avg) = $49,500/year
+- **Total revenue: $348,900/year**
+
+**Profit**: ~$297,600/year (85% profit margin)
+
+#### Year 5: Mature SaaS
+
+**Users**:
+
+- 500,000 free users
+- 25,000 premium users (5% conversion)
+- 250 business teams (20 users avg)
+
+**Costs**:
+
+- Free users: ~$8,000/month
+- Premium users: ~$4,000/month
+- Business users: ~$2,500/month (5,000 × $0.50)
+- Infrastructure: ~$10,000/month (global CDN, multi-region)
+- **Total costs: ~$24,500/month = $294,000/year**
+
+**Revenue**:
+
+- Premium: $124,750/month (25,000 × $4.99) = $1,497,000/year
+- Business: $26,238/month (250 × $104.99 avg) = $314,856/year
+- **Total revenue: $1,811,856/year**
+
+**Profit**: ~$1,517,856/year (84% profit margin)
+
+**ARR**: ~$1.8M at 500,000 free users (achievable with viral growth in crypto
+community)
 
 ---
 
 ## Marketing Strategy (Text-Only)
 
-### Channels
+### Core Channels
 
-- **Reddit** — /r/crypto, /r/defi, /r/selfhosted, /r/privacy, /r/programming.
-- **X/Twitter** — Crypto Twitter for fast amplification.
-- **Blogs** — Thought-leadership posts: _“Email for crypto payments,”_ _“Why
-  password managers need federation.”_
-- **Newsletters & Forums** — Partner with crypto/OSS newsletters and developer
-  communities.
+**Reddit** (Primary):
 
-### Style
+- /r/cryptocurrency, /r/privacy, /r/selfhosted, /r/programming, /r/bitcoin
+- Strategy: Thoughtful posts about decentralization, zero-knowledge encryption,
+  custom domains
+- Expected: 50k-100k impressions per viral post
 
-- **Purely text-based** marketing, leaning into technical differentiation
-  ("Decentralized DH key exchange," "Email addresses as wallet identities").
-- **Hooks**: short, viral one-liners — "Decentralized Diffie-Hellman for email
-  addresses," "Your email is your wallet," "Ads or privacy: you choose."
+**X/Twitter**:
 
-### Expected Eyeballs
+- Crypto Twitter, InfoSec Twitter, Developer Twitter
+- Strategy: Short technical threads, "custom domains for password vaults" hooks
+- Expected: 100k-500k impressions with crypto influencer engagement
 
-- Initial Reddit/HN launch: 50k–100k views.
-- With consistent posting + crypto buzz: 200k–500k monthly impressions by
-  year 1.
-- Viral crypto posts (esp. with payments): 1M+ impressions possible.
+**Hacker News**:
+
+- "Show HN: KeyPears - Custom Domain Password Manager with Encrypted Metadata"
+- Strategy: Technical deep-dive post, engage in comments
+- Expected: 50k-200k impressions if frontpage
+
+**Blogs & Newsletters**:
+
+- Write technical posts: "Why Password Managers Need Custom Domains," "Email for
+  Secrets"
+- Partner with crypto/OSS newsletters (Bitcoin Magazine, Unsupervised Learning)
+- Expected: 10k-50k targeted impressions per article
+
+### Messaging & Positioning
+
+**Core Value Props**:
+
+1. "Custom domains for your password vault - like custom email domains"
+2. "Zero-knowledge encryption + encrypted metadata (even domain names
+   encrypted)"
+3. "Open source, self-hostable, federated (like email for secrets)"
+4. "Built for cryptocurrency self-custody"
+
+**Viral Hooks**:
+
+- "Your password manager doesn't let you use your own domain. Ours does."
+- "Email hosting for password vaults - $4.99/month"
+- "alice@yourdomain.com for your passwords"
+- "Open source password manager with custom domain support"
+
+**Differentiation**:
+
+- vs. 1Password: "We're open source and support custom domains"
+- vs. Bitwarden: "We encrypt metadata, they don't"
+- vs. LastPass: "We're decentralized and zero-knowledge by design"
+- vs. Self-hosting: "Get custom domain hosting without running your own server"
+
+### Growth Strategy
+
+**Phase 1: Crypto Community (Months 0-6)**
+
+- Launch on crypto subreddits and Twitter
+- Emphasize cryptocurrency wallet key management
+- Target early adopters who value self-custody
+- Goal: 1,000 users, 25 premium
+
+**Phase 2: Privacy & Developer Community (Months 6-12)**
+
+- Launch on privacy and selfhosted subreddits
+- Write technical deep-dives about encrypted metadata
+- Show off custom domain protocol (`.well-known/keypears.json`)
+- Goal: 10,000 users, 250 premium
+
+**Phase 3: Mainstream & Teams (Months 12-24)**
+
+- Business tier marketing to small teams
+- Case studies: "How [Startup] uses custom domain vaults"
+- SEO: "custom domain password manager," "encrypted metadata password manager"
+- Goal: 100,000 users, 5,000 premium, 50 business teams
+
+**Phase 4: Enterprise (Months 24+)**
+
+- Self-hosted enterprise deployments
+- White-label hosting services
+- Compliance & audit feature marketing
+- Goal: 500,000+ users, 25,000+ premium, 250+ business teams
 
 ---
 
-## Growth & Revenue Projections
+## Competitive Analysis
 
-### Year 1 (MVP + crypto support)
+### Direct Competitors (Password Managers)
 
-- Users: 5k–20k.
-- Premium: 250–1,000 users.
-- Revenue: **$1k–3k/month** (ads + subs).
+| Feature                | KeyPears      | Bitwarden | 1Password     | LastPass |
+| ---------------------- | ------------- | --------- | ------------- | -------- |
+| **Price (Individual)** | $4.99/month   | $10/year  | $2.99/month   | $3/month |
+| **Custom Domains**     | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
+| **Encrypted Metadata** | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
+| **Open Source**        | ✅ Apache 2.0 | ✅ GPL    | ❌ No         | ❌ No    |
+| **Self-Hostable**      | ✅ Yes        | ✅ Yes    | ❌ No         | ❌ No    |
+| **Federated**          | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
+| **Crypto Wallet**      | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
+| **Free Tier**          | Generous      | Generous  | ❌ Trial only | Limited  |
 
-### Year 2 (crypto virality + federation map)
+**KeyPears Advantages**:
 
-- Users: 50k–100k.
-- Premium: 2,500–5,000.
-- Revenue: **$10k–25k/month**.
+- Only password manager with custom domain support
+- Only password manager with encrypted metadata on server
+- Federated architecture (email-like, cross-domain secret sharing)
+- Built-in cryptocurrency wallet key management
+- Apache 2.0 (more permissive than GPL)
 
-### Year 3–5 (mainstream + enterprise)
+**Bitwarden Advantages**:
 
-- Users: 250k–500k.
-- Premium: 12,500–25,000.
-- Ad revenue: $50k+/month.
-- Premium revenue: $40k–100k/month.
-- Total: **$1M–2M ARR**.
+- Cheaper premium ($10/year vs $50/year)
+- More mature product (established brand)
+- Larger user base
 
-### Long-Term (5–10 years)
+**1Password Advantages**:
 
-- If KeyPears becomes _the decentralized standard for DH key exchange, password
-  management, and crypto wallets_:
+- Strong brand recognition
+- Excellent UX/UI polish
+- Enterprise features
 
-  - Users: 1–5 million.
-  - Premium: 50k–250k.
-  - Enterprise/brand licensing: significant.
-  - Revenue: **$10M–50M+ ARR**.
+**LastPass Advantages**:
+
+- Brand recognition
+- Large existing user base
+
+### Indirect Competitors (Crypto Wallets)
+
+| Feature                 | KeyPears | MetaMask | Ledger    | Coinbase Wallet |
+| ----------------------- | -------- | -------- | --------- | --------------- |
+| **Self-Custody**        | ✅ Yes   | ✅ Yes   | ✅ Yes    | ⚠️ Partial       |
+| **Password Manager**    | ✅ Yes   | ❌ No    | ❌ No     | ❌ No           |
+| **Secret Sharing (DH)** | ✅ Yes   | ❌ No    | ❌ No     | ❌ No           |
+| **Multi-Device Sync**   | ✅ Yes   | ⚠️ Manual | ❌ No     | ✅ Yes          |
+| **Open Source**         | ✅ Yes   | ✅ Yes   | ⚠️ Partial | ❌ No           |
+
+**KeyPears Advantages**:
+
+- Unified password manager + crypto wallet
+- Cross-device sync with zero-knowledge encryption
+- DH key exchange for secure secret sharing
+- Federated architecture (not single company)
 
 ---
 
-## 📌 Summary
+## Risks & Mitigations
 
-KeyPears combines:
+### Risk 1: User Adoption (Custom Domains Not Understood)
 
-- **Decentralized Diffie-Hellman key exchange** enabling secure communication
-  between any email addresses.
-- **Unified platform** for password management AND cryptocurrency wallets built
-  on DH foundation.
-- **Open-source federation** (like email for secrets and wallets).
-- **Unique ad-supported free tier** + premium upsell.
-- **Crypto wallet integration** with email-based identities for virality and
-  revenue.
-- **Text-only marketing strategy** — focusing on Reddit, X/Twitter, blogs, and
-  forums for efficient reach.
+**Risk**: Users may not understand custom domain value proposition
 
-**Short-term (0–12m):** MVP + DH infrastructure + crypto, expect $1–3k/month.
-**Medium-term (12–24m):** Viral crypto adoption with DH-based wallets,
-$10–25k/month. **Long-term (5–10y):** If adopted as the decentralized standard,
-$10M–50M ARR.
+**Mitigation**:
 
-KeyPears has the potential to be both a profitable SaaS and a
-**category-defining decentralized DH key exchange platform** unifying password
-management and crypto wallets with purely text-driven marketing.
+- Free tier doesn't require understanding (works like normal password manager)
+- Premium users are tech-savvy (self-select)
+- Clear onboarding: "Use your own domain like email"
+- Video tutorials for domain setup
+
+### Risk 2: Technical Complexity (Domain Setup Friction)
+
+**Risk**: Uploading `.well-known/keypears.json` may be too technical for some
+users
+
+**Mitigation**:
+
+- Provide one-click integrations for popular hosts (Cloudflare Pages, Vercel,
+  Netlify)
+- Offer "KeyPears-hosted subdomain" option (e.g.,
+  `alice@alice.keypears-hosted.com`)
+- Premium support helps with setup (24-hour email response)
+- Only premium users need custom domains (free tier works without setup)
+
+### Risk 3: Competition from Established Players
+
+**Risk**: Bitwarden or 1Password could add custom domain support
+
+**Mitigation**:
+
+- First-mover advantage in custom domain + encrypted metadata space
+- Open source + Apache 2.0 creates community moat
+- Federated architecture is difficult for centralized players to retrofit
+- Focus on crypto wallet integration (not their core competency)
+
+### Risk 4: Server Costs Scale Faster Than Revenue
+
+**Risk**: Free tier costs grow faster than premium conversions
+
+**Mitigation**:
+
+- Free tier limits are cost-based (300 syncs/month prevents abuse)
+- Premium conversion rate (5%) is conservative vs industry (5-10%)
+- Profit margins are 85%+ even at heavy usage
+- Can adjust free tier limits if costs exceed projections
+
+### Risk 5: Security Breach or Vulnerability
+
+**Risk**: Security incident damages trust in password manager
+
+**Mitigation**:
+
+- Zero-knowledge architecture limits blast radius (server breach reveals
+  nothing)
+- Open source allows community security audits
+- Bug bounty program for responsible disclosure
+- Publish security audits annually
+- Encrypted metadata means even domain names are protected
+
+---
+
+## Fundraising Strategy
+
+### Bootstrap Phase (Months 0-12)
+
+**Goal**: Reach profitability on personal funds before seeking investment
+
+**Milestones**:
+
+- Launch MVP with sync + DH key exchange
+- 1,000 free users, 25 premium users
+- $1,500/year revenue (break-even)
+- Validate product-market fit
+
+**Funding**: Personal funds (~$10k for 12 months runway)
+
+### Seed Round (Months 12-18, Optional)
+
+**Goal**: Accelerate growth if product-market fit is strong
+
+**Target**: $250k-$500k at $2M-$3M valuation
+
+**Use of Funds**:
+
+- Marketing: $100k (crypto influencer partnerships, conference sponsorships)
+- Engineering: $100k (hire 1-2 developers)
+- Infrastructure: $50k (multi-region deployment, CDN)
+- Runway: $200k (12-18 months additional runway)
+
+**Target Investors**:
+
+- Crypto-focused VCs (Paradigm, Dragonfly, Placeholder)
+- Open source-friendly funds (OSS Capital)
+- Privacy-focused angels (Signal investors, Proton investors)
+
+**Traction Required**:
+
+- 10,000+ users
+- 500+ premium users ($30k ARR)
+- Strong month-over-month growth (20%+)
+- Active GitHub community
+
+### Series A (Months 24-36, Optional)
+
+**Goal**: Scale to mainstream adoption
+
+**Target**: $2M-$5M at $10M-$15M post-money valuation
+
+**Use of Funds**:
+
+- Sales & marketing: $1M
+- Engineering team: $1M (hire 5-10 developers)
+- Enterprise features: $500k
+- Infrastructure: $500k
+
+**Traction Required**:
+
+- 100,000+ users
+- 5,000+ premium users ($300k ARR)
+- 50+ business customers
+- Clear path to $1M ARR
+
+---
+
+## Summary & Vision
+
+KeyPears is positioned to become the **decentralized standard for vault
+hosting** with custom domain support, encrypted metadata, and cryptocurrency
+wallet integration.
+
+**Short-Term (0-12 months)**:
+
+- Launch MVP with sync + DH key exchange + custom domain protocol
+- Bootstrap to profitability (25 premium users = $1,500/year)
+- Validate product-market fit in crypto community
+
+**Medium-Term (12-24 months)**:
+
+- Scale to 10,000+ users through text-based marketing
+- 500 premium users = $30k ARR
+- Launch business tier for teams
+- Optional seed funding to accelerate growth
+
+**Long-Term (3-5 years)**:
+
+- Become the standard for custom domain vault hosting
+- 500,000+ users, $1.8M ARR
+- Multiple official domains (keypears.com, wokerium.com, hevybags.com)
+- White-label hosting services for enterprises
+- Email client integration (future email clients support KeyPears protocol)
+
+**Vision**: Just as email evolved from centralized services (AOL, Hotmail) to
+federated protocol (anyone can host, custom domains standard), KeyPears will
+bring the same decentralization to password management and cryptocurrency
+wallets.
+
+**Unique Moat**:
+
+- First custom domain password manager
+- Encrypted metadata (even domain names encrypted)
+- Federated architecture (email-like)
+- Open source (Apache 2.0) with commercial hosting
+- Cryptocurrency wallet integration
+
+KeyPears has the potential to be both a **profitable bootstrapped SaaS** ($1.8M
+ARR by Year 5) and a **category-defining protocol** for decentralized vault
+hosting.
