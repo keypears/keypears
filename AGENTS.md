@@ -53,7 +53,8 @@ Four main packages:
 
 - **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
   cryptography utilities)
-- **`@keypears/api-server`** (TypeScript): KeyPears API server (backend API server) using orpc
+- **`@keypears/api-server`** (TypeScript): KeyPears API server (backend API
+  server) using orpc
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
   Windows, Linux, Android, iOS)
 - **`@keypears/webapp`** (TypeScript): Landing page, blog, and production webapp
@@ -101,7 +102,8 @@ modified.
 
 ### Tauri Development
 
-When running the Tauri app (`pnpm tauri:dev` from `tauri-ts/`), Vite is configured to pre-optimize all dependencies upfront to avoid stale cache issues:
+When running the Tauri app (`pnpm tauri:dev` from `tauri-ts/`), Vite is
+configured to pre-optimize all dependencies upfront to avoid stale cache issues:
 
 ```typescript
 // tauri-ts/vite.config.ts
@@ -111,7 +113,8 @@ optimizeDeps: {
 }
 ```
 
-This ensures all route dependencies are optimized before the app loads, preventing 504 errors during navigation.
+This ensures all route dependencies are optimized before the app loads,
+preventing 504 errors during navigation.
 
 ### Rust Projects
 
@@ -132,19 +135,26 @@ modified.
 **Running integration tests** (tests marked with `#[ignore]`):
 
 - `cargo test --package <package-name> -- -- --ignored` - Run only ignored tests
-- `cargo test --package <package-name> -- -- --include-ignored` - Run all tests (unit + integration)
+- `cargo test --package <package-name> -- -- --include-ignored` - Run all tests
+  (unit + integration)
 
-Note the double `--`: the first separates cargo arguments from test binary arguments, the second separates test name filters from test harness flags. Integration tests require external dependencies (e.g., a running server) and are ignored by default to keep CI/CD fast and reliable.
+Note the double `--`: the first separates cargo arguments from test binary
+arguments, the second separates test name filters from test harness flags.
+Integration tests require external dependencies (e.g., a running server) and are
+ignored by default to keep CI/CD fast and reliable.
 
 ### Building for Production
 
 The TypeScript packages must be built before deployment:
 
-1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and api-server)
+1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and
+   api-server)
 2. **Build webapp**: Built automatically during Docker image creation
-3. **Build all**: `pnpm run build:all` (builds TypeScript packages + Docker image)
+3. **Build all**: `pnpm run build:all` (builds TypeScript packages + Docker
+   image)
 
-The deployment pipeline is fully TypeScript-based with no Rust cross-compilation needed.
+The deployment pipeline is fully TypeScript-based with no Rust cross-compilation
+needed.
 
 ## Programming Languages
 
@@ -155,17 +165,18 @@ The deployment pipeline is fully TypeScript-based with no Rust cross-compilation
 
 The backend is built entirely in TypeScript using orpc for type-safe RPC:
 
-- **`@keypears/api-server`**: TypeScript API server using orpc for end-to-end type safety.
-  Exports both the router (for server-side integration) and client factory (for
-  client-side usage).
-- **orpc**: Modern TypeScript RPC framework with full type safety, similar to tRPC
-  but with better OpenAPI integration
+- **`@keypears/api-server`**: TypeScript API server using orpc for end-to-end
+  type safety. Exports both the router (for server-side integration) and client
+  factory (for client-side usage).
+- **orpc**: Modern TypeScript RPC framework with full type safety, similar to
+  tRPC but with better OpenAPI integration
 - **Current status**: Proof-of-concept complete with Blake3 hashing endpoint
   (`/api/blake3`)
 - **Future work**: All backend vault operations and sync protocol will be
   implemented in TypeScript and exposed via orpc procedures
-- **Branding**: The API server is called a "KeyPears API server" to emphasize the
-  decentralized, network-oriented architecture similar to cryptocurrency nodes
+- **Branding**: The API server is called a "KeyPears API server" to emphasize
+  the decentralized, network-oriented architecture similar to cryptocurrency
+  nodes
 
 ### Essential TypeScript Patterns
 
@@ -173,9 +184,11 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
-- **API client**: `@keypears/api-server` exports `createClient()` for type-safe orpc client
+- **API client**: `@keypears/api-server` exports `createClient()` for type-safe
+  orpc client
 - **Validation**: `zod` (for parsing and validation)
-- **RPC framework**: `orpc` (`@orpc/server` and `@orpc/client`) for end-to-end type safety
+- **RPC framework**: `orpc` (`@orpc/server` and `@orpc/client`) for end-to-end
+  type safety
 - **Binary data**: `WebBuf` and `FixedBuf` (`@webbuf/webbuf`,
   `@webbuf/fixedbuf`)
   - **`WebBuf`**: IS a Uint8Array with extra methods like `.toHex()`,
@@ -202,10 +215,10 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
   `?` operator and `Result<T, E>`
 - **Safety**: Never use `unsafe` code
 - **Code quality**: Always run `cargo fmt` and `cargo clippy` before committing
-- **Cryptography**: Never implement crypto in Rust. Use `@keypears/lib` (TypeScript)
-  which wraps WASM-compiled cryptography (`@webbuf/*` packages).
-- **Note**: Rust is only used for tauri-rs (Tauri backend). All cryptography is in TypeScript.
-  The API server is now TypeScript-based.
+- **Cryptography**: Never implement crypto in Rust. Use `@keypears/lib`
+  (TypeScript) which wraps WASM-compiled cryptography (`@webbuf/*` packages).
+- **Note**: Rust is only used for tauri-rs (Tauri backend). All cryptography is
+  in TypeScript. The API server is now TypeScript-based.
 
 **Architecture Note**: KeyPears uses a TypeScript-first architecture. The Rust
 codebase is minimal (~33 lines for Tauri shell only). All cryptography, API
@@ -216,32 +229,28 @@ the KeyPears MVP" for the reasoning behind this decision.
 
 KeyPears has comprehensive design pattern documentation:
 
-- **[UI/UX Patterns](docs/design-patterns-uiux.md)**: Visual design system,
-  colors (Catppuccin), typography, component patterns (shadcn, buttons, inputs,
-  forms), layout patterns, keyboard accessibility, interactions
-- **[Code Patterns](docs/design-patterns-code.md)**: File structure, naming
-  conventions, import ordering, component structure, state management with React
-  Router, multi-step wizards
-- **[Data Patterns](docs/design-patterns-data.md)**: Validation (Zod), database
-  (ULID primary keys, Drizzle ORM), performance (debouncing, optimistic
-  updates), error handling
-- **[Cryptography Patterns](docs/design-patterns-crypto.md)**: Three-tier key
-  derivation system, algorithms (Blake3, ACB3, AES-256), password policy,
-  cross-platform WASM crypto stack
+- **[UI/UX Patterns](docs/uiux.md)**: Visual design system, colors (Catppuccin),
+  typography, component patterns (shadcn, buttons, inputs, forms), layout
+  patterns, keyboard accessibility, interactions
+- **[Code Patterns](docs/code.md)**: File structure, naming conventions, import
+  ordering, component structure, state management with React Router, multi-step
+  wizards
+- **[Data Patterns](docs/data.md)**: Validation (Zod), database (ULID primary
+  keys, Drizzle ORM), performance (debouncing, optimistic updates), error
+  handling
+- **[Cryptography Patterns](docs/crypto.md)**: Three-tier key derivation system,
+  algorithms (Blake3, ACB3, AES-256), password policy, cross-platform WASM
+  crypto stack
 
-## Business, Marketing & Fundraising
+## Business Strategy
 
 KeyPears has comprehensive business strategy documentation:
 
 - **[Business Plan](docs/business.md)**: Market opportunity, target audiences,
-  business model (ads + premium + licensing), revenue projections, growth
-  strategy
-- **[Marketing Plan](docs/marketing.md)**: Go-to-market strategy, positioning,
-  phases (crypto → developers → enterprise), text-only marketing channels,
-  success metrics
-- **[Fundraising Strategy](docs/fund-raising.md)**: Target investors (crypto
-  VCs, OSS-friendly funds), pitch narrative, outreach strategy, timeline for
-  $500k–$2M raise
+  business model (freemium with $99/year premium tier), revenue projections,
+  growth strategy, marketing, and fundraising
+- **[MVP Requirements](docs/mvp.md)**: Complete MVP specifications organized by
+  phase with success criteria
 
 ## Deployment
 
@@ -250,8 +259,8 @@ KeyPears has comprehensive business strategy documentation:
 
 ### Deployment Commands
 
-- **`pnpm deploy:all`** - Full deployment: build TypeScript packages → build Docker
-  image (linux/amd64) → push to ECR → redeploy on ECS Fargate
+- **`pnpm deploy:all`** - Full deployment: build TypeScript packages → build
+  Docker image (linux/amd64) → push to ECR → redeploy on ECS Fargate
 - **`pnpm deploy:build`** - Build and push to ECR only (no redeployment)
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
 - **`pnpm build:all`** - Build everything: TypeScript packages + Docker image
@@ -266,7 +275,8 @@ KeyPears has comprehensive business strategy documentation:
 - **`pnpm db:down`** - Stop Postgres database
 - **`pnpm db:reset`** - Reset database (deletes volume, clears all data)
 
-The development database runs on `localhost:5432` with credentials `keypears/keypears_dev` and database name `keypears_main`.
+The development database runs on `localhost:5432` with credentials
+`keypears/keypears_dev` and database name `keypears_main`.
 
 ### Key Deployment Details
 
@@ -274,10 +284,11 @@ The development database runs on `localhost:5432` with credentials `keypears/key
   docker-compose.yml)
 - **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
 - **Integrated API**: Production webapp has integrated orpc API server - single
-  Express server handles both webapp routes and `/api/*` endpoints via `RPCHandler`
+  Express server handles both webapp routes and `/api/*` endpoints via
+  `RPCHandler`
 - **Port**: Webapp runs on port 4273 with integrated API
-- **orpc Integration**: Webapp imports router from `@keypears/api-server` and mounts it
-  at `/api` using `RPCHandler` from `@orpc/server/node`
+- **orpc Integration**: Webapp imports router from `@keypears/api-server` and
+  mounts it at `/api` using `RPCHandler` from `@orpc/server/node`
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to
   `https://keypears.com` (301 permanent redirect)
@@ -296,8 +307,7 @@ The development database runs on `localhost:5432` with credentials `keypears/key
 - **Password policy**: Minimum 8 characters, default lowercase-only for mobile
   usability (~75 bits entropy)
 
-See [`docs/design-patterns-crypto.md`](docs/design-patterns-crypto.md) for
-complete details.
+See [`docs/crypto.md`](docs/crypto.md) for complete details.
 
 ### Database
 
@@ -307,8 +317,7 @@ complete details.
 - **Important**: Tauri SQLite doesn't support `.returning()` - always insert
   then fetch
 
-See [`docs/design-patterns-data.md`](docs/design-patterns-data.md) for model
-patterns.
+See [`docs/data.md`](docs/data.md) for model patterns.
 
 ### Style & UI
 
@@ -318,8 +327,7 @@ patterns.
 - **Icons**: Always use lucide-react (never inline SVG)
 - **Layout**: Mobile-first, single-column design
 
-See [`docs/design-patterns-uiux.md`](docs/design-patterns-uiux.md) for complete
-UI patterns.
+See [`docs/uiux.md`](docs/uiux.md) for complete UI patterns.
 
 ### Synchronization
 
@@ -343,7 +351,8 @@ All webapp markdown content is in `webapp/markdown/`:
 - **Blog posts**: `webapp/markdown/blog/` as Markdown with TOML front-matter
   - **Filename**: `YYYY-MM-DD-slug.md`
   - **Front-matter**: TOML with `title`, `date`, `author`
-    - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am Central Time)
+    - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am
+      Central Time)
   - **Content**: Never include title as H1 (auto-rendered from front-matter)
   - **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
 - **Static pages**: `about.md`, `privacy.md`, `terms.md` - loaded at runtime by
