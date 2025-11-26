@@ -27,10 +27,10 @@ KeyPears' unique model combines:
 - **Zero-knowledge + encrypted metadata**: Server cannot see secret metadata
   (domain, username) or data (passwords)
 - **Freemium with generous limits**: Cost-based free tier covers 95%+ of users
-- **Premium custom domains**: $4.99/month for custom domain hosting + unlimited
-  usage
-- **Business multi-user hosting**: $4.99/month base + $5/user/month for team
-  vault management
+- **Premium custom domains**: $9/month ($99/year) for custom domain hosting +
+  unlimited usage
+- **Business multi-user hosting**: $9/month base + $5/user/month for team vault
+  management
 - **Open-source federation**: Anyone can run their own KeyPears server (Apache
   2.0)
 - **Cryptocurrency wallet integration**: Self-custody wallet keys with secure DH
@@ -112,7 +112,7 @@ at full limits
 - Only true power users hit limits
 - Sustainable at scale (10,000 free users = ~$400/month server costs)
 
-### Premium Tier: $4.99/month ($50/year annual, 17% discount)
+### Premium Tier: $9/month ($99/year annual, 17% discount)
 
 **Hosted at**: Custom domain (e.g., `alice@ryanxcharles.com` hosted by
 keypears.com)
@@ -129,18 +129,19 @@ keypears.com)
 - ✅ **Advanced features** - Audit logs (client-side encrypted), export, backup
 - ✅ **Early access** - New features before free tier
 
-**Why $4.99/month**:
+**Why $9/month ($99/year)**:
 
-- Custom domain hosting is premium feature (comparable to ProtonMail custom
-  domains at $4.99/month)
-- Covers server costs even for heavy users (~$0.80/month worst case = 90% profit
-  margin)
-- Lower than HEY.com email hosting ($99/year = $8.25/month)
-- Justifies premium pricing (tangible value: custom domain branding and control)
+- Custom domain hosting is premium feature requiring infrastructure investment
+- Covers server costs even for heavy users (~$0.80/month worst case = **91%
+  profit margin**)
+- Premium positioning signals quality and long-term value
+- Annual pricing ($99/year) encourages yearly commitments and better retention
+- Future-proof pricing allows feature additions without price increases
+- Still competitive: $99/year vs 1Password ($36/year) + custom domain value
 
-**Target conversion**: 5% of free users upgrade to premium
+**Target conversion**: 4-5% of free users upgrade to premium
 
-### Business Tier: $4.99/month base + $5/user/month (3-user minimum)
+### Business Tier: $9/month base + $5/user/month (or $99/year base + $60/user/year)
 
 **Hosted at**: Custom domain (e.g., `team@company.com` hosted by keypears.com)
 
@@ -157,9 +158,9 @@ keypears.com)
 
 **Pricing examples**:
 
-- 5-user team: $4.99 + ($5 × 5) = **$29.99/month** (~$6/user)
-- 10-user team: $4.99 + ($5 × 10) = **$54.99/month** (~$5.50/user)
-- 50-user team: $4.99 + ($5 × 50) = **$254.99/month** (~$5.10/user)
+- 5-user team: $9 + ($5 × 5) = **$34/month** (~$6.80/user) or **$399/year**
+- 10-user team: $9 + ($5 × 10) = **$59/month** (~$5.90/user) or **$699/year**
+- 50-user team: $9 + ($5 × 50) = **$259/month** (~$5.18/user) or **$3,099/year**
 
 **Why this structure**:
 
@@ -263,12 +264,12 @@ Matrix/ActivityPub:
 
 **Premium Tier Profit Margins**:
 
-- Premium at $4.99/month
-- Average user cost: $0.016/month → **99.7% profit margin**
-- Power user cost: $0.16/month → **96.8% profit margin**
-- Heavy power user cost: $0.80/month → **84% profit margin**
+- Premium at $9/month ($108/year)
+- Average user cost: $0.016/month → **99.8% profit margin**
+- Power user cost: $0.16/month → **98.2% profit margin**
+- Heavy power user cost: $0.80/month → **91% profit margin**
 
-**Conclusion**: Even heavy power users are profitable at $4.99/month premium
+**Conclusion**: Even heavy power users are highly profitable at $9/month premium
 pricing.
 
 ### Revenue Projections
@@ -290,9 +291,9 @@ pricing.
 
 **Revenue**:
 
-- Premium: $125/month (25 × $4.99) = **$1,500/year**
+- Premium: $225/month (25 × $9) = **$2,700/year**
 
-**Profit**: ~$420/year (break-even+ in Year 1)
+**Profit**: ~$1,620/year (profitable in Year 1)
 
 #### Year 2: Growth Phase
 
@@ -312,11 +313,11 @@ pricing.
 
 **Revenue**:
 
-- Premium: $2,495/month (500 × $4.99) = $29,940/year
-- Business: $275/month (5 × $54.99) = $3,300/year
-- **Total revenue: $33,240/year**
+- Premium: $4,500/month (500 × $9) = $54,000/year
+- Business: $295/month (5 × $59) = $3,540/year
+- **Total revenue: $57,540/year**
 
-**Profit**: ~$27,660/year (83% profit margin)
+**Profit**: ~$51,960/year (90% profit margin)
 
 #### Year 3: Scale & Profitability
 
@@ -336,11 +337,11 @@ pricing.
 
 **Revenue**:
 
-- Premium: $24,950/month (5,000 × $4.99) = $299,400/year
-- Business: $4,124/month (50 × $82.49 avg) = $49,500/year
-- **Total revenue: $348,900/year**
+- Premium: $45,000/month (5,000 × $9) = $540,000/year
+- Business: $4,400/month (50 × $88 avg) = $52,800/year
+- **Total revenue: $592,800/year**
 
-**Profit**: ~$297,600/year (85% profit margin)
+**Profit**: ~$541,500/year (91% profit margin)
 
 #### Year 5: Mature SaaS
 
@@ -360,13 +361,13 @@ pricing.
 
 **Revenue**:
 
-- Premium: $124,750/month (25,000 × $4.99) = $1,497,000/year
-- Business: $26,238/month (250 × $104.99 avg) = $314,856/year
-- **Total revenue: $1,811,856/year**
+- Premium: $225,000/month (25,000 × $9) = $2,700,000/year
+- Business: $28,000/month (250 × $112 avg) = $336,000/year
+- **Total revenue: $3,036,000/year**
 
-**Profit**: ~$1,517,856/year (84% profit margin)
+**Profit**: ~$2,742,000/year (90% profit margin)
 
-**ARR**: ~$1.8M at 500,000 free users (achievable with viral growth in crypto
+**ARR**: ~$3M at 500,000 free users (achievable with viral growth in crypto
 community)
 
 ---
@@ -414,7 +415,7 @@ community)
 **Viral Hooks**:
 
 - "Your password manager doesn't let you use your own domain. Ours does."
-- "Email hosting for password vaults - $4.99/month"
+- "Custom domain vault hosting - $99/year"
 - "alice@yourdomain.com for your passwords"
 - "Open source password manager with custom domain support"
 
@@ -463,7 +464,7 @@ community)
 
 | Feature                | KeyPears      | Bitwarden | 1Password     | LastPass |
 | ---------------------- | ------------- | --------- | ------------- | -------- |
-| **Price (Individual)** | $4.99/month   | $10/year  | $2.99/month   | $3/month |
+| **Price (Individual)** | $99/year      | $10/year  | $2.99/month   | $3/month |
 | **Custom Domains**     | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
 | **Encrypted Metadata** | ✅ Yes        | ❌ No     | ❌ No         | ❌ No    |
 | **Open Source**        | ✅ Apache 2.0 | ✅ GPL    | ❌ No         | ❌ No    |
@@ -590,7 +591,7 @@ users
 
 - Launch MVP with sync + DH key exchange
 - 1,000 free users, 25 premium users
-- $1,500/year revenue (break-even)
+- $2,700/year revenue (profitable)
 - Validate product-market fit
 
 **Funding**: Personal funds (~$10k for 12 months runway)
@@ -617,7 +618,7 @@ users
 **Traction Required**:
 
 - 10,000+ users
-- 500+ premium users ($30k ARR)
+- 500+ premium users ($54k ARR)
 - Strong month-over-month growth (20%+)
 - Active GitHub community
 
@@ -637,7 +638,7 @@ users
 **Traction Required**:
 
 - 100,000+ users
-- 5,000+ premium users ($300k ARR)
+- 5,000+ premium users ($540k ARR)
 - 50+ business customers
 - Clear path to $1M ARR
 
@@ -652,23 +653,23 @@ wallet integration.
 **Short-Term (0-12 months)**:
 
 - Launch MVP with sync + DH key exchange + custom domain protocol
-- Bootstrap to profitability (25 premium users = $1,500/year)
+- Bootstrap to profitability (25 premium users = $2,700/year)
 - Validate product-market fit in crypto community
 
 **Medium-Term (12-24 months)**:
 
 - Scale to 10,000+ users through text-based marketing
-- 500 premium users = $30k ARR
+- 500 premium users = $54k ARR
 - Launch business tier for teams
 - Optional seed funding to accelerate growth
 
 **Long-Term (3-5 years)**:
 
 - Become the standard for custom domain vault hosting
-- 500,000+ users, $1.8M ARR
+- 500,000+ users, $3M ARR
 - Multiple official domains (keypears.com, wokerium.com, hevybags.com)
 - White-label hosting services for enterprises
-- Email client integration (future email clients support KeyPears protocol)
+- Future expansion into additional secure communication features
 
 **Vision**: Just as email evolved from centralized services (AOL, Hotmail) to
 federated protocol (anyone can host, custom domains standard), KeyPears will
@@ -683,6 +684,6 @@ wallets.
 - Open source (Apache 2.0) with commercial hosting
 - Cryptocurrency wallet integration
 
-KeyPears has the potential to be both a **profitable bootstrapped SaaS** ($1.8M
+KeyPears has the potential to be both a **profitable bootstrapped SaaS** ($3M
 ARR by Year 5) and a **category-defining protocol** for decentralized vault
 hosting.
