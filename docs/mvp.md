@@ -8,8 +8,9 @@ email-like architecture. Users create vaults in the format `alice@keypears.com`
 sharing between any two addresses (e.g., `alice@keypears.com` ↔
 `bob@wokerium.com`).
 
-**MVP Goal**: Enable secure password management with cross-device sync and
-Diffie-Hellman key exchange for secret sharing, working across all 5 supported
+**MVP Goal**: Enable secure password management with cross-device sync,
+Diffie-Hellman key exchange for secret sharing, AND revenue generation through
+freemium model with premium subscriptions, working across all 5 supported
 platforms (Windows, macOS, Linux, Android, iOS).
 
 ## Core Architecture Decisions
@@ -147,10 +148,12 @@ export const TableVault = sqliteTable("vault", {
 **Business Model**:
 
 - Official domains are advertised and supported
+- Free tier: 300 syncs/month, 50 shares/month, 500 secrets, 1GB storage
+- Premium tier: $99/year for unlimited usage + custom domain support
 - Client branding promotes official domains (like browsers have default search
   engines)
 - Anyone can self-host with custom domain (open source, Apache 2.0)
-- Revenue from official domains (ads, premium features, licensing)
+- Revenue from official domain premium subscriptions
 
 **Success Criteria**:
 
@@ -158,6 +161,52 @@ export const TableVault = sqliteTable("vault", {
 - Users can add custom domain (e.g., `alice@mycompany.com`) and it works
 - Secrets can be shared between official domains and custom domains
 - Documentation exists for self-hosting KeyPears server
+
+### Phase 4: Payment & Business Model
+
+**Goal**: Enable revenue generation through freemium model with usage-based
+limits.
+
+**Requirements**:
+
+1. **Free Tier Enforcement**:
+   - Track sync operations per vault (300/month limit)
+   - Track secret shares per vault (50/month limit)
+   - Track secret count per vault (500 maximum)
+   - Track storage usage per vault (1GB limit)
+   - Server returns usage stats with each API call
+   - Client shows usage indicators in UI
+2. **Premium Tier Purchase Flow**:
+   - Stripe integration for payment processing
+   - "Upgrade to Premium" UI when limits reached
+   - Stripe Checkout for $99/year subscription
+   - Stripe Customer Portal for subscription management
+   - Server webhook handling for subscription events
+3. **Premium Tier Features**:
+   - Custom domain support via `.well-known/keypears.json` protocol
+   - Remove all usage limits (unlimited syncs, shares, secrets)
+   - Increase storage to 10GB
+   - Priority support flag on user account
+4. **Usage Tracking API**:
+   - `getUsageStats` - Return current usage vs limits for vault
+   - `checkTierLimits` - Validate operation against tier limits before
+     processing
+   - Server stores: `vault.premiumTier` (free/premium), `vault.stripeCustomerId`
+   - Monthly reset of sync/share counters
+5. **Payment UI**:
+   - Usage meters on dashboard ("150/300 syncs this month")
+   - Upgrade prompts when approaching limits (80% = warning, 100% = block)
+   - Premium badge display for custom domain users
+   - Settings page with "Manage Subscription" link to Stripe portal
+
+**Success Criteria**:
+
+- Free user hits 300 syncs/month → sees "Upgrade to Premium" prompt
+- Free user attempts 301st sync → blocked with upgrade modal
+- User clicks "Upgrade" → Stripe Checkout opens → successful payment
+- After payment, user's `premiumTier` updates to 'premium' via webhook
+- Premium user has unlimited syncs/shares, can add custom domain
+- Premium user can manage subscription via Stripe Customer Portal
 
 ## Platform Requirements
 
@@ -268,9 +317,13 @@ The following features are explicitly deferred to post-MVP:
    supports, UI deferred)
 7. **Password breach checking** - HaveIBeenPwned integration (deferred)
 8. **Advanced sharing** - Expiring shares, view-only shares (deferred)
-9. **Audit logs** - Detailed access history beyond basic timestamps (deferred)
+9. **Business tier** - Multi-user management, admin dashboard (deferred to
+   post-MVP)
 10. **Self-hosted server installer** - One-click deploy for custom domains
-    (Phase 3+)
+    (Phase 4+)
+
+**Note**: Payment system (Phase 4) is IN SCOPE for MVP - we must charge money to
+have a real product.
 
 ## Success Metrics
 
@@ -286,6 +339,11 @@ The following features are explicitly deferred to post-MVP:
 8. ✅ User can add custom domain server (with manual domain entry)
 9. ✅ Cross-domain sharing works (keypears.com ↔ wokerium.com)
 10. ✅ Zero-knowledge architecture verified (server cannot decrypt secrets)
+11. ✅ Free tier limits enforced (300 syncs, 50 shares, 500 secrets per month)
+12. ✅ User can purchase Premium tier ($99/year) via Stripe
+13. ✅ Premium users can add custom domain via `.well-known/keypears.json`
+14. ✅ Usage tracking works correctly (counters reset monthly, limits enforced)
+15. ✅ Stripe webhooks update premium status in real-time
 
 **User Story**:
 
@@ -295,14 +353,20 @@ The following features are explicitly deferred to post-MVP:
 > (`bob@wokerium.com`). Bob receives encrypted password, accepts it into his
 > vault, logs into Netflix. Alice changes Netflix password on her phone, change
 > syncs to MacBook and Bob receives updated password.
+>
+> **Premium Flow**: After 2 months of heavy usage, Alice hits her 300
+> syncs/month limit. She sees "Upgrade to Premium" prompt, clicks it, pays
+> $99/year via Stripe. She then adds her custom domain `alice@alicecompany.com`
+> via `.well-known/keypears.json` and enjoys unlimited usage.
 
 ## Timeline Estimate
 
 - **Phase 1 (Sync)**: 3-5 days
 - **Phase 2 (DH Key Exchange)**: 3-5 days
 - **Phase 3 (Multi-Domain)**: 2-3 days
+- **Phase 4 (Payment & Business)**: 3-4 days
 - **Testing & Polish**: 2-3 days
-- **Total MVP**: 10-15 days of focused development
+- **Total MVP**: 15-20 days of focused development
 
 ## Post-MVP Roadmap Considerations
 
