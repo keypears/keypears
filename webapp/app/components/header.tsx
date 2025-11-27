@@ -13,7 +13,8 @@ export function Header() {
       </Link>
       <h1 className="text-3xl font-bold">KeyPears</h1>
       <p className="text-muted-foreground mt-2 text-lg">
-        Decentralized Diffie-Hellman
+        Password manager with support for decentralized Diffie-Hellman key
+        exchange
       </p>
     </header>
   );
