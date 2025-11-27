@@ -7,8 +7,12 @@ import type { Route } from "./+types/_index";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "KeyPears - Decentralized Diffie-Hellman Key Exchange System" },
-    { name: "description", content: "KeyPears is a decentralized Diffie-Hellman key exchange platform enabling secure communication between any two email addresses. Password manager and cryptocurrency wallet built on DH exchange foundation." },
+    { title: "KeyPears" },
+    {
+      name: "description",
+      content:
+        "KeyPears is a decentralized Diffie-Hellman key exchange system enabling secure communication between any two email addresses. Password manager and cryptocurrency wallet built on DH exchange foundation.",
+    },
     {
       tagName: "link",
       rel: "alternate",
@@ -43,7 +47,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const { recentPosts } = loaderData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Header />
 
@@ -53,7 +57,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <h2 className="text-2xl font-bold">Recent Posts</h2>
               <Link
                 to="/blog"
-                className="text-sm text-primary hover:underline hover:opacity-80 transition-opacity"
+                className="text-primary text-sm transition-opacity hover:underline hover:opacity-80"
               >
                 View all →
               </Link>
