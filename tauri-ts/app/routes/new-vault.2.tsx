@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate, href } from "react-router";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, ChevronDown } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
@@ -18,6 +18,8 @@ export default function NewVaultStep2() {
   const [nameError, setNameError] = useState("");
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
+  const domainDropdownRef = useRef<HTMLDivElement>(null);
 
   // Redirect to step 1 if no password
   useEffect(() => {
@@ -33,6 +35,25 @@ export default function NewVaultStep2() {
       setDomain(domains[0] || "");
     }
   }, []);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        domainDropdownRef.current &&
+        !domainDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDomainDropdownOpen(false);
+      }
+    };
+
+    if (isDomainDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isDomainDropdownOpen]);
 
   if (!password) {
     return null;
@@ -99,6 +120,13 @@ export default function NewVaultStep2() {
     setNameAvailable(null);
   };
 
+  // Handle selecting a domain from dropdown
+  const handleSelectDomain = (selectedDomain: string) => {
+    setDomain(selectedDomain);
+    setNameAvailable(null);
+    setIsDomainDropdownOpen(false);
+  };
+
   const handleContinue = () => {
     // Validate format
     if (!validateFormat(name)) {
@@ -143,25 +171,52 @@ export default function NewVaultStep2() {
               </h2>
 
               <div className="space-y-4">
-                {/* Domain Selector */}
+                {/* Domain Selector - Editable with dropdown suggestions */}
                 <div className="space-y-2">
                   <label htmlFor="domain" className="text-sm font-medium">
                     Domain
                   </label>
-                  <select
-                    id="domain"
-                    value={domain}
-                    onChange={(e) => handleDomainChange(e.target.value)}
-                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {officialDomains.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={domainDropdownRef}>
+                    <Input
+                      id="domain"
+                      type="text"
+                      value={domain}
+                      onChange={(e) => handleDomainChange(e.target.value)}
+                      onFocus={() => setIsDomainDropdownOpen(true)}
+                      placeholder="keypears.com"
+                      className="pr-10"
+                    />
+                    <div className="absolute top-1/2 right-2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        tabIndex={-1}
+                        onClick={() => setIsDomainDropdownOpen(!isDomainDropdownOpen)}
+                        aria-label="Show domain suggestions"
+                      >
+                        <ChevronDown size={18} />
+                      </Button>
+                    </div>
+                    {isDomainDropdownOpen && (
+                      <div className="bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 w-full rounded-md border shadow-md">
+                        <div className="p-1">
+                          {officialDomains.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => handleSelectDomain(d)}
+                              className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-muted-foreground text-xs">
-                    Select the domain for your vault
+                    Select a domain or enter a custom one
                   </p>
                 </div>
 
