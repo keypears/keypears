@@ -6,19 +6,22 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import {
-  getSecretHistory,
-  createSecretUpdate,
-} from "~app/db/models/password";
+import { useServerStatus } from "~app/contexts/ServerStatusContext";
+import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
+import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import type { SecretBlobData } from "~app/lib/secret-encryption";
+import { pushSecretUpdate, syncVault } from "~app/lib/sync";
 
 export default function EditPassword() {
   const params = useParams();
   const navigate = useNavigate();
-  const { activeVault, encryptPassword } = useVault();
+  const { activeVault, encryptPassword, decryptPassword } = useVault();
+  const { status, client } = useServerStatus();
 
   const [existingPassword, setExistingPassword] =
     useState<SecretUpdateRow | null>(null);
+  const [existingBlob, setExistingBlob] = useState<SecretBlobData | null>(null);
   const [isLoadingPassword, setIsLoadingPassword] = useState(true);
 
   const [name, setName] = useState("");
@@ -34,19 +37,33 @@ export default function EditPassword() {
   // Load existing password
   useEffect(() => {
     const loadPassword = async () => {
-      if (!params.secretId) return;
+      if (!params.secretId || !activeVault) return;
 
       setIsLoadingPassword(true);
       try {
-        const history = await getSecretHistory(params.secretId);
-        if (history.length > 0) {
-          const current = history[0];
-          setExistingPassword(current);
-          setName(current.name);
-          setDomain(current.domain || "");
-          setUsername(current.username || "");
-          setEmail(current.email || "");
-          setNotes(current.encryptedNotes || "");
+        const latest = await getLatestSecret(params.secretId);
+        if (latest) {
+          setExistingPassword(latest);
+
+          // Decrypt blob to get current values
+          const blob = decryptSecretUpdateBlob(
+            latest.encryptedBlob,
+            activeVault.vaultKey,
+          );
+          setExistingBlob(blob);
+
+          // Pre-fill form fields
+          setName(blob.name);
+          setDomain(blob.domain || "");
+          setUsername(blob.username || "");
+          setEmail(blob.email || "");
+
+          // Decrypt and pre-fill notes if present
+          if (blob.encryptedNotes) {
+            const decryptedNotes = decryptPassword(blob.encryptedNotes);
+            setNotes(decryptedNotes);
+          }
+
           // Do NOT pre-fill password field for security
         }
       } catch (error) {
@@ -57,7 +74,7 @@ export default function EditPassword() {
     };
 
     loadPassword();
-  }, [params.secretId]);
+  }, [params.secretId, activeVault, decryptPassword]);
 
   if (!activeVault) {
     return null;
@@ -96,7 +113,13 @@ export default function EditPassword() {
   const isValid = name.trim().length > 0;
 
   const handleSubmit = async () => {
-    if (!isValid || !existingPassword) return;
+    if (!isValid || !existingPassword || !existingBlob) return;
+
+    // Check server status
+    if (!status.isOnline) {
+      setError("Server is offline. Cannot update secrets while offline.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
@@ -106,18 +129,36 @@ export default function EditPassword() {
       // Otherwise, keep existing encrypted password
       const encryptedData = password
         ? encryptPassword(password)
-        : existingPassword.encryptedData || undefined;
+        : existingBlob.encryptedData;
 
-      await createSecretUpdate({
-        vaultId: activeVault.vaultId,
-        secretId: existingPassword.secretId,
+      // Encrypt notes if provided
+      const encryptedNotes = notes.trim()
+        ? encryptPassword(notes.trim())
+        : undefined;
+
+      // Create updated secret blob data
+      const secretData: SecretBlobData = {
         name: name.trim(),
+        type: existingBlob.type,
         domain: domain.trim() || undefined,
         username: username.trim() || undefined,
         email: email.trim() || undefined,
-        encryptedNotes: notes.trim() || undefined,
         encryptedData,
-      });
+        encryptedNotes,
+        deleted: false,
+      };
+
+      // Push update to server (creates new version with higher localOrder)
+      await pushSecretUpdate(
+        activeVault.vaultId,
+        existingPassword.secretId, // Same secretId for versioning
+        secretData,
+        activeVault.vaultKey,
+        client,
+      );
+
+      // Sync vault to fetch the updated secret
+      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
 
       // Navigate back to password detail
       navigate(
@@ -128,7 +169,9 @@ export default function EditPassword() {
       );
     } catch (err) {
       console.error("Failed to update password:", err);
-      setError("Failed to update password");
+      setError(
+        err instanceof Error ? err.message : "Failed to update password",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -268,9 +311,13 @@ export default function EditPassword() {
               className="w-full"
               size="lg"
               onClick={handleSubmit}
-              disabled={!isValid || isSubmitting}
+              disabled={!isValid || isSubmitting || !status.isOnline}
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting
+                ? "Saving..."
+                : !status.isOnline
+                  ? "Server Offline"
+                  : "Save Changes"}
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
