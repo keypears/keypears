@@ -70,10 +70,9 @@ export function createClient(config?: ClientConfig): KeypearsClient {
     apiUrl = url;
   } else {
     // Try to auto-detect from browser location
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win =
       typeof globalThis !== "undefined"
-        ? (globalThis as any).window
+        ? (globalThis as { window?: { location?: { protocol: string; hostname: string; port: string } } }).window
         : undefined;
     if (win?.location) {
       const { protocol, hostname, port } = win.location;
@@ -105,7 +104,7 @@ export function createClient(config?: ClientConfig): KeypearsClient {
       return;
     }
 
-    validationPromise = (async () => {
+    validationPromise = (async (): Promise<void> => {
       const result = await validateKeypearsServer(baseUrl);
       if (!result.valid) {
         throw new Error(`Invalid KeyPears server: ${result.error}`);
@@ -125,10 +124,10 @@ export function createClient(config?: ClientConfig): KeypearsClient {
 
   // Wrap client with automatic validation using Proxy
   return new Proxy(client, {
-    get(target, prop) {
+    get(target, prop): unknown {
       // Add validateServer method
       if (prop === "validateServer") {
-        return () => validateKeypearsServer(baseUrl);
+        return (): Promise<ServerValidationResult> => validateKeypearsServer(baseUrl);
       }
 
       const original = target[prop as keyof typeof target];
@@ -138,7 +137,7 @@ export function createClient(config?: ClientConfig): KeypearsClient {
       if (typeof original === "object" && original !== null) {
         // Wrap the procedure object with validation
         return new Proxy(original, {
-          get(procTarget, procProp) {
+          get(procTarget, procProp): unknown {
             const procOriginal = procTarget[procProp as keyof typeof procTarget];
 
             if (typeof procOriginal === "function") {

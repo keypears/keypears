@@ -1,3 +1,6 @@
+/* eslint-disable no-undef */
+// Note: fetch, AbortController, setTimeout, clearTimeout are globals in Node 18+
+
 export interface ServerValidationResult {
   valid: boolean;
   version?: number;
