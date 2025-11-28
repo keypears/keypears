@@ -63,10 +63,10 @@ export const TableVault = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => ({
+  (table) => ([
     // Unique constraint on name + domain combination (like email addresses)
-    uniqueNameDomain: unique().on(table.name, table.domain),
-  }),
+    unique().on(table.name, table.domain),
+  ]),
 );
 
 export type SelectVault = typeof TableVault.$inferSelect;

@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index, unique } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  unique,
+} from "drizzle-orm/sqlite-core";
 import { ulid } from "ulid";
 
 // Vaults table - stores encrypted vault data
@@ -17,10 +23,10 @@ export const TableVault = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => ({
+  (table) => [
     // Unique constraint on name + domain combination (like email addresses)
-    uniqueNameDomain: unique().on(table.name, table.domain),
-  }),
+    unique().on(table.name, table.domain),
+  ],
 );
 
 export type SelectVault = typeof TableVault.$inferSelect;
