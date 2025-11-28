@@ -20,13 +20,6 @@ export interface ClientConfig {
 }
 
 /**
- * Extended client type with validation method
- */
-export type KeypearsClient = RouterClient<typeof router> & {
-  validateServer: () => Promise<ServerValidationResult>;
-};
-
-/**
  * Create an oRPC client for the KeyPears Node API
  *
  * The client automatically validates that the server is a valid KeyPears server
@@ -62,7 +55,8 @@ export type KeypearsClient = RouterClient<typeof router> & {
  * });
  * ```
  */
-export function createClient(config?: ClientConfig): KeypearsClient {
+export function createClient(config?: ClientConfig) {
+  console.log("[createClient] CALLED with config:", config);
   const { url, headers, skipValidation } = config || {};
 
   // Determine the URL
@@ -123,17 +117,33 @@ export function createClient(config?: ClientConfig): KeypearsClient {
     ...(headers && { headers }),
   });
 
-  const client = createORPCClient(link) as RouterClient<typeof router>;
+  const baseClient = createORPCClient(link) as RouterClient<typeof router>;
+
+  // Create client with validateServer method added as a real property
+  const clientWithValidation = {
+    ...baseClient,
+    validateServer: async (): Promise<ServerValidationResult> => {
+      console.log("[validateServer] CALLING validateKeypearsServer with baseUrl:", baseUrl);
+      const result = await validateKeypearsServer(baseUrl);
+      console.log("[validateServer] Result:", result);
+      return result;
+    },
+  };
+
+  console.log("[createClient] About to return Proxied client, baseUrl:", baseUrl);
 
   // Wrap client with automatic validation using Proxy
-  return new Proxy(client, {
+  return new Proxy(clientWithValidation, {
     get(target, prop): unknown {
-      // Add validateServer method
-      if (prop === "validateServer") {
-        return (): Promise<ServerValidationResult> => validateKeypearsServer(baseUrl);
-      }
+      console.log("[Proxy] Accessing property:", prop, "type:", typeof prop);
 
       const original = target[prop as keyof typeof target];
+      console.log("[Proxy] original value:", original, "type:", typeof original);
+
+      // Don't wrap validateServer - it's already a real method
+      if (prop === "validateServer") {
+        return original;
+      }
 
       // Only wrap RPC procedure properties (not internal JS methods like toJSON, apply, etc.)
       // RPC procedures are objects with methods, not functions themselves
@@ -160,5 +170,11 @@ export function createClient(config?: ClientConfig): KeypearsClient {
 
       return original;
     },
-  }) as KeypearsClient;
+  });
 }
+
+/**
+ * KeypearsClient type - inferred from the actual return type of createClient
+ * This ensures TypeScript verifies the validateServer method actually exists
+ */
+export type KeypearsClient = ReturnType<typeof createClient>;
