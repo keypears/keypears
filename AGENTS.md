@@ -184,6 +184,19 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
+- **Type safety**: NEVER use `any` type unless all alternatives have been
+  exhausted
+  - Always prefer: `unknown`, specific union types, generics, or type assertions
+  - If `any` seems necessary, explore: `Record<string, unknown>`, `object`, or
+    creating a proper type/interface
+  - Before using `any`: Document why it's needed and confirm with the team
+  - Example alternatives:
+    - ❌ `const data: any = ...`
+    - ✅ `const data: unknown = ...` (then type guard or narrow)
+    - ✅ `const data: Record<string, unknown> = ...`
+    - ✅ `interface CustomType { ... }; const data: CustomType = ...`
+  - Only acceptable uses: Third-party library types that truly have no types
+    available, and even then, create a wrapper interface
 - **API client**: `@keypears/api-server` exports `createClient()` for type-safe
   orpc client
 - **Validation**: `zod` (for parsing and validation)
