@@ -11,6 +11,8 @@ import "./app.css";
 import type { Route } from "./+types/root";
 import { runMigrations } from "./db/migrate";
 import { VaultProvider } from "./contexts/vault-context";
+import { ServerStatusProvider } from "./contexts/ServerStatusContext";
+import { ServerStatusBanner } from "./components/ServerStatusBanner";
 
 export async function clientLoader() {
   await runMigrations();
@@ -50,7 +52,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <VaultProvider>{children}</VaultProvider>
+        <ServerStatusProvider>
+          <ServerStatusBanner />
+          <VaultProvider>{children}</VaultProvider>
+        </ServerStatusProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
