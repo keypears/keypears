@@ -2,17 +2,23 @@ import { useState, useEffect } from "react";
 import { Link, href } from "react-router";
 import { Key, Plus, Globe, User, Trash2 } from "lucide-react";
 import { Button } from "~app/components/ui/button";
-import { getCurrentSecrets } from "~app/db/models/password";
+import { getAllCurrentSecrets } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
 import { useVault } from "~app/contexts/vault-context";
+import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import type { SecretBlobData } from "~app/lib/secret-encryption";
 
 interface PasswordListProps {
   showDeleted?: boolean;
 }
 
+interface DecryptedSecret extends SecretUpdateRow {
+  decryptedBlob: SecretBlobData;
+}
+
 export function PasswordList({ showDeleted = false }: PasswordListProps) {
   const { activeVault } = useVault();
-  const [passwords, setPasswords] = useState<SecretUpdateRow[]>([]);
+  const [passwords, setPasswords] = useState<DecryptedSecret[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,8 +27,18 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
 
       setIsLoading(true);
       try {
-        const currentSecrets = await getCurrentSecrets(activeVault.vaultId);
-        setPasswords(currentSecrets);
+        const currentSecrets = await getAllCurrentSecrets(activeVault.vaultId);
+
+        // Decrypt blobs for display (domain, username, etc.)
+        const decryptedSecrets = currentSecrets.map((secret) => ({
+          ...secret,
+          decryptedBlob: decryptSecretUpdateBlob(
+            secret.encryptedBlob,
+            activeVault.vaultKey,
+          ),
+        }));
+
+        setPasswords(decryptedSecrets);
       } catch (error) {
         console.error("Failed to load passwords:", error);
       } finally {
@@ -141,16 +157,16 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
                     )}
                   </div>
                   <div className="text-muted-foreground mt-1 space-y-1 text-sm">
-                    {password.domain && (
+                    {password.decryptedBlob.domain && (
                       <div className="flex items-center gap-1.5">
                         <Globe size={14} />
-                        <span className="truncate">{password.domain}</span>
+                        <span className="truncate">{password.decryptedBlob.domain}</span>
                       </div>
                     )}
-                    {password.username && (
+                    {password.decryptedBlob.username && (
                       <div className="flex items-center gap-1.5">
                         <User size={14} />
-                        <span className="truncate">{password.username}</span>
+                        <span className="truncate">{password.decryptedBlob.username}</span>
                       </div>
                     )}
                   </div>
