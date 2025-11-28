@@ -25,14 +25,17 @@ import {
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
+import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
+import { pushSecretUpdate, syncVault } from "~app/lib/sync";
 
 export default function PasswordDetail() {
   const params = useParams();
   const { activeVault, decryptPassword } = useVault();
+  const { status, client } = useServerStatus();
 
   const [password, setPassword] = useState<SecretUpdateRow | null>(null);
   const [decryptedBlob, setDecryptedBlob] = useState<SecretBlobData | null>(
@@ -93,14 +96,60 @@ export default function PasswordDetail() {
   const handleDelete = async () => {
     if (!password || !activeVault || !decryptedBlob) return;
 
+    // Check server status
+    if (!status.isOnline) {
+      alert("Server is offline. Cannot delete secrets while offline.");
+      setShowDeleteDialog(false);
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      // TODO (Phase 14): Implement server-required delete with pushSecretUpdate()
-      // For now, just show an error
-      console.error("Delete not implemented yet - requires server sync");
-      alert("Delete functionality will be implemented in Phase 14");
+      // Create tombstone version (same data but deleted: true)
+      const secretData: SecretBlobData = {
+        ...decryptedBlob,
+        deleted: !password.deleted, // Toggle deleted state
+      };
+
+      // Push tombstone to server (creates new version with higher localOrder)
+      await pushSecretUpdate(
+        activeVault.vaultId,
+        password.secretId,
+        secretData,
+        activeVault.vaultKey,
+        client,
+      );
+
+      // Sync vault to fetch the tombstone
+      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
+
+      // Reload the secret to show updated state
+      const latest = await getLatestSecret(password.secretId);
+      if (latest) {
+        setPassword(latest);
+        const blob = decryptSecretUpdateBlob(
+          latest.encryptedBlob,
+          activeVault.vaultKey,
+        );
+        setDecryptedBlob(blob);
+
+        // Decrypt password and notes if present
+        if (blob.encryptedData) {
+          const pwd = decryptPassword(blob.encryptedData);
+          setDecryptedPassword(pwd);
+        }
+        if (blob.encryptedNotes) {
+          const notes = decryptPassword(blob.encryptedNotes);
+          setDecryptedNotes(notes);
+        }
+      }
     } catch (error) {
       console.error("Failed to toggle password deleted state:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to toggle deleted state",
+      );
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
