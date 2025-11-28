@@ -3,6 +3,9 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { router } from "./index.js";
 
+// Re-export schemas for client convenience
+export * from "./zod-schemas.js";
+
 export interface ClientConfig {
   url?: string;
   headers?: Record<string, string>;

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { WebBuf } from "@keypears/lib";
-import { createClient } from "@keypears/api-server";
+import { createClient } from "@keypears/api-server/client";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";

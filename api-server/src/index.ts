@@ -17,6 +17,3 @@ export type Router = typeof router;
 
 // Re-export schemas for convenience
 export * from "./zod-schemas.js";
-
-// Re-export client for convenience
-export * from "./client.js";

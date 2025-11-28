@@ -4,6 +4,16 @@
   "description": "KeyPears API server library - TypeScript implementation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client.js",
+      "types": "./dist/client.d.ts"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "Apache-2.0",

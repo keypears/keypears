@@ -1,4 +1,4 @@
-import { createClient } from "@keypears/api-server";
+import { createClient } from "@keypears/api-server/client";
 import { getDevPort } from "@keypears/lib";
 
 /**
