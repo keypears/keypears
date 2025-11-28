@@ -54,16 +54,21 @@ alice@example.com                    bob@example2.com
 
 ## Vault Key Architecture
 
-Each KeyPears vault has a single, immutable 32-byte secp256k1 private key called the **vault key**. This key serves as the foundation for all vault operations.
+Each KeyPears vault has a single, immutable 32-byte secp256k1 private key called
+the **vault key**. This key serves as the foundation for all vault operations.
 
 ### Vault Key Properties
 
-**Immutability**: Once generated, a vault key never changes. This immutability ensures:
+**Immutability**: Once generated, a vault key never changes. This immutability
+ensures:
+
 - Consistent vault identity across all devices
 - Reliable Diffie-Hellman key exchange with other vaults
 - Predictable cryptographic operations
 
-**secp256k1 Compatibility**: The vault key is a valid secp256k1 private key, enabling:
+**secp256k1 Compatibility**: The vault key is a valid secp256k1 private key,
+enabling:
+
 - Elliptic curve Diffie-Hellman (ECDH) key exchange
 - Cryptocurrency wallet functionality
 - Public key derivation for vault identity verification
@@ -79,13 +84,18 @@ Vault PubKeyHash (32 bytes)
 ```
 
 **Terminology**:
-- **Vault Key** = **Vault Private Key** (32 bytes) - The master private key for the vault
-- **Vault Public Key** (33 bytes) - Derived from vault private key using secp256k1
-- **Vault PubKeyHash** = **Vault Public Key Hash** (32 bytes) - Blake3 hash of public key
+
+- **Vault Key** = **Vault Private Key** (32 bytes) - The master private key for
+  the vault
+- **Vault Public Key** (33 bytes) - Derived from vault private key using
+  secp256k1
+- **Vault PubKeyHash** = **Vault Public Key Hash** (32 bytes) - Blake3 hash of
+  public key
 
 ### Vault PubKeyHash (Public Identity)
 
-Similar to Bitcoin's approach, KeyPears does not expose the raw public key publicly. Instead, the **vault pubkeyhash** serves as the public vault identity:
+Similar to Bitcoin's approach, KeyPears does not expose the raw public key
+publicly. Instead, the **vault pubkeyhash** serves as the public vault identity:
 
 ```typescript
 import { publicKeyCreate } from "@webbuf/secp256k1";
@@ -97,6 +107,7 @@ const vaultPubKeyHash: FixedBuf<32> = blake3Hash(vaultPublicKey.buf);
 ```
 
 **Why hash the public key?**
+
 - Hides the actual public key until needed for DH exchange
 - Smaller size (32 bytes vs 33 bytes)
 - Additional layer of security through hashing
@@ -119,14 +130,17 @@ Encryption Key (32 bytes)
 ```
 
 **What's stored locally**:
+
 - `encryptedVaultKey` (encrypted 32-byte private key)
 - `vaultPubKeyHash` (32-byte hash of public key, unencrypted)
 
 **What's stored on server**:
+
 - `vaultPubKeyHash` (for vault lookup and future protocols)
 - `hashedLoginKey` (for authentication)
 
 **What's in memory only** (during vault unlock):
+
 - Password key (derived from password)
 - Encryption key (derived from password key)
 - Vault key (decrypted vault private key)
@@ -158,6 +172,7 @@ if (derivedPubKeyHash.toHex() === storedVaultPubKeyHash) {
 ```
 
 This approach:
+
 - ✅ Never stores password key or encryption key on disk
 - ✅ Verifies password by attempting decryption
 - ✅ Confirms correct decryption via pubkeyhash comparison
@@ -167,31 +182,43 @@ This approach:
 ### Key Rotation (Future)
 
 Vault keys are immutable, but users can "rotate" keys by:
+
 1. Creating a new vault with a new vault key
 2. Re-pointing the name (`alice@keypears.com`) to the new vault
 3. Migrating secrets to the new vault
 4. The old vault remains accessible via its pubkeyhash
 
 This name-to-vault indirection enables:
+
 - Key rotation without breaking existing DH shared secrets
 - Multiple vaults per name (staged migration)
 - Vault recovery by re-pointing names
 
-**Current status**: Not yet implemented. Each name has exactly one vault with one immutable key.
+**Current status**: Not yet implemented. Each name has exactly one vault with
+one immutable key.
 
 ### Diffie-Hellman Key Exchange with Quantum Protection
 
-The vault key enables decentralized secret sharing between any two vaults using a **derived public key system** that provides quantum resistance by hiding the primary vault public key.
+The vault key enables decentralized secret sharing between any two vaults using
+a **derived public key system** that provides quantum resistance by hiding the
+primary vault public key.
 
 #### Key Protection Strategy
 
-**Critical principle**: The primary vault public key is **never exposed to third parties**. Instead, each communication channel uses deterministically derived public keys unique to that relationship.
+**Critical principle**: The primary vault public key is **never exposed to third
+parties**. Instead, each communication channel uses deterministically derived
+public keys unique to that relationship.
 
 **Why this matters**:
-- Quantum computers can theoretically break ECDH by deriving private keys from public keys
-- If Alice's primary public key were exposed, a quantum attack could compromise all her communication channels
-- By exposing only relationship-specific derived keys, a quantum attack on Alice↔Bob only compromises that channel
-- Alice↔Carol remains secure because Bob never sees the derived key for that relationship
+
+- Quantum computers can theoretically break ECDH by deriving private keys from
+  public keys
+- If Alice's primary public key were exposed, a quantum attack could compromise
+  all her communication channels
+- By exposing only relationship-specific derived keys, a quantum attack on
+  Alice↔Bob only compromises that channel
+- Alice↔Carol remains secure because Bob never sees the derived key for that
+  relationship
 
 #### Derived Public Key Protocol
 
@@ -215,6 +242,7 @@ Both Sides:
 ```
 
 **Key properties**:
+
 - Each Alice↔Bob relationship has **immutable derived keys** (per vault)
 - Bob never learns Alice's primary public key
 - Alice never learns Bob's primary public key
@@ -222,20 +250,25 @@ Both Sides:
 - Quantum attack surface limited to individual relationships
 
 **What's exposed**:
+
 - ✅ Vault pubkeyhash (32-byte Blake3 hash) - public identifier
 - ✅ Relationship-specific derived public keys (only to counterparty)
 - ❌ Primary vault public key - **never exposed**
 - ❌ Vault private key - **never leaves device**
 
 **Quantum resistance properties**:
+
 - Primary key protected: Cannot derive from hash or derived keys
 - Limited attack surface: Each relationship isolated
 - Forward secrecy: Compromising one channel doesn't cascade
-- Graceful degradation: Quantum attack requires targeting each relationship individually
+- Graceful degradation: Quantum attack requires targeting each relationship
+  individually
 
-**Protocol details**: Not yet fully specified. The exact derivation mechanism for relationship-specific keys is under development.
+**Protocol details**: Not yet fully specified. The exact derivation mechanism
+for relationship-specific keys is under development.
 
 **Use cases**:
+
 - Share passwords between vaults across domains
 - Cryptocurrency wallet identity tied to email address
 - End-to-end encrypted messaging with quantum protection
@@ -361,7 +394,8 @@ after a configurable time period, requiring full password re-entry.
 
 - **Timestamp-based**, not real-time timers (mobile platforms don't support
   reliable background execution)
-- On app resume/foreground, check if `current_time - last_auth_time >
+- On app resume/foreground, check if
+  `current_time - last_auth_time >
   expiration_duration`
 - If expired: clear PIN key from memory, require full password
 - If not expired: allow PIN unlock
