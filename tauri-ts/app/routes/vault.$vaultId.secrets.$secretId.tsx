@@ -222,6 +222,7 @@ export default function PasswordDetail() {
                 variant="outline"
                 size="icon"
                 aria-label="Edit password"
+                disabled={!status.isOnline}
               >
                 <Link
                   to={href("/vault/:vaultId/secrets/:secretId/edit", {
@@ -236,6 +237,7 @@ export default function PasswordDetail() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
+                disabled={!status.isOnline}
                 aria-label={
                   password.deleted ? "Restore password" : "Delete password"
                 }
