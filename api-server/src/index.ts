@@ -1,6 +1,8 @@
 import { blake3Procedure } from "./procedures/blake3.js";
 import { checkNameAvailabilityProcedure } from "./procedures/check-name-availability.js";
 import { registerVaultProcedure } from "./procedures/register-vault.js";
+import { createSecretUpdateProcedure } from "./procedures/create-secret-update.js";
+import { getSecretUpdatesProcedure } from "./procedures/get-secret-updates.js";
 
 /**
  * KeyPears Node API Router
@@ -10,6 +12,8 @@ export const router = {
   blake3: blake3Procedure,
   checkNameAvailability: checkNameAvailabilityProcedure,
   registerVault: registerVaultProcedure,
+  createSecretUpdate: createSecretUpdateProcedure,
+  getSecretUpdates: getSecretUpdatesProcedure,
 };
 
 // Export the router type for client usage

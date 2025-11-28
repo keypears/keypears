@@ -658,6 +658,104 @@ pnpm deploy:push
 pnpm deploy:update
 ```
 
+## 9. Database Schema Management
+
+KeyPears uses PostgreSQL for the server database with Drizzle ORM. Database
+schema management uses `drizzle-kit push` instead of traditional migrations,
+which is appropriate for pre-MVP development.
+
+### Philosophy
+
+- **No migrations**: We use `drizzle-kit push` to directly apply schema changes
+- **Pre-launch workflow**: Acceptable to wipe databases frequently since no real
+  user data exists yet
+- **Post-launch**: This workflow will be refined for production data safety with
+  proper migrations
+
+### Schema Location
+
+All database schemas are defined in `api-server/src/db/schema.ts`. The webapp
+references this via `node_modules/@keypears/api-server/src/db/schema.ts`.
+
+### Development Database
+
+Start the local PostgreSQL database (Docker container):
+
+```bash
+# Start Postgres 17.5 in Docker
+pnpm db:up
+
+# Stop Postgres
+pnpm db:down
+
+# Reset database (deletes Docker volume and all data)
+pnpm db:reset
+```
+
+The development database runs on `localhost:5432` with credentials
+`keypears/keypears_dev` and database name `keypears_main`.
+
+### Updating Database Schema
+
+When you modify `api-server/src/db/schema.ts`:
+
+**Step 1: Build the api-server package** (from root):
+
+```bash
+pnpm --filter @keypears/api-server build
+```
+
+**Step 2: Update development database** (from `webapp/` directory):
+
+```bash
+# Clear database (wipes all data by pushing empty schema)
+pnpm db:dev:clear
+
+# Push schema (applies full schema to empty database)
+pnpm db:dev:push
+```
+
+**Step 3: Update staging database** (from `webapp/` directory):
+
+```bash
+# Ensure .env.staging has correct DATABASE_URL
+pnpm db:staging:clear
+pnpm db:staging:push
+
+# Verify staging database looks correct
+```
+
+**Step 4: Update production database** (PlanetScale):
+
+1. After pushing schema to staging (above), verify it looks correct
+2. In PlanetScale dashboard, create a "pull request" from staging to production
+3. Review the schema changes (NOT data changes) in the pull request
+4. If changes look correct, accept the pull request
+5. PlanetScale automatically updates production database schema
+
+### Important Notes
+
+- **Always use webapp scripts**: Run all `db:*` commands from `webapp/` directory
+  or via root `package.json`. Never run drizzle-kit directly from `api-server/`.
+- **Clear vs Push**: `db:dev:clear` wipes data by pushing an empty schema.
+  `db:dev:push` applies the full schema. Always run clear before push when
+  changing schema structure.
+- **Destructive operations**: Schema pushes in development and staging are
+  destructive (they wipe data). This is acceptable pre-launch but will change
+  post-MVP.
+- **PlanetScale workflow**: The PlanetScale "pull request" feature handles schema
+  changes safely in production by creating a branch, reviewing changes, and
+  merging when ready.
+
+### Database Connection
+
+The webapp connects to PostgreSQL using the `DATABASE_URL` environment variable:
+
+- **Development**: `postgresql://keypears:keypears_dev@localhost:5432/keypears_main`
+- **Staging**: Configured in `.env.staging` (PlanetScale connection string)
+- **Production**: Configured via ECS task environment variables (PlanetScale
+  connection string)
+
 ## Cost Estimate
 
 Monthly costs for this setup (us-east-1, 24/7 operation):

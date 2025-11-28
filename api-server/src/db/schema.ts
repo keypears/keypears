@@ -71,3 +71,47 @@ export const TableVault = pgTable(
 
 export type SelectVault = typeof TableVault.$inferSelect;
 export type InsertVault = typeof TableVault.$inferInsert;
+
+// Secret updates table - append-only immutable log of all secret changes
+export const TableSecretUpdate = pgTable(
+  'secret_update',
+  {
+    // Primary key - ULID for time-ordered, collision-resistant IDs
+    id: varchar('id', { length: 26 }).primaryKey(),
+
+    // Foreign keys
+    vaultId: varchar('vault_id', { length: 26 })
+      .notNull()
+      .references(() => TableVault.id, { onDelete: 'cascade' }),
+
+    // Secret identifier - groups all updates for the same secret
+    secretId: varchar('secret_id', { length: 26 }).notNull(),
+
+    // Order numbers for efficient sync polling
+    // globalOrder: vault-wide sequential order (1, 2, 3, ...)
+    // localOrder: per-secret sequential order (1, 2, 3, ...)
+    globalOrder: bigint('global_order', { mode: 'number' }).notNull(),
+    localOrder: integer('local_order').notNull(),
+
+    // Encrypted blob - contains all secret metadata + encrypted password
+    // Client encrypts entire secret update (name, username, encryptedPassword, etc.)
+    // Server only sees: ID, vault_id, secret_id, order numbers, this blob
+    encryptedBlob: text('encrypted_blob').notNull(),
+
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ([
+    // Index for efficient polling: "give me all updates since order N"
+    index('idx_vault_global_order').on(table.vaultId, table.globalOrder),
+
+    // Index for viewing secret history: "give me all updates for this secret"
+    index('idx_secret_local_order').on(table.secretId, table.localOrder),
+
+    // Ensure global order is unique per vault
+    unique().on(table.vaultId, table.globalOrder),
+  ]),
+);
+
+export type SelectSecretUpdate = typeof TableSecretUpdate.$inferSelect;
+export type InsertSecretUpdate = typeof TableSecretUpdate.$inferInsert;

@@ -286,10 +286,57 @@ KeyPears has comprehensive business strategy documentation:
 
 - **`pnpm db:up`** - Start Postgres 17.5 database in Docker
 - **`pnpm db:down`** - Stop Postgres database
-- **`pnpm db:reset`** - Reset database (deletes volume, clears all data)
+- **`pnpm db:reset`** - Reset database (deletes Docker volume and all data)
 
 The development database runs on `localhost:5432` with credentials
 `keypears/keypears_dev` and database name `keypears_main`.
+
+### Database Schema Management
+
+**Philosophy**: KeyPears uses `drizzle-kit push` instead of traditional migrations.
+This is appropriate for pre-MVP development where we frequently wipe databases
+and don't need migration history. Post-launch, this workflow will be refined for
+production data safety.
+
+**Schema location**: All database schemas are defined in
+`api-server/src/db/schema.ts`. The webapp references this schema via
+`node_modules/@keypears/api-server/src/db/schema.ts`.
+
+**Development workflow** (from `webapp/` directory):
+
+1. Update schema in `api-server/src/db/schema.ts`
+2. Build api-server: `pnpm --filter @keypears/api-server build` (from root)
+3. Clear database: `pnpm db:dev:clear` (pushes empty schema, wipes all data)
+4. Push schema: `pnpm db:dev:push` (pushes full schema to empty database)
+
+**Staging workflow** (from `webapp/` directory):
+
+1. Ensure `.env.staging` has correct `DATABASE_URL`
+2. Clear staging: `pnpm db:staging:clear`
+3. Push schema: `pnpm db:staging:push`
+4. Verify staging database looks correct
+
+**Production workflow** (PlanetScale):
+
+1. Push schema to staging (see above)
+2. Verify staging database is correct
+3. In PlanetScale dashboard, create a "pull request" from staging to production
+4. Review schema changes (NOT data changes) in the pull request
+5. If changes look correct, accept the pull request
+6. PlanetScale automatically updates production database schema
+
+**Important notes**:
+
+- **Always use webapp scripts**: Run all `db:*` commands from `webapp/` directory
+  or via root `package.json`. Never run drizzle-kit directly from `api-server/`.
+- **Clear vs Push**: `db:dev:clear` wipes data by pushing an empty schema.
+  `db:dev:push` applies the full schema. Always run clear before push when
+  changing schema structure.
+- **No migrations**: We do NOT use `drizzle-kit generate` or migration files. All
+  schema changes are applied via push, which is destructive but acceptable
+  pre-launch.
+- **Post-launch**: After MVP launch with real user data, this workflow will be
+  refined to use proper migrations and safer schema evolution strategies.
 
 ### Key Deployment Details
 
