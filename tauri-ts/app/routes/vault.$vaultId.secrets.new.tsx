@@ -71,6 +71,7 @@ export default function NewPassword() {
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
           vaultName={activeVault.vaultName}
+          vaultDomain={activeVault.vaultDomain}
           currentPage="New Password"
         />
         <div className="border-border bg-card rounded-lg border p-8">

@@ -153,6 +153,7 @@ export default function PasswordDetail() {
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
           vaultName={activeVault.vaultName}
+          vaultDomain={activeVault.vaultDomain}
           passwordName={password.name}
           passwordSecretId={password.secretId}
         />

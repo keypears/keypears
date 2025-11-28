@@ -12,6 +12,7 @@ import {
 interface PasswordBreadcrumbsProps {
   vaultId: string;
   vaultName: string;
+  vaultDomain: string;
   passwordName?: string;
   passwordSecretId?: string;
   currentPage?: string;
@@ -20,6 +21,7 @@ interface PasswordBreadcrumbsProps {
 export function PasswordBreadcrumbs({
   vaultId,
   vaultName,
+  vaultDomain,
   passwordName,
   passwordSecretId,
   currentPage,
@@ -42,7 +44,7 @@ export function PasswordBreadcrumbs({
           <BreadcrumbItem>
             <BreadcrumbPage className="flex items-center gap-1.5">
               <Lock size={14} />
-              {vaultName}@localhost
+              {vaultName}@{vaultDomain}
             </BreadcrumbPage>
           </BreadcrumbItem>
         ) : (
@@ -54,7 +56,7 @@ export function PasswordBreadcrumbs({
                   className="flex items-center gap-1.5"
                 >
                   <Lock size={14} />
-                  {vaultName}@localhost
+                  {vaultName}@{vaultDomain}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>

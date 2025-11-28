@@ -141,7 +141,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
             <AlertDialogDescription>
               This will permanently delete the vault{" "}
               <span className="font-semibold">
-                {vaultToDelete?.name}@localhost
+                {vaultToDelete?.name}@{vaultToDelete?.domain}
               </span>
               . This action cannot be undone.
             </AlertDialogDescription>

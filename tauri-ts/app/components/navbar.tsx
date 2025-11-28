@@ -54,7 +54,7 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
                   to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}
                   className="text-foreground hover:text-primary font-mono text-sm transition-colors"
                 >
-                  {activeVault.vaultName}@localhost
+                  {activeVault.vaultName}@{activeVault.vaultDomain}
                 </Link>
                 <UserMenu />
               </>

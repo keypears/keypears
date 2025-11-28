@@ -17,6 +17,7 @@ export default function VaultPasswordsDeleted() {
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
           vaultName={activeVault.vaultName}
+          vaultDomain={activeVault.vaultDomain}
           currentPage="Deleted"
         />
         <PasswordList showDeleted={true} />

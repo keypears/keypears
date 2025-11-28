@@ -17,6 +17,7 @@ export default function VaultPasswordsIndex() {
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
           vaultName={activeVault.vaultName}
+          vaultDomain={activeVault.vaultDomain}
         />
         <PasswordList showDeleted={false} />
       </div>

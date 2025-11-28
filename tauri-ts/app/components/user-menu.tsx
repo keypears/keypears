@@ -33,7 +33,7 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem asChild>
           <Link to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}>
-            {activeVault.vaultName}@localhost
+            {activeVault.vaultName}@{activeVault.vaultDomain}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

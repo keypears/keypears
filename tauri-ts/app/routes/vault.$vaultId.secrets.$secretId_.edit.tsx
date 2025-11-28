@@ -141,6 +141,7 @@ export default function EditPassword() {
         <PasswordBreadcrumbs
           vaultId={activeVault.vaultId}
           vaultName={activeVault.vaultName}
+          vaultDomain={activeVault.vaultDomain}
           passwordName={existingPassword.name}
           passwordSecretId={existingPassword.secretId}
           currentPage="Edit"
