@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { createClient, type KeypearsClient } from "@keypears/api-server";
+import { createClient, type KeypearsClient } from "@keypears/api-server/client";
 
 export interface ServerStatus {
   isOnline: boolean;

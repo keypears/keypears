@@ -1,5 +1,5 @@
 import { FixedBuf } from "@keypears/lib";
-import type { KeypearsClient } from "@keypears/api-server";
+import type { KeypearsClient } from "@keypears/api-server/client";
 import { encryptSecretUpdateBlob, decryptSecretUpdateBlob } from "./secret-encryption";
 import type { SecretBlobData } from "./secret-encryption";
 import {
