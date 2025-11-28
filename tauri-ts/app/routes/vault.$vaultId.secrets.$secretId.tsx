@@ -25,33 +25,54 @@ import {
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import {
-  getSecretHistory,
-  createSecretUpdate,
-} from "~app/db/models/password";
+import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
+import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import type { SecretBlobData } from "~app/lib/secret-encryption";
 
 export default function PasswordDetail() {
   const params = useParams();
   const { activeVault, decryptPassword } = useVault();
 
   const [password, setPassword] = useState<SecretUpdateRow | null>(null);
+  const [decryptedBlob, setDecryptedBlob] = useState<SecretBlobData | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [decryptedPassword, setDecryptedPassword] = useState<string>("");
+  const [decryptedNotes, setDecryptedNotes] = useState<string>("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Load password
   useEffect(() => {
     const loadPassword = async () => {
-      if (!params.secretId) return;
+      if (!params.secretId || !activeVault) return;
 
       setIsLoading(true);
       try {
-        const history = await getSecretHistory(params.secretId);
-        if (history.length > 0) {
-          setPassword(history[0]); // Latest update
+        const latest = await getLatestSecret(params.secretId);
+        if (latest) {
+          setPassword(latest);
+          // Decrypt blob for display
+          const blob = decryptSecretUpdateBlob(
+            latest.encryptedBlob,
+            activeVault.vaultKey,
+          );
+          setDecryptedBlob(blob);
+
+          // Decrypt password field if present
+          if (blob.encryptedData) {
+            const pwd = decryptPassword(blob.encryptedData);
+            setDecryptedPassword(pwd);
+          }
+
+          // Decrypt notes if present
+          if (blob.encryptedNotes) {
+            const notes = decryptPassword(blob.encryptedNotes);
+            setDecryptedNotes(notes);
+          }
         }
       } catch (error) {
         console.error("Failed to load password:", error);
@@ -61,49 +82,23 @@ export default function PasswordDetail() {
     };
 
     loadPassword();
-  }, [params.secretId]);
+  }, [params.secretId, activeVault, decryptPassword]);
 
-  // Decrypt password when eye button is clicked
+  // Toggle password visibility
   const handleTogglePassword = () => {
-    if (!password?.encryptedData) return;
-
-    if (!showPassword) {
-      try {
-        const decrypted = decryptPassword(password.encryptedData);
-        setDecryptedPassword(decrypted);
-        setShowPassword(true);
-      } catch (error) {
-        console.error("Failed to decrypt password:", error);
-      }
-    } else {
-      setShowPassword(false);
-      setDecryptedPassword("");
-    }
+    if (!decryptedBlob?.encryptedData) return;
+    setShowPassword(!showPassword);
   };
 
   const handleDelete = async () => {
-    if (!password || !activeVault) return;
+    if (!password || !activeVault || !decryptedBlob) return;
 
     setIsDeleting(true);
     try {
-      // Toggle the deleted flag
-      await createSecretUpdate({
-        vaultId: activeVault.vaultId,
-        secretId: password.secretId,
-        name: password.name,
-        domain: password.domain || undefined,
-        username: password.username || undefined,
-        email: password.email || undefined,
-        encryptedNotes: password.encryptedNotes || undefined,
-        encryptedData: password.encryptedData || undefined,
-        deleted: !password.deleted, // Toggle instead of always true
-      });
-
-      // Reload the password data to show updated state
-      const history = await getSecretHistory(password.secretId);
-      if (history.length > 0) {
-        setPassword(history[0]);
-      }
+      // TODO (Phase 14): Implement server-required delete with pushSecretUpdate()
+      // For now, just show an error
+      console.error("Delete not implemented yet - requires server sync");
+      alert("Delete functionality will be implemented in Phase 14");
     } catch (error) {
       console.error("Failed to toggle password deleted state:", error);
     } finally {
@@ -207,40 +202,40 @@ export default function PasswordDetail() {
 
           <div className="space-y-4">
             {/* Domain */}
-            {password.domain && (
+            {decryptedBlob?.domain && (
               <div className="space-y-2">
                 <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <Globe size={14} />
                   Domain
                 </label>
-                <p className="font-mono text-sm">{password.domain}</p>
+                <p className="font-mono text-sm">{decryptedBlob.domain}</p>
               </div>
             )}
 
             {/* Username */}
-            {password.username && (
+            {decryptedBlob?.username && (
               <div className="space-y-2">
                 <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <User size={14} />
                   Username
                 </label>
-                <p className="font-mono text-sm">{password.username}</p>
+                <p className="font-mono text-sm">{decryptedBlob.username}</p>
               </div>
             )}
 
             {/* Email */}
-            {password.email && (
+            {decryptedBlob?.email && (
               <div className="space-y-2">
                 <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <Mail size={14} />
                   Email
                 </label>
-                <p className="font-mono text-sm">{password.email}</p>
+                <p className="font-mono text-sm">{decryptedBlob.email}</p>
               </div>
             )}
 
             {/* Password */}
-            {password.encryptedData && (
+            {decryptedBlob?.encryptedData && (
               <div className="space-y-2">
                 <label className="text-muted-foreground text-xs font-medium">
                   Password
@@ -266,13 +261,13 @@ export default function PasswordDetail() {
             )}
 
             {/* Notes */}
-            {password.encryptedNotes && (
+            {decryptedBlob?.encryptedNotes && (
               <div className="space-y-2">
                 <label className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                   <FileText size={14} />
                   Notes
                 </label>
-                <p className="text-sm">{password.encryptedNotes}</p>
+                <p className="text-sm">{decryptedNotes}</p>
               </div>
             )}
           </div>

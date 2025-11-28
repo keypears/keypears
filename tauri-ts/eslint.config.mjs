@@ -31,6 +31,7 @@ export default [
         clearTimeout: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
+        alert: "readonly",
         React: "readonly",
         JSX: "readonly",
         // Node globals (for build scripts)
