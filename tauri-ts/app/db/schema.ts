@@ -11,9 +11,7 @@ import { ulid } from "ulid";
 export const TableVault = sqliteTable(
   "vault",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => ulid()),
+    id: text("id").primaryKey(), // Server-generated ULID (no client-side default)
     name: text("name").notNull(), // e.g., "alice"
     domain: text("domain").notNull(), // e.g., "keypears.com"
     encryptedVaultKey: text("encrypted_vault_key").notNull(), // Encrypted 32-byte secp256k1 private key

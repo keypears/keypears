@@ -23,7 +23,7 @@ describe("Password Model", () => {
 
   describe("createSecretUpdate", () => {
     it("should create a password update", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       const update = await createSecretUpdate({
@@ -52,7 +52,7 @@ describe("Password Model", () => {
     });
 
     it("should create a password update with minimal fields", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       const update = await createSecretUpdate({
@@ -72,7 +72,7 @@ describe("Password Model", () => {
     });
 
     it("should create a tombstone (deleted) update", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       const update = await createSecretUpdate({
@@ -86,7 +86,7 @@ describe("Password Model", () => {
     });
 
     it("should accept custom createdAt timestamp", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
       const customTimestamp = Date.now() - 1000000;
 
@@ -104,7 +104,7 @@ describe("Password Model", () => {
 
   describe("getSecretUpdates", () => {
     it("should return all updates for a vault", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId1 = ulid();
       const secretId2 = ulid();
 
@@ -130,7 +130,7 @@ describe("Password Model", () => {
     });
 
     it("should return empty array for vault with no passwords", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
 
       const updates = await getSecretUpdates(vault.id);
 
@@ -138,7 +138,7 @@ describe("Password Model", () => {
     });
 
     it("should return updates ordered by createdAt descending", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       await createSecretUpdate({
@@ -176,7 +176,7 @@ describe("Password Model", () => {
 
   describe("getCurrentSecrets", () => {
     it("should return only the latest update for each password", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       // Create multiple updates for the same password
@@ -214,7 +214,7 @@ describe("Password Model", () => {
     });
 
     it("should handle out-of-order timestamps (eventual consistency)", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       // Insert in non-chronological order (simulating late arrival)
@@ -251,7 +251,7 @@ describe("Password Model", () => {
     });
 
     it("should include deleted passwords with deleted flag", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       await createSecretUpdate({
@@ -280,7 +280,7 @@ describe("Password Model", () => {
     });
 
     it("should handle multiple passwords in one vault", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId1 = ulid();
       const secretId2 = ulid();
       const secretId3 = ulid();
@@ -349,7 +349,7 @@ describe("Password Model", () => {
     });
 
     it("should return empty array for vault with no passwords", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
 
       const current = await getCurrentSecrets(vault.id);
 
@@ -357,7 +357,7 @@ describe("Password Model", () => {
     });
 
     it("should return passwords sorted by name", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
 
       await createSecretUpdate({
         vaultId: vault.id,
@@ -388,7 +388,7 @@ describe("Password Model", () => {
 
   describe("getSecretHistory", () => {
     it("should return all updates for a specific password", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       await createSecretUpdate({
@@ -424,7 +424,7 @@ describe("Password Model", () => {
     });
 
     it("should not return updates from other passwords", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId1 = ulid();
       const secretId2 = ulid();
 
@@ -451,7 +451,7 @@ describe("Password Model", () => {
 
   describe("cascade delete", () => {
     it("should delete all password updates when vault is deleted", async () => {
-      const vault = await createVault("testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(), "testvault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
       const secretId = ulid();
 
       await createSecretUpdate({

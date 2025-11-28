@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c41ea1b0-439e-4fbf-bf8b-2250a9aea61f",
+  "id": "75a93626-3da6-43d1-b20c-a2c6f3890ccb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "secret_update": {

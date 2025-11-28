@@ -136,9 +136,10 @@ export default function NewVaultStep3() {
         });
         console.log("Server registration successful. Vault ID:", registrationResult.vaultId);
 
-        // 10. Save vault to local database
+        // 10. Save vault to local database with server-generated ID
         console.log("\n--- Step 10: Save to Local Database ---");
         const vault = await createVault(
+          registrationResult.vaultId, // Server-generated ULID
           vaultName,
           vaultDomain,
           encryptedVaultKey.toHex(),

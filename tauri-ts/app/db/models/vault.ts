@@ -14,6 +14,7 @@ export interface Vault {
 }
 
 export async function createVault(
+  vaultId: string,
   name: string,
   domain: string,
   encryptedVaultKey: string,
@@ -25,6 +26,7 @@ export async function createVault(
   const createdAt = Date.now();
 
   await db.insert(TableVault).values({
+    id: vaultId, // Server-generated ULID
     name,
     domain,
     encryptedVaultKey,
@@ -33,7 +35,7 @@ export async function createVault(
   });
 
   // Fetch the newly created vault
-  const vault = await getVaultByNameAndDomain(name, domain);
+  const vault = await getVault(vaultId);
   if (!vault) {
     throw new Error("Failed to create vault");
   }
