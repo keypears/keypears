@@ -43,13 +43,6 @@ alice@example.com                    bob@example2.com
 3. **Secure Messaging**: End-to-end encrypted messaging between any email
    addresses
 
-### Implementation Status
-
-- ✅ Synchronization infrastructure (completed)
-- ⏳ DH key generation and management (planned)
-- ⏳ Cross-domain key exchange protocol (planned)
-- ⏳ Wallet integration (planned)
-
 ---
 
 ## Vault Key Architecture
