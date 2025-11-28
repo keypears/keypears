@@ -2,6 +2,7 @@ import { db } from "../index";
 import { TableVault } from "../schema";
 import { eq, count, and } from "drizzle-orm";
 import { vaultNameSchema } from "@keypears/lib";
+import { createVaultSyncState } from "./vault-sync-state";
 
 export interface Vault {
   id: string;
@@ -33,6 +34,9 @@ export async function createVault(
     vaultPubKeyHash,
     createdAt,
   });
+
+  // Initialize sync state for the new vault
+  await createVaultSyncState(vaultId);
 
   // Fetch the newly created vault
   const vault = await getVault(vaultId);
