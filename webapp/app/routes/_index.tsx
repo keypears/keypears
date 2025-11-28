@@ -11,7 +11,7 @@ export function meta({}: Route.MetaArgs) {
     {
       name: "description",
       content:
-        "KeyPears is a decentralized Diffie-Hellman key exchange system enabling secure communication between any two email addresses. Password manager and cryptocurrency wallet built on DH exchange foundation.",
+        "KeyPears is a password manager with support for decentralized Diffie-Hellman key exchange enabling secure communication between any two email addresses.",
     },
     {
       tagName: "link",
