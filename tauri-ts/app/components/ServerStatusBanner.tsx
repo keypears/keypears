@@ -1,5 +1,6 @@
+import type { JSX } from "react";
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-import { useServerStatus } from "~/contexts/ServerStatusContext";
+import { useServerStatus } from "~app/contexts/ServerStatusContext";
 
 /**
  * ServerStatusBanner displays the current server connectivity status

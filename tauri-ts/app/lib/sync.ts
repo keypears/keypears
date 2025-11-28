@@ -1,6 +1,5 @@
 import { FixedBuf } from "@keypears/lib";
-import type { Router } from "@keypears/api-server";
-import type { ClientType } from "@orpc/client";
+import type { KeypearsClient } from "@keypears/api-server";
 import { encryptSecretUpdateBlob, decryptSecretUpdateBlob } from "./secret-encryption";
 import type { SecretBlobData } from "./secret-encryption";
 import {
@@ -31,7 +30,7 @@ export interface SyncResult {
 export async function syncVault(
   vaultId: string,
   vaultKey: FixedBuf<32>,
-  apiClient: ClientType<Router>,
+  apiClient: KeypearsClient,
 ): Promise<SyncResult> {
   try {
     // Record sync attempt
@@ -61,7 +60,14 @@ export async function syncVault(
       }
 
       // Decrypt and prepare updates for local storage
-      const localUpdates = response.updates.map((serverUpdate) => {
+      const localUpdates = response.updates.map((serverUpdate: {
+        id: string;
+        secretId: string;
+        globalOrder: number;
+        localOrder: number;
+        encryptedBlob: string;
+        createdAt: Date;
+      }) => {
         // Decrypt the blob to get the secret data
         const blobData = decryptSecretUpdateBlob(
           serverUpdate.encryptedBlob,
@@ -89,7 +95,7 @@ export async function syncVault(
       totalUpdatesReceived += localUpdates.length;
 
       // Update current order to the highest we've seen
-      const maxOrder = Math.max(...localUpdates.map((u) => u.globalOrder));
+      const maxOrder = Math.max(...localUpdates.map((u: { globalOrder: number }) => u.globalOrder));
       currentGlobalOrder = maxOrder;
 
       // Check if more updates exist
@@ -138,7 +144,7 @@ export async function pushSecretUpdate(
   secretId: string,
   secretData: SecretBlobData,
   vaultKey: FixedBuf<32>,
-  apiClient: ClientType<Router>,
+  apiClient: KeypearsClient,
 ): Promise<{ id: string; globalOrder: number; localOrder: number; createdAt: Date }> {
   // Encrypt the blob
   const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);

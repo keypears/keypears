@@ -165,6 +165,9 @@ importers:
       '@keypears/lib':
         specifier: workspace:^
         version: link:../lib
+      '@orpc/client':
+        specifier: ^1.10.2
+        version: 1.10.2
       '@radix-ui/react-alert-dialog':
         specifier: 1.1.15
         version: 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

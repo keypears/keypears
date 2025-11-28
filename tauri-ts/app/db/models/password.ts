@@ -91,7 +91,7 @@ export async function getLatestSecret(
     .orderBy(desc(TableSecretUpdate.localOrder))
     .limit(1);
 
-  return results[0];
+  return results[0] as SecretUpdateRow | undefined;
 }
 
 /**
@@ -150,7 +150,7 @@ export async function getAllCurrentSecrets(
     )
     .orderBy(TableSecretUpdate.name);
 
-  return results;
+  return results as SecretUpdateRow[];
 }
 
 /**
@@ -168,5 +168,5 @@ export async function getSecretHistory(
     .where(eq(TableSecretUpdate.secretId, secretId))
     .orderBy(TableSecretUpdate.localOrder); // ASC for chronological order
 
-  return results;
+  return results as SecretUpdateRow[];
 }
