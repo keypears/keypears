@@ -1,7 +1,7 @@
 import type { Config } from "drizzle-kit";
 
 export default {
-  schema: "./node_modules/@keypears/node/src/db/clear-schema.ts",
+  schema: "./node_modules/@keypears/api-server/src/db/clear-schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
