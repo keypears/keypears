@@ -1,8 +1,8 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { router } from "../src/index.js";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
+import { router } from "../src/index.js";
 
 const PORT = 4275; // Different port to avoid conflict with webapp
 

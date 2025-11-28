@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createClient } from "../src/client.js";
 import { WebBuf } from "@webbuf/webbuf";
+import { createClient } from "../src/client.js";
 
 // Create client pointing to test server
 // Note: Test server must be running on port 4275
@@ -37,14 +37,14 @@ describe("blake3 API", () => {
   });
 
   it("should throw error for data larger than 10KB", async () => {
-    const largeData = WebBuf.fromBuf(new Uint8Array(11 * 1024)); // 11KB
+    const largeData = new WebBuf(11 * 1024); // 11KB
     const largeBase64 = largeData.toBase64();
 
     await expect(client.blake3({ data: largeBase64 })).rejects.toThrow();
   });
 
   it("should accept data up to 10KB", async () => {
-    const maxData = WebBuf.fromBuf(new Uint8Array(10 * 1024)); // Exactly 10KB
+    const maxData = new WebBuf(10 * 1024); // Exactly 10KB
     const maxBase64 = maxData.toBase64();
 
     const result = await client.blake3({ data: maxBase64 });

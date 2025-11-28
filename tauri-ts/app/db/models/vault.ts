@@ -1,20 +1,21 @@
 import { db } from "../index";
 import { TableVault } from "../schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, and } from "drizzle-orm";
 import { vaultNameSchema } from "@keypears/lib";
 
 export interface Vault {
   id: string;
   name: string;
-  encryptedVaultKey: string;
-  hashedVaultKey: string;
+  domain: string;
+  encryptedPasswordKey: string;
+  lastSyncTimestamp: number | null;
   createdAt: number;
 }
 
 export async function createVault(
   name: string,
-  encryptedVaultKey: string,
-  hashedVaultKey: string,
+  domain: string,
+  encryptedPasswordKey: string,
 ): Promise<Vault> {
   // Validate name with Zod schema
   vaultNameSchema.parse(name);
@@ -23,13 +24,13 @@ export async function createVault(
 
   await db.insert(TableVault).values({
     name,
-    encryptedVaultKey,
-    hashedVaultKey,
+    domain,
+    encryptedPasswordKey,
     createdAt,
   });
 
   // Fetch the newly created vault
-  const vault = await getVaultByName(name);
+  const vault = await getVaultByNameAndDomain(name, domain);
   if (!vault) {
     throw new Error("Failed to create vault");
   }
@@ -45,11 +46,14 @@ export async function getVault(id: string): Promise<Vault | undefined> {
   return result[0];
 }
 
-export async function getVaultByName(name: string): Promise<Vault | undefined> {
+export async function getVaultByNameAndDomain(
+  name: string,
+  domain: string,
+): Promise<Vault | undefined> {
   const result = await db
     .select()
     .from(TableVault)
-    .where(eq(TableVault.name, name));
+    .where(and(eq(TableVault.name, name), eq(TableVault.domain, domain)));
   return result[0];
 }
 

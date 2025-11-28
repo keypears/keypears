@@ -1,6 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["test/**/*", "src/**/*", "vite.config.ts"],
+  "include": [
+    "test/**/*",
+    "src/**/*",
+    "vite.config.ts",
+    "drizzle.config.ts",
+    "drizzle-clear.config.ts"
+  ],
   "compilerOptions": {
     "types": ["node", "vitest/globals"],
     "noEmit": true

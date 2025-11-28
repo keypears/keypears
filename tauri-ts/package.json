@@ -10,7 +10,7 @@
     "dev:old": "vite",
     "build": "react-router build && mv dist/client/* dist/ && rmdir dist/client",
     "format": "prettier --write .",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint .",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "vitest run",
     "build:old": "tsc && vite build",

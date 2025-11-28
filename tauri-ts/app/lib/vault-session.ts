@@ -4,7 +4,7 @@
  * Data is stored in-memory only and lost on page refresh (intentional for security).
  */
 
-let unlockedVaultIds: Set<string> = new Set();
+const unlockedVaultIds: Set<string> = new Set();
 
 export function isVaultUnlocked(vaultId: string): boolean {
   return unlockedVaultIds.has(vaultId);

@@ -33,6 +33,7 @@ export function initDb(dbOverride?: any) {
         cachedSqlite = await Database.load("sqlite:keypears.db");
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let rows: any = [];
       let results = [];
 
@@ -51,6 +52,7 @@ export function initDb(dbOverride?: any) {
         return { rows: [] };
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rows = rows.map((row: any) => {
         return Object.values(row);
       });
@@ -60,7 +62,7 @@ export function initDb(dbOverride?: any) {
       return { rows: results };
     },
     // Pass the schema to the drizzle instance
-    { schema: schema, logger: true },
+    { schema, logger: true },
   );
 
   return cachedDb;
@@ -77,6 +79,7 @@ export async function getDb() {
 // Export default database instance with production type for type safety
 // Lazy initialization: db is initialized on first access, allowing tests to inject first
 // Both drivers have compatible runtime APIs, but we type based on production
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const db: SqliteRemoteDatabase<typeof schema> = new Proxy({} as any, {
   get(_target, prop) {
     const instance = initDb();

@@ -1,18 +1,26 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, unique } from "drizzle-orm/sqlite-core";
 import { ulid } from "ulid";
 
 // Vaults table - stores encrypted vault data
-export const TableVault = sqliteTable("vault", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => ulid()),
-  name: text("name").notNull().unique(),
-  encryptedVaultKey: text("encrypted_vault_key").notNull(),
-  hashedVaultKey: text("hashed_vault_key").notNull(),
-  createdAt: integer("created_at")
-    .notNull()
-    .$defaultFn(() => Date.now()),
-});
+export const TableVault = sqliteTable(
+  "vault",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => ulid()),
+    name: text("name").notNull(), // e.g., "alice"
+    domain: text("domain").notNull(), // e.g., "keypears.com"
+    encryptedPasswordKey: text("encrypted_password_key").notNull(),
+    lastSyncTimestamp: integer("last_sync_timestamp"),
+    createdAt: integer("created_at")
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => ({
+    // Unique constraint on name + domain combination (like email addresses)
+    uniqueNameDomain: unique().on(table.name, table.domain),
+  }),
+);
 
 export type SelectVault = typeof TableVault.$inferSelect;
 export type InsertVault = typeof TableVault.$inferInsert;

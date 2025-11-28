@@ -1,5 +1,5 @@
-import { createClient } from "../src/client.js";
 import { WebBuf } from "@webbuf/webbuf";
+import { createClient } from "../src/client.js";
 
 // Create client pointing to test server
 const client = createClient({
@@ -37,7 +37,7 @@ async function testBlake3(): Promise<void> {
     // Test 3: Data too large (>10KB)
     console.log("Test 3: Data too large (>10KB)");
     try {
-      const largeData = WebBuf.fromBuf(new Uint8Array(11 * 1024)); // 11KB
+      const largeData = new WebBuf(11 * 1024); // 11KB
       const largeBase64 = largeData.toBase64();
       await client.blake3({ data: largeBase64 });
       console.log("  ✗ Should have thrown an error");

@@ -6,6 +6,15 @@ import { z } from "zod";
 
 export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
 
+// Export domain configuration
+export {
+  OFFICIAL_DOMAINS,
+  DEV_PORT_MAP,
+  getOfficialDomains,
+  isOfficialDomain,
+  getDevPort,
+} from "./domains.js";
+
 /** for all lowercase letters, 8 chars is ~38 bits of entropy (development minimum) */
 export const StandardPasswordSchema = z.string().lowercase().min(8).max(128);
 
