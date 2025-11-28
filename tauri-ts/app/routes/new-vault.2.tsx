@@ -88,12 +88,25 @@ export default function NewVaultStep2() {
 
     try {
       // Call API endpoint to check availability
+      // The client will automatically validate the server before making the call
       const client = createApiClient(domain);
       const result = await client.checkNameAvailability({ name, domain });
       setNameAvailable(result.available);
     } catch (error) {
       console.error("Error checking name availability:", error);
-      setNameError("Unable to check availability. Is the server running?");
+
+      // Extract error message for display
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unable to check availability";
+
+      // Check if it's a server validation error
+      if (errorMessage.includes("Invalid KeyPears server")) {
+        setNameError(errorMessage.replace("Invalid KeyPears server: ", ""));
+      } else {
+        setNameError(errorMessage);
+      }
+
       setNameAvailable(null);
     } finally {
       setIsCheckingAvailability(false);

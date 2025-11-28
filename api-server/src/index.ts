@@ -17,3 +17,7 @@ export type Router = typeof router;
 
 // Re-export schemas for convenience
 export * from "./zod-schemas.js";
+
+// Re-export validation utilities
+export { validateKeypearsServer } from "./validation.js";
+export type { ServerValidationResult } from "./validation.js";
