@@ -47,16 +47,25 @@ export function ServerStatusProvider({
   children,
   serverUrl,
 }: ServerStatusProviderProps): JSX.Element {
-  const [client] = useState<KeypearsClient>(() =>
-    createClient({ url: serverUrl, skipValidation: true }),
-  );
+  const [client, setClient] = useState<KeypearsClient | null>(null);
 
   const [status, setStatus] = useState<ServerStatus>({
     isOnline: false,
-    isValidating: true,
+    isValidating: false,
   });
 
+  // Create client only on client-side (after hydration)
+  useEffect(() => {
+    const newClient = createClient({
+      url: serverUrl || "http://localhost:4273/api",
+      skipValidation: true
+    });
+    setClient(newClient);
+  }, [serverUrl]);
+
   const checkServer = useCallback(async (): Promise<void> => {
+    if (!client) return;
+
     setStatus((prev) => ({ ...prev, isValidating: true }));
 
     try {
@@ -86,13 +95,17 @@ export function ServerStatusProvider({
     }
   }, [client]);
 
-  // Initial validation on mount
+  // Initial validation on mount (after client is created)
   useEffect(() => {
-    checkServer();
-  }, [checkServer]);
+    if (client) {
+      checkServer();
+    }
+  }, [client, checkServer]);
 
   // Re-validate every 30 seconds
   useEffect(() => {
+    if (!client) return;
+
     const interval = setInterval(() => {
       checkServer();
     }, 30000); // 30 seconds
@@ -100,7 +113,12 @@ export function ServerStatusProvider({
     return (): void => {
       clearInterval(interval);
     };
-  }, [checkServer]);
+  }, [client, checkServer]);
+
+  // Don't render children until client is ready
+  if (!client) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <ServerStatusContext.Provider value={{ status, client, checkServer }}>
