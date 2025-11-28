@@ -6,12 +6,14 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
-import { createSecretUpdate } from "~app/db/models/password";
+import { useServerStatus } from "~app/contexts/ServerStatusContext";
+import { pushSecretUpdate, syncVault } from "~app/lib/sync";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
   const navigate = useNavigate();
   const { activeVault, encryptPassword } = useVault();
+  const { status, client } = useServerStatus();
 
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -32,25 +34,47 @@ export default function NewPassword() {
   const handleSubmit = async () => {
     if (!isValid) return;
 
+    // Check server status
+    if (!status.isOnline) {
+      setError("Server is offline. Cannot create secrets while offline.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
     try {
       const secretId = ulid();
-      const encryptedData = password
-        ? encryptPassword(password)
+
+      // Encrypt password and notes if provided
+      const encryptedData = password ? encryptPassword(password) : undefined;
+      const encryptedNotes = notes.trim()
+        ? encryptPassword(notes.trim())
         : undefined;
 
-      await createSecretUpdate({
-        vaultId: activeVault.vaultId,
-        secretId,
+      // Create secret blob data
+      const secretData = {
         name: name.trim(),
+        type: "password" as const,
         domain: domain.trim() || undefined,
         username: username.trim() || undefined,
         email: email.trim() || undefined,
-        encryptedNotes: notes.trim() || undefined,
         encryptedData,
-      });
+        encryptedNotes,
+        deleted: false,
+      };
+
+      // Push to server (server generates ID, order numbers, timestamp)
+      await pushSecretUpdate(
+        activeVault.vaultId,
+        secretId,
+        secretData,
+        activeVault.vaultKey,
+        client,
+      );
+
+      // Sync vault to fetch the new secret
+      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
 
       // Navigate back to passwords list
       navigate(
@@ -58,7 +82,9 @@ export default function NewPassword() {
       );
     } catch (err) {
       console.error("Failed to create password:", err);
-      setError("Failed to create password");
+      setError(
+        err instanceof Error ? err.message : "Failed to create password",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -193,9 +219,13 @@ export default function NewPassword() {
               className="w-full"
               size="lg"
               onClick={handleSubmit}
-              disabled={!isValid || isSubmitting}
+              disabled={!isValid || isSubmitting || !status.isOnline}
             >
-              {isSubmitting ? "Creating..." : "Create Password"}
+              {isSubmitting
+                ? "Creating..."
+                : !status.isOnline
+                  ? "Server Offline"
+                  : "Create Password"}
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
