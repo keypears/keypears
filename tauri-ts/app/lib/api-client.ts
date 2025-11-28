@@ -1,17 +1,16 @@
-import { createClient } from "@keypears/api-server/client";
-import { getDevPort } from "@keypears/lib";
+import { createClient, buildServerUrl } from "@keypears/api-server/client";
 
 /**
  * Creates an API client for the specified domain
- * Uses dev port mapping for localhost domains in development
+ * Uses buildServerUrl for consistent URL construction across the app
  */
 export function createApiClient(domain: string) {
-  // Determine the port based on domain
-  const port = getDevPort(domain) || 4273;
+  // Build the server URL using the centralized logic
+  const url = buildServerUrl(domain);
 
   // Create the API client
   const client = createClient({
-    url: `http://${domain}:${port}/api`,
+    url,
   });
 
   return client;
