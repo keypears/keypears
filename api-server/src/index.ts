@@ -19,6 +19,9 @@ export const router = {
 // Export the router type for client usage
 export type Router = typeof router;
 
+// Re-export client factory and types
+export { createClient, type KeypearsClient, type ClientConfig } from "./client.js";
+
 // Re-export schemas for convenience
 export * from "./zod-schemas.js";
 
