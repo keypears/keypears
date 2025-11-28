@@ -207,6 +207,9 @@ importers:
       '@tauri-apps/plugin-sql':
         specifier: 2.3.0
         version: 2.3.0
+      '@webbuf/secp256k1':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2552,6 +2555,13 @@ packages:
     resolution: {integrity: sha512-kIR3VUjeVTVmSnGK9Z9Ej2LmLarBbn2Zcl5/SjV0pzDMzGTWSj9ALa56WYaYeqeemxfv8iaSqvX9WvwyEujUSA==}
     engines: {node: '>=20.8.0'}
     peerDependencies:
+      '@webbuf/webbuf': ^3.0.28
+
+  '@webbuf/secp256k1@3.0.28':
+    resolution: {integrity: sha512-rWrUDwaTTLsxJx8Rk9/MEvsyQGPBh/nWSBuj4X56Gy0p2oLKbC0xeLff31En4s3IMoxlnEY648Xeq9uj+efrFQ==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/fixedbuf': ^3.0.28
       '@webbuf/webbuf': ^3.0.28
 
   '@webbuf/webbuf@3.0.28':
@@ -7549,6 +7559,11 @@ snapshots:
 
   '@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28)':
     dependencies:
+      '@webbuf/webbuf': 3.0.28
+
+  '@webbuf/secp256k1@3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)':
+    dependencies:
+      '@webbuf/fixedbuf': 3.0.28(@webbuf/webbuf@3.0.28)
       '@webbuf/webbuf': 3.0.28
 
   '@webbuf/webbuf@3.0.28': {}

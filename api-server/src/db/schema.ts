@@ -42,20 +42,19 @@ export const TableVault = pgTable(
     // Domain (e.g., "keypears.com", "hevybags.com", "wokerium.com")
     domain: varchar('domain', { length: 255 }).notNull(),
 
-    // Hashed login key - server hashes the login key the user sends
+    // Vault public key hash (pubkeyhash) - 32-byte Blake3 hash of the vault's public key
+    // This is the vault's public identity, similar to Bitcoin addresses
+    // Used for vault lookup and future DH key exchange protocol
+    // Primary public key is NEVER exposed - only relationship-specific derived keys
+    vaultPubKeyHash: varchar('vault_pubkeyhash', { length: 64 }).notNull(), // Blake3 hex = 64 chars
+
+    // Hashed login key - server stores hash of the login key for authentication
     // Client derives: password → password key → login key
-    // Client sends: login key (for authentication)
-    // Server stores: hash(login key) for verification
+    // Client sends: hash(login key) to server
+    // Server stores: hash(hash(login key)) for verification
     // This is what the server checks to verify the user knows the password
     // Server CANNOT derive the password key or encryption key from this
     hashedLoginKey: varchar('hashed_login_key', { length: 64 }).notNull(), // Blake3 hex = 64 chars
-
-    // Encrypted password key - used to unlock vault on client
-    // Client derives: password → password key → encryption key
-    // Client encrypts: password key with encryption key
-    // Server stores: encrypted password key (cannot decrypt it)
-    // Client decrypts: after successful login, derives encryption key and decrypts password key
-    encryptedPasswordKey: text('encrypted_password_key').notNull(), // Variable length for ACB3 output
 
     // Last sync timestamp (Unix milliseconds)
     lastSyncTimestamp: bigint('last_sync_timestamp', { mode: 'number' }),

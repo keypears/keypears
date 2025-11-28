@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7a226e86-82e7-4516-9e77-dfe4b6973b1e",
+  "id": "c41ea1b0-439e-4fbf-bf8b-2250a9aea61f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "secret_update": {
@@ -134,8 +134,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "encrypted_password_key": {
-          "name": "encrypted_password_key",
+        "encrypted_vault_key": {
+          "name": "encrypted_vault_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vault_pubkeyhash": {
+          "name": "vault_pubkeyhash",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

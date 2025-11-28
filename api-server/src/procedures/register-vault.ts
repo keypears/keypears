@@ -16,15 +16,15 @@ import { TableVault } from "../db/schema.js";
  * Registers a new vault with the server
  *
  * Security: Server hashes the login key again (double-hash)
- * - Client sends: hash(password key)
- * - Server stores: hash(hash(password key))
+ * - Client sends: hash(login key)
+ * - Server stores: hash(hash(login key))
  * This prevents the server from using a compromised login key to authenticate
  */
 export const registerVaultProcedure = os
   .input(RegisterVaultRequestSchema)
   .output(RegisterVaultResponseSchema)
   .handler(async ({ input }): Promise<{ vaultId: string }> => {
-    const { name, domain, encryptedPasswordKey, hashedLoginKey } = input;
+    const { name, domain, vaultPubKeyHash, hashedLoginKey } = input;
 
     // 1. Validate domain is official
     if (!isOfficialDomain(domain)) {
@@ -56,7 +56,7 @@ export const registerVaultProcedure = os
       id: vaultId,
       name,
       domain,
-      encryptedPasswordKey,
+      vaultPubKeyHash,
       hashedLoginKey: serverHashedLoginKey.buf.toHex(),
     });
 

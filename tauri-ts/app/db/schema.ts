@@ -10,7 +10,8 @@ export const TableVault = sqliteTable(
       .$defaultFn(() => ulid()),
     name: text("name").notNull(), // e.g., "alice"
     domain: text("domain").notNull(), // e.g., "keypears.com"
-    encryptedPasswordKey: text("encrypted_password_key").notNull(),
+    encryptedVaultKey: text("encrypted_vault_key").notNull(), // Encrypted 32-byte secp256k1 private key
+    vaultPubKeyHash: text("vault_pubkeyhash").notNull(), // 32-byte Blake3 hash of public key
     lastSyncTimestamp: integer("last_sync_timestamp"),
     createdAt: integer("created_at")
       .notNull()

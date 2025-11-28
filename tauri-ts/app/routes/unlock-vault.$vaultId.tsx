@@ -65,17 +65,22 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
     try {
       const result = verifyVaultPassword(
         password,
-        vault.encryptedPasswordKey,
+        vault.encryptedVaultKey,
+        vault.vaultPubKeyHash,
       );
 
-      if (result.valid && result.passwordKey) {
+      if (result.valid && result.passwordKey && result.encryptionKey && result.vaultKey && result.vaultPublicKey) {
         // Password is correct - unlock vault
         unlockVault(
           vault.id,
           vault.name,
           vault.domain,
           result.passwordKey,
-          vault.encryptedPasswordKey,
+          result.encryptionKey,
+          result.vaultKey,
+          result.vaultPublicKey,
+          vault.encryptedVaultKey,
+          vault.vaultPubKeyHash,
         );
         navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
       } else {

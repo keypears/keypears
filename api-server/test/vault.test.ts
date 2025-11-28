@@ -31,10 +31,11 @@ describe("Vault API", () => {
     it("should return available=false for taken name", async () => {
       // First, register a vault
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key",
+        vaultPubKeyHash: testPubKeyHash.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -50,10 +51,11 @@ describe("Vault API", () => {
     it("should be per-domain (alice@keypears.com ≠ alice@hevybags.com)", async () => {
       // Register alice@keypears.com
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key",
+        vaultPubKeyHash: testPubKeyHash.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -76,11 +78,12 @@ describe("Vault API", () => {
   describe("registerVault", () => {
     it("should register a new vault successfully", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
 
       const result = await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key",
+        vaultPubKeyHash: testPubKeyHash.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -90,12 +93,14 @@ describe("Vault API", () => {
 
     it("should reject duplicate name+domain combination", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash1 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
+      const testPubKeyHash2 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
 
       // Register first vault
       await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key",
+        vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -104,7 +109,7 @@ describe("Vault API", () => {
         client.registerVault({
           name: "alice",
           domain: "keypears.com",
-          encryptedPasswordKey: "encrypted-test-key-2",
+          vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
           hashedLoginKey: loginKeyHash.buf.toHex(),
         }),
       ).rejects.toThrow();
@@ -112,12 +117,14 @@ describe("Vault API", () => {
 
     it("should allow same name on different domains", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash1 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
+      const testPubKeyHash2 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
 
       // Register alice@keypears.com
       const result1 = await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key-1",
+        vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -125,7 +132,7 @@ describe("Vault API", () => {
       const result2 = await client.registerVault({
         name: "alice",
         domain: "hevybags.com",
-        encryptedPasswordKey: "encrypted-test-key-2",
+        vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 
@@ -136,12 +143,13 @@ describe("Vault API", () => {
 
     it("should reject invalid domain", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
 
       await expect(
         client.registerVault({
           name: "alice",
           domain: "evil.com",
-          encryptedPasswordKey: "encrypted-test-key",
+          vaultPubKeyHash: testPubKeyHash.buf.toHex(),
           hashedLoginKey: loginKeyHash.buf.toHex(),
         }),
       ).rejects.toThrow();
@@ -149,12 +157,13 @@ describe("Vault API", () => {
 
     it("should reject invalid vault name (must start with letter)", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
 
       await expect(
         client.registerVault({
           name: "1alice",
           domain: "keypears.com",
-          encryptedPasswordKey: "encrypted-test-key",
+          vaultPubKeyHash: testPubKeyHash.buf.toHex(),
           hashedLoginKey: loginKeyHash.buf.toHex(),
         }),
       ).rejects.toThrow();
@@ -162,12 +171,13 @@ describe("Vault API", () => {
 
     it("should reject invalid vault name (must be alphanumeric)", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
 
       await expect(
         client.registerVault({
           name: "alice_smith",
           domain: "keypears.com",
-          encryptedPasswordKey: "encrypted-test-key",
+          vaultPubKeyHash: testPubKeyHash.buf.toHex(),
           hashedLoginKey: loginKeyHash.buf.toHex(),
         }),
       ).rejects.toThrow();
@@ -176,11 +186,12 @@ describe("Vault API", () => {
     it("should double-hash the login key on server", async () => {
       const loginKeyHash = blake3Hash(WebBuf.fromUtf8("test-password-key"));
       const expectedServerHash = blake3Hash(loginKeyHash.buf);
+      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
 
       const result = await client.registerVault({
         name: "alice",
         domain: "keypears.com",
-        encryptedPasswordKey: "encrypted-test-key",
+        vaultPubKeyHash: testPubKeyHash.buf.toHex(),
         hashedLoginKey: loginKeyHash.buf.toHex(),
       });
 

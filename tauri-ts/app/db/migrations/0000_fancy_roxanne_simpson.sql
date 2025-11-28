@@ -17,7 +17,8 @@ CREATE TABLE `vault` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`domain` text NOT NULL,
-	`encrypted_password_key` text NOT NULL,
+	`encrypted_vault_key` text NOT NULL,
+	`vault_pubkeyhash` text NOT NULL,
 	`last_sync_timestamp` integer,
 	`created_at` integer NOT NULL
 );

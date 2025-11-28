@@ -6,10 +6,13 @@ import { Button } from "~app/components/ui/button";
 import {
   calculatePasswordEntropy,
   derivePasswordKey,
+  deriveEncryptionKey,
   deriveLoginKey,
   encryptKey,
   blake3Hash,
+  FixedBuf,
 } from "@keypears/lib";
+import { publicKeyCreate } from "@webbuf/secp256k1";
 import { createVault } from "~app/db/models/vault";
 import { cn } from "~app/lib/utils";
 import { createApiClient } from "~app/lib/api-client";
@@ -58,18 +61,39 @@ export default function NewVaultStep3() {
         const passwordKey = derivePasswordKey(password);
         console.log("Password Key:", passwordKey.buf.toHex());
 
-        // 2. Encrypt password key with itself (for local verification)
-        console.log("\n--- Step 2: Encrypt Password Key ---");
-        const encryptedPasswordKey = encryptKey(passwordKey, passwordKey);
-        console.log("Encrypted Password Key:", encryptedPasswordKey.toHex());
+        // 2. Derive encryption key from password key
+        console.log("\n--- Step 2: Derive Encryption Key ---");
+        const encryptionKey = deriveEncryptionKey(passwordKey);
+        console.log("Encryption Key:", encryptionKey.buf.toHex());
 
-        // 3. Derive login key for server authentication
-        console.log("\n--- Step 3: Derive Login Key ---");
+        // 3. Generate random 32-byte vault key (secp256k1 private key)
+        console.log("\n--- Step 3: Generate Vault Key ---");
+        const vaultKey = FixedBuf.alloc(32);
+        crypto.getRandomValues(vaultKey.buf);
+        console.log("Vault Key (private):", vaultKey.buf.toHex());
+
+        // 4. Derive vault public key from vault key
+        console.log("\n--- Step 4: Derive Vault Public Key ---");
+        const vaultPublicKey = publicKeyCreate(vaultKey);
+        console.log("Vault Public Key:", vaultPublicKey.buf.toHex());
+
+        // 5. Hash the public key to get pubkeyhash (vault identity)
+        console.log("\n--- Step 5: Hash Public Key ---");
+        const vaultPubKeyHash = blake3Hash(vaultPublicKey.buf);
+        console.log("Vault PubKeyHash:", vaultPubKeyHash.buf.toHex());
+
+        // 6. Encrypt vault key with encryption key
+        console.log("\n--- Step 6: Encrypt Vault Key ---");
+        const encryptedVaultKey = encryptKey(vaultKey, encryptionKey);
+        console.log("Encrypted Vault Key:", encryptedVaultKey.toHex());
+
+        // 7. Derive login key for server authentication
+        console.log("\n--- Step 7: Derive Login Key ---");
         const loginKey = deriveLoginKey(passwordKey);
         console.log("Login Key:", loginKey.buf.toHex());
 
-        // 4. Hash login key (client-side hash before sending to server)
-        console.log("\n--- Step 4: Hash Login Key ---");
+        // 8. Hash login key (client-side hash before sending to server)
+        console.log("\n--- Step 8: Hash Login Key ---");
         const hashedLoginKey = blake3Hash(loginKey.buf);
         console.log("Hashed Login Key:", hashedLoginKey.toHex());
 
@@ -86,31 +110,55 @@ export default function NewVaultStep3() {
 
         setPasswordEntropy(pwdEntropy);
 
-        // 5. Register vault with server
-        console.log("\n--- Step 5: Register with Server ---");
+        // 9. Register vault with server
+        console.log("\n--- Step 9: Register with Server ---");
+        const vaultPubKeyHashHex = vaultPubKeyHash.buf.toHex();
+        const hashedLoginKeyHex = hashedLoginKey.toHex();
+
+        console.log("vaultPubKeyHash length:", vaultPubKeyHashHex.length, "expected: 64");
+        console.log("hashedLoginKey length:", hashedLoginKeyHex.length, "expected: 64");
+        console.log("vaultPubKeyHash value:", vaultPubKeyHashHex);
+        console.log("hashedLoginKey value:", hashedLoginKeyHex);
+
         const client = createApiClient(vaultDomain);
+        console.log("Calling registerVault with:", {
+          name: vaultName,
+          domain: vaultDomain,
+          vaultPubKeyHash: vaultPubKeyHashHex,
+          hashedLoginKey: hashedLoginKeyHex,
+        });
+
         const registrationResult = await client.registerVault({
           name: vaultName,
           domain: vaultDomain,
-          encryptedPasswordKey: encryptedPasswordKey.toHex(),
-          hashedLoginKey: hashedLoginKey.toHex(),
+          vaultPubKeyHash: vaultPubKeyHashHex,
+          hashedLoginKey: hashedLoginKeyHex,
         });
         console.log("Server registration successful. Vault ID:", registrationResult.vaultId);
 
-        // 6. Save vault to local database
-        console.log("\n--- Step 6: Save to Local Database ---");
+        // 10. Save vault to local database
+        console.log("\n--- Step 10: Save to Local Database ---");
         const vault = await createVault(
           vaultName,
           vaultDomain,
-          encryptedPasswordKey.toHex(),
+          encryptedVaultKey.toHex(),
+          vaultPubKeyHash.buf.toHex(),
         );
         console.log("Vault saved to database with ID:", vault.id);
-        console.log("Encrypted Password Key (saved):", vault.encryptedPasswordKey);
+        console.log("Vault PubKeyHash:", vault.vaultPubKeyHash);
 
         console.log("\n=== Vault Creation Complete ===\n");
       } catch (err) {
         console.error("Error creating vault:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to create vault";
+        console.error("Error details:", JSON.stringify(err, null, 2));
+
+        let errorMessage = "Failed to create vault";
+        if (err instanceof Error) {
+          errorMessage = err.message;
+          console.error("Error name:", err.name);
+          console.error("Error stack:", err.stack);
+        }
+
         setError(errorMessage);
       } finally {
         setIsCreating(false);

@@ -7,7 +7,8 @@ export interface Vault {
   id: string;
   name: string;
   domain: string;
-  encryptedPasswordKey: string;
+  encryptedVaultKey: string;
+  vaultPubKeyHash: string;
   lastSyncTimestamp: number | null;
   createdAt: number;
 }
@@ -15,7 +16,8 @@ export interface Vault {
 export async function createVault(
   name: string,
   domain: string,
-  encryptedPasswordKey: string,
+  encryptedVaultKey: string,
+  vaultPubKeyHash: string,
 ): Promise<Vault> {
   // Validate name with Zod schema
   vaultNameSchema.parse(name);
@@ -25,7 +27,8 @@ export async function createVault(
   await db.insert(TableVault).values({
     name,
     domain,
-    encryptedPasswordKey,
+    encryptedVaultKey,
+    vaultPubKeyHash,
     createdAt,
   });
 
