@@ -1,6 +1,6 @@
 {
   "name": "keypears-tauri",
-  "description": "KeyPears native app - Decentralized Diffie-Hellman Key Exchange System",
+  "description": "KeyPears client for desktop and mobile.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
