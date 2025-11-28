@@ -103,10 +103,10 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">
-                          {vault.name}@localhost
+                          {vault.name}@{vault.domain}
                         </h3>
                         <p className="text-muted-foreground font-mono text-xs">
-                          {vault.hashedVaultKey.slice(0, 8)}
+                          {vault.id.slice(0, 8)}
                         </p>
                       </div>
                     </Link>
