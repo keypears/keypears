@@ -179,35 +179,68 @@ This name-to-vault indirection enables:
 
 **Current status**: Not yet implemented. Each name has exactly one vault with one immutable key.
 
-### Diffie-Hellman Key Exchange
+### Diffie-Hellman Key Exchange with Quantum Protection
 
-The vault key enables decentralized secret sharing between any two vaults:
+The vault key enables decentralized secret sharing between any two vaults using a **derived public key system** that provides quantum resistance by hiding the primary vault public key.
+
+#### Key Protection Strategy
+
+**Critical principle**: The primary vault public key is **never exposed to third parties**. Instead, each communication channel uses deterministically derived public keys unique to that relationship.
+
+**Why this matters**:
+- Quantum computers can theoretically break ECDH by deriving private keys from public keys
+- If Alice's primary public key were exposed, a quantum attack could compromise all her communication channels
+- By exposing only relationship-specific derived keys, a quantum attack on Alice↔Bob only compromises that channel
+- Alice↔Carol remains secure because Bob never sees the derived key for that relationship
+
+#### Derived Public Key Protocol
+
+When `bob@hevybags.com` wants to communicate with `alice@keypears.com`:
 
 ```
-alice@keypears.com                    bob@hevybags.com
-      ↓                                      ↓
-Vault Key A (private)              Vault Key B (private)
-Vault Public Key A                 Vault Public Key B
-      ↓                                      ↓
-      └────────→ Exchange Public Keys ←──────┘
-                         ↓
-        Shared Secret = ECDH(KeyA, PubKeyB) = ECDH(KeyB, PubKeyA)
+Bob's Side:
+1. Bob generates deterministic ephemeral key for Alice
+2. Bob derives public key from ephemeral key
+3. Bob sends derived public key to keypears.com server
+
+Alice's Server (keypears.com):
+4. Server uses Alice's primary private key + Bob's derived public key
+5. Server generates Alice's derived public key for Bob
+6. Server returns Alice's derived public key to Bob
+
+Both Sides:
+7. Alice uses: Alice primary private key + Bob derived public key → Shared Secret
+8. Bob uses: Bob ephemeral private key + Alice derived public key → Shared Secret
+9. Shared Secret matches (ECDH property)
 ```
 
-**Protocol flow**:
-1. Alice looks up `bob@hevybags.com` on the server
-2. Server returns Bob's vault pubkeyhash
-3. Alice requests Bob's actual public key (authenticated request)
-4. Server returns Bob's public key after verification
-5. Alice computes shared secret: `ECDH(AlicePrivKey, BobPubKey)`
-6. Bob can compute the same: `ECDH(BobPrivKey, AlicePubKey)`
+**Key properties**:
+- Each Alice↔Bob relationship has **immutable derived keys** (per vault)
+- Bob never learns Alice's primary public key
+- Alice never learns Bob's primary public key
+- Compromising Alice↔Bob does not help attack Alice↔Carol
+- Quantum attack surface limited to individual relationships
+
+**What's exposed**:
+- ✅ Vault pubkeyhash (32-byte Blake3 hash) - public identifier
+- ✅ Relationship-specific derived public keys (only to counterparty)
+- ❌ Primary vault public key - **never exposed**
+- ❌ Vault private key - **never leaves device**
+
+**Quantum resistance properties**:
+- Primary key protected: Cannot derive from hash or derived keys
+- Limited attack surface: Each relationship isolated
+- Forward secrecy: Compromising one channel doesn't cascade
+- Graceful degradation: Quantum attack requires targeting each relationship individually
+
+**Protocol details**: Not yet fully specified. The exact derivation mechanism for relationship-specific keys is under development.
 
 **Use cases**:
 - Share passwords between vaults across domains
 - Cryptocurrency wallet identity tied to email address
-- End-to-end encrypted messaging
+- End-to-end encrypted messaging with quantum protection
 
-**Status**: Infrastructure in place, DH protocol not yet implemented.
+**Status**: Infrastructure in place, derived key protocol under development.
 
 ---
 
