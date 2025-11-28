@@ -5,7 +5,7 @@ import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import type { Route } from "./+types/_index";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   return [
     { title: "KeyPears" },
     {

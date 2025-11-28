@@ -9,7 +9,7 @@ export async function loader() {
   return { posts };
 }
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   return [
     { title: "Blog | KeyPears" },
     { name: "description", content: "KeyPears blog - updates and insights" },

@@ -17,7 +17,7 @@ export function loader() {
   return { content };
 }
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   return [
     { title: "About | KeyPears" },
     { name: "description", content: "Learn about KeyPears and our mission" },

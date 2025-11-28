@@ -117,7 +117,7 @@ function generateFeeds(posts: BlogPost[]): void {
       title: post.title,
       id: `${feedUrl}/${post.slug}`,
       link: `${feedUrl}/${post.slug}`,
-      description: post.htmlContent.substring(0, 200) + "...",
+      description: `${post.htmlContent.substring(0, 200)}...`,
       content: post.htmlContent,
       author: [
         {
