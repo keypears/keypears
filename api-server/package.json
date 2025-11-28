@@ -44,6 +44,7 @@
     "vitest": "3.2.4"
   },
   "dependencies": {
+    "@keypears/lib": "workspace:*",
     "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",
     "@webbuf/blake3": "3.0.28",

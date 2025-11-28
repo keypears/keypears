@@ -170,7 +170,12 @@ export default [
         },
       ],
       "import/no-duplicates": "error",
-      "import/no-unresolved": "error",
+      "import/no-unresolved": [
+        "error",
+        {
+          ignore: ["^@keypears/"],  // Allow workspace packages
+        },
+      ],
 
       // Node.js specific rules
       "node/no-unsupported-features/es-syntax": "off",
@@ -268,7 +273,12 @@ export default [
         },
       ],
       "import/no-duplicates": "error",
-      "import/no-unresolved": "error",
+      "import/no-unresolved": [
+        "error",
+        {
+          ignore: ["^@keypears/"],  // Allow workspace packages
+        },
+      ],
 
       // Node.js specific rules
       "node/no-unsupported-features/es-syntax": "off",
