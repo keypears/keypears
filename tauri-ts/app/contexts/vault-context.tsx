@@ -2,10 +2,8 @@ import { createContext, useContext, useState, ReactNode } from "react";
 import type { FixedBuf } from "@keypears/lib";
 import {
   deriveEncryptionKey,
-  decryptKey,
   encryptPassword as libEncryptPassword,
   decryptPassword as libDecryptPassword,
-  WebBuf,
 } from "@keypears/lib";
 import {
   markVaultUnlocked,
@@ -15,8 +13,9 @@ import {
 interface UnlockedVault {
   vaultId: string;
   vaultName: string;
+  vaultDomain: string;
   passwordKey: FixedBuf<32>;
-  encryptedVaultKey: string;
+  encryptedPasswordKey: string;
 }
 
 interface VaultContextType {
@@ -24,13 +23,14 @@ interface VaultContextType {
   unlockVault: (
     vaultId: string,
     vaultName: string,
+    vaultDomain: string,
     passwordKey: FixedBuf<32>,
-    encryptedVaultKey: string,
+    encryptedPasswordKey: string,
   ) => void;
   lockVault: () => void;
   encryptPassword: (password: string) => string;
   decryptPassword: (encryptedPasswordHex: string) => string;
-  getVaultKey: () => FixedBuf<32>;
+  getPasswordKey: () => FixedBuf<32>;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -41,8 +41,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const unlockVault = (
     vaultId: string,
     vaultName: string,
+    vaultDomain: string,
     passwordKey: FixedBuf<32>,
-    encryptedVaultKey: string,
+    encryptedPasswordKey: string,
   ) => {
     // If there's a currently unlocked vault, lock it first
     if (activeVault) {
@@ -50,7 +51,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     }
 
     // Set the new vault as active (replaces any previous vault)
-    setActiveVault({ vaultId, vaultName, passwordKey, encryptedVaultKey });
+    setActiveVault({ vaultId, vaultName, vaultDomain, passwordKey, encryptedPasswordKey });
 
     // Mark as unlocked in shared session state
     markVaultUnlocked(vaultId);
@@ -66,31 +67,26 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setActiveVault(null);
   };
 
-  const getVaultKey = (): FixedBuf<32> => {
+  const getPasswordKey = (): FixedBuf<32> => {
     if (!activeVault) {
       throw new Error("No active vault");
     }
 
-    // Derive encryption key from password key
-    const encryptionKey = deriveEncryptionKey(activeVault.passwordKey);
-
-    // Decrypt vault key
-    const encryptedVaultKeyBuf = WebBuf.fromHex(
-      activeVault.encryptedVaultKey,
-    );
-    const vaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
-
-    return vaultKey;
+    return activeVault.passwordKey;
   };
 
   const encryptPassword = (password: string): string => {
-    const vaultKey = getVaultKey();
-    return libEncryptPassword(password, vaultKey);
+    const passwordKey = getPasswordKey();
+    // Derive encryption key from password key to encrypt secrets
+    const encryptionKey = deriveEncryptionKey(passwordKey);
+    return libEncryptPassword(password, encryptionKey);
   };
 
   const decryptPassword = (encryptedPasswordHex: string): string => {
-    const vaultKey = getVaultKey();
-    return libDecryptPassword(encryptedPasswordHex, vaultKey);
+    const passwordKey = getPasswordKey();
+    // Derive encryption key from password key to decrypt secrets
+    const encryptionKey = deriveEncryptionKey(passwordKey);
+    return libDecryptPassword(encryptedPasswordHex, encryptionKey);
   };
 
   return (
@@ -101,7 +97,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         lockVault,
         encryptPassword,
         decryptPassword,
-        getVaultKey,
+        getPasswordKey,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "3e61927c-765d-4b03-a417-119f0bb317e4",
+  "id": "7a226e86-82e7-4516-9e77-dfe4b6973b1e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "secret_update": {
@@ -127,18 +127,25 @@
           "notNull": true,
           "autoincrement": false
         },
-        "encrypted_vault_key": {
-          "name": "encrypted_vault_key",
+        "domain": {
+          "name": "domain",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "hashed_vault_key": {
-          "name": "hashed_vault_key",
+        "encrypted_password_key": {
+          "name": "encrypted_password_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "last_sync_timestamp": {
+          "name": "last_sync_timestamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "created_at": {
@@ -150,10 +157,11 @@
         }
       },
       "indexes": {
-        "vault_name_unique": {
-          "name": "vault_name_unique",
+        "vault_name_domain_unique": {
+          "name": "vault_name_domain_unique",
           "columns": [
-            "name"
+            "name",
+            "domain"
           ],
           "isUnique": true
         }

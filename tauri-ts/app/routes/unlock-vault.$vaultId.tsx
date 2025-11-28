@@ -65,8 +65,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
     try {
       const result = verifyVaultPassword(
         password,
-        vault.encryptedVaultKey,
-        vault.hashedVaultKey,
+        vault.encryptedPasswordKey,
       );
 
       if (result.valid && result.passwordKey) {
@@ -74,8 +73,9 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         unlockVault(
           vault.id,
           vault.name,
+          vault.domain,
           result.passwordKey,
-          vault.encryptedVaultKey,
+          vault.encryptedPasswordKey,
         );
         navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
       } else {
@@ -99,7 +99,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Unlock Vault</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Vault: <span className="font-mono">{vault.name}@localhost</span>
+              Vault: <span className="font-mono">{vault.name}@{vault.domain}</span>
             </p>
           </div>
 

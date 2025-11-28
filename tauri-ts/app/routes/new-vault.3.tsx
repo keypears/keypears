@@ -6,11 +6,7 @@ import { Button } from "~app/components/ui/button";
 import {
   calculatePasswordEntropy,
   derivePasswordKey,
-  deriveEncryptionKey,
-  deriveLoginKey,
-  generateKey,
   encryptKey,
-  blake3Hash,
 } from "@keypears/lib";
 import { createVault } from "~app/db/models/vault";
 import { cn } from "~app/lib/utils";
@@ -18,9 +14,10 @@ import { cn } from "~app/lib/utils";
 export default function NewVaultStep3() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { vaultName, password } =
+  const { vaultName, vaultDomain, password } =
     (location.state as {
       vaultName?: string;
+      vaultDomain?: string;
       password?: string;
     }) || {};
 
@@ -30,14 +27,14 @@ export default function NewVaultStep3() {
 
   // Redirect to step 1 if missing previous state
   useEffect(() => {
-    if (!vaultName || !password) {
+    if (!vaultName || !vaultDomain || !password) {
       navigate(href("/new-vault/1"));
     }
-  }, [vaultName, password, navigate]);
+  }, [vaultName, vaultDomain, password, navigate]);
 
   // Generate all keys and save to database (runs only once)
   useEffect(() => {
-    if (!vaultName || !password || hasRun.current) {
+    if (!vaultName || !vaultDomain || !password || hasRun.current) {
       return;
     }
 
@@ -49,36 +46,17 @@ export default function NewVaultStep3() {
       try {
         console.log("=== Vault Creation ===");
         console.log("Vault Name:", vaultName);
+        console.log("Vault Domain:", vaultDomain);
 
         // 1. Derive password key from password
         console.log("\n--- Step 1: Derive Password Key ---");
         const passwordKey = derivePasswordKey(password);
         console.log("Password Key:", passwordKey.buf.toHex());
 
-        // 2. Derive encryption key from password key
-        console.log("\n--- Step 2: Derive Encryption Key ---");
-        const encryptionKey = deriveEncryptionKey(passwordKey);
-        console.log("Encryption Key:", encryptionKey.buf.toHex());
-
-        // 3. Derive login key from password key
-        console.log("\n--- Step 3: Derive Login Key ---");
-        const loginKey = deriveLoginKey(passwordKey);
-        console.log("Login Key:", loginKey.buf.toHex());
-
-        // 4. Generate random vault master key (immutable)
-        console.log("\n--- Step 4: Generate Vault Master Key ---");
-        const vaultKey = generateKey();
-        console.log("Vault Key (master):", vaultKey.buf.toHex());
-
-        // 4.5. Hash the vault key for identification
-        console.log("\n--- Step 4.5: Hash Vault Key ---");
-        const hashedVaultKey = blake3Hash(vaultKey.buf);
-        console.log("Hashed Vault Key:", hashedVaultKey.toHex());
-
-        // 5. Encrypt vault key with encryption key
-        console.log("\n--- Step 5: Encrypt Vault Key ---");
-        const encryptedVaultKey = encryptKey(vaultKey, encryptionKey);
-        console.log("Encrypted Vault Key:", encryptedVaultKey.toHex());
+        // 2. Encrypt password key with itself (for local verification)
+        console.log("\n--- Step 2: Encrypt Password Key ---");
+        const encryptedPasswordKey = encryptKey(passwordKey, passwordKey);
+        console.log("Encrypted Password Key:", encryptedPasswordKey.toHex());
 
         // Calculate and log entropy
         const pwdEntropy = calculatePasswordEntropy(password.length, {
@@ -93,16 +71,15 @@ export default function NewVaultStep3() {
 
         setPasswordEntropy(pwdEntropy);
 
-        // Save vault with encrypted keys to database
-        console.log("\n--- Step 6: Save to Database ---");
+        // Save vault with encrypted password key to database
+        console.log("\n--- Step 3: Save to Database ---");
         const vault = await createVault(
           vaultName,
-          encryptedVaultKey.toHex(),
-          hashedVaultKey.toHex(),
+          vaultDomain,
+          encryptedPasswordKey.toHex(),
         );
         console.log("Vault saved to database with ID:", vault.id);
-        console.log("Encrypted Vault Key (saved):", vault.encryptedVaultKey);
-        console.log("Hashed Vault Key (saved):", vault.hashedVaultKey);
+        console.log("Encrypted Password Key (saved):", vault.encryptedPasswordKey);
 
         console.log("\n=== Vault Creation Complete ===\n");
       } catch (error) {
@@ -113,9 +90,9 @@ export default function NewVaultStep3() {
     };
 
     createVaultWithKeys();
-  }, [vaultName, password]);
+  }, [vaultName, vaultDomain, password]);
 
-  if (!vaultName || !password) {
+  if (!vaultName || !vaultDomain || !password) {
     return null;
   }
 
@@ -148,7 +125,7 @@ export default function NewVaultStep3() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Name:</span>
-                        <span className="font-mono">{vaultName}@localhost</span>
+                        <span className="font-mono">{vaultName}@{vaultDomain}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">

@@ -16,9 +16,10 @@ CREATE INDEX `idx_secret_updates_type` ON `secret_update` (`type`);--> statement
 CREATE TABLE `vault` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
-	`encrypted_vault_key` text NOT NULL,
-	`hashed_vault_key` text NOT NULL,
+	`domain` text NOT NULL,
+	`encrypted_password_key` text NOT NULL,
+	`last_sync_timestamp` integer,
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `vault_name_unique` ON `vault` (`name`);
+CREATE UNIQUE INDEX `vault_name_domain_unique` ON `vault` (`name`,`domain`);

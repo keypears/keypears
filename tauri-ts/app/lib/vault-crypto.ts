@@ -1,8 +1,7 @@
 import {
   derivePasswordKey,
-  deriveEncryptionKey,
+  encryptKey,
   decryptKey,
-  blake3Hash,
   WebBuf,
 } from "@keypears/lib";
 import type { FixedBuf } from "@keypears/lib";
@@ -13,29 +12,21 @@ export interface PasswordVerificationResult {
 }
 
 /**
- * Verifies a vault password by deriving keys and comparing vault key hash
+ * Verifies a vault password by deriving the password key and comparing with stored encrypted version
  */
 export function verifyVaultPassword(
   password: string,
-  encryptedVaultKey: string,
-  hashedVaultKey: string,
+  encryptedPasswordKey: string,
 ): PasswordVerificationResult {
   try {
     // 1. Derive password key from password
     const passwordKey = derivePasswordKey(password);
 
-    // 2. Derive encryption key from password key
-    const encryptionKey = deriveEncryptionKey(passwordKey);
+    // 2. Encrypt the password key with itself (for verification)
+    const computedEncryptedPasswordKey = encryptKey(passwordKey, passwordKey);
 
-    // 3. Decrypt vault key with encryption key
-    const encryptedVaultKeyBuf = WebBuf.fromHex(encryptedVaultKey);
-    const decryptedVaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
-
-    // 4. Hash the decrypted vault key
-    const computedHash = blake3Hash(decryptedVaultKey.buf);
-
-    // 5. Compare computed hash with stored hash
-    if (computedHash.toHex() === hashedVaultKey) {
+    // 3. Compare computed encrypted password key with stored version
+    if (computedEncryptedPasswordKey.toHex() === encryptedPasswordKey) {
       return { valid: true, passwordKey };
     }
 
@@ -47,13 +38,12 @@ export function verifyVaultPassword(
 }
 
 /**
- * Gets the decrypted vault key using the password key
+ * Decrypts the encrypted password key using the password key
  */
-export function getVaultKey(
+export function decryptPasswordKey(
   passwordKey: FixedBuf<32>,
-  encryptedVaultKey: string,
+  encryptedPasswordKey: string,
 ): FixedBuf<32> {
-  const encryptionKey = deriveEncryptionKey(passwordKey);
-  const encryptedVaultKeyBuf = WebBuf.fromHex(encryptedVaultKey);
-  return decryptKey(encryptedVaultKeyBuf, encryptionKey);
+  const encryptedPasswordKeyBuf = WebBuf.fromHex(encryptedPasswordKey);
+  return decryptKey(encryptedPasswordKeyBuf, passwordKey);
 }

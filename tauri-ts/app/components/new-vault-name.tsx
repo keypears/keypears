@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema } from "@keypears/lib";
-import { getVaultByName, getVaults } from "~app/db/models/vault";
+import { getVaults } from "~app/db/models/vault";
 import { ZodError } from "zod";
 
 export function NewVaultName() {
@@ -48,14 +48,11 @@ export function NewVaultName() {
   };
 
   // Check if name already exists in database
-  const checkNameExists = async (value: string): Promise<boolean> => {
+  // TODO: Update this to check per-domain in Phase 4
+  const checkNameExists = async (_value: string): Promise<boolean> => {
     setIsChecking(true);
     try {
-      const existing = await getVaultByName(value);
-      if (existing) {
-        setError("A vault with this name already exists");
-        return true;
-      }
+      // Temporarily disabled - will be rewritten for per-domain checking in Phase 4
       return false;
     } finally {
       setIsChecking(false);
