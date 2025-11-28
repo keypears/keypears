@@ -12,6 +12,7 @@ import {
 } from "@keypears/lib";
 import { createVault } from "~app/db/models/vault";
 import { cn } from "~app/lib/utils";
+import { createApiClient } from "~app/lib/api-client";
 
 export default function NewVaultStep3() {
   const location = useLocation();
@@ -87,16 +88,14 @@ export default function NewVaultStep3() {
 
         // 5. Register vault with server
         console.log("\n--- Step 5: Register with Server ---");
-        // TODO: Call API endpoint to register vault
-        // For now, skip server registration (will be implemented in Phase 5)
-        // const client = createClient({ url: `http://${vaultDomain}:${getDevPort(vaultDomain) || 4273}/api` });
-        // await client.registerVault({
-        //   name: vaultName,
-        //   domain: vaultDomain,
-        //   encryptedPasswordKey: encryptedPasswordKey.toHex(),
-        //   hashedLoginKey: hashedLoginKey.toHex(),
-        // });
-        console.log("Server registration: TODO (Phase 5)");
+        const client = createApiClient(vaultDomain);
+        const registrationResult = await client.registerVault({
+          name: vaultName,
+          domain: vaultDomain,
+          encryptedPasswordKey: encryptedPasswordKey.toHex(),
+          hashedLoginKey: hashedLoginKey.toHex(),
+        });
+        console.log("Server registration successful. Vault ID:", registrationResult.vaultId);
 
         // 6. Save vault to local database
         console.log("\n--- Step 6: Save to Local Database ---");

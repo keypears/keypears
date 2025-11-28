@@ -6,6 +6,7 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema, getOfficialDomains } from "@keypears/lib";
 import { ZodError } from "zod";
+import { createApiClient } from "~app/lib/api-client";
 
 export default function NewVaultStep2() {
   const location = useLocation();
@@ -65,18 +66,13 @@ export default function NewVaultStep2() {
     setNameAvailable(null);
 
     try {
-      // TODO: Call API endpoint to check availability
-      // For now, just simulate the check
-      // const client = createClient({ url: `http://${domain}:${getDevPort(domain) || 4273}/api` });
-      // const result = await client.checkNameAvailability({ name, domain });
-      // setNameAvailable(result.available);
-
-      // Temporary: always return available (will be implemented in Phase 5)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setNameAvailable(true);
+      // Call API endpoint to check availability
+      const client = createApiClient(domain);
+      const result = await client.checkNameAvailability({ name, domain });
+      setNameAvailable(result.available);
     } catch (error) {
       console.error("Error checking name availability:", error);
-      setNameError("Unable to check availability");
+      setNameError("Unable to check availability. Is the server running?");
       setNameAvailable(null);
     } finally {
       setIsCheckingAvailability(false);
