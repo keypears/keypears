@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useParams, useNavigate, Outlet, href } from "react-router";
 import { useVault } from "~app/contexts/vault-context";
+import { ServerStatusProvider } from "~app/contexts/ServerStatusContext";
+import { ServerStatusBanner } from "~app/components/ServerStatusBanner";
+import { buildServerUrl } from "@keypears/api-server/client";
 
 export default function VaultPasswordsLayout() {
   const params = useParams();
@@ -29,5 +32,10 @@ export default function VaultPasswordsLayout() {
     return null;
   }
 
-  return <Outlet />;
+  return (
+    <ServerStatusProvider serverUrl={buildServerUrl(activeVault.vaultDomain)}>
+      <ServerStatusBanner />
+      <Outlet />
+    </ServerStatusProvider>
+  );
 }

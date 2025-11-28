@@ -10,6 +10,9 @@ import {
 // Re-export schemas for client convenience
 export * from "./zod-schemas.js";
 
+// Re-export domain utilities for client convenience
+export { buildServerUrl } from "@keypears/lib";
+
 export interface ClientConfig {
   url?: string;
   headers?: Record<string, string>;

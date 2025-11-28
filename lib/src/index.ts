@@ -13,6 +13,7 @@ export {
   getOfficialDomains,
   isOfficialDomain,
   getDevPort,
+  buildServerUrl,
 } from "./domains.js";
 
 /** for all lowercase letters, 8 chars is ~38 bits of entropy (development minimum) */

@@ -58,3 +58,30 @@ export function getDevPort(domain: string): number | undefined {
   }
   return undefined;
 }
+
+/**
+ * Build the server URL for API calls based on the vault's domain
+ *
+ * @param domain - The vault's domain (e.g., 'keypears.com', 'keypears.localhost', 'localhost:4273')
+ * @returns Full server URL with protocol and /api path
+ *
+ * @example
+ * buildServerUrl('keypears.com') // 'https://keypears.com/api'
+ * buildServerUrl('keypears.localhost') // 'http://keypears.localhost:4273/api'
+ * buildServerUrl('localhost:4273') // 'http://localhost:4273/api'
+ */
+export function buildServerUrl(domain: string): string {
+  // Check if it's a development domain with mapped port
+  const devPort = getDevPort(domain);
+  if (devPort !== undefined) {
+    return `http://${domain}:${devPort}/api`;
+  }
+
+  // Check if domain already includes a port (custom development)
+  if (domain.includes(':')) {
+    return `http://${domain}/api`;
+  }
+
+  // Production domain - use https
+  return `https://${domain}/api`;
+}
