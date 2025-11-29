@@ -32,7 +32,11 @@ pub fn run(db_path: String) {
         .manage(DbPathState { path: db_path })
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, get_api_url_command, get_db_path])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_api_url_command,
+            get_db_path
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

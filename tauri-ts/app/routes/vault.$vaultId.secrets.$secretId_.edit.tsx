@@ -13,12 +13,13 @@ import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob, encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
+import { triggerManualSync } from "~app/lib/sync-service";
 
 export default function EditPassword() {
   const params = useParams();
   const navigate = useNavigate();
   const { activeVault, encryptPassword, decryptPassword, getLoginKey } = useVault();
-  const { status, triggerSync } = useServerStatus();
+  const { status } = useServerStatus();
 
   const [existingPassword, setExistingPassword] =
     useState<SecretUpdateRow | null>(null);
@@ -75,7 +76,8 @@ export default function EditPassword() {
     };
 
     loadPassword();
-  }, [params.secretId, activeVault, decryptPassword]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.secretId]);
 
   if (!activeVault) {
     return null;
@@ -178,7 +180,7 @@ export default function EditPassword() {
       }]);
 
       // Still trigger sync to fetch any other updates
-      await triggerSync();
+      await triggerManualSync();
 
       // Navigate back to password detail
       navigate(

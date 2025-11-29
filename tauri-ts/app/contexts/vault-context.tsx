@@ -8,7 +8,10 @@ import {
   markVaultUnlocked,
   markVaultLocked,
 } from "~app/lib/vault-session";
-import { useServerStatus } from "./ServerStatusContext";
+import {
+  startBackgroundSync,
+  stopBackgroundSync,
+} from "~app/lib/sync-service";
 
 interface UnlockedVault {
   vaultId: string;
@@ -51,7 +54,6 @@ const VaultContext = createContext<VaultContextType | undefined>(undefined);
 
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [activeVault, setActiveVault] = useState<UnlockedVault | null>(null);
-  const { registerVaultForSync, unregisterVaultForSync } = useServerStatus();
 
   const unlockVault = (
     vaultId: string,
@@ -68,7 +70,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // If there's a currently unlocked vault, lock it first
     if (activeVault) {
       markVaultLocked(activeVault.vaultId);
-      unregisterVaultForSync();
+      stopBackgroundSync();
     }
 
     // Set the new vault as active (replaces any previous vault)
@@ -88,8 +90,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Mark as unlocked in shared session state
     markVaultUnlocked(vaultId);
 
-    // Register vault for automatic sync
-    registerVaultForSync(vaultId, vaultDomain, vaultKey, loginKey);
+    // Start background sync
+    startBackgroundSync(vaultId, vaultDomain, vaultKey, loginKey);
   };
 
   const lockVault = () => {
@@ -98,8 +100,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Mark as locked in shared session state
     markVaultLocked(activeVault.vaultId);
 
-    // Unregister from automatic sync
-    unregisterVaultForSync();
+    // Stop background sync
+    stopBackgroundSync();
 
     // Clear the active vault
     setActiveVault(null);

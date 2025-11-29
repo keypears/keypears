@@ -11,12 +11,13 @@ import { createApiClient } from "~app/lib/api-client";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { insertSecretUpdatesFromSync } from "~app/db/models/password";
 import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import { triggerManualSync } from "~app/lib/sync-service";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
   const navigate = useNavigate();
   const { activeVault, encryptPassword, getLoginKey } = useVault();
-  const { status, triggerSync } = useServerStatus();
+  const { status } = useServerStatus();
 
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -96,7 +97,7 @@ export default function NewPassword() {
       }]);
 
       // Still trigger sync to fetch any other updates
-      await triggerSync();
+      await triggerManualSync();
 
       // Navigate back to passwords list
       navigate(

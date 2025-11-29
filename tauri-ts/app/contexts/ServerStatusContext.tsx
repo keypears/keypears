@@ -1,30 +1,18 @@
 import type { JSX } from "react";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { createClient, type KeypearsClient } from "@keypears/api-server/client";
-import { createApiClient } from "~app/lib/api-client";
-import { syncVault } from "~app/lib/sync";
-import type { FixedBuf } from "@keypears/lib";
 
 export interface ServerStatus {
   isOnline: boolean;
   isValidating: boolean;
   error?: string;
   lastChecked?: Date;
-
-  // Sync status
-  isSyncing: boolean;
-  lastSyncTime: Date | null;
-  lastSyncError: string | null;
-  updatesReceived: number;
 }
 
 interface ServerStatusContextValue {
   status: ServerStatus;
   client: KeypearsClient;
   checkServer: () => Promise<void>;
-  registerVaultForSync: (vaultId: string, vaultDomain: string, vaultKey: FixedBuf<32>, loginKey: FixedBuf<32>) => void;
-  unregisterVaultForSync: () => void;
-  triggerSync: () => Promise<void>;
 }
 
 const ServerStatusContext = createContext<ServerStatusContextValue | undefined>(
@@ -53,7 +41,6 @@ interface ServerStatusProviderProps {
  * - Validates server on mount
  * - Provides manual checkServer() for re-validation
  * - Manages isOnline state based on validation results
- * - Re-validates every 30 seconds while mounted
  */
 export function ServerStatusProvider({
   children,
@@ -64,19 +51,7 @@ export function ServerStatusProvider({
   const [status, setStatus] = useState<ServerStatus>({
     isOnline: false,
     isValidating: false,
-    isSyncing: false,
-    lastSyncTime: null,
-    lastSyncError: null,
-    updatesReceived: 0,
   });
-
-  // Track currently unlocked vault for automatic sync
-  const [activeVault, setActiveVault] = useState<{
-    vaultId: string;
-    vaultDomain: string;
-    vaultKey: FixedBuf<32>;
-    loginKey: FixedBuf<32>;
-  } | null>(null);
 
   // Create client only on client-side (after hydration)
   useEffect(() => {
@@ -123,91 +98,13 @@ export function ServerStatusProvider({
     }
   }, [client]);
 
-  // Sync vault if one is registered and server is online
-  const performSync = useCallback(async (): Promise<void> => {
-    if (!client || !activeVault || !status.isOnline) {
-      return;
-    }
-
-    setStatus((prev) => ({ ...prev, isSyncing: true }));
-
-    try {
-      // Create authenticated API client with login key
-      const authedClient = createApiClient(
-        activeVault.vaultDomain,
-        activeVault.loginKey,
-      );
-
-      const result = await syncVault(
-        activeVault.vaultId,
-        activeVault.vaultKey,
-        authedClient,
-      );
-
-      if (result.success) {
-        setStatus((prev) => ({
-          ...prev,
-          isSyncing: false,
-          lastSyncTime: new Date(),
-          lastSyncError: null,
-          updatesReceived: result.updatesReceived || 0,
-        }));
-      } else {
-        setStatus((prev) => ({
-          ...prev,
-          isSyncing: false,
-          lastSyncError: result.error || "Unknown sync error",
-        }));
-      }
-    } catch (error) {
-      setStatus((prev) => ({
-        ...prev,
-        isSyncing: false,
-        lastSyncError: error instanceof Error ? error.message : "Unknown sync error",
-      }));
-    }
-  }, [client, activeVault, status.isOnline]);
-
-  // Unified poll: check server health, then sync if vault is unlocked
-  const pollServerAndSync = useCallback(async (): Promise<void> => {
-    await checkServer();
-    await performSync();
-  }, [checkServer, performSync]);
-
-  // Register vault for automatic sync
-  const registerVaultForSync = useCallback((vaultId: string, vaultDomain: string, vaultKey: FixedBuf<32>, loginKey: FixedBuf<32>) => {
-    setActiveVault({ vaultId, vaultDomain, vaultKey, loginKey });
-  }, []);
-
-  // Unregister vault (on lock)
-  const unregisterVaultForSync = useCallback(() => {
-    setActiveVault(null);
-  }, []);
-
-  // Trigger immediate sync (for after mutations)
-  const triggerSync = useCallback(async (): Promise<void> => {
-    await performSync();
-  }, [performSync]);
-
-  // Initial check and sync on mount (after client is created)
+  // Initial server check on mount (after client is created)
   useEffect(() => {
     if (client) {
-      pollServerAndSync();
+      checkServer();
     }
-  }, [client, pollServerAndSync]);
-
-  // Poll server and sync every 5 seconds
-  useEffect(() => {
-    if (!client) return;
-
-    const interval = setInterval(() => {
-      pollServerAndSync();
-    }, 5000); // 5 seconds
-
-    return (): void => {
-      clearInterval(interval);
-    };
-  }, [client, pollServerAndSync]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
 
   // Don't render children until client is ready
   if (!client) {
@@ -220,9 +117,6 @@ export function ServerStatusProvider({
         status,
         client,
         checkServer,
-        registerVaultForSync,
-        unregisterVaultForSync,
-        triggerSync,
       }}
     >
       {children}
