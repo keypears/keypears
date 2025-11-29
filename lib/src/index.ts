@@ -203,17 +203,23 @@ export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
  * This function is called on the server after receiving the login key from the client.
  * The server stores this hashed login key in the database. If the database is compromised,
  * an attacker cannot use the stolen hashed login key to authenticate because they would
- * need to reverse 100,000 rounds of KDF.
+ * need to reverse 1,000 rounds of KDF.
+ *
+ * Note: Only 1,000 rounds are used server-side (vs 100,000 client-side) because:
+ * - The login key has already undergone 100,000 rounds client-side
+ * - Server KDF only prevents storing raw login key in database
+ * - Reduces server CPU load and prevents DOS attacks via fake login attempts
+ * - Attacker still needs to reverse 1k + 100k rounds total to get password key
  *
  * Security property: Even if the server's database is stolen, the attacker cannot
- * authenticate as the user without reversing the KDF, which is computationally impractical.
+ * authenticate as the user without reversing the KDF, which is computationally expensive.
  *
  * @param loginKey - The 32-byte login key received from the client (unhashed)
  * @returns A 32-byte hashed login key for database storage
  */
 export function deriveHashedLoginKey(loginKey: FixedBuf<32>): FixedBuf<32> {
   const salt = deriveServerHashedLoginKeySalt();
-  return blake3Pbkdf(loginKey.buf, salt, 100_000);
+  return blake3Pbkdf(loginKey.buf, salt, 1_000); // 1k rounds (server-side only)
 }
 
 /**

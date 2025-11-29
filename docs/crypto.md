@@ -292,7 +292,7 @@ Password Key (stored in device memory, encrypted with PIN)
 
 [SERVER SIDE]
 Login Key (received from client via HTTPS)
-  ↓ blake3Pbkdf(loginKey, serverLoginSalt, 100k rounds)
+  ↓ blake3Pbkdf(loginKey, serverLoginSalt, 1k rounds)
 Hashed Login Key (stored in database)
 ```
 
@@ -322,12 +322,19 @@ Hashed Login Key (stored in database)
 
 ### 4. Hashed Login Key (Server-Side)
 
-- **Derived from**: Login key + server salt (100k rounds)
+- **Derived from**: Login key + server salt (1k rounds)
 - **Purpose**: Database storage for authentication verification
 - **Where derived**: On the server when login key is received
 - **Stored in**: Server database only
 - **Security**: If database is compromised, attacker cannot use this to
-  authenticate (would need to reverse 100k KDF rounds)
+  authenticate (would need to reverse 1k KDF rounds to get login key, then 100k
+  rounds to get password key)
+
+**Why only 1,000 rounds on server?**
+- Login key has already undergone 100,000 rounds of KDF client-side
+- Server-side KDF only prevents storing raw login key in database
+- Reduces server CPU load and prevents DOS attacks via fake login attempts
+- Total attacker cost: 1k + 100k rounds = still computationally impractical
 
 **Important**: The hashed login key is derived **server-side only**. The client
 never computes or sends this value.
@@ -381,7 +388,8 @@ compromised:
 - **Server compromise** (login key stolen): Cannot derive password key or
   encryption key
 - **Database theft** (hashed login key stolen): Cannot authenticate with it
-  (would need to reverse 100k KDF rounds to get login key)
+  (would need to reverse 1k KDF rounds to get login key, then attacker still
+  cannot derive password or decrypt vaults without reversing additional 100k rounds)
 - **Encrypted vault theft**: Cannot decrypt without encryption key
 - **Login key interception**: Cannot access vault data
 
@@ -456,6 +464,51 @@ Properties:
 - Not a standard KDF like PBKDF2, but cryptographically sound
 - Uses Blake3's keyed mode (secure MAC construction)
 
+## Server-Side KDF Performance Consideration
+
+The server uses only **1,000 rounds** of KDF when hashing the login key, while
+the client uses **100,000 rounds** for all its key derivations.
+
+### Why Different Round Counts?
+
+**Client-side (100k rounds)**:
+- Primary security barrier against brute-force attacks
+- Derives password key from user's password (protects weak passwords)
+- Derives encryption key and login key from password key
+- Must be computationally expensive to prevent password guessing
+
+**Server-side (1k rounds)**:
+- Login key has already undergone 100k rounds client-side
+- Purpose is only to avoid storing raw login key in database
+- Not protecting against weak passwords (password already hashed 100k times)
+- Lower rounds prevents DOS attacks via fake login requests
+- 100x less CPU load for legitimate authentication
+
+### Security Analysis
+
+**Attacker scenarios**:
+
+1. **Database compromised** (has hashed login key):
+   - Must reverse 1k rounds to get login key ✓ (still expensive)
+   - Then must reverse 100k rounds to get password key ✗ (impossible)
+   - Cannot authenticate without reversing at least the 1k rounds
+   - Cannot decrypt vaults without password key (requires reversing all 101k
+     rounds)
+
+2. **Network intercept** (captures login key over HTTPS):
+   - Can authenticate directly (HTTPS compromise is outside threat model)
+   - Still cannot decrypt vaults without encryption key
+   - Cannot derive password key (100k rounds backwards)
+
+3. **DOS attack** (flood server with fake logins):
+   - 1k rounds is 100x faster than 100k
+   - Reduces effectiveness of authentication-based DOS
+   - Legitimate users experience faster login
+
+**Conclusion**: 1,000 rounds provides sufficient protection for the server's use
+case (preventing raw login key storage) while maintaining good performance and
+DOS resistance. The primary security remains in the client-side 100,000 rounds.
+
 ## Sync Flow
 
 When syncing a vault to a new device:
@@ -510,7 +563,8 @@ Security guarantee: Even with full database access, attacker cannot:
 **Server side**:
 
 1. Receive login key (unhashed)
-2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 1k)` (1k
+   rounds, not 100k)
 3. Store in database:
    `{ name, domain, hashedLoginKey, encryptedVaultKey, vaultPubKeyHash }`
 
@@ -533,7 +587,8 @@ Security guarantee: Even with full database access, attacker cannot:
 **Server side**:
 
 1. Receive login key (unhashed)
-2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 1k)` (1k
+   rounds, not 100k)
 3. Compare with stored `hashedLoginKey` in database
 4. If match: return `{ encryptedVaultKey, vaultPubKeyHash }`
 5. If no match: return `{ error: "Invalid password" }`
@@ -551,9 +606,10 @@ Security guarantee: Even with full database access, attacker cannot:
 **Current implementation (MVP)**:
 
 - Each API request includes login key in header: `X-KeyPears-Auth: <loginKey>`
-- Server validates by computing: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+- Server validates by computing: `blake3Pbkdf(loginKey, serverLoginSalt, 1k)`
   and comparing with stored `hashedLoginKey`
 - Login key is the same across all devices for the same vault
+- Note: Only 1k rounds used for faster API authentication and DOS resistance
 
 **TODO - Future improvement**:
 
