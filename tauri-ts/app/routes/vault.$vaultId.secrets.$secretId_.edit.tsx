@@ -11,13 +11,13 @@ import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
-import { pushSecretUpdate, syncVault } from "~app/lib/sync";
+import { pushSecretUpdate } from "~app/lib/sync";
 
 export default function EditPassword() {
   const params = useParams();
   const navigate = useNavigate();
   const { activeVault, encryptPassword, decryptPassword } = useVault();
-  const { status, client } = useServerStatus();
+  const { status, client, triggerSync } = useServerStatus();
 
   const [existingPassword, setExistingPassword] =
     useState<SecretUpdateRow | null>(null);
@@ -157,8 +157,8 @@ export default function EditPassword() {
         client,
       );
 
-      // Sync vault to fetch the updated secret
-      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
+      // Trigger immediate sync to fetch the updated secret
+      await triggerSync();
 
       // Navigate back to password detail
       navigate(

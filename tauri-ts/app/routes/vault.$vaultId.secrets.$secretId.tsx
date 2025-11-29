@@ -30,12 +30,12 @@ import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
-import { pushSecretUpdate, syncVault } from "~app/lib/sync";
+import { pushSecretUpdate } from "~app/lib/sync";
 
 export default function PasswordDetail() {
   const params = useParams();
   const { activeVault, decryptPassword } = useVault();
-  const { status, client } = useServerStatus();
+  const { status, client, triggerSync } = useServerStatus();
 
   const [password, setPassword] = useState<SecretUpdateRow | null>(null);
   const [decryptedBlob, setDecryptedBlob] = useState<SecretBlobData | null>(
@@ -120,8 +120,8 @@ export default function PasswordDetail() {
         client,
       );
 
-      // Sync vault to fetch the tombstone
-      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
+      // Trigger immediate sync to fetch the tombstone
+      await triggerSync();
 
       // Reload the secret to show updated state
       const latest = await getLatestSecret(password.secretId);

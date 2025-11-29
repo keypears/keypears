@@ -7,13 +7,13 @@ import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
-import { pushSecretUpdate, syncVault } from "~app/lib/sync";
+import { pushSecretUpdate } from "~app/lib/sync";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
   const navigate = useNavigate();
   const { activeVault, encryptPassword } = useVault();
-  const { status, client } = useServerStatus();
+  const { status, client, triggerSync } = useServerStatus();
 
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -73,8 +73,8 @@ export default function NewPassword() {
         client,
       );
 
-      // Sync vault to fetch the new secret
-      await syncVault(activeVault.vaultId, activeVault.vaultKey, client);
+      // Trigger immediate sync to fetch the new secret
+      await triggerSync();
 
       // Navigate back to passwords list
       navigate(
