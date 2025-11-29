@@ -7,6 +7,7 @@ import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
+import { createApiClient } from "~app/lib/api-client";
 import { getLatestSecret } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
@@ -16,8 +17,8 @@ import { pushSecretUpdate } from "~app/lib/sync";
 export default function EditPassword() {
   const params = useParams();
   const navigate = useNavigate();
-  const { activeVault, encryptPassword, decryptPassword } = useVault();
-  const { status, client, triggerSync } = useServerStatus();
+  const { activeVault, encryptPassword, decryptPassword, getLoginKey } = useVault();
+  const { status, triggerSync } = useServerStatus();
 
   const [existingPassword, setExistingPassword] =
     useState<SecretUpdateRow | null>(null);
@@ -148,13 +149,17 @@ export default function EditPassword() {
         deleted: false,
       };
 
+      // Create authenticated API client with login key
+      const loginKey = getLoginKey();
+      const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
+
       // Push update to server (creates new version with higher localOrder)
       await pushSecretUpdate(
         activeVault.vaultId,
         existingPassword.secretId, // Same secretId for versioning
         secretData,
         activeVault.vaultKey,
-        client,
+        authedClient,
       );
 
       // Trigger immediate sync to fetch the updated secret

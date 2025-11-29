@@ -7,13 +7,14 @@ import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
+import { createApiClient } from "~app/lib/api-client";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
   const navigate = useNavigate();
-  const { activeVault, encryptPassword } = useVault();
-  const { status, client, triggerSync } = useServerStatus();
+  const { activeVault, encryptPassword, getLoginKey } = useVault();
+  const { status, triggerSync } = useServerStatus();
 
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -64,13 +65,17 @@ export default function NewPassword() {
         deleted: false,
       };
 
+      // Create authenticated API client with login key
+      const loginKey = getLoginKey();
+      const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
+
       // Push to server (server generates ID, order numbers, timestamp)
       await pushSecretUpdate(
         activeVault.vaultId,
         secretId,
         secretData,
         activeVault.vaultKey,
-        client,
+        authedClient,
       );
 
       // Trigger immediate sync to fetch the new secret
