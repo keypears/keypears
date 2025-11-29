@@ -184,8 +184,9 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
-- **Type safety**: NEVER use `any` type under any circumstances.
+- **Type safety**: NEVER use the `any` type under any circumstances.
   - ALWAYS find a way to explicitly specify types
+  - NEVER use the `any` keyword
   - NEVER use `any` because you were too lazy to figure out what types to use
   - NEVER EVER EVER use `any` EVER under ANY circumstances. NEVER USE `any`
     EVER!!!!
