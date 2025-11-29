@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const host = process.env.TAURI_DEV_HOST;
+const port = parseInt(process.env.PORT || "1420", 10);
 
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths(), safeRoutes()],
@@ -20,15 +21,16 @@ export default defineConfig(async () => ({
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
   // 2. tauri expects a fixed port, fail if that port is not available
+  // Port can be customized via PORT env var (e.g., PORT=1421 pnpm tauri:dev)
   server: {
-    port: 1420,
+    port,
     strictPort: true,
     host: host || false,
     hmr: host
       ? {
           protocol: "ws",
           host,
-          port: 1421,
+          port: port + 1,
         }
       : undefined,
     watch: {
