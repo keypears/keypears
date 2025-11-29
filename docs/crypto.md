@@ -278,15 +278,22 @@ vault encryption keys while enabling secure server authentication.
 ## Overview
 
 The system derives three keys from a single master password through iterative
-application of Blake3-based PBKDF:
+application of Blake3-based PBKDF. The server then derives a fourth key for
+secure database storage:
 
 ```
+[CLIENT SIDE]
 Master Password
   ↓ blake3Pbkdf(password, passwordSalt, 100k rounds)
-Password Key (cached on device, encrypted with PIN)
+Password Key (stored in device memory, encrypted with PIN)
   ↓
-  ├→ blake3Pbkdf(passwordKey, encryptionSalt, 100k rounds) → Encryption Key
-  └→ blake3Pbkdf(passwordKey, loginSalt, 100k rounds) → Login Key
+  ├→ blake3Pbkdf(passwordKey, encryptionSalt, 100k rounds) → Encryption Key (stays on device)
+  └→ blake3Pbkdf(passwordKey, loginSalt, 100k rounds) → Login Key (sent to server)
+
+[SERVER SIDE]
+Login Key (received from client via HTTPS)
+  ↓ blake3Pbkdf(loginKey, serverLoginSalt, 100k rounds)
+Hashed Login Key (stored in database)
 ```
 
 ## The Three Keys
@@ -312,6 +319,18 @@ Password Key (cached on device, encrypted with PIN)
 - **Sent to**: Server for user authentication
 - **Cannot derive**: Password key or encryption key (computationally
   impractical)
+
+### 4. Hashed Login Key (Server-Side)
+
+- **Derived from**: Login key + server salt (100k rounds)
+- **Purpose**: Database storage for authentication verification
+- **Where derived**: On the server when login key is received
+- **Stored in**: Server database only
+- **Security**: If database is compromised, attacker cannot use this to
+  authenticate (would need to reverse 100k KDF rounds)
+
+**Important**: The hashed login key is derived **server-side only**. The client
+never computes or sends this value.
 
 ## Salt Derivation
 
@@ -343,6 +362,15 @@ return blake3Hash("KeyPears login salt v1")
 
 Global constant for all users.
 
+### Server Hashed Login Key Salt
+
+```typescript
+deriveServerHashedLoginKeySalt() → FixedBuf<32>
+return blake3Hash("KeyPears server login salt v1")
+```
+
+Global constant for all users. Used server-side only.
+
 ## Security Properties
 
 ### Defense in Depth
@@ -352,6 +380,8 @@ compromised:
 
 - **Server compromise** (login key stolen): Cannot derive password key or
   encryption key
+- **Database theft** (hashed login key stolen): Cannot authenticate with it
+  (would need to reverse 100k KDF rounds to get login key)
 - **Encrypted vault theft**: Cannot decrypt without encryption key
 - **Login key interception**: Cannot access vault data
 
@@ -442,7 +472,97 @@ The server never has access to:
 - Master password
 - Password key
 - Encryption key
-- Master vault key
+- Vault key (decrypted)
 - Decrypted vault secrets
 
-Only the login key is sent to the server for authentication.
+What the server receives:
+
+- Login key (via HTTPS, immediately KDF'd and discarded)
+
+What the server stores:
+
+- Hashed login key (result of KDF'ing login key)
+- Encrypted vault key (only decryptable with encryption key derived from
+  password)
+- Vault pubkeyhash (public identifier)
+
+Security guarantee: Even with full database access, attacker cannot:
+
+- Authenticate (would need to reverse KDF to get login key)
+- Decrypt vaults (would need encryption key, which requires password)
+- Derive password from any stored values
+
+## Authentication Flow
+
+### Registration (Creating a Vault)
+
+**Client side**:
+
+1. User enters password
+2. Derive password key: `blake3Pbkdf(password, passwordSalt, 100k)`
+3. Derive encryption key: `blake3Pbkdf(passwordKey, encryptionSalt, 100k)`
+4. Derive login key: `blake3Pbkdf(passwordKey, loginSalt, 100k)`
+5. Generate random 32-byte vault key
+6. Encrypt vault key with encryption key
+7. Send to server:
+   `{ name, domain, loginKey, encryptedVaultKey, vaultPubKeyHash }`
+
+**Server side**:
+
+1. Receive login key (unhashed)
+2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+3. Store in database:
+   `{ name, domain, hashedLoginKey, encryptedVaultKey, vaultPubKeyHash }`
+
+**What's stored where**:
+
+- Client device: `encryptedVaultKey`, `vaultPubKeyHash`
+- Client memory (during session): `passwordKey`, `encryptionKey`, `vaultKey`
+- Server database: `hashedLoginKey`, `encryptedVaultKey`, `vaultPubKeyHash`
+- Sent over network: `loginKey` (via HTTPS only)
+
+### Login (Importing an Existing Vault)
+
+**Client side**:
+
+1. User enters vault name and password
+2. Derive password key: `blake3Pbkdf(password, passwordSalt, 100k)`
+3. Derive login key: `blake3Pbkdf(passwordKey, loginSalt, 100k)`
+4. Send to server: `{ vaultId, loginKey }`
+
+**Server side**:
+
+1. Receive login key (unhashed)
+2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+3. Compare with stored `hashedLoginKey` in database
+4. If match: return `{ encryptedVaultKey, vaultPubKeyHash }`
+5. If no match: return `{ error: "Invalid password" }`
+
+**Client side (after successful auth)**:
+
+1. Receive encrypted vault key from server
+2. Derive encryption key: `blake3Pbkdf(passwordKey, encryptionSalt, 100k)`
+3. Decrypt vault key: `acb3Decrypt(encryptedVaultKey, encryptionKey)`
+4. Verify password by deriving public key and comparing hash
+5. Store vault locally
+
+### API Authentication (For Secret Operations)
+
+**Current implementation (MVP)**:
+
+- Each API request includes login key in header: `X-KeyPears-Auth: <loginKey>`
+- Server validates by computing: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+  and comparing with stored `hashedLoginKey`
+- Login key is the same across all devices for the same vault
+
+**TODO - Future improvement**:
+
+- Replace login key with per-device session tokens
+- On login, server generates unique session token for that device
+- Session token stored in client memory and server database
+- API requests use session token instead of login key
+- Benefits:
+  - Can revoke individual devices without changing password
+  - Audit log shows which device made which changes
+  - More granular security (session expiration, device limits)
+- For now, we use login key directly to get prototype working

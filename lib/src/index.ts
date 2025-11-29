@@ -190,6 +190,33 @@ export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
 }
 
 /**
+ * Generate a deterministic salt for deriving the hashed login key on the server
+ * This is used server-side only to hash the login key before storing in database
+ */
+export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
+  return blake3Hash(WebBuf.fromUtf8("KeyPears server login salt v1"));
+}
+
+/**
+ * Derives the hashed login key from the login key (SERVER-SIDE ONLY)
+ *
+ * This function is called on the server after receiving the login key from the client.
+ * The server stores this hashed login key in the database. If the database is compromised,
+ * an attacker cannot use the stolen hashed login key to authenticate because they would
+ * need to reverse 100,000 rounds of KDF.
+ *
+ * Security property: Even if the server's database is stolen, the attacker cannot
+ * authenticate as the user without reversing the KDF, which is computationally impractical.
+ *
+ * @param loginKey - The 32-byte login key received from the client (unhashed)
+ * @returns A 32-byte hashed login key for database storage
+ */
+export function deriveHashedLoginKey(loginKey: FixedBuf<32>): FixedBuf<32> {
+  const salt = deriveServerHashedLoginKeySalt();
+  return blake3Pbkdf(loginKey.buf, salt, 100_000);
+}
+
+/**
  * Encrypts a key using another key
  *
  * Generic encryption function that encrypts one 32-byte key with another
