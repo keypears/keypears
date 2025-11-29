@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { createClient, type KeypearsClient } from "@keypears/api-server/client";
+import { createApiClient } from "~app/lib/api-client";
 import { syncVault } from "~app/lib/sync";
 import type { FixedBuf } from "@keypears/lib";
 
@@ -21,7 +22,7 @@ interface ServerStatusContextValue {
   status: ServerStatus;
   client: KeypearsClient;
   checkServer: () => Promise<void>;
-  registerVaultForSync: (vaultId: string, vaultKey: FixedBuf<32>) => void;
+  registerVaultForSync: (vaultId: string, vaultDomain: string, vaultKey: FixedBuf<32>, loginKey: FixedBuf<32>) => void;
   unregisterVaultForSync: () => void;
   triggerSync: () => Promise<void>;
 }
@@ -72,7 +73,9 @@ export function ServerStatusProvider({
   // Track currently unlocked vault for automatic sync
   const [activeVault, setActiveVault] = useState<{
     vaultId: string;
+    vaultDomain: string;
     vaultKey: FixedBuf<32>;
+    loginKey: FixedBuf<32>;
   } | null>(null);
 
   // Create client only on client-side (after hydration)
@@ -129,10 +132,16 @@ export function ServerStatusProvider({
     setStatus((prev) => ({ ...prev, isSyncing: true }));
 
     try {
+      // Create authenticated API client with login key
+      const authedClient = createApiClient(
+        activeVault.vaultDomain,
+        activeVault.loginKey,
+      );
+
       const result = await syncVault(
         activeVault.vaultId,
         activeVault.vaultKey,
-        client,
+        authedClient,
       );
 
       if (result.success) {
@@ -166,8 +175,8 @@ export function ServerStatusProvider({
   }, [checkServer, performSync]);
 
   // Register vault for automatic sync
-  const registerVaultForSync = useCallback((vaultId: string, vaultKey: FixedBuf<32>) => {
-    setActiveVault({ vaultId, vaultKey });
+  const registerVaultForSync = useCallback((vaultId: string, vaultDomain: string, vaultKey: FixedBuf<32>, loginKey: FixedBuf<32>) => {
+    setActiveVault({ vaultId, vaultDomain, vaultKey, loginKey });
   }, []);
 
   // Unregister vault (on lock)

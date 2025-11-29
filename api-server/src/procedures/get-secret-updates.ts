@@ -1,26 +1,31 @@
 import { eq, and, gt, max, desc } from "drizzle-orm";
-import { os } from "@orpc/server";
 import {
   GetSecretUpdatesRequestSchema,
   GetSecretUpdatesResponseSchema,
 } from "../zod-schemas.js";
 import { db } from "../db/index.js";
 import { TableSecretUpdate } from "../db/schema.js";
+import { vaultAuthedProcedure, validateVaultAuth } from "./base.js";
 
 /**
  * Get secret updates procedure
  * Retrieves secret updates for polling/sync
+ *
+ * Authentication: Requires valid login key in X-Vault-Login-Key header
  *
  * Returns updates with globalOrder > sinceGlobalOrder
  * Ordered by globalOrder ASC (chronological)
  * Limited to prevent huge responses
  * Includes hasMore flag for pagination
  */
-export const getSecretUpdatesProcedure = os
+export const getSecretUpdatesProcedure = vaultAuthedProcedure
   .input(GetSecretUpdatesRequestSchema)
   .output(GetSecretUpdatesResponseSchema)
-  .handler(async ({ input }) => {
+  .handler(async ({ input, context }) => {
     const { vaultId, sinceGlobalOrder, limit } = input;
+
+    // Validate login key for this vault
+    await validateVaultAuth(context.loginKey, vaultId);
 
     // Get the latest globalOrder for this vault
     const latestOrderResult = await db

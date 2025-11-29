@@ -20,7 +20,7 @@ app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await orpcHandler.handle(req, res, {
       prefix: "/api",
-      context: { headers: req.headers, res },
+      context: { headers: req.headers },
     });
     if (!result.matched) {
       next(); // let other middlewares handle it

@@ -21,7 +21,7 @@ describe("Vault API", () => {
 
   describe("checkNameAvailability", () => {
     it("should return available=true for unused name", async () => {
-      const result = await client.checkNameAvailability({
+      const result = await client.api.checkNameAvailability({
         name: "alice",
         domain: "keypears.com",
       });
@@ -34,7 +34,7 @@ describe("Vault API", () => {
       const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
       const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
-      await client.registerVault({
+      await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -43,7 +43,7 @@ describe("Vault API", () => {
       });
 
       // Then check if name is available
-      const result = await client.checkNameAvailability({
+      const result = await client.api.checkNameAvailability({
         name: "alice",
         domain: "keypears.com",
       });
@@ -56,7 +56,7 @@ describe("Vault API", () => {
       const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
       const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
-      await client.registerVault({
+      await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -65,14 +65,14 @@ describe("Vault API", () => {
       });
 
       // Check availability for alice@keypears.com (should be taken)
-      const result1 = await client.checkNameAvailability({
+      const result1 = await client.api.checkNameAvailability({
         name: "alice",
         domain: "keypears.com",
       });
       expect(result1.available).toBe(false);
 
       // Check availability for alice@hevybags.com (should be available)
-      const result2 = await client.checkNameAvailability({
+      const result2 = await client.api.checkNameAvailability({
         name: "alice",
         domain: "hevybags.com",
       });
@@ -86,7 +86,7 @@ describe("Vault API", () => {
       const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
-      const result = await client.registerVault({
+      const result = await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -105,7 +105,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       // Register first vault
-      await client.registerVault({
+      await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
@@ -115,7 +115,7 @@ describe("Vault API", () => {
 
       // Try to register duplicate
       await expect(
-        client.registerVault({
+        client.api.registerVault({
           name: "alice",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
@@ -132,7 +132,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       // Register alice@keypears.com
-      const result1 = await client.registerVault({
+      const result1 = await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
@@ -141,7 +141,7 @@ describe("Vault API", () => {
       });
 
       // Register alice@hevybags.com (should succeed)
-      const result2 = await client.registerVault({
+      const result2 = await client.api.registerVault({
         name: "alice",
         domain: "hevybags.com",
         vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
@@ -160,7 +160,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
-        client.registerVault({
+        client.api.registerVault({
           name: "alice",
           domain: "evil.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -176,7 +176,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
-        client.registerVault({
+        client.api.registerVault({
           name: "1alice",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -192,7 +192,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
-        client.registerVault({
+        client.api.registerVault({
           name: "alice_smith",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -208,7 +208,7 @@ describe("Vault API", () => {
       const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
-      const result = await client.registerVault({
+      const result = await client.api.registerVault({
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),

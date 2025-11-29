@@ -16,6 +16,7 @@ interface UnlockedVault {
   vaultDomain: string;
   passwordKey: FixedBuf<32>;
   encryptionKey: FixedBuf<32>;
+  loginKey: FixedBuf<32>;
   vaultKey: FixedBuf<32>;
   vaultPublicKey: FixedBuf<33>;
   encryptedVaultKey: string;
@@ -30,6 +31,7 @@ interface VaultContextType {
     vaultDomain: string,
     passwordKey: FixedBuf<32>,
     encryptionKey: FixedBuf<32>,
+    loginKey: FixedBuf<32>,
     vaultKey: FixedBuf<32>,
     vaultPublicKey: FixedBuf<33>,
     encryptedVaultKey: string,
@@ -40,6 +42,7 @@ interface VaultContextType {
   decryptPassword: (encryptedPasswordHex: string) => string;
   getPasswordKey: () => FixedBuf<32>;
   getEncryptionKey: () => FixedBuf<32>;
+  getLoginKey: () => FixedBuf<32>;
   getVaultKey: () => FixedBuf<32>;
   getVaultPublicKey: () => FixedBuf<33>;
 }
@@ -56,6 +59,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     vaultDomain: string,
     passwordKey: FixedBuf<32>,
     encryptionKey: FixedBuf<32>,
+    loginKey: FixedBuf<32>,
     vaultKey: FixedBuf<32>,
     vaultPublicKey: FixedBuf<33>,
     encryptedVaultKey: string,
@@ -74,6 +78,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       vaultDomain,
       passwordKey,
       encryptionKey,
+      loginKey,
       vaultKey,
       vaultPublicKey,
       encryptedVaultKey,
@@ -84,7 +89,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     markVaultUnlocked(vaultId);
 
     // Register vault for automatic sync
-    registerVaultForSync(vaultId, vaultKey);
+    registerVaultForSync(vaultId, vaultDomain, vaultKey, loginKey);
   };
 
   const lockVault = () => {
@@ -112,6 +117,13 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       throw new Error("No active vault");
     }
     return activeVault.encryptionKey;
+  };
+
+  const getLoginKey = (): FixedBuf<32> => {
+    if (!activeVault) {
+      throw new Error("No active vault");
+    }
+    return activeVault.loginKey;
   };
 
   const getVaultKey = (): FixedBuf<32> => {
@@ -148,6 +160,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         decryptPassword,
         getPasswordKey,
         getEncryptionKey,
+        getLoginKey,
         getVaultKey,
         getVaultPublicKey,
       }}

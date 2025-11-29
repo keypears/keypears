@@ -1,6 +1,7 @@
 import {
   derivePasswordKey,
   deriveEncryptionKey,
+  deriveLoginKey,
   decryptKey,
   blake3Hash,
   WebBuf,
@@ -12,6 +13,7 @@ export interface PasswordVerificationResult {
   valid: boolean;
   passwordKey?: FixedBuf<32>;
   encryptionKey?: FixedBuf<32>;
+  loginKey?: FixedBuf<32>;
   vaultKey?: FixedBuf<32>;
   vaultPublicKey?: FixedBuf<33>;
 }
@@ -32,8 +34,9 @@ export function verifyVaultPassword(
     // 1. Derive password key from password
     const passwordKey = derivePasswordKey(password);
 
-    // 2. Derive encryption key from password key
+    // 2. Derive encryption key and login key from password key
     const encryptionKey = deriveEncryptionKey(passwordKey);
+    const loginKey = deriveLoginKey(passwordKey);
 
     // 3. Decrypt the vault key
     const encryptedVaultKey = WebBuf.fromHex(encryptedVaultKeyHex);
@@ -53,6 +56,7 @@ export function verifyVaultPassword(
         valid: true,
         passwordKey,
         encryptionKey,
+        loginKey,
         vaultKey,
         vaultPublicKey,
       };

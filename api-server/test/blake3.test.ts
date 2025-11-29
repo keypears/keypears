@@ -13,7 +13,7 @@ describe("blake3 API", () => {
     const helloData = WebBuf.fromUtf8("hello");
     const helloBase64 = helloData.toBase64();
 
-    const result = await client.blake3({ data: helloBase64 });
+    const result = await client.api.blake3({ data: helloBase64 });
 
     expect(result.hash).toBe(
       "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f",
@@ -25,14 +25,14 @@ describe("blake3 API", () => {
     const data = WebBuf.fromUtf8("test data");
     const base64Data = data.toBase64();
 
-    const result = await client.blake3({ data: base64Data });
+    const result = await client.api.blake3({ data: base64Data });
 
     expect(result.hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("should throw error for invalid base64", async () => {
     await expect(
-      client.blake3({ data: "not-valid-base64!" }),
+      client.api.blake3({ data: "not-valid-base64!" }),
     ).rejects.toThrow();
   });
 
@@ -40,14 +40,14 @@ describe("blake3 API", () => {
     const largeData = new WebBuf(11 * 1024); // 11KB
     const largeBase64 = largeData.toBase64();
 
-    await expect(client.blake3({ data: largeBase64 })).rejects.toThrow();
+    await expect(client.api.blake3({ data: largeBase64 })).rejects.toThrow();
   });
 
   it("should accept data up to 10KB", async () => {
     const maxData = new WebBuf(10 * 1024); // Exactly 10KB
     const maxBase64 = maxData.toBase64();
 
-    const result = await client.blake3({ data: maxBase64 });
+    const result = await client.api.blake3({ data: maxBase64 });
 
     expect(result.hash).toMatch(/^[0-9a-f]{64}$/);
   });

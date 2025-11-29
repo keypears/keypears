@@ -73,7 +73,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         vault.vaultPubKeyHash,
       );
 
-      if (result.valid && result.passwordKey && result.encryptionKey && result.vaultKey && result.vaultPublicKey) {
+      if (result.valid && result.passwordKey && result.encryptionKey && result.loginKey && result.vaultKey && result.vaultPublicKey) {
         // Password is correct - unlock vault
         unlockVault(
           vault.id,
@@ -81,6 +81,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
           vault.domain,
           result.passwordKey,
           result.encryptionKey,
+          result.loginKey,
           result.vaultKey,
           result.vaultPublicKey,
           vault.encryptedVaultKey,

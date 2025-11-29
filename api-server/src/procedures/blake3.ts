@@ -1,13 +1,14 @@
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
-import { ORPCError, os } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { Blake3RequestSchema, Blake3ResponseSchema } from "../zod-schemas.js";
+import { base } from "./base.js";
 
 /**
  * Blake3 hash procedure
  * Accepts base64-encoded data (max 10KB) and returns hex-encoded Blake3 hash
  */
-export const blake3Procedure = os
+export const blake3Procedure = base
   .input(Blake3RequestSchema)
   .output(Blake3ResponseSchema)
   .handler(async ({ input }): Promise<{ hash: string }> => {

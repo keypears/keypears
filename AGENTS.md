@@ -184,19 +184,11 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
 - **Linting**: `eslint`
 - **Type checking**: `typescript`
 - **Testing**: `vitest`
-- **Type safety**: NEVER use `any` type unless all alternatives have been
-  exhausted
-  - Always prefer: `unknown`, specific union types, generics, or type assertions
-  - If `any` seems necessary, explore: `Record<string, unknown>`, `object`, or
-    creating a proper type/interface
-  - Before using `any`: Document why it's needed and confirm with the team
-  - Example alternatives:
-    - ❌ `const data: any = ...`
-    - ✅ `const data: unknown = ...` (then type guard or narrow)
-    - ✅ `const data: Record<string, unknown> = ...`
-    - ✅ `interface CustomType { ... }; const data: CustomType = ...`
-  - Only acceptable uses: Third-party library types that truly have no types
-    available, and even then, create a wrapper interface
+- **Type safety**: NEVER use `any` type under any circumstances.
+  - ALWAYS find a way to explicitly specify types
+  - NEVER use `any` because you were too lazy to figure out what types to use
+  - NEVER EVER EVER use `any` EVER under ANY circumstances. NEVER USE `any`
+    EVER!!!!
 - **API client**: `@keypears/api-server` exports `createClient()` for type-safe
   orpc client
 - **Validation**: `zod` (for parsing and validation)
@@ -293,10 +285,10 @@ The development database runs on `localhost:5432` with credentials
 
 ### Database Schema Management
 
-**Philosophy**: KeyPears uses `drizzle-kit push` instead of traditional migrations.
-This is appropriate for pre-MVP development where we frequently wipe databases
-and don't need migration history. Post-launch, this workflow will be refined for
-production data safety.
+**Philosophy**: KeyPears uses `drizzle-kit push` instead of traditional
+migrations. This is appropriate for pre-MVP development where we frequently wipe
+databases and don't need migration history. Post-launch, this workflow will be
+refined for production data safety.
 
 **Schema location**: All database schemas are defined in
 `api-server/src/db/schema.ts`. The webapp references this schema via
@@ -327,13 +319,14 @@ production data safety.
 
 **Important notes**:
 
-- **Always use webapp scripts**: Run all `db:*` commands from `webapp/` directory
-  or via root `package.json`. Never run drizzle-kit directly from `api-server/`.
+- **Always use webapp scripts**: Run all `db:*` commands from `webapp/`
+  directory or via root `package.json`. Never run drizzle-kit directly from
+  `api-server/`.
 - **Clear vs Push**: `db:dev:clear` wipes data by pushing an empty schema.
   `db:dev:push` applies the full schema. Always run clear before push when
   changing schema structure.
-- **No migrations**: We do NOT use `drizzle-kit generate` or migration files. All
-  schema changes are applied via push, which is destructive but acceptable
+- **No migrations**: We do NOT use `drizzle-kit generate` or migration files.
+  All schema changes are applied via push, which is destructive but acceptable
   pre-launch.
 - **Post-launch**: After MVP launch with real user data, this workflow will be
   refined to use proper migrations and safer schema evolution strategies.

@@ -1,17 +1,17 @@
 import { eq, and } from "drizzle-orm";
-import { os } from "@orpc/server";
 import {
   CheckNameAvailabilityRequestSchema,
   CheckNameAvailabilityResponseSchema,
 } from "../zod-schemas.js";
 import { db } from "../db/index.js";
 import { TableVault } from "../db/schema.js";
+import { base } from "./base.js";
 
 /**
  * Check name availability procedure
  * Checks if a vault name is available for a specific domain
  */
-export const checkNameAvailabilityProcedure = os
+export const checkNameAvailabilityProcedure = base
   .input(CheckNameAvailabilityRequestSchema)
   .output(CheckNameAvailabilityResponseSchema)
   .handler(

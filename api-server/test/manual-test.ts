@@ -16,7 +16,7 @@ async function testBlake3(): Promise<void> {
     const helloBase64 = helloData.toBase64();
     console.log(`  Input: "hello" (base64: ${helloBase64})`);
 
-    const result = await client.blake3({ data: helloBase64 });
+    const result = await client.api.blake3({ data: helloBase64 });
     console.log(`  Result: ${result.hash}`);
     console.log(`  Expected: ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f`);
     console.log(
@@ -27,7 +27,7 @@ async function testBlake3(): Promise<void> {
     // Test 2: Invalid base64
     console.log("Test 2: Invalid base64");
     try {
-      await client.blake3({ data: "not-valid-base64!" });
+      await client.api.blake3({ data: "not-valid-base64!" });
       console.log("  ✗ Should have thrown an error");
     } catch (error) {
       console.log(`  ✓ Correctly threw error: ${error}`);
@@ -39,7 +39,7 @@ async function testBlake3(): Promise<void> {
     try {
       const largeData = new WebBuf(11 * 1024); // 11KB
       const largeBase64 = largeData.toBase64();
-      await client.blake3({ data: largeBase64 });
+      await client.api.blake3({ data: largeBase64 });
       console.log("  ✗ Should have thrown an error");
     } catch (error) {
       console.log(`  ✓ Correctly threw error: ${error}`);

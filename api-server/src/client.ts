@@ -48,7 +48,10 @@ export interface ClientConfig {
  * }
  * ```
  */
-export function createClient(config?: ClientConfig) {
+export function createClient(config?: ClientConfig): {
+  api: RouterClient<typeof router>;
+  validateServer: () => Promise<ServerValidationResult>;
+} {
   const { url, headers } = config || {};
 
   // Determine the URL

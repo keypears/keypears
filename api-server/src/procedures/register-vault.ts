@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { ORPCError, os } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { deriveHashedLoginKey, isOfficialDomain } from "@keypears/lib";
 import { ulid } from "ulid";
@@ -9,6 +9,7 @@ import {
 } from "../zod-schemas.js";
 import { db } from "../db/index.js";
 import { TableVault } from "../db/schema.js";
+import { base } from "./base.js";
 
 /**
  * Register vault procedure
@@ -20,7 +21,7 @@ import { TableVault } from "../db/schema.js";
  * - Server stores: hashedLoginKey + encryptedVaultKey
  * This prevents the server from storing raw login key while minimizing DOS risk
  */
-export const registerVaultProcedure = os
+export const registerVaultProcedure = base
   .input(RegisterVaultRequestSchema)
   .output(RegisterVaultResponseSchema)
   .handler(async ({ input }): Promise<{ vaultId: string }> => {

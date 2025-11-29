@@ -1,5 +1,4 @@
 import { eq, and, max, sql } from "drizzle-orm";
-import { os } from "@orpc/server";
 import { ulid } from "ulid";
 import {
   CreateSecretUpdateRequestSchema,
@@ -7,10 +6,13 @@ import {
 } from "../zod-schemas.js";
 import { db } from "../db/index.js";
 import { TableSecretUpdate } from "../db/schema.js";
+import { vaultAuthedProcedure, validateVaultAuth } from "./base.js";
 
 /**
  * Create secret update procedure
  * Creates a new secret update with server-generated ID and order numbers
+ *
+ * Authentication: Requires valid login key in X-Vault-Login-Key header
  *
  * Order number generation:
  * - globalOrder: vault-wide sequential counter (1, 2, 3, ...)
@@ -21,11 +23,14 @@ import { TableSecretUpdate } from "../db/schema.js";
  * 2. Get max localOrder for secret
  * 3. Insert with incremented order numbers
  */
-export const createSecretUpdateProcedure = os
+export const createSecretUpdateProcedure = vaultAuthedProcedure
   .input(CreateSecretUpdateRequestSchema)
   .output(CreateSecretUpdateResponseSchema)
-  .handler(async ({ input }) => {
+  .handler(async ({ input, context }) => {
     const { vaultId, secretId, encryptedBlob } = input;
+
+    // Validate login key for this vault
+    await validateVaultAuth(context.loginKey, vaultId);
 
     // Generate ULID for the new update
     const updateId = ulid();
