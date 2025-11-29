@@ -103,8 +103,7 @@ export function ServerStatusProvider({
     if (client) {
       checkServer();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client]);
+  }, [client, checkServer]);
 
   // Don't render children until client is ready
   if (!client) {

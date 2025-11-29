@@ -3,6 +3,7 @@ import { checkNameAvailabilityProcedure } from "./procedures/check-name-availabi
 import { registerVaultProcedure } from "./procedures/register-vault.js";
 import { createSecretUpdateProcedure } from "./procedures/create-secret-update.js";
 import { getSecretUpdatesProcedure } from "./procedures/get-secret-updates.js";
+import { getVaultInfoProcedure } from "./procedures/get-vault-info.js";
 
 /**
  * KeyPears Node API Router
@@ -14,6 +15,7 @@ export const router = {
   registerVault: registerVaultProcedure,
   createSecretUpdate: createSecretUpdateProcedure,
   getSecretUpdates: getSecretUpdatesProcedure,
+  getVaultInfo: getVaultInfoProcedure,
 };
 
 // Export the router type for client usage

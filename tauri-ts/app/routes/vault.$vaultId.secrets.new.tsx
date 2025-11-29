@@ -86,13 +86,13 @@ export default function NewPassword() {
       await insertSecretUpdatesFromSync([{
         id: serverResponse.id,
         vaultId: activeVault.vaultId,
-        secretId: secretId,
+        secretId,
         globalOrder: serverResponse.globalOrder,
         localOrder: serverResponse.localOrder,
         name: secretData.name,
         type: secretData.type,
         deleted: secretData.deleted,
-        encryptedBlob: encryptedBlob,
+        encryptedBlob,
         createdAt: new Date(serverResponse.createdAt).getTime(),
       }]);
 

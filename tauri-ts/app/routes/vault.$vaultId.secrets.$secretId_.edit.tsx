@@ -76,8 +76,7 @@ export default function EditPassword() {
     };
 
     loadPassword();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.secretId]);
+  }, [params.secretId, activeVault, decryptPassword]);
 
   if (!activeVault) {
     return null;
@@ -175,7 +174,7 @@ export default function EditPassword() {
         name: secretData.name,
         type: secretData.type,
         deleted: secretData.deleted,
-        encryptedBlob: encryptedBlob,
+        encryptedBlob,
         createdAt: new Date(serverResponse.createdAt).getTime(),
       }]);
 

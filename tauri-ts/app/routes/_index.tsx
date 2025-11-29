@@ -50,14 +50,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-bold">Vaults</h1>
             {vaults.length > 0 && (
-              <div className="flex gap-2">
-                <Button variant="outline" asChild>
-                  <Link to="#">Import Vault</Link>
-                </Button>
-                <Button asChild>
-                  <Link to={href("/new-vault/1")}>Create Vault</Link>
-                </Button>
-              </div>
+              <Button asChild>
+                <Link to={href("/new-vault/1")}>Create Vault</Link>
+              </Button>
             )}
           </div>
 
@@ -72,19 +67,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 <p className="text-muted-foreground mb-6 text-sm">
                   Create your first vault to get started
                 </p>
-                <div className="flex w-full flex-col gap-3">
-                  <Button size="lg" className="w-full" asChild>
-                    <Link to={href("/new-vault/1")}>Create Vault</Link>
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    asChild
-                  >
-                    <Link to="#">Import Vault</Link>
-                  </Button>
-                </div>
+                <Button size="lg" className="w-full" asChild>
+                  <Link to={href("/new-vault/1")}>Create Vault</Link>
+                </Button>
               </div>
             </div>
           ) : (

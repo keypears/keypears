@@ -1,4 +1,4 @@
-import type { FixedBuf } from "@webbuf/fixedbuf";
+import type { FixedBuf } from "@keypears/lib";
 import { createApiClient } from "./api-client";
 import { syncVault } from "./sync";
 
