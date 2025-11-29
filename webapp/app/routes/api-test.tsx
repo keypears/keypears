@@ -36,7 +36,7 @@ export default function ApiTest() {
       const client = createClient();
       const inputBuf = WebBuf.fromUtf8(inputText);
       const base64Data = inputBuf.toBase64();
-      const result = await client.blake3({ data: base64Data });
+      const result = await client.api.blake3({ data: base64Data });
       setHash(result.hash);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to hash data");
