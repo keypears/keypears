@@ -128,7 +128,7 @@ export default function NewVaultStep3() {
           hashedLoginKey: hashedLoginKeyHex,
         });
 
-        const registrationResult = await client.registerVault({
+        const registrationResult = await client.api.registerVault({
           name: vaultName,
           domain: vaultDomain,
           vaultPubKeyHash: vaultPubKeyHashHex,

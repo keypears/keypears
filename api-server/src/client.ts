@@ -16,21 +16,19 @@ export { buildServerUrl } from "@keypears/lib";
 export interface ClientConfig {
   url?: string;
   headers?: Record<string, string>;
-  skipValidation?: boolean; // Skip automatic server validation (for testing or known-good servers)
 }
 
 /**
  * Create an oRPC client for the KeyPears Node API
  *
- * The client automatically validates that the server is a valid KeyPears server
- * before making the first API call by checking /.well-known/keypears.json.
- * Subsequent calls skip validation (cached per client instance).
+ * Returns a simple client object with two properties:
+ * - `api`: oRPC client with all API procedures (e.g., client.api.blake3(...))
+ * - `validateServer`: Function to validate the server (client.validateServer())
  *
  * @param config - Client configuration (optional)
  * @param config.url - Base URL of the API server (e.g., "http://localhost:4273/api"). If not provided, will auto-detect from browser location.
  * @param config.headers - Optional headers to include in requests (e.g., Authorization)
- * @param config.skipValidation - Skip automatic server validation (for testing or known-good servers)
- * @returns Type-safe client for calling API procedures, with automatic server validation
+ * @returns Client object with { api, validateServer }
  *
  * @example
  * ```typescript
@@ -39,25 +37,19 @@ export interface ClientConfig {
  *
  * // Explicit URL (works in Node.js or browser)
  * const client = createClient({ url: "http://localhost:4273/api" });
- * const result = await client.blake3({ data: "aGVsbG8=" });
- * // Automatically validates server before first call
  *
- * // Manual validation (optional, for UI feedback)
+ * // Call API methods under .api namespace
+ * const result = await client.api.blake3({ data: "aGVsbG8=" });
+ *
+ * // Validate server explicitly when needed
  * const validation = await client.validateServer();
  * if (!validation.valid) {
  *   console.error(`Invalid server: ${validation.error}`);
  * }
- *
- * // Skip validation for testing
- * const testClient = createClient({
- *   url: "http://localhost:4273/api",
- *   skipValidation: true
- * });
  * ```
  */
 export function createClient(config?: ClientConfig) {
-  console.log("[createClient] CALLED with config:", config);
-  const { url, headers, skipValidation } = config || {};
+  const { url, headers } = config || {};
 
   // Determine the URL
   let apiUrl: string;
@@ -83,98 +75,27 @@ export function createClient(config?: ClientConfig) {
     }
   }
 
-  // Extract base URL (remove /api suffix)
+  // Extract base URL (remove /api suffix) for validateServer
   const baseUrl = apiUrl.replace(/\/api\/?$/, "");
-
-  // Validation state
-  let validated = false;
-  let validationPromise: Promise<void> | null = null;
-
-  // Automatic validation function
-  async function ensureValidated(): Promise<void> {
-    if (skipValidation) return;
-    if (validated) return;
-
-    // Deduplicate concurrent validation requests
-    if (validationPromise) {
-      await validationPromise;
-      return;
-    }
-
-    validationPromise = (async (): Promise<void> => {
-      const result = await validateKeypearsServer(baseUrl);
-      if (!result.valid) {
-        throw new Error(`Invalid KeyPears server: ${result.error}`);
-      }
-      validated = true;
-    })();
-
-    await validationPromise;
-  }
 
   const link = new RPCLink({
     url: apiUrl,
     ...(headers && { headers }),
   });
 
-  const baseClient = createORPCClient(link) as RouterClient<typeof router>;
+  const orpcClient = createORPCClient(link) as RouterClient<typeof router>;
 
-  // Create client with validateServer method added as a real property
-  const clientWithValidation = {
-    ...baseClient,
+  // Return simple object with api namespace and validateServer function
+  return {
+    api: orpcClient,
     validateServer: async (): Promise<ServerValidationResult> => {
-      console.log("[validateServer] CALLING validateKeypearsServer with baseUrl:", baseUrl);
-      const result = await validateKeypearsServer(baseUrl);
-      console.log("[validateServer] Result:", result);
-      return result;
+      return await validateKeypearsServer(baseUrl);
     },
   };
-
-  console.log("[createClient] About to return Proxied client, baseUrl:", baseUrl);
-
-  // Wrap client with automatic validation using Proxy
-  return new Proxy(clientWithValidation, {
-    get(target, prop): unknown {
-      console.log("[Proxy] Accessing property:", prop, "type:", typeof prop);
-
-      const original = target[prop as keyof typeof target];
-      console.log("[Proxy] original value:", original, "type:", typeof original);
-
-      // Don't wrap validateServer - it's already a real method
-      if (prop === "validateServer") {
-        return original;
-      }
-
-      // Only wrap RPC procedure properties (not internal JS methods like toJSON, apply, etc.)
-      // RPC procedures are objects with methods, not functions themselves
-      if (typeof original === "object" && original !== null) {
-        // Wrap the procedure object with validation
-        return new Proxy(original, {
-          get(procTarget, procProp): unknown {
-            const procOriginal = procTarget[procProp as keyof typeof procTarget];
-
-            if (typeof procOriginal === "function") {
-              return async (...args: unknown[]) => {
-                await ensureValidated();
-                return (procOriginal as (...args: unknown[]) => unknown).apply(
-                  procTarget,
-                  args,
-                );
-              };
-            }
-
-            return procOriginal;
-          },
-        });
-      }
-
-      return original;
-    },
-  });
 }
 
 /**
  * KeypearsClient type - inferred from the actual return type of createClient
- * This ensures TypeScript verifies the validateServer method actually exists
+ * Structure: { api: RouterClient, validateServer: () => Promise<...> }
  */
 export type KeypearsClient = ReturnType<typeof createClient>;

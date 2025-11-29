@@ -56,37 +56,21 @@ export function ServerStatusProvider({
 
   // Create client only on client-side (after hydration)
   useEffect(() => {
-    console.log("[ServerStatusContext] Creating client with serverUrl:", serverUrl);
     const newClient = createClient({
       url: serverUrl || "http://localhost:4273/api",
-      skipValidation: true
     });
-    console.log("[ServerStatusContext] Client created:", newClient);
-    console.log("[ServerStatusContext] Client.validateServer:", newClient.validateServer);
-    console.log("[ServerStatusContext] typeof validateServer:", typeof newClient.validateServer);
     setClient(newClient);
   }, [serverUrl]);
 
   const checkServer = useCallback(async (): Promise<void> => {
-    console.log("[checkServer] CALLED");
-    console.log("[checkServer] client:", client);
-    console.log("[checkServer] typeof client:", typeof client);
-    console.log("[checkServer] client is Promise?:", client instanceof Promise);
-    console.log("[checkServer] client?.validateServer:", client?.validateServer);
-    console.log("[checkServer] typeof client?.validateServer:", typeof client?.validateServer);
-
     if (!client) {
-      console.log("[checkServer] No client, returning");
       return;
     }
 
-    console.log("[checkServer] About to call validateServer");
     setStatus((prev) => ({ ...prev, isValidating: true }));
 
     try {
-      console.log("[checkServer] Calling client.validateServer()");
       const result = await client.validateServer();
-      console.log("[checkServer] validateServer returned:", result);
 
       if (result.valid) {
         setStatus({

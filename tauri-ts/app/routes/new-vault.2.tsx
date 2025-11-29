@@ -88,9 +88,8 @@ export default function NewVaultStep2() {
 
     try {
       // Call API endpoint to check availability
-      // The client will automatically validate the server before making the call
       const client = createApiClient(domain);
-      const result = await client.checkNameAvailability({ name, domain });
+      const result = await client.api.checkNameAvailability({ name, domain });
       setNameAvailable(result.available);
     } catch (error) {
       console.error("Error checking name availability:", error);

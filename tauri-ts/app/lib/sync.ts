@@ -49,7 +49,7 @@ export async function syncVault(
 
     // Fetch all updates with pagination
     while (hasMore) {
-      const response = await apiClient.getSecretUpdates({
+      const response = await apiClient.api.getSecretUpdates({
         vaultId,
         sinceGlobalOrder: currentGlobalOrder,
         limit: 100, // Batch size
@@ -150,7 +150,7 @@ export async function pushSecretUpdate(
   const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
 
   // Send to server
-  const response = await apiClient.createSecretUpdate({
+  const response = await apiClient.api.createSecretUpdate({
     vaultId,
     secretId,
     encryptedBlob,
