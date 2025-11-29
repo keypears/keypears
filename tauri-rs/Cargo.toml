@@ -24,4 +24,6 @@ tauri-plugin-opener.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri-plugin-sql.workspace = true
+clap = { version = "4.5", features = ["derive"] }
+shellexpand = "3.1"
 

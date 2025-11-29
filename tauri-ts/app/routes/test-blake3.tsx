@@ -38,7 +38,7 @@ export default function TestBlake3Page({ loaderData }: Route.ComponentProps) {
       const base64Data = inputBuf.toBase64();
 
       // Call blake3 API via orpc client
-      const result = await client.blake3({ data: base64Data });
+      const result = await client.api.blake3({ data: base64Data });
 
       setHash(result.hash);
     } catch (err) {

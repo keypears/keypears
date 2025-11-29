@@ -11,6 +11,7 @@ import { getVault } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import { useVault } from "~app/contexts/vault-context";
 import { isVaultUnlocked } from "~app/lib/vault-session";
+import { initDb } from "~app/db";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
@@ -24,6 +25,9 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     // Redirect to vault's password page
     throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
   }
+
+  // Initialize database
+  await initDb();
 
   // Load vault data
   const vault = await getVault(vaultId);

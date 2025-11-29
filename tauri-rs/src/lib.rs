@@ -5,6 +5,11 @@ fn get_api_url() -> &'static str {
     }
 }
 
+// State to hold database path
+struct DbPathState {
+    path: String,
+}
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -16,12 +21,18 @@ fn get_api_url_command() -> String {
     get_api_url().to_string()
 }
 
+#[tauri::command]
+fn get_db_path(state: tauri::State<DbPathState>) -> String {
+    state.path.clone()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run(db_path: String) {
     tauri::Builder::default()
+        .manage(DbPathState { path: db_path })
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, get_api_url_command])
+        .invoke_handler(tauri::generate_handler![greet, get_api_url_command, get_db_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

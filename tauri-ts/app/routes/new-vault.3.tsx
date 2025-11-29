@@ -14,6 +14,7 @@ import {
 } from "@keypears/lib";
 import { publicKeyCreate } from "@webbuf/secp256k1";
 import { createVault } from "~app/db/models/vault";
+import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
 import { createApiClient } from "~app/lib/api-client";
 
@@ -52,6 +53,9 @@ export default function NewVaultStep3() {
       setError("");
 
       try {
+        // Initialize database
+        await initDb();
+
         console.log("=== Vault Creation ===");
         console.log("Vault Name:", vaultName);
         console.log("Vault Domain:", vaultDomain);

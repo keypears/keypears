@@ -15,9 +15,11 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
+import { initDb } from "~app/db";
 import { useState, useEffect } from "react";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
+  await initDb();
   const vaults = await getVaults();
   return { vaults };
 }
