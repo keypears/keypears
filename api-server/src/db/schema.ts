@@ -48,13 +48,19 @@ export const TableVault = pgTable(
     // Primary public key is NEVER exposed - only relationship-specific derived keys
     vaultPubKeyHash: varchar('vault_pubkeyhash', { length: 64 }).notNull(), // Blake3 hex = 64 chars
 
-    // Hashed login key - server stores hash of the login key for authentication
-    // Client derives: password → password key → login key
-    // Client sends: hash(login key) to server
-    // Server stores: hash(hash(login key)) for verification
+    // Hashed login key - server stores KDF of the login key for authentication
+    // Client derives: password → password key (100k rounds) → login key (100k rounds)
+    // Client sends: login key (unhashed) to server via HTTPS
+    // Server derives: hashed login key (1k rounds KDF)
+    // Server stores: hashed login key for verification
     // This is what the server checks to verify the user knows the password
     // Server CANNOT derive the password key or encryption key from this
     hashedLoginKey: varchar('hashed_login_key', { length: 64 }).notNull(), // Blake3 hex = 64 chars
+
+    // Encrypted vault key - stored on server for cross-device import
+    // Encrypted with encryption key derived from password
+    // Allows importing vault on new device by entering password
+    encryptedVaultKey: text('encrypted_vault_key').notNull(),
 
     // Last sync timestamp (Unix milliseconds)
     lastSyncTimestamp: bigint('last_sync_timestamp', { mode: 'number' }),

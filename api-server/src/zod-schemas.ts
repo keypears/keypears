@@ -24,7 +24,8 @@ export const RegisterVaultRequestSchema = z.object({
   name: vaultNameSchema,
   domain: z.string().min(1).max(255),
   vaultPubKeyHash: z.string().length(64), // Blake3 hash hex = 64 chars
-  hashedLoginKey: z.string().length(64), // Blake3 hash hex = 64 chars
+  loginKey: z.string().length(64), // Unhashed login key (hex)
+  encryptedVaultKey: z.string(), // Encrypted vault key (hex, variable length due to ACB3)
 });
 
 export const RegisterVaultResponseSchema = z.object({
