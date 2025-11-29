@@ -8,9 +8,9 @@ import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { useVault } from "~app/contexts/vault-context";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createApiClient } from "~app/lib/api-client";
-import { getLatestSecret } from "~app/db/models/password";
+import { getLatestSecret, insertSecretUpdatesFromSync } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
-import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import { decryptSecretUpdateBlob, encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 
@@ -154,7 +154,7 @@ export default function EditPassword() {
       const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
 
       // Push update to server (creates new version with higher localOrder)
-      await pushSecretUpdate(
+      const serverResponse = await pushSecretUpdate(
         activeVault.vaultId,
         existingPassword.secretId, // Same secretId for versioning
         secretData,
@@ -162,7 +162,22 @@ export default function EditPassword() {
         authedClient,
       );
 
-      // Trigger immediate sync to fetch the updated secret
+      // Immediately store locally with server-generated data
+      const encryptedBlob = encryptSecretUpdateBlob(secretData, activeVault.vaultKey);
+      await insertSecretUpdatesFromSync([{
+        id: serverResponse.id,
+        vaultId: activeVault.vaultId,
+        secretId: existingPassword.secretId,
+        globalOrder: serverResponse.globalOrder,
+        localOrder: serverResponse.localOrder,
+        name: secretData.name,
+        type: secretData.type,
+        deleted: secretData.deleted,
+        encryptedBlob: encryptedBlob,
+        createdAt: new Date(serverResponse.createdAt).getTime(),
+      }]);
+
+      // Still trigger sync to fetch any other updates
       await triggerSync();
 
       // Navigate back to password detail

@@ -9,6 +9,8 @@ import { useVault } from "~app/contexts/vault-context";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createApiClient } from "~app/lib/api-client";
 import { pushSecretUpdate } from "~app/lib/sync";
+import { insertSecretUpdatesFromSync } from "~app/db/models/password";
+import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { ulid } from "ulid";
 
 export default function NewPassword() {
@@ -70,7 +72,7 @@ export default function NewPassword() {
       const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
 
       // Push to server (server generates ID, order numbers, timestamp)
-      await pushSecretUpdate(
+      const serverResponse = await pushSecretUpdate(
         activeVault.vaultId,
         secretId,
         secretData,
@@ -78,7 +80,22 @@ export default function NewPassword() {
         authedClient,
       );
 
-      // Trigger immediate sync to fetch the new secret
+      // Immediately store locally with server-generated data
+      const encryptedBlob = encryptSecretUpdateBlob(secretData, activeVault.vaultKey);
+      await insertSecretUpdatesFromSync([{
+        id: serverResponse.id,
+        vaultId: activeVault.vaultId,
+        secretId: secretId,
+        globalOrder: serverResponse.globalOrder,
+        localOrder: serverResponse.localOrder,
+        name: secretData.name,
+        type: secretData.type,
+        deleted: secretData.deleted,
+        encryptedBlob: encryptedBlob,
+        createdAt: new Date(serverResponse.createdAt).getTime(),
+      }]);
+
+      // Still trigger sync to fetch any other updates
       await triggerSync();
 
       // Navigate back to passwords list
