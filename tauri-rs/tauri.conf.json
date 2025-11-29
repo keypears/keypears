@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "KeyPears",
         "width": 480,
-        "height": 800
+        "height": 800,
+        "titleBarStyle": "Transparent"
       }
     ],
     "security": {
