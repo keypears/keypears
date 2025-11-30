@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { vaultAuthedProcedure, validateVaultAuth } from "./base.js";
+import { sessionAuthedProcedure } from "./base.js";
 import { getVaultByNameAndDomain } from "../db/models/vault.js";
 
 // Input schema - requires name and domain to identify the vault
@@ -19,14 +19,14 @@ const GetVaultInfoResponseSchema = z.object({
 
 /**
  * Get vault information for import.
- * Requires authentication via X-Vault-Login-Key header.
+ * Requires authentication via X-Vault-Session-Token header.
  * Returns vault metadata needed to import vault into another client.
  */
-export const getVaultInfoProcedure = vaultAuthedProcedure
+export const getVaultInfoProcedure = sessionAuthedProcedure
   .input(GetVaultInfoRequestSchema)
   .output(GetVaultInfoResponseSchema)
   .handler(async ({ context, input }) => {
-    const { loginKey } = context;
+    const { vaultId } = context; // vaultId comes from session
     const { name, domain } = input;
 
     // Query vault by name and domain using model
@@ -36,8 +36,10 @@ export const getVaultInfoProcedure = vaultAuthedProcedure
       throw new Error(`Vault not found: ${name}@${domain}`);
     }
 
-    // Validate login key matches this specific vault
-    await validateVaultAuth(loginKey, vault.id);
+    // Verify session's vaultId matches requested vault
+    if (vault.id !== vaultId) {
+      throw new Error("Session vault does not match requested vault");
+    }
 
     return {
       vaultId: vault.id,

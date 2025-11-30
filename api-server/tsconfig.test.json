@@ -4,6 +4,7 @@
     "test/**/*",
     "src/**/*",
     "vite.config.ts",
+    "vitest.config.ts",
     "drizzle.config.ts",
     "drizzle-clear.config.ts"
   ],

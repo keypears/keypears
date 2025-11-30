@@ -9,7 +9,7 @@ const initialContextBase = os.$context<{
   headers: IncomingHttpHeaders;
 }>();
 
-// Execution context that extracts login key from headers
+// Execution context that extracts login key and session token from headers
 const executionContextBase = initialContextBase.use(
   async ({ context, next }) => {
     // Extract login key from headers (if present)
@@ -17,10 +17,16 @@ const executionContextBase = initialContextBase.use(
     const loginKey =
       typeof loginKeyHeader === "string" ? loginKeyHeader : undefined;
 
+    // Extract session token from headers (if present)
+    const sessionTokenHeader = context.headers["x-vault-session-token"];
+    const sessionToken =
+      typeof sessionTokenHeader === "string" ? sessionTokenHeader : undefined;
+
     return next({
       context: {
         ...context,
         loginKey,
+        sessionToken,
       },
     });
   },
@@ -43,6 +49,56 @@ export const vaultAuthedProcedure = base.use(async ({ context, next }) => {
     context: {
       ...context,
       loginKey: context.loginKey,
+    },
+  });
+});
+
+// Session-authenticated procedure - requires valid session token
+export const sessionAuthedProcedure = base.use(async ({ context, next }) => {
+  // Check that session token is present
+  if (!context.sessionToken) {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Missing X-Vault-Session-Token header",
+    });
+  }
+
+  // Hash incoming session token to look up in database
+  const { blake3Hash } = await import("@webbuf/blake3");
+  const { WebBuf } = await import("@webbuf/webbuf");
+  const sessionTokenBuf = WebBuf.fromHex(context.sessionToken);
+  const hashedSessionToken = blake3Hash(sessionTokenBuf).buf.toHex();
+
+  // Query device session by hashed token
+  const { getDeviceSessionByHashedToken, updateDeviceSessionActivity, deleteDeviceSessionByHashedToken } = await import("../db/models/device-session.js");
+  const session = await getDeviceSessionByHashedToken(hashedSessionToken);
+
+  if (!session) {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Invalid or expired session",
+    });
+  }
+
+  // Check expiration
+  if (Date.now() > session.expiresAt) {
+    // Delete expired session
+    await deleteDeviceSessionByHashedToken(hashedSessionToken);
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Session expired",
+    });
+  }
+
+  // Update last activity (fire and forget - don't await)
+  updateDeviceSessionActivity(session.id).catch((err) => {
+    console.error("Failed to update session activity:", err);
+  });
+
+  // Pass session context to handler
+  return next({
+    context: {
+      ...context,
+      session,
+      vaultId: session.vaultId,
+      deviceId: session.deviceId,
     },
   });
 });
