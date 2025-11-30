@@ -121,3 +121,54 @@ export const TableSecretUpdate = pgTable(
 
 export type SelectSecretUpdate = typeof TableSecretUpdate.$inferSelect;
 export type InsertSecretUpdate = typeof TableSecretUpdate.$inferInsert;
+
+// Device sessions table - tracks active sessions for devices accessing vaults
+export const TableDeviceSession = pgTable(
+  'device_session',
+  {
+    // Primary key - ULID
+    id: varchar('id', { length: 26 }).primaryKey(),
+
+    // Foreign key to vault
+    vaultId: varchar('vault_id', { length: 26 })
+      .notNull()
+      .references(() => TableVault.id, { onDelete: 'cascade' }),
+
+    // Device identifier (client-generated ULID, unique per vault per device)
+    deviceId: varchar('device_id', { length: 26 }).notNull(),
+
+    // Device metadata for user-facing identification
+    // Auto-detected by client, sent during login (read-only)
+    clientDeviceDescription: varchar('client_device_description', { length: 100 }), // e.g., "macOS 14.1 (aarch64)"
+
+    // User-editable device name (set by vault owner via UI)
+    serverDeviceName: varchar('server_device_name', { length: 100 }), // e.g., "Ryan's MacBook Pro"
+
+    // Hashed session token (Blake3 hash of 32-byte random token)
+    // Server NEVER stores raw session token - only Blake3 hash
+    // Client sends raw token, server hashes and compares
+    hashedSessionToken: varchar('hashed_session_token', { length: 64 }).notNull(), // Blake3 hex = 64 chars
+
+    // Session expiration (Unix milliseconds)
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+
+    // Last activity timestamp for session management
+    lastActivityAt: timestamp('last_activity_at').defaultNow().notNull(),
+
+    // Tracking
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ([
+    // Index for looking up active sessions by vault + device
+    index('idx_vault_device').on(table.vaultId, table.deviceId),
+
+    // Index for token lookup (used on every authenticated request)
+    index('idx_session_token').on(table.hashedSessionToken),
+
+    // Unique: one active session per vault + device combination
+    unique().on(table.vaultId, table.deviceId),
+  ]),
+);
+
+export type SelectDeviceSession = typeof TableDeviceSession.$inferSelect;
+export type InsertDeviceSession = typeof TableDeviceSession.$inferInsert;
