@@ -1,11 +1,14 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { vaultAuthedProcedure, validateVaultAuth } from "./base.js";
 import { db } from "../db/index.js";
 import { TableVault } from "../db/schema.js";
 
-// Input schema (empty - uses loginKey from header via auth middleware)
-const GetVaultInfoRequestSchema = z.object({});
+// Input schema - requires name and domain to identify the vault
+const GetVaultInfoRequestSchema = z.object({
+  name: z.string(),
+  domain: z.string(),
+});
 
 // Output schema
 const GetVaultInfoResponseSchema = z.object({
@@ -24,34 +27,31 @@ const GetVaultInfoResponseSchema = z.object({
 export const getVaultInfoProcedure = vaultAuthedProcedure
   .input(GetVaultInfoRequestSchema)
   .output(GetVaultInfoResponseSchema)
-  .handler(async ({ context }) => {
+  .handler(async ({ context, input }) => {
     const { loginKey } = context;
+    const { name, domain } = input;
 
-    // Find vault by validating login key
-    const vaults = await db.select().from(TableVault);
+    // Query vault by name and domain
+    const vaults = await db
+      .select()
+      .from(TableVault)
+      .where(and(eq(TableVault.name, name), eq(TableVault.domain, domain)))
+      .limit(1);
 
-    // Find the vault that matches this login key
-    let matchedVault = null;
-    for (const vault of vaults) {
-      try {
-        await validateVaultAuth(loginKey, vault.id);
-        matchedVault = vault;
-        break;
-      } catch (error) {
-        // Not this vault, continue
-        continue;
-      }
+    if (!vaults[0]) {
+      throw new Error(`Vault not found: ${name}@${domain}`);
     }
 
-    if (!matchedVault) {
-      throw new Error("Vault not found for provided login key");
-    }
+    const vault = vaults[0];
+
+    // Validate login key matches this specific vault
+    await validateVaultAuth(loginKey, vault.id);
 
     return {
-      vaultId: matchedVault.id,
-      name: matchedVault.name,
-      domain: matchedVault.domain,
-      encryptedVaultKey: matchedVault.encryptedVaultKey,
-      vaultPubKeyHash: matchedVault.vaultPubKeyHash,
+      vaultId: vault.id,
+      name: vault.name,
+      domain: vault.domain,
+      encryptedVaultKey: vault.encryptedVaultKey,
+      vaultPubKeyHash: vault.vaultPubKeyHash,
     };
   });

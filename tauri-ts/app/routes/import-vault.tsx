@@ -74,19 +74,12 @@ export default function ImportVault() {
       // 4. Call server to get vault info (authenticated with login key)
       console.log("\n--- Step 4: Get Vault Info from Server ---");
       const authedClient = createApiClient(domain, loginKey);
-      const vaultInfo = await authedClient.api.getVaultInfo({});
+      const vaultInfo = await authedClient.api.getVaultInfo({ name, domain });
       console.log("Vault ID:", vaultInfo.vaultId);
       console.log("Vault Name:", vaultInfo.name);
       console.log("Vault Domain:", vaultInfo.domain);
       console.log("Encrypted Vault Key:", vaultInfo.encryptedVaultKey);
       console.log("Vault PubKeyHash:", vaultInfo.vaultPubKeyHash);
-
-      // 5. Verify name and domain match
-      if (vaultInfo.name !== name || vaultInfo.domain !== domain) {
-        throw new Error(
-          `Server returned different vault: ${vaultInfo.name}@${vaultInfo.domain} (expected ${name}@${domain})`
-        );
-      }
 
       // 6. Derive encryption key from password key
       console.log("\n--- Step 5: Derive Encryption Key ---");
