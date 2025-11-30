@@ -4,12 +4,212 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sun, 16 Nov 2025 12:32:54 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 30 Nov 2025 20:39:06 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Building Secure Cross-Device Sync for a Decentralized Password Manager]]></title>
+            <link>https://keypears.com/blog/2025-11-30-cross-device-sync</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-11-30-cross-device-sync</guid>
+            <pubDate>Mon, 01 Dec 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[<p>After weeks of intensive development, KeyPears now has a fully functional
+cross-device synchronization system. This wasn't just about making data appear
+on multiple devices—it was about building a ...]]></description>
+            <content:encoded><![CDATA[<p>After weeks of intensive development, KeyPears now has a fully functional
+cross-device synchronization system. This wasn't just about making data appear
+on multiple devices—it was about building a secure, privacy-preserving sync
+architecture that works in a decentralized environment where users can run their
+own servers. Here's how we did it.</p>
+<h2>The Challenge</h2>
+<p>Building sync for a password manager is fundamentally different from typical app
+synchronization. Every design decision has security implications. When you're
+also committed to a decentralized architecture where users might run their own
+servers, the complexity multiplies. We needed to solve several interconnected
+problems:</p>
+<ol>
+<li><strong>Authentication without centralization</strong> - No global user accounts or OAuth
+providers</li>
+<li><strong>Device identity with privacy</strong> - Track devices without cross-domain
+correlation</li>
+<li><strong>Session management at scale</strong> - Support hundreds of API calls without
+exposing long-term credentials</li>
+<li><strong>Sync conflict resolution</strong> - Handle concurrent edits from multiple devices</li>
+<li><strong>Zero-knowledge architecture</strong> - Servers should never see passwords or
+encryption keys</li>
+</ol>
+<h2>The Solution: 2,000+ Lines of Carefully Crafted Code</h2>
+<p>Over the past week, we've implemented a comprehensive solution spanning 40 files
+with over 2,000 lines of new code. Here's what we built:</p>
+<h3>1. Session-Based Authentication System</h3>
+<p>The biggest change was moving from a "login key with every request" model to
+proper session-based authentication. This reduced our attack surface
+dramatically:</p>
+<p><strong>Before:</strong> Login key sent 100+ times per session <strong>After:</strong> Login key sent once
+per 24 hours</p>
+<p>The new authentication flow works like this:</p>
+<pre><code class="language-typescript">// Login once per day
+const { sessionToken, expiresAt } = await client.login({
+  vaultId,
+  loginKey,
+  deviceId,
+  deviceDescription: "macOS 14.1 (aarch64)"
+});
+
+// Use session token for all subsequent requests
+const secrets = await client.getSecretUpdates({
+  vaultId,
+  lastUpdatedAt: lastSync
+});
+</code></pre>
+<p>But here's the security innovation: we store session tokens as Blake3 hashes in
+the database. Even if someone breaches the server database, they can't use the
+stolen hashes—they'd need the original 32-byte random tokens, which exist only
+in client memory.</p>
+<h3>2. Privacy-Preserving Device Tracking</h3>
+<p>Unlike centralized password managers that assign global device IDs, KeyPears
+generates a unique device ID for each vault. This means:</p>
+<ul>
+<li>Your work vault and personal vault have different device IDs</li>
+<li>Servers can't correlate devices across domains</li>
+<li>Complete privacy preservation in a decentralized architecture</li>
+</ul>
+<p>Each device gets identified with:</p>
+<ul>
+<li>A ULID (Universally Unique Lexicographically Sortable Identifier) per vault</li>
+<li>Auto-detected OS information: "iPhone (iOS 17.2)" or "Windows 11 (x86_64)"</li>
+<li>User-editable friendly names: "Ryan's MacBook Pro"</li>
+</ul>
+<h3>3. Background Sync Service</h3>
+<p>We built a robust background synchronization service that polls for changes
+every 5 seconds:</p>
+<pre><code class="language-typescript">// Start sync when vault is unlocked
+startBackgroundSync(vaultId, vaultDomain, vaultKey, getSession);
+
+// Automatic sync every 5 seconds
+// Manual sync after creating/editing secrets
+await triggerManualSync();
+</code></pre>
+<p>The sync service includes sophisticated error handling:</p>
+<ul>
+<li><strong>401 Unauthorized</strong>: Stop syncing, prompt for re-authentication</li>
+<li><strong>500+ Server Error</strong>: Exponential backoff (5s → 10s → 20s)</li>
+<li><strong>Network Error</strong>: Keep retrying at normal interval</li>
+<li><strong>Session Expiring</strong>: Skip sync, avoid unnecessary 401s</li>
+</ul>
+<h3>4. Three-Tier Key Derivation System</h3>
+<p>We implemented a sophisticated key hierarchy that separates authentication from
+encryption:</p>
+<pre><code>Master Password
+    ↓ (100k rounds PBKDF)
+Password Key (cached, PIN-encrypted)
+    ├→ Encryption Key (device only, decrypts vault)
+    └→ Login Key (sent to server for auth)
+        ↓ (1k rounds on server)
+    Hashed Login Key (database storage)
+</code></pre>
+<p>This asymmetric round count (100k client, 1k server) is intentional—the heavy
+computation happens client-side for security, while the server just needs to
+prevent raw token storage.</p>
+<h3>5. Comprehensive Test Coverage</h3>
+<p>We didn't just write code; we wrote tests. Lots of them:</p>
+<ul>
+<li><strong>283 lines</strong> of authentication tests</li>
+<li><strong>278 lines</strong> of device session tests</li>
+<li>Integration tests for the complete sync flow</li>
+<li>Database migration tests for schema changes</li>
+</ul>
+<h2>Implementation Highlights</h2>
+<h3>React Closure Bug Fix</h3>
+<p>One of the trickiest bugs involved React closures capturing stale state. The
+sync service was always getting a <code>null</code> session token because the closure
+captured the initial value:</p>
+<pre><code class="language-typescript">// BUG: Closure captures initial null value
+startBackgroundSync(vaultId, domain, key, () => session?.token);
+
+// FIX: Use ref to get current value
+const sessionRef = useRef(session);
+useEffect(() => { sessionRef.current = session; }, [session]);
+startBackgroundSync(vaultId, domain, key, () => sessionRef.current?.token);
+</code></pre>
+<h3>Tauri Plugin Integration</h3>
+<p>We integrated Tauri's OS detection plugin to automatically identify devices:</p>
+<pre><code class="language-rust">// Rust side
+.plugin(tauri_plugin_os::init())
+
+// TypeScript side
+import { platform, version, arch } from "@tauri-apps/plugin-os";
+const description = `${platform()} ${version()} (${arch()})`;
+</code></pre>
+<h3>Database Schema Evolution</h3>
+<p>Added a new <code>device_session</code> table with careful constraints:</p>
+<pre><code class="language-sql">CREATE TABLE device_session (
+  id TEXT PRIMARY KEY,           -- ULID
+  vault_id TEXT NOT NULL,
+  device_id TEXT NOT NULL,        -- Per-vault device ULID
+  hashed_session_token TEXT,      -- Blake3 hash, not raw token
+  expires_at INTEGER NOT NULL,
+  last_activity INTEGER NOT NULL,
+  UNIQUE(vault_id, device_id),    -- One session per device
+  FOREIGN KEY(vault_id) REFERENCES vault(id) ON DELETE CASCADE
+);
+</code></pre>
+<h2>Security Improvements</h2>
+<p>The new system dramatically improves our security posture:</p>
+<p>| Attack Vector         | Before             | After                  |
+| --------------------- | ------------------ | ---------------------- |
+| Token Interception    | Permanent access   | 24-hour maximum window |
+| Database Breach       | Login keys exposed | Only unusable hashes   |
+| Device Compromise     | No revocation      | Per-device logout      |
+| Replay Attacks        | Vulnerable         | Time-limited tokens    |
+| Cross-Domain Tracking | Possible           | Prevented by design    |</p>
+<h2>Performance Optimizations</h2>
+<p>Beyond security, we optimized for performance:</p>
+<ol>
+<li><strong>Smart Polling</strong>: Only sync when there's an active session</li>
+<li><strong>Exponential Backoff</strong>: Reduce server load during errors</li>
+<li><strong>Debounced Updates</strong>: Batch rapid changes together</li>
+<li><strong>Selective Sync</strong>: Only fetch changes since last sync timestamp</li>
+</ol>
+<h2>What's Next</h2>
+<p>With cross-device sync complete, KeyPears is approaching feature parity with
+centralized password managers—while maintaining its decentralized,
+privacy-preserving architecture. The foundation we've built enables future
+features like:</p>
+<ul>
+<li>Multi-factor authentication (MFA)</li>
+<li>Device trust levels and approval workflows</li>
+<li>Geographic anomaly detection</li>
+<li>Granular access controls</li>
+<li>Offline-first mobile apps</li>
+</ul>
+<h2>Technical Details</h2>
+<p>For the curious, here's the full scope of changes:</p>
+<ul>
+<li><strong>2,018 lines</strong> of code across <strong>40 files</strong></li>
+<li><strong>13 new API endpoints</strong> for authentication and sync</li>
+<li><strong>2 new database tables</strong> with migration scripts</li>
+<li><strong>166 lines</strong> of sync service implementation</li>
+<li><strong>Test coverage</strong> for all critical paths</li>
+</ul>
+<p>The complete implementation is open source and available in our
+<a href="https://github.com/identellica/keypears">GitHub repository</a>.</p>
+<h2>Conclusion</h2>
+<p>Building secure cross-device sync for a decentralized password manager required
+rethinking traditional approaches. By combining session-based authentication,
+privacy-preserving device tracking, and sophisticated key derivation, we've
+created a system that's both secure and user-friendly.</p>
+<p>The key insight: security doesn't require sacrificing usability or privacy. With
+careful architecture and attention to detail, we can build systems that protect
+users without compromising their autonomy.</p>
+<p>KeyPears now syncs your passwords across all your devices—instantly, securely,
+and privately. Whether you're using our hosted service or running your own
+server, your secrets stay yours.</p>
+<p><em>Next up: Implementing the Diffie-Hellman key exchange protocol for secure
+secret sharing between users. Stay tuned!</em></p>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[TypeScript for the KeyPears MVP: Why We're Not Really Using Rust (Yet)]]></title>
             <link>https://keypears.com/blog/2025-11-16-typescript-for-mvp</link>
