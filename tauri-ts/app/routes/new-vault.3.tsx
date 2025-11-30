@@ -11,13 +11,14 @@ import {
   deriveLoginKey,
   encryptKey,
   blake3Hash,
+  publicKeyCreate,
   FixedBuf,
 } from "@keypears/lib";
-import { publicKeyCreate } from "@webbuf/secp256k1";
 import { createVault } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
 import { createApiClient } from "~app/lib/api-client";
+import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 
 export default function NewVaultStep3() {
   const location = useLocation();
@@ -147,14 +148,23 @@ export default function NewVaultStep3() {
         });
         console.log("Server registration successful. Vault ID:", registrationResult.vaultId);
 
-        // 9. Save vault to local database with server-generated ID
-        console.log("\n--- Step 9: Save to Local Database ---");
+        // 9. Generate device ID and description
+        console.log("\n--- Step 9: Generate Device Info ---");
+        const deviceId = generateDeviceId();
+        const deviceDescription = await detectDeviceDescription();
+        console.log("Device ID:", deviceId);
+        console.log("Device Description:", deviceDescription);
+
+        // 10. Save vault to local database with server-generated ID
+        console.log("\n--- Step 10: Save to Local Database ---");
         const vault = await createVault(
           registrationResult.vaultId, // Server-generated ULID
           vaultName,
           vaultDomain,
           encryptedVaultKey.toHex(),
           vaultPubKeyHash.buf.toHex(),
+          deviceId,
+          deviceDescription,
         );
         console.log("Vault saved to database with ID:", vault.id);
         console.log("Vault PubKeyHash:", vault.vaultPubKeyHash);

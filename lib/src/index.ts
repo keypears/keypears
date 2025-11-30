@@ -1,10 +1,15 @@
 import { acb3Decrypt, acb3Encrypt } from "@webbuf/acb3";
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { publicKeyCreate } from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
 
 export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
+
+// Re-export publicKeyCreate for deriving public keys from private keys
+// This is used to derive vault public keys from vault private keys
+export { publicKeyCreate };
 
 // Export domain configuration
 export {

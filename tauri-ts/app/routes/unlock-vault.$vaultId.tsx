@@ -105,11 +105,11 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
 
       // Step 3: Call /api/login to create session
       const apiClient = createApiClient(vault.domain);
-      const loginResponse = await apiClient.login({
+      const loginResponse = await apiClient.api.login({
         vaultId: vault.id,
         loginKey: result.loginKey.buf.toHex(),
         deviceId,
-        deviceDescription: deviceDescription ?? undefined,
+        clientDeviceDescription: deviceDescription ?? undefined,
       });
 
       // Step 4: Store session token in memory

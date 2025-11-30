@@ -10,6 +10,8 @@ export interface Vault {
   domain: string;
   encryptedVaultKey: string;
   vaultPubKeyHash: string;
+  deviceId: string;
+  deviceDescription: string | null;
   lastSyncTimestamp: number | null;
   createdAt: number;
 }
@@ -20,6 +22,8 @@ export async function createVault(
   domain: string,
   encryptedVaultKey: string,
   vaultPubKeyHash: string,
+  deviceId: string,
+  deviceDescription: string | null,
 ): Promise<Vault> {
   // Validate name with Zod schema
   vaultNameSchema.parse(name);
@@ -32,6 +36,8 @@ export async function createVault(
     domain,
     encryptedVaultKey,
     vaultPubKeyHash,
+    deviceId,
+    deviceDescription,
     createdAt,
   });
 
@@ -77,4 +83,15 @@ export async function countVaults(): Promise<number> {
 
 export async function deleteVault(id: string): Promise<void> {
   await db.delete(TableVault).where(eq(TableVault.id, id));
+}
+
+export async function updateVault(
+  id: string,
+  updates: Partial<{
+    deviceId: string;
+    deviceDescription: string | null;
+    lastSyncTimestamp: number | null;
+  }>,
+): Promise<void> {
+  await db.update(TableVault).set(updates).where(eq(TableVault.id, id));
 }

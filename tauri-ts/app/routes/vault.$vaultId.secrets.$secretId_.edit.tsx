@@ -18,7 +18,7 @@ import { triggerManualSync } from "~app/lib/sync-service";
 export default function EditPassword() {
   const params = useParams();
   const navigate = useNavigate();
-  const { activeVault, encryptPassword, decryptPassword, getLoginKey } = useVault();
+  const { activeVault, encryptPassword, decryptPassword, getSessionToken } = useVault();
   const { status } = useServerStatus();
 
   const [existingPassword, setExistingPassword] =
@@ -150,9 +150,9 @@ export default function EditPassword() {
         deleted: false,
       };
 
-      // Create authenticated API client with login key
-      const loginKey = getLoginKey();
-      const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
+      // Create authenticated API client with session token
+      const sessionToken = getSessionToken();
+      const authedClient = createApiClient(activeVault.vaultDomain, sessionToken || undefined);
 
       // Push update to server (creates new version with higher localOrder)
       const serverResponse = await pushSecretUpdate(

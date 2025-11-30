@@ -10,16 +10,19 @@ import {
   deriveLoginKey,
   decryptKey,
   getOfficialDomains,
+  publicKeyCreate,
   WebBuf,
 } from "@keypears/lib";
 import { createVault, getVaultByNameAndDomain } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { createApiClient } from "~app/lib/api-client";
-import { startBackgroundSync } from "~app/lib/sync-service";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
+import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
+import { useVault } from "~app/contexts/vault-context";
 
 export default function ImportVault() {
   const navigate = useNavigate();
+  const { setSession, unlockVault } = useVault();
   useServerStatus(); // Ensure server status is checked
 
   const [domain, setDomain] = useState(getOfficialDomains()[0] || "");
@@ -83,41 +86,87 @@ export default function ImportVault() {
       const loginKey = deriveLoginKey(passwordKey);
       console.log("Login Key:", loginKey.buf.toHex());
 
-      // 5. Verify vault info with authenticated client
-      console.log("\n--- Step 5: Verify Vault with Authentication ---");
-      const authedClient = createApiClient(domain, loginKey);
-      await authedClient.api.getVaultInfo({ name, domain });
-      console.log("Vault verified with authentication");
+      // 5. Generate device ID and description
+      console.log("\n--- Step 5: Generate Device Info ---");
+      const deviceId = generateDeviceId();
+      const deviceDescription = await detectDeviceDescription();
+      console.log("Device ID:", deviceId);
+      console.log("Device Description:", deviceDescription);
 
-      // 6. Derive encryption key from password key
-      console.log("\n--- Step 6: Derive Encryption Key ---");
+      // 6. Login to get session token
+      console.log("\n--- Step 6: Login to Get Session ---");
+      const apiClient = createApiClient(domain);
+      const loginResponse = await apiClient.api.login({
+        vaultId: vaultId,
+        loginKey: loginKey.buf.toHex(),
+        deviceId,
+        clientDeviceDescription: deviceDescription,
+      });
+      console.log("Session obtained, expires at:", new Date(loginResponse.expiresAt));
+
+      // Store session in context
+      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+
+      // 7. Verify vault info with session auth
+      console.log("\n--- Step 7: Verify Vault with Session ---");
+      const authedClient = createApiClient(domain, loginResponse.sessionToken);
+      await authedClient.api.getVaultInfo({ name, domain });
+      console.log("Vault verified with session authentication");
+
+      // 8. Derive encryption key from password key
+      console.log("\n--- Step 8: Derive Encryption Key ---");
       const encryptionKey = deriveEncryptionKey(passwordKey);
       console.log("Encryption Key:", encryptionKey.buf.toHex());
 
-      // 7. Decrypt vault key using encryption key
-      console.log("\n--- Step 7: Decrypt Vault Key ---");
+      // 9. Decrypt vault key using encryption key
+      console.log("\n--- Step 9: Decrypt Vault Key ---");
       const encryptedVaultKeyBuf = WebBuf.fromHex(vaultInfo.encryptedVaultKey);
       const vaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
       console.log("Decrypted Vault Key:", vaultKey.buf.toHex());
 
-      // 8. Save vault to local database
-      console.log("\n--- Step 8: Save to Local Database ---");
+      // 10. Derive vault public key from private key
+      console.log("\n--- Step 10: Derive Vault Public Key ---");
+      const vaultPublicKey = publicKeyCreate(vaultKey);
+      console.log("Vault Public Key:", vaultPublicKey.buf.toHex());
+
+      // 11. Save vault to local database with device info
+      console.log("\n--- Step 11: Save to Local Database ---");
       const vault = await createVault(
         vaultInfo.vaultId,
         vaultInfo.name,
         vaultInfo.domain,
         vaultInfo.encryptedVaultKey,
         vaultInfo.vaultPubKeyHash,
+        deviceId,
+        deviceDescription,
       );
       console.log("Vault saved to database with ID:", vault.id);
 
-      // 9. Start background sync
-      console.log("\n--- Step 9: Start Background Sync ---");
-      startBackgroundSync(vault.id, vault.domain, vaultKey, loginKey);
-      console.log("Background sync started");
+      // 12. Unlock vault in context
+      console.log("\n--- Step 12: Unlock Vault in Context ---");
+      unlockVault(
+        vault.id,
+        vault.name,
+        vault.domain,
+        passwordKey,
+        encryptionKey,
+        loginKey,
+        vaultKey,
+        vaultPublicKey,
+        vault.encryptedVaultKey,
+        vault.vaultPubKeyHash,
+        deviceId,
+        deviceDescription,
+      );
+      console.log("Vault unlocked in context");
 
       console.log("\n=== Import Vault Complete ===\n");
       setSuccess(true);
+
+      // Navigate to vault after successful import
+      setTimeout(() => {
+        navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
+      }, 1500);
     } catch (err) {
       console.error("Error importing vault:", err);
 

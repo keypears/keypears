@@ -25,7 +25,7 @@ export function UserMenu() {
       const sessionToken = getSessionToken();
       if (sessionToken) {
         const apiClient = createApiClient(activeVault.vaultDomain, sessionToken);
-        await apiClient.logout();
+        await apiClient.api.logout({ sessionToken });
       }
 
       // Step 2: Clear session from memory

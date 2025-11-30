@@ -110,6 +110,9 @@ importers:
       '@webbuf/fixedbuf':
         specifier: 3.0.28
         version: 3.0.28(@webbuf/webbuf@3.0.28)
+      '@webbuf/secp256k1':
+        specifier: 3.0.28
+        version: 3.0.28(@webbuf/fixedbuf@3.0.28(@webbuf/webbuf@3.0.28))(@webbuf/webbuf@3.0.28)
       '@webbuf/webbuf':
         specifier: 3.0.28
         version: 3.0.28

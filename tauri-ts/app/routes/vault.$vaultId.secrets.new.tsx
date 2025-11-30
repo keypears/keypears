@@ -16,7 +16,7 @@ import { ulid } from "ulid";
 
 export default function NewPassword() {
   const navigate = useNavigate();
-  const { activeVault, encryptPassword, getLoginKey } = useVault();
+  const { activeVault, encryptPassword, getSessionToken } = useVault();
   const { status } = useServerStatus();
 
   const [name, setName] = useState("");
@@ -68,9 +68,9 @@ export default function NewPassword() {
         deleted: false,
       };
 
-      // Create authenticated API client with login key
-      const loginKey = getLoginKey();
-      const authedClient = createApiClient(activeVault.vaultDomain, loginKey);
+      // Create authenticated API client with session token
+      const sessionToken = getSessionToken();
+      const authedClient = createApiClient(activeVault.vaultDomain, sessionToken || undefined);
 
       // Push to server (server generates ID, order numbers, timestamp)
       const serverResponse = await pushSecretUpdate(

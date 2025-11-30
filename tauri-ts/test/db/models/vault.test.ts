@@ -10,6 +10,14 @@ import {
   deleteVault,
 } from "~app/db/models/vault";
 
+// Helper function to generate test device ID
+function testDeviceId(): string {
+  return ulid();
+}
+
+// Test device description
+const TEST_DEVICE_DESCRIPTION = "Test Device";
+
 describe("Vault Model", () => {
   // Initialize test database before all tests
   initTestDb();
@@ -30,6 +38,8 @@ describe("Vault Model", () => {
         "keypears.localhost",
         "0".repeat(64),
         "1".repeat(64),
+        testDeviceId(),
+        TEST_DEVICE_DESCRIPTION,
       );
 
       expect(vault).toBeDefined();
@@ -39,16 +49,16 @@ describe("Vault Model", () => {
     });
 
     it("should enforce unique name+domain combination", async () => {
-      await createVault(ulid(), "uniquevault", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      await createVault(ulid(),"uniquevault", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       await expect(
-        createVault(ulid(), "uniquevault", "keypears.localhost", "0".repeat(64), "1".repeat(64)),
+        createVault(ulid(),"uniquevault", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION),
       ).rejects.toThrow();
     });
 
     it("should allow same name on different domains", async () => {
-      await createVault(ulid(), "samename", "keypears.localhost", "0".repeat(64), "1".repeat(64));
-      const vault2 = await createVault(ulid(), "samename", "hevybags.localhost", "0".repeat(64), "1".repeat(64));
+      await createVault(ulid(),"samename", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      const vault2 = await createVault(ulid(),"samename", "hevybags.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       expect(vault2).toBeDefined();
       expect(vault2.domain).toBe("hevybags.localhost");
@@ -56,30 +66,30 @@ describe("Vault Model", () => {
 
     it("should reject names that are too short", async () => {
       await expect(
-        createVault(ulid(), "", "keypears.localhost", "0".repeat(64), "1".repeat(64)),
+        createVault(ulid(),"", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION),
       ).rejects.toThrow("Vault name must be at least 1 character");
     });
 
     it("should reject names that are too long", async () => {
       await expect(
-        createVault(ulid(), "a".repeat(31), "keypears.localhost", "0".repeat(64), "1".repeat(64)),
+        createVault(ulid(),"a".repeat(31), "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION),
       ).rejects.toThrow("Vault name must be at most 30 characters");
     });
 
     it("should reject names that start with a number", async () => {
       await expect(
-        createVault(ulid(), "1vault", "keypears.localhost", "0".repeat(64), "1".repeat(64)),
+        createVault(ulid(),"1vault", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION),
       ).rejects.toThrow("Vault name must start with a letter");
     });
 
     it("should reject names with special characters", async () => {
       await expect(
-        createVault(ulid(), "vault-name", "keypears.localhost", "0".repeat(64), "1".repeat(64)),
+        createVault(ulid(),"vault-name", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION),
       ).rejects.toThrow("Vault name must contain only alphanumeric characters");
     });
 
     it("should accept valid alphanumeric names", async () => {
-      const vault = await createVault(ulid(), "vault123", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      const vault = await createVault(ulid(),"vault123", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       expect(vault).toBeDefined();
       expect(vault.name).toBe("vault123");
@@ -88,7 +98,7 @@ describe("Vault Model", () => {
 
   describe("getVault", () => {
     it("should retrieve a vault by ID", async () => {
-      const created = await createVault(ulid(), "findme", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      const created = await createVault(ulid(),"findme", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       const result = await getVault(created.id);
 
@@ -106,7 +116,7 @@ describe("Vault Model", () => {
 
   describe("getVaultByNameAndDomain", () => {
     it("should retrieve a vault by name and domain", async () => {
-      const created = await createVault(ulid(), "myvault", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      const created = await createVault(ulid(),"myvault", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       const result = await getVaultByNameAndDomain("myvault", "keypears.localhost");
 
@@ -123,8 +133,8 @@ describe("Vault Model", () => {
     });
 
     it("should distinguish between domains", async () => {
-      const vault1 = await createVault(ulid(), "samename", "keypears.localhost", "0".repeat(64), "1".repeat(64));
-      await createVault(ulid(), "samename", "hevybags.localhost", "0".repeat(64), "1".repeat(64));
+      const vault1 = await createVault(ulid(),"samename", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      await createVault(ulid(),"samename", "hevybags.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       const result = await getVaultByNameAndDomain("samename", "keypears.localhost");
 
@@ -135,9 +145,9 @@ describe("Vault Model", () => {
 
   describe("getVaults", () => {
     it("should return all vaults", async () => {
-      await createVault(ulid(), "vault1", "keypears.localhost", "0".repeat(64), "1".repeat(64));
-      await createVault(ulid(), "vault2", "keypears.localhost", "0".repeat(64), "1".repeat(64));
-      await createVault(ulid(), "vault3", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      await createVault(ulid(),"vault1", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      await createVault(ulid(),"vault2", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      await createVault(ulid(),"vault3", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       const result = await getVaults();
 
@@ -156,8 +166,8 @@ describe("Vault Model", () => {
 
   describe("countVaults", () => {
     it("should return correct count", async () => {
-      await createVault(ulid(), "vault1", "0".repeat(64), "0".repeat(64), "1".repeat(64));
-      await createVault(ulid(), "vault2", "0".repeat(64), "0".repeat(64), "1".repeat(64));
+      await createVault(ulid(),"vault1", "0".repeat(64), "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      await createVault(ulid(),"vault2", "0".repeat(64), "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       const count = await countVaults();
 
@@ -179,6 +189,8 @@ describe("Vault Model", () => {
         "keypears.localhost",
         "0".repeat(64),
         "1".repeat(64),
+        testDeviceId(),
+        TEST_DEVICE_DESCRIPTION,
       );
 
       await deleteVault(vault.id);
@@ -188,8 +200,8 @@ describe("Vault Model", () => {
     });
 
     it("should decrease vault count after deletion", async () => {
-      await createVault(ulid(), "vault1", "keypears.localhost", "0".repeat(64), "1".repeat(64));
-      const vault2 = await createVault(ulid(), "vault2", "keypears.localhost", "0".repeat(64), "1".repeat(64));
+      await createVault(ulid(),"vault1", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
+      const vault2 = await createVault(ulid(),"vault2", "keypears.localhost", "0".repeat(64), "1".repeat(64), testDeviceId(), TEST_DEVICE_DESCRIPTION);
 
       await deleteVault(vault2.id);
 
