@@ -1,6 +1,6 @@
 # KeyPears
 
-**Password manager for sovereign individuals**
+**Decentralized Diffie-Hellman Key Exchange System**
 
 ---
 
@@ -131,11 +131,14 @@ contribution guidelines once the codebase is ready for public release.
 
 - **[TODO.md](TODO.md)** — MVP task list organized by phase
 - **[AGENTS.md](AGENTS.md)** — Guide for AI agents working on KeyPears
-- **[docs/mvp.md](docs/mvp.md)** — Complete MVP requirements and success criteria
-- **[docs/business.md](docs/business.md)** — Business model, pricing, and strategy
+- **[docs/mvp.md](docs/mvp.md)** — Complete MVP requirements and success
+  criteria
+- **[docs/business.md](docs/business.md)** — Business model, pricing, and
+  strategy
 - **[docs/deployment.md](docs/deployment.md)** — AWS deployment guide
 - **[docs/code.md](docs/code.md)** — Code patterns and conventions
-- **[docs/crypto.md](docs/crypto.md)** — Cryptography patterns and key derivation
+- **[docs/crypto.md](docs/crypto.md)** — Cryptography patterns and key
+  derivation
 - **[docs/data.md](docs/data.md)** — Database and data handling patterns
 - **[docs/uiux.md](docs/uiux.md)** — UI/UX design patterns
 
