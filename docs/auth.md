@@ -630,35 +630,44 @@ database only stores hashes
 
 1. ✅ Create `device_session` table migration (`api-server/src/db/schema.ts`)
 2. ✅ Add indexes for performance (vault+device, session token)
-3. ✅ Test with sample data (10/10 unit tests passing in `device-session.test.ts`)
+3. ✅ Test with sample data (10/10 unit tests passing in
+   `device-session.test.ts`)
 
 **Implementation notes:**
+
 - Used Drizzle ORM with PostgreSQL
 - Session tokens stored as Blake3 hashes (64-char hex)
-- Unique constraint on (vaultId, deviceId) ensures one session per device per vault
+- Unique constraint on (vaultId, deviceId) ensures one session per device per
+  vault
 - Cascade delete when vault is deleted
 
 ### Phase 2: Server-Side Auth ✅ COMPLETE
 
-1. ✅ Create `device-session` model in `api-server/src/db/models/device-session.ts`
+1. ✅ Create `device-session` model in
+   `api-server/src/db/models/device-session.ts`
 2. ✅ Implement `login` procedure (`api-server/src/procedures/login.ts`)
 3. ✅ Implement `logout` procedure (`api-server/src/procedures/logout.ts`)
-4. ✅ Create new `sessionAuthedProcedure` middleware (`api-server/src/procedures/base.ts`)
+4. ✅ Create new `sessionAuthedProcedure` middleware
+   (`api-server/src/procedures/base.ts`)
 5. ✅ Update all protected endpoints to use new middleware:
    - `getVaultInfo`
    - `createSecretUpdate`
    - `getSecretUpdates`
 
 **Implementation notes:**
-- Session tokens generated with `FixedBuf.fromRandom(32)` (cryptographically secure)
+
+- Session tokens generated with `FixedBuf.fromRandom(32)` (cryptographically
+  secure)
 - Server stores only Blake3 hash of tokens (64-char hex)
-- Session validation includes expiration checking and auto-deletion of expired sessions
+- Session validation includes expiration checking and auto-deletion of expired
+  sessions
 - Fire-and-forget `lastActivityAt` updates to avoid blocking requests
 - Router exports `login` and `logout` procedures with full type safety
 - Comprehensive test suite (11 integration tests in `auth.test.ts`)
 - All tests passing (lint, typecheck, test, build)
 
 **API endpoints added:**
+
 - `POST /api/login` - Creates session, returns raw token
   - Input: `{ vaultId, loginKey, deviceId, clientDeviceDescription? }`
   - Output: `{ sessionToken, expiresAt, isNewDevice }`
@@ -667,18 +676,21 @@ database only stores hashes
   - Output: `{ success: boolean }`
 
 **Security implementation:**
+
 - Session tokens: 32 bytes of cryptographic randomness → 64-char hex
 - Server storage: Blake3 hash only (same pattern as login key hashing)
 - Token validation: Server hashes incoming token and compares with stored hash
 - Database breach protection: Raw session tokens never stored
-- Session expiration: 24 hours (configurable via `Date.now() + 24 * 60 * 60 * 1000`)
+- Session expiration: 24 hours (configurable via
+  `Date.now() + 24 * 60 * 60 * 1000`)
 
 ### Phase 3: Client-Side Auth ✅ COMPLETE
 
 1. ✅ Add device ID generation/storage logic (`tauri-ts/app/lib/device.ts`)
 2. ✅ Update `api-client.ts` to use session tokens
 3. ⏳ Implement session renewal logic (deferred to Phase 4)
-4. ✅ Update vault unlock flow to call login endpoint (`unlock-vault.$vaultId.tsx`)
+4. ✅ Update vault unlock flow to call login endpoint
+   (`unlock-vault.$vaultId.tsx`)
 5. ✅ Update lock vault flow to call logout endpoint (`user-menu.tsx`)
 
 **Implementation notes:**
@@ -687,7 +699,8 @@ database only stores hashes
 - Device IDs are per-vault ULIDs (privacy-focused)
 - Session tokens stored in memory only (React state in VaultContext)
 - Background sync uses session token getter function
-- Login flow: verify password → generate/get device ID → call /api/login → store session → unlock vault
+- Login flow: verify password → generate/get device ID → call /api/login → store
+  session → unlock vault
 - Logout flow: call /api/logout → clear session → lock vault → navigate home
 - Migration: `0001_powerful_mantis.sql` adds device fields to vault table
 
@@ -695,36 +708,45 @@ database only stores hashes
 
 **Reason**: Pre-MVP with no deployed clients, so no migration needed.
 
-1. ❌ Keep old `X-Vault-Login-Key` auth working - Unnecessary (no old clients exist)
+1. ❌ Keep old `X-Vault-Login-Key` auth working - Unnecessary (no old clients
+   exist)
 2. ✅ Client automatically upgrades - Already done in Phase 3
 3. ❌ Deprecation notice - Not needed (we control all clients)
 4. ❌ Remove old auth after migration - No old auth to remove
 
-**Conclusion**: Client was updated in Phase 3 to use session-based auth. Since we're pre-MVP with zero users and control 100% of clients, there's nothing to migrate.
+**Conclusion**: Client was updated in Phase 3 to use session-based auth. Since
+we're pre-MVP with zero users and control 100% of clients, there's nothing to
+migrate.
 
 ### Phase 5: Audit Endpoints ✅ COMPLETE
 
 **All 9 endpoints audited and verified correct auth:**
 
 **Public Endpoints** (use `base` - no auth required):
+
 - ✅ `blake3` - Public utility for hashing
 - ✅ `checkNameAvailability` - Check if vault name is available
 - ✅ `registerVault` - Create new vault (public, but validates input)
 - ✅ `getVaultInfoPublic` - Get public vault metadata for import flow
 
 **Login Endpoint** (uses `base` but validates login key in handler):
-- ✅ `login` - Uses `base.handler()` with manual `validateVaultAuth(loginKey, vaultId)` call
+
+- ✅ `login` - Uses `base.handler()` with manual
+  `validateVaultAuth(loginKey, vaultId)` call
   - Input: vaultId, loginKey, deviceId, clientDeviceDescription
   - Output: sessionToken, expiresAt, isNewDevice
   - Creates or updates device session
 
 **Logout Endpoint** (uses `base` - accepts session token in input):
+
 - ✅ `logout` - Uses `base.handler()`, receives session token in request body
   - Input: sessionToken
   - Output: success
   - Deletes device session by hashed token (idempotent)
 
-**Protected Endpoints** (use `sessionAuthedProcedure` - requires session token in header):
+**Protected Endpoints** (use `sessionAuthedProcedure` - requires session token
+in header):
+
 - ✅ `getVaultInfo` - Get vault metadata (authenticated)
 - ✅ `createSecretUpdate` - Create new secret
 - ✅ `getSecretUpdates` - Sync secrets from server
