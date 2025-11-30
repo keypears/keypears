@@ -24,10 +24,18 @@ interface UnlockedVault {
   vaultPublicKey: FixedBuf<33>;
   encryptedVaultKey: string;
   vaultPubKeyHash: string;
+  deviceId: string; // Device ID for this vault (ULID)
+  deviceDescription: string | null; // Auto-detected OS info
+}
+
+interface SessionState {
+  sessionToken: string; // 64-char hex session token
+  expiresAt: number; // Unix milliseconds
 }
 
 interface VaultContextType {
   activeVault: UnlockedVault | null;
+  session: SessionState | null;
   unlockVault: (
     vaultId: string,
     vaultName: string,
@@ -39,8 +47,13 @@ interface VaultContextType {
     vaultPublicKey: FixedBuf<33>,
     encryptedVaultKey: string,
     vaultPubKeyHash: string,
+    deviceId: string,
+    deviceDescription: string | null,
   ) => void;
   lockVault: () => void;
+  setSession: (sessionToken: string, expiresAt: number) => void;
+  clearSession: () => void;
+  getSessionToken: () => string | null;
   encryptPassword: (password: string) => string;
   decryptPassword: (encryptedPasswordHex: string) => string;
   getPasswordKey: () => FixedBuf<32>;
@@ -48,12 +61,14 @@ interface VaultContextType {
   getLoginKey: () => FixedBuf<32>;
   getVaultKey: () => FixedBuf<32>;
   getVaultPublicKey: () => FixedBuf<33>;
+  getDeviceId: () => string;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
 
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [activeVault, setActiveVault] = useState<UnlockedVault | null>(null);
+  const [session, setSessionState] = useState<SessionState | null>(null);
 
   const unlockVault = (
     vaultId: string,
@@ -66,6 +81,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     vaultPublicKey: FixedBuf<33>,
     encryptedVaultKey: string,
     vaultPubKeyHash: string,
+    deviceId: string,
+    deviceDescription: string | null,
   ) => {
     // If there's a currently unlocked vault, lock it first
     if (activeVault) {
@@ -85,6 +102,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       vaultPublicKey,
       encryptedVaultKey,
       vaultPubKeyHash,
+      deviceId,
+      deviceDescription,
     });
 
     // Mark as unlocked in shared session state
@@ -103,8 +122,30 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Stop background sync
     stopBackgroundSync();
 
+    // Clear session token
+    setSessionState(null);
+
     // Clear the active vault
     setActiveVault(null);
+  };
+
+  const setSession = (sessionToken: string, expiresAt: number) => {
+    setSessionState({ sessionToken, expiresAt });
+  };
+
+  const clearSession = () => {
+    setSessionState(null);
+  };
+
+  const getSessionToken = (): string | null => {
+    return session?.sessionToken ?? null;
+  };
+
+  const getDeviceId = (): string => {
+    if (!activeVault) {
+      throw new Error("No active vault");
+    }
+    return activeVault.deviceId;
   };
 
   const getPasswordKey = (): FixedBuf<32> => {
@@ -156,8 +197,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     <VaultContext.Provider
       value={{
         activeVault,
+        session,
         unlockVault,
         lockVault,
+        setSession,
+        clearSession,
+        getSessionToken,
         encryptPassword,
         decryptPassword,
         getPasswordKey,
@@ -165,6 +210,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         getLoginKey,
         getVaultKey,
         getVaultPublicKey,
+        getDeviceId,
       }}
     >
       {children}

@@ -1,24 +1,23 @@
 import { createClient, buildServerUrl } from "@keypears/api-server/client";
-import type { FixedBuf } from "@keypears/lib";
 
 /**
  * Creates an API client for the specified domain
- * Optionally includes login key for authenticated vault operations
+ * Optionally includes session token for authenticated vault operations
  *
  * @param domain - The vault domain (e.g., "keypears.com")
- * @param loginKey - Optional login key for authenticated operations
+ * @param sessionToken - Optional session token (64-char hex) for authenticated operations
  */
 export function createApiClient(
   domain: string,
-  loginKey?: FixedBuf<32>,
+  sessionToken?: string,
 ) {
   // Build the server URL using the centralized logic
   const url = buildServerUrl(domain);
 
-  // Prepare headers if login key is provided
+  // Prepare headers if session token is provided
   const headers: Record<string, string> = {};
-  if (loginKey) {
-    headers["X-Vault-Login-Key"] = loginKey.buf.toHex();
+  if (sessionToken) {
+    headers["X-Vault-Session-Token"] = sessionToken;
   }
 
   // Create the API client
