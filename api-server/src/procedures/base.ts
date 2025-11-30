@@ -65,7 +65,16 @@ export const sessionAuthedProcedure = base.use(async ({ context, next }) => {
   // Hash incoming session token to look up in database
   const { blake3Hash } = await import("@webbuf/blake3");
   const { WebBuf } = await import("@webbuf/webbuf");
-  const sessionTokenBuf = WebBuf.fromHex(context.sessionToken);
+
+  // Validate session token is valid hex before processing
+  let sessionTokenBuf;
+  try {
+    sessionTokenBuf = WebBuf.fromHex(context.sessionToken);
+  } catch (err) {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Invalid session token format",
+    });
+  }
   const hashedSessionToken = blake3Hash(sessionTokenBuf).buf.toHex();
 
   // Query device session by hashed token

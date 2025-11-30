@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
 import type { FixedBuf } from "@keypears/lib";
 import {
   encryptPassword as libEncryptPassword,
@@ -70,6 +70,14 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [activeVault, setActiveVault] = useState<UnlockedVault | null>(null);
   const [session, setSessionState] = useState<SessionState | null>(null);
 
+  // Use a ref to store the session to avoid closure issues
+  const sessionRef = useRef<SessionState | null>(null);
+
+  // Keep the ref in sync with the state
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   const unlockVault = (
     vaultId: string,
     vaultName: string,
@@ -109,8 +117,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Mark as unlocked in shared session state
     markVaultUnlocked(vaultId);
 
-    // Start background sync
-    startBackgroundSync(vaultId, vaultDomain, vaultKey, () => session?.sessionToken ?? null);
+    // Start background sync - use ref to avoid closure issues
+    startBackgroundSync(vaultId, vaultDomain, vaultKey, () => sessionRef.current?.sessionToken ?? null);
   };
 
   const lockVault = () => {
@@ -138,7 +146,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   };
 
   const getSessionToken = (): string | null => {
-    return session?.sessionToken ?? null;
+    return sessionRef.current?.sessionToken ?? null;
   };
 
   const getDeviceId = (): string => {
