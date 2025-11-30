@@ -1,4 +1,3 @@
-import { eq, and } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { deriveHashedLoginKey, isOfficialDomain } from "@keypears/lib";
@@ -7,8 +6,7 @@ import {
   RegisterVaultRequestSchema,
   RegisterVaultResponseSchema,
 } from "../zod-schemas.js";
-import { db } from "../db/index.js";
-import { TableVault } from "../db/schema.js";
+import { checkNameAvailability, createVault } from "../db/models/vault.js";
 import { base } from "./base.js";
 
 /**
@@ -35,13 +33,9 @@ export const registerVaultProcedure = base
     }
 
     // 2. Check name availability
-    const existing = await db
-      .select()
-      .from(TableVault)
-      .where(and(eq(TableVault.name, name), eq(TableVault.domain, domain)))
-      .limit(1);
+    const available = await checkNameAvailability(name, domain);
 
-    if (existing.length > 0) {
+    if (!available) {
       throw new ORPCError("CONFLICT", {
         message: `Vault name "${name}" is already taken for domain "${domain}"`,
       });
@@ -52,15 +46,15 @@ export const registerVaultProcedure = base
     const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
     const serverHashedLoginKey = deriveHashedLoginKey(loginKeyBuf);
 
-    // 4. Insert vault into database with encrypted vault key
+    // 4. Create vault using model
     const vaultId = ulid();
-    await db.insert(TableVault).values({
+    await createVault({
       id: vaultId,
       name,
       domain,
       vaultPubKeyHash,
       hashedLoginKey: serverHashedLoginKey.buf.toHex(),
-      encryptedVaultKey, // Store for cross-device import
+      encryptedVaultKey,
     });
 
     // 5. Return vault ID

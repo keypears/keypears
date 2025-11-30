@@ -1,10 +1,8 @@
-import { eq, and } from "drizzle-orm";
 import {
   CheckNameAvailabilityRequestSchema,
   CheckNameAvailabilityResponseSchema,
 } from "../zod-schemas.js";
-import { db } from "../db/index.js";
-import { TableVault } from "../db/schema.js";
+import { checkNameAvailability } from "../db/models/vault.js";
 import { base } from "./base.js";
 
 /**
@@ -18,16 +16,11 @@ export const checkNameAvailabilityProcedure = base
     async ({ input }): Promise<{ available: boolean }> => {
       const { name, domain } = input;
 
-      // Query database for existing vault with same name + domain
-      const existing = await db
-        .select()
-        .from(TableVault)
-        .where(and(eq(TableVault.name, name), eq(TableVault.domain, domain)))
-        .limit(1);
+      // Check availability using model
+      const available = await checkNameAvailability(name, domain);
 
-      // Available if no existing vault found
       return {
-        available: existing.length === 0,
+        available,
       };
     },
   );

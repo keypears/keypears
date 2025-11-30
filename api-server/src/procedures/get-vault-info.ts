@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
 import { vaultAuthedProcedure, validateVaultAuth } from "./base.js";
-import { db } from "../db/index.js";
-import { TableVault } from "../db/schema.js";
+import { getVaultByNameAndDomain } from "../db/models/vault.js";
 
 // Input schema - requires name and domain to identify the vault
 const GetVaultInfoRequestSchema = z.object({
@@ -31,18 +29,12 @@ export const getVaultInfoProcedure = vaultAuthedProcedure
     const { loginKey } = context;
     const { name, domain } = input;
 
-    // Query vault by name and domain
-    const vaults = await db
-      .select()
-      .from(TableVault)
-      .where(and(eq(TableVault.name, name), eq(TableVault.domain, domain)))
-      .limit(1);
+    // Query vault by name and domain using model
+    const vault = await getVaultByNameAndDomain(name, domain);
 
-    if (!vaults[0]) {
+    if (!vault) {
       throw new Error(`Vault not found: ${name}@${domain}`);
     }
-
-    const vault = vaults[0];
 
     // Validate login key matches this specific vault
     await validateVaultAuth(loginKey, vault.id);

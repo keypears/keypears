@@ -1,9 +1,7 @@
 import { os, ORPCError } from "@orpc/server";
-import { eq } from "drizzle-orm";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { deriveHashedLoginKey } from "@keypears/lib";
-import { db } from "../db/index.js";
-import { TableVault } from "../db/schema.js";
+import { getVaultById } from "../db/models/vault.js";
 import type { IncomingHttpHeaders } from "node:http";
 
 // Initial context with headers
@@ -57,14 +55,10 @@ export async function validateVaultAuth(
   loginKeyHex: string,
   vaultId: string,
 ): Promise<void> {
-  // Query vault from database
-  const vault = await db
-    .select()
-    .from(TableVault)
-    .where(eq(TableVault.id, vaultId))
-    .limit(1);
+  // Query vault from database using model
+  const vault = await getVaultById(vaultId);
 
-  if (!vault[0]) {
+  if (!vault) {
     throw new ORPCError("NOT_FOUND", {
       message: `Vault not found: ${vaultId}`,
     });
@@ -75,7 +69,7 @@ export async function validateVaultAuth(
   const derivedHashedLoginKey = deriveHashedLoginKey(providedLoginKey);
 
   // Compare with stored hashed login key
-  if (derivedHashedLoginKey.buf.toHex() !== vault[0].hashedLoginKey) {
+  if (derivedHashedLoginKey.buf.toHex() !== vault.hashedLoginKey) {
     throw new ORPCError("UNAUTHORIZED", {
       message: "Invalid login key for vault",
     });
