@@ -15,6 +15,11 @@ export const TableVault = sqliteTable(
     domain: text("domain").notNull(), // e.g., "keypears.com"
     encryptedVaultKey: text("encrypted_vault_key").notNull(), // Encrypted 32-byte secp256k1 private key
     vaultPubKeyHash: text("vault_pubkeyhash").notNull(), // 32-byte Blake3 hash of public key
+
+    // Device identity (for session management)
+    deviceId: text("device_id").notNull(), // Client-generated ULID, unique per vault per device
+    deviceDescription: text("device_description"), // Auto-detected OS info (e.g., "macOS 14.1 (aarch64)")
+
     lastSyncTimestamp: integer("last_sync_timestamp"),
     createdAt: integer("created_at")
       .notNull()

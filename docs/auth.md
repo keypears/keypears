@@ -626,21 +626,54 @@ database only stores hashes
 
 ## Implementation Plan
 
-### Phase 1: Database Schema
+### Phase 1: Database Schema ✅ COMPLETE
 
-1. Create `device_session` table migration
-2. Add indexes for performance
-3. Test with sample data
+1. ✅ Create `device_session` table migration (`api-server/src/db/schema.ts`)
+2. ✅ Add indexes for performance (vault+device, session token)
+3. ✅ Test with sample data (10/10 unit tests passing in `device-session.test.ts`)
 
-### Phase 2: Server-Side Auth
+**Implementation notes:**
+- Used Drizzle ORM with PostgreSQL
+- Session tokens stored as Blake3 hashes (64-char hex)
+- Unique constraint on (vaultId, deviceId) ensures one session per device per vault
+- Cascade delete when vault is deleted
 
-1. Create `device-session` model in `api-server/src/db/models/`
-2. Implement `login` procedure (creates session)
-3. Implement `logout` procedure (deletes session)
-4. Create new `sessionAuthedProcedure` middleware
-5. Update all protected endpoints to use new middleware
+### Phase 2: Server-Side Auth ✅ COMPLETE
 
-### Phase 3: Client-Side Auth
+1. ✅ Create `device-session` model in `api-server/src/db/models/device-session.ts`
+2. ✅ Implement `login` procedure (`api-server/src/procedures/login.ts`)
+3. ✅ Implement `logout` procedure (`api-server/src/procedures/logout.ts`)
+4. ✅ Create new `sessionAuthedProcedure` middleware (`api-server/src/procedures/base.ts`)
+5. ✅ Update all protected endpoints to use new middleware:
+   - `getVaultInfo`
+   - `createSecretUpdate`
+   - `getSecretUpdates`
+
+**Implementation notes:**
+- Session tokens generated with `FixedBuf.fromRandom(32)` (cryptographically secure)
+- Server stores only Blake3 hash of tokens (64-char hex)
+- Session validation includes expiration checking and auto-deletion of expired sessions
+- Fire-and-forget `lastActivityAt` updates to avoid blocking requests
+- Router exports `login` and `logout` procedures with full type safety
+- Comprehensive test suite (11 integration tests in `auth.test.ts`)
+- All tests passing (lint, typecheck, test, build)
+
+**API endpoints added:**
+- `POST /api/login` - Creates session, returns raw token
+  - Input: `{ vaultId, loginKey, deviceId, clientDeviceDescription? }`
+  - Output: `{ sessionToken, expiresAt, isNewDevice }`
+- `POST /api/logout` - Invalidates session
+  - Input: `{ sessionToken }`
+  - Output: `{ success: boolean }`
+
+**Security implementation:**
+- Session tokens: 32 bytes of cryptographic randomness → 64-char hex
+- Server storage: Blake3 hash only (same pattern as login key hashing)
+- Token validation: Server hashes incoming token and compares with stored hash
+- Database breach protection: Raw session tokens never stored
+- Session expiration: 24 hours (configurable via `Date.now() + 24 * 60 * 60 * 1000`)
+
+### Phase 3: Client-Side Auth ⏳ IN PROGRESS
 
 1. Add device ID generation/storage logic
 2. Update `api-client.ts` to use session tokens

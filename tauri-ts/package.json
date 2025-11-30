@@ -38,6 +38,7 @@
     "@react-router/serve": "^7.9.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-os": "2.3.2",
     "@tauri-apps/plugin-sql": "2.3.0",
     "@webbuf/secp256k1": "3.0.28",
     "class-variance-authority": "^0.7.1",
