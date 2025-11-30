@@ -691,23 +691,43 @@ database only stores hashes
 - Logout flow: call /api/logout → clear session → lock vault → navigate home
 - Migration: `0001_powerful_mantis.sql` adds device fields to vault table
 
-### Phase 4: Migration
+### Phase 4: Migration ❌ NOT APPLICABLE
 
-1. Keep old `X-Vault-Login-Key` auth working temporarily
-2. Client automatically upgrades to session-based auth on next unlock
-3. Deprecation notice for old auth method
-4. Remove old auth after migration period
+**Reason**: Pre-MVP with no deployed clients, so no migration needed.
 
-### Phase 5: Audit Endpoints
+1. ❌ Keep old `X-Vault-Login-Key` auth working - Unnecessary (no old clients exist)
+2. ✅ Client automatically upgrades - Already done in Phase 3
+3. ❌ Deprecation notice - Not needed (we control all clients)
+4. ❌ Remove old auth after migration - No old auth to remove
 
-**Verify all endpoints have correct auth:**
+**Conclusion**: Client was updated in Phase 3 to use session-based auth. Since we're pre-MVP with zero users and control 100% of clients, there's nothing to migrate.
 
-- `blake3` - ✅ Public (no auth needed)
-- `checkNameAvailability` - ✅ Public (no auth needed)
-- `registerVault` - ✅ Public (no auth needed, but creates vault)
-- `getVaultInfo` - 🔒 Requires session token
-- `createSecretUpdate` - 🔒 Requires session token
-- `getSecretUpdates` - 🔒 Requires session token
+### Phase 5: Audit Endpoints ✅ COMPLETE
+
+**All 9 endpoints audited and verified correct auth:**
+
+**Public Endpoints** (use `base` - no auth required):
+- ✅ `blake3` - Public utility for hashing
+- ✅ `checkNameAvailability` - Check if vault name is available
+- ✅ `registerVault` - Create new vault (public, but validates input)
+- ✅ `getVaultInfoPublic` - Get public vault metadata for import flow
+
+**Login Endpoint** (uses `base` but validates login key in handler):
+- ✅ `login` - Uses `base.handler()` with manual `validateVaultAuth(loginKey, vaultId)` call
+  - Input: vaultId, loginKey, deviceId, clientDeviceDescription
+  - Output: sessionToken, expiresAt, isNewDevice
+  - Creates or updates device session
+
+**Logout Endpoint** (uses `base` - accepts session token in input):
+- ✅ `logout` - Uses `base.handler()`, receives session token in request body
+  - Input: sessionToken
+  - Output: success
+  - Deletes device session by hashed token (idempotent)
+
+**Protected Endpoints** (use `sessionAuthedProcedure` - requires session token in header):
+- ✅ `getVaultInfo` - Get vault metadata (authenticated)
+- ✅ `createSecretUpdate` - Create new secret
+- ✅ `getSecretUpdates` - Sync secrets from server
 
 ---
 
