@@ -4,7 +4,7 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sun, 30 Nov 2025 20:39:06 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 30 Nov 2025 20:43:19 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -195,7 +195,7 @@ features like:</p>
 <li><strong>Test coverage</strong> for all critical paths</li>
 </ul>
 <p>The complete implementation is open source and available in our
-<a href="https://github.com/identellica/keypears">GitHub repository</a>.</p>
+<a href="https://github.com/keypears/keypears">GitHub repository</a>.</p>
 <h2>Conclusion</h2>
 <p>Building secure cross-device sync for a decentralized password manager required
 rethinking traditional approaches. By combining session-based authentication,
