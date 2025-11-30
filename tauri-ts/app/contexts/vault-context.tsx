@@ -54,6 +54,7 @@ interface VaultContextType {
   setSession: (sessionToken: string, expiresAt: number) => void;
   clearSession: () => void;
   getSessionToken: () => string | null;
+  isSessionExpiringSoon: () => boolean;
   encryptPassword: (password: string) => string;
   decryptPassword: (encryptedPasswordHex: string) => string;
   getPasswordKey: () => FixedBuf<32>;
@@ -117,8 +118,13 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Mark as unlocked in shared session state
     markVaultUnlocked(vaultId);
 
-    // Start background sync - use ref to avoid closure issues
-    startBackgroundSync(vaultId, vaultDomain, vaultKey, () => sessionRef.current?.sessionToken ?? null);
+    // Start background sync - use ref to avoid closure issues and pass session info
+    startBackgroundSync(vaultId, vaultDomain, vaultKey, () =>
+      sessionRef.current ? {
+        token: sessionRef.current.sessionToken,
+        expiresAt: sessionRef.current.expiresAt
+      } : null
+    );
   };
 
   const lockVault = () => {
@@ -147,6 +153,14 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const getSessionToken = (): string | null => {
     return sessionRef.current?.sessionToken ?? null;
+  };
+
+  const isSessionExpiringSoon = (): boolean => {
+    if (!sessionRef.current) {
+      return false;
+    }
+    const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes
+    return sessionRef.current.expiresAt < Date.now() + SESSION_EXPIRY_BUFFER;
   };
 
   const getDeviceId = (): string => {
@@ -211,6 +225,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         setSession,
         clearSession,
         getSessionToken,
+        isSessionExpiringSoon,
         encryptPassword,
         decryptPassword,
         getPasswordKey,
