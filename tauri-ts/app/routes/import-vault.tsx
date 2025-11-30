@@ -110,11 +110,6 @@ export default function ImportVault() {
 
       console.log("\n=== Import Vault Complete ===\n");
       setSuccess(true);
-
-      // Navigate to home after short delay
-      setTimeout(() => {
-        navigate(href("/"));
-      }, 2000);
     } catch (err) {
       console.error("Error importing vault:", err);
 
@@ -147,6 +142,14 @@ export default function ImportVault() {
                     Your vault has been imported and sync has started
                   </p>
                 </div>
+
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => navigate(href("/"))}
+                >
+                  OK
+                </Button>
               </>
             ) : error ? (
               /* Error State */
