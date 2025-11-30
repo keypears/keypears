@@ -32,6 +32,7 @@ pub fn run(db_path: String) {
         .manage(DbPathState { path: db_path })
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             get_api_url_command,
