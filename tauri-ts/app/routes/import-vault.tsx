@@ -55,10 +55,10 @@ export default function ImportVault() {
       console.log("Name:", name);
 
       // 1. Call server to get vault info first (to get vaultId)
-      console.log("\n--- Step 1: Get Vault Info from Server ---");
+      console.log("\n--- Step 1: Get Vault Info from Server (Public) ---");
       // Use temporary client without auth to get vault ID
       const tempClient = createApiClient(domain);
-      const vaultInfo = await tempClient.api.getVaultInfo({ name, domain });
+      const vaultInfo = await tempClient.api.getVaultInfoPublic({ name, domain });
       const vaultId = vaultInfo.vaultId;
       console.log("Vault ID:", vaultId);
       console.log("Vault Name:", vaultInfo.name);

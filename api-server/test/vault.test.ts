@@ -221,7 +221,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       const result = await client.api.registerVault({
-        vaultId: vaultId,
+        vaultId,
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
