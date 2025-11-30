@@ -50,6 +50,8 @@ export const vaultAuthedProcedure = base.use(async ({ context, next }) => {
 /**
  * Validate that the provided login key is correct for the vault
  * Called from handlers after input is parsed
+ *
+ * Uses vault ID salting to prevent password reuse detection across vaults.
  */
 export async function validateVaultAuth(
   loginKeyHex: string,
@@ -64,9 +66,9 @@ export async function validateVaultAuth(
     });
   }
 
-  // Derive hashed login key from provided login key (1k rounds)
+  // Derive hashed login key from provided login key with vault ID salting (1k rounds)
   const providedLoginKey = FixedBuf.fromHex(32, loginKeyHex);
-  const derivedHashedLoginKey = deriveHashedLoginKey(providedLoginKey);
+  const derivedHashedLoginKey = deriveHashedLoginKey(providedLoginKey, vaultId);
 
   // Compare with stored hashed login key
   if (derivedHashedLoginKey.buf.toHex() !== vault.hashedLoginKey) {

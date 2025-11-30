@@ -144,19 +144,39 @@ export function deriveLoginSalt(): FixedBuf<32> {
 }
 
 /**
- * Derives the password key from the user's master password
+ * Derives the password key from the user's master password and vault ID
  *
  * This is the first key in the three-tier key hierarchy. The password key is:
  * - Stored on device encrypted with a PIN for quick unlock
  * - Used as input to derive both the encryption key and login key
  * - Never sent to the server or used directly for encryption
+ * - Vault-specific: same password + different vault ID → different password key
+ *
+ * Two-step derivation process:
+ * 1. Blake3 MAC with vault ID as context (prevents rainbow table attacks)
+ * 2. Blake3 PBKDF with password salt (100k rounds for computational cost)
+ *
+ * Security properties:
+ * - Malicious server cannot build rainbow table without knowing vault ID
+ * - Same password across vaults → different password keys
+ * - Complements server-side vault ID salting
  *
  * @param password - The user's master password
- * @returns A 32-byte password key
+ * @param vaultId - The vault ID (ULID) to derive keys for
+ * @returns A 32-byte password key unique to this vault
  */
-export function derivePasswordKey(password: string): FixedBuf<32> {
+export function derivePasswordKey(
+  password: string,
+  vaultId: string,
+): FixedBuf<32> {
+  // Step 1: Apply vault-specific MAC (prevents rainbow table attacks)
+  const vaultIdKey = blake3Hash(WebBuf.fromUtf8(vaultId));
+  const passwordBuf = WebBuf.fromUtf8(password);
+  const vaultSpecificPassword = blake3Mac(vaultIdKey, passwordBuf);
+
+  // Step 2: Derive password key with 100k rounds PBKDF
   const salt = derivePasswordSalt(password);
-  return blake3Pbkdf(password, salt, 100_000);
+  return blake3Pbkdf(vaultSpecificPassword.buf, salt, 100_000);
 }
 
 /**
@@ -205,21 +225,33 @@ export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
  * an attacker cannot use the stolen hashed login key to authenticate because they would
  * need to reverse 1,000 rounds of KDF.
  *
- * Note: Only 1,000 rounds are used server-side (vs 100,000 client-side) because:
- * - The login key has already undergone 100,000 rounds client-side
- * - Server KDF only prevents storing raw login key in database
- * - Reduces server CPU load and prevents DOS attacks via fake login attempts
- * - Attacker still needs to reverse 1k + 100k rounds total to get password key
+ * Two-step derivation process:
+ * 1. Blake3 MAC with vault ID as context (prevents password reuse detection)
+ * 2. Blake3 PBKDF with server login salt (1k rounds for computational cost)
  *
- * Security property: Even if the server's database is stolen, the attacker cannot
- * authenticate as the user without reversing the KDF, which is computationally expensive.
+ * Security properties:
+ * - Vault ID salting prevents password reuse detection across vaults
+ * - Same password + different vault ID → different hashed login key
+ * - Complements client-side vault ID salting
+ * - Reduces server CPU load vs 100k rounds (client already did heavy lifting)
+ * - Prevents DOS attacks via fake login attempts
+ * - Attacker needs to reverse 1k + 100k rounds total to get password key
  *
  * @param loginKey - The 32-byte login key received from the client (unhashed)
+ * @param vaultId - The vault ID (ULID) to salt the login key for
  * @returns A 32-byte hashed login key for database storage
  */
-export function deriveHashedLoginKey(loginKey: FixedBuf<32>): FixedBuf<32> {
+export function deriveHashedLoginKey(
+  loginKey: FixedBuf<32>,
+  vaultId: string,
+): FixedBuf<32> {
+  // Step 1: Apply vault-specific MAC (prevents password reuse detection)
+  const vaultIdKey = blake3Hash(WebBuf.fromUtf8(vaultId));
+  const saltedLoginKey = blake3Mac(vaultIdKey, loginKey.buf);
+
+  // Step 2: Derive hashed login key with 1k rounds PBKDF
   const salt = deriveServerHashedLoginKeySalt();
-  return blake3Pbkdf(loginKey.buf, salt, 1_000); // 1k rounds (server-side only)
+  return blake3Pbkdf(saltedLoginKey.buf, salt, 1_000);
 }
 
 /**

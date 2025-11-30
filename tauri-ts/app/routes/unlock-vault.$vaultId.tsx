@@ -69,6 +69,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
     try {
       const result = verifyVaultPassword(
         password,
+        vault.id,
         vault.encryptedVaultKey,
         vault.vaultPubKeyHash,
       );

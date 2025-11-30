@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate, href } from "react-router";
 import { CheckCircle, AlertCircle } from "lucide-react";
+import { ulid } from "ulid";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -56,13 +57,16 @@ export default function NewVaultStep3() {
         // Initialize database
         await initDb();
 
+        // Generate vaultId client-side
+        const vaultId = ulid();
         console.log("=== Vault Creation ===");
+        console.log("Vault ID:", vaultId);
         console.log("Vault Name:", vaultName);
         console.log("Vault Domain:", vaultDomain);
 
-        // 1. Derive password key from password
+        // 1. Derive password key from password with vaultId
         console.log("\n--- Step 1: Derive Password Key ---");
-        const passwordKey = derivePasswordKey(password);
+        const passwordKey = derivePasswordKey(password, vaultId);
         console.log("Password Key:", passwordKey.buf.toHex());
 
         // 2. Derive encryption key from password key
@@ -125,6 +129,7 @@ export default function NewVaultStep3() {
 
         const client = createApiClient(vaultDomain);
         console.log("Calling registerVault with:", {
+          vaultId,
           name: vaultName,
           domain: vaultDomain,
           vaultPubKeyHash: vaultPubKeyHashHex,
@@ -133,6 +138,7 @@ export default function NewVaultStep3() {
         });
 
         const registrationResult = await client.api.registerVault({
+          vaultId,
           name: vaultName,
           domain: vaultDomain,
           vaultPubKeyHash: vaultPubKeyHashHex,

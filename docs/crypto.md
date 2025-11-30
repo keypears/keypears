@@ -283,8 +283,9 @@ secure database storage:
 
 ```
 [CLIENT SIDE]
-Master Password
-  ↓ blake3Pbkdf(password, passwordSalt, 100k rounds)
+Master Password + Vault ID
+  ↓ blake3Mac(context: vaultId, data: password) → Vault-Specific Password
+  ↓ blake3Pbkdf(vaultPassword, passwordSalt, 100k rounds)
 Password Key (stored in device memory, encrypted with PIN)
   ↓
   ├→ blake3Pbkdf(passwordKey, encryptionSalt, 100k rounds) → Encryption Key (stays on device)
@@ -301,10 +302,32 @@ Hashed Login Key (stored in database)
 
 ### 1. Password Key
 
-- **Derived from**: Master password + password salt (100k rounds)
+- **Derived from**: Vault ID + master password + password salt (100k rounds)
+- **Two-step derivation**:
+  1. Blake3 MAC with vault ID as context (per-vault uniqueness)
+  2. Blake3 PBKDF with password salt (100k rounds for computational cost)
 - **Stored**: On device, encrypted with user's PIN
 - **Purpose**: Intermediate key for deriving encryption and login keys
 - **Never sent**: Neither to server nor used directly for encryption
+- **Vault-specific**: Same password across different vaults → different password keys
+
+**Why vault ID in client-side derivation?**
+
+- **Defeats rainbow table attacks by malicious servers**:
+  - Even with common password "password123", each vault has unique password key
+  - Server cannot precompute `loginKey` without knowing specific `vaultId`
+  - Since `vaultId` is random ULID, no practical rainbow table possible
+
+- **Defense in depth**:
+  - Client-side: Vault ID prevents rainbow tables
+  - Server-side: Vault ID prevents password reuse detection
+  - Combined: Maximum privacy and security
+
+- **Architectural requirement**:
+  - Client must obtain `vaultId` before deriving keys
+  - For registration: Client generates `vaultId` (ULID), suggests to server
+  - For unlock: Client retrieves `vaultId` from local SQLite
+  - For import: Server provides `vaultId` during import flow
 
 ### 2. Encryption Key
 

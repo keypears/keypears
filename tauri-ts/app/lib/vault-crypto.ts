@@ -20,19 +20,20 @@ export interface PasswordVerificationResult {
 
 /**
  * Verifies a vault password by:
- * 1. Deriving encryption key from password
+ * 1. Deriving encryption key from password with vault ID
  * 2. Decrypting the vault key
  * 3. Deriving public key from vault key
  * 4. Hashing public key and comparing with stored pubkeyhash
  */
 export function verifyVaultPassword(
   password: string,
+  vaultId: string,
   encryptedVaultKeyHex: string,
   storedVaultPubKeyHashHex: string,
 ): PasswordVerificationResult {
   try {
-    // 1. Derive password key from password
-    const passwordKey = derivePasswordKey(password);
+    // 1. Derive password key from password with vault ID salting
+    const passwordKey = derivePasswordKey(password, vaultId);
 
     // 2. Derive encryption key and login key from password key
     const encryptionKey = deriveEncryptionKey(passwordKey);

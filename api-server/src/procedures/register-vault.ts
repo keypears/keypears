@@ -1,7 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { deriveHashedLoginKey, isOfficialDomain } from "@keypears/lib";
-import { ulid } from "ulid";
 import {
   RegisterVaultRequestSchema,
   RegisterVaultResponseSchema,
@@ -13,17 +12,22 @@ import { base } from "./base.js";
  * Register vault procedure
  * Registers a new vault with the server
  *
- * Security: Server KDFs the login key (1k rounds)
- * - Client sends: loginKey (unhashed, already underwent 100k rounds)
- * - Server derives: hashedLoginKey = blake3Pbkdf(loginKey, serverSalt, 1k)
+ * Security: Server KDFs the login key with vault ID salting (1k rounds)
+ * - Client sends: vaultId (ULID), loginKey (unhashed, already underwent 100k rounds)
+ * - Server derives: hashedLoginKey = blake3Mac(vaultId, loginKey) then blake3Pbkdf(..., 1k)
  * - Server stores: hashedLoginKey + encryptedVaultKey
- * This prevents the server from storing raw login key while minimizing DOS risk
+ *
+ * Vault ID salting provides two security benefits:
+ * 1. Prevents password reuse detection across vaults
+ * 2. Same password + different vault ID → different hashed login key
+ *
+ * This prevents the server from storing raw login key while minimizing DOS risk.
  */
 export const registerVaultProcedure = base
   .input(RegisterVaultRequestSchema)
   .output(RegisterVaultResponseSchema)
   .handler(async ({ input }): Promise<{ vaultId: string }> => {
-    const { name, domain, vaultPubKeyHash, loginKey, encryptedVaultKey } = input;
+    const { vaultId, name, domain, vaultPubKeyHash, loginKey, encryptedVaultKey } = input;
 
     // 1. Validate domain is official
     if (!isOfficialDomain(domain)) {
@@ -41,13 +45,12 @@ export const registerVaultProcedure = base
       });
     }
 
-    // 3. KDF the login key on server (1k rounds for security + DOS prevention)
-    // Client already did 100k rounds, we do 1k more to prevent raw login key storage
+    // 3. KDF the login key on server with vault ID salting (1k rounds for security + DOS prevention)
+    // Client already did 100k rounds, we do MAC with vault ID + 1k rounds more
     const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
-    const serverHashedLoginKey = deriveHashedLoginKey(loginKeyBuf);
+    const serverHashedLoginKey = deriveHashedLoginKey(loginKeyBuf, vaultId);
 
-    // 4. Create vault using model
-    const vaultId = ulid();
+    // 4. Create vault using model (with client-provided vault ID)
     await createVault({
       id: vaultId,
       name,
@@ -57,7 +60,7 @@ export const registerVaultProcedure = base
       encryptedVaultKey,
     });
 
-    // 5. Return vault ID
+    // 5. Return vault ID (confirmation of client-provided ID)
     return {
       vaultId,
     };

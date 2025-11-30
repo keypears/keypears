@@ -20,7 +20,7 @@ import { useServerStatus } from "~app/contexts/ServerStatusContext";
 
 export default function ImportVault() {
   const navigate = useNavigate();
-  const { status } = useServerStatus();
+  useServerStatus(); // Ensure server status is checked
 
   const [domain, setDomain] = useState(getOfficialDomains()[0] || "");
   const [name, setName] = useState("");
@@ -54,46 +54,54 @@ export default function ImportVault() {
       console.log("Domain:", domain);
       console.log("Name:", name);
 
-      // 1. Check if vault already exists locally
-      console.log("\n--- Step 1: Check if vault exists locally ---");
-      const existingVault = await getVaultByNameAndDomain(name, domain);
-      if (existingVault) {
-        throw new Error("Vault already exists locally. If you want to re-import, please delete it first.");
-      }
-
-      // 2. Derive password key from password
-      console.log("\n--- Step 2: Derive Password Key ---");
-      const passwordKey = derivePasswordKey(password);
-      console.log("Password Key:", passwordKey.buf.toHex());
-
-      // 3. Derive login key for server authentication
-      console.log("\n--- Step 3: Derive Login Key ---");
-      const loginKey = deriveLoginKey(passwordKey);
-      console.log("Login Key:", loginKey.buf.toHex());
-
-      // 4. Call server to get vault info (authenticated with login key)
-      console.log("\n--- Step 4: Get Vault Info from Server ---");
-      const authedClient = createApiClient(domain, loginKey);
-      const vaultInfo = await authedClient.api.getVaultInfo({ name, domain });
-      console.log("Vault ID:", vaultInfo.vaultId);
+      // 1. Call server to get vault info first (to get vaultId)
+      console.log("\n--- Step 1: Get Vault Info from Server ---");
+      // Use temporary client without auth to get vault ID
+      const tempClient = createApiClient(domain);
+      const vaultInfo = await tempClient.api.getVaultInfo({ name, domain });
+      const vaultId = vaultInfo.vaultId;
+      console.log("Vault ID:", vaultId);
       console.log("Vault Name:", vaultInfo.name);
       console.log("Vault Domain:", vaultInfo.domain);
       console.log("Encrypted Vault Key:", vaultInfo.encryptedVaultKey);
       console.log("Vault PubKeyHash:", vaultInfo.vaultPubKeyHash);
 
+      // 2. Check if vault already exists locally
+      console.log("\n--- Step 2: Check if vault exists locally ---");
+      const existingVault = await getVaultByNameAndDomain(name, domain);
+      if (existingVault) {
+        throw new Error("Vault already exists locally. If you want to re-import, please delete it first.");
+      }
+
+      // 3. Derive password key from password with vaultId
+      console.log("\n--- Step 3: Derive Password Key ---");
+      const passwordKey = derivePasswordKey(password, vaultId);
+      console.log("Password Key:", passwordKey.buf.toHex());
+
+      // 4. Derive login key for server authentication
+      console.log("\n--- Step 4: Derive Login Key ---");
+      const loginKey = deriveLoginKey(passwordKey);
+      console.log("Login Key:", loginKey.buf.toHex());
+
+      // 5. Verify vault info with authenticated client
+      console.log("\n--- Step 5: Verify Vault with Authentication ---");
+      const authedClient = createApiClient(domain, loginKey);
+      await authedClient.api.getVaultInfo({ name, domain });
+      console.log("Vault verified with authentication");
+
       // 6. Derive encryption key from password key
-      console.log("\n--- Step 5: Derive Encryption Key ---");
+      console.log("\n--- Step 6: Derive Encryption Key ---");
       const encryptionKey = deriveEncryptionKey(passwordKey);
       console.log("Encryption Key:", encryptionKey.buf.toHex());
 
       // 7. Decrypt vault key using encryption key
-      console.log("\n--- Step 6: Decrypt Vault Key ---");
+      console.log("\n--- Step 7: Decrypt Vault Key ---");
       const encryptedVaultKeyBuf = WebBuf.fromHex(vaultInfo.encryptedVaultKey);
       const vaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
       console.log("Decrypted Vault Key:", vaultKey.buf.toHex());
 
       // 8. Save vault to local database
-      console.log("\n--- Step 7: Save to Local Database ---");
+      console.log("\n--- Step 8: Save to Local Database ---");
       const vault = await createVault(
         vaultInfo.vaultId,
         vaultInfo.name,
@@ -104,7 +112,7 @@ export default function ImportVault() {
       console.log("Vault saved to database with ID:", vault.id);
 
       // 9. Start background sync
-      console.log("\n--- Step 8: Start Background Sync ---");
+      console.log("\n--- Step 9: Start Background Sync ---");
       startBackgroundSync(vault.id, vault.domain, vaultKey, loginKey);
       console.log("Background sync started");
 

@@ -18,6 +18,8 @@ import {
 } from "~src/index";
 
 describe("Index", () => {
+  const testVaultId = "01JDQXZ9K8XQXQXQXQXQXQXQXQ";
+
   it("should generate a 32-byte secret key", () => {
     const key = generateKey();
     expect(key.buf.length).toBe(32);
@@ -46,7 +48,7 @@ describe("Index", () => {
 
     it("should work with derived encryption key from password", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const encryptionKey = deriveEncryptionKey(passwordKey);
 
       const originalKey = generateKey();
@@ -280,7 +282,7 @@ describe("Index", () => {
 
     it("should work with vault key derived from password", () => {
       const password = "userMasterPassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const encryptionKey = deriveEncryptionKey(passwordKey);
 
       // In real use, we'd decrypt the vault key with encryptionKey
@@ -298,40 +300,40 @@ describe("Index", () => {
   describe("three-tier key derivation", () => {
     it("should derive password key from password", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       expect(passwordKey.buf.length).toBe(32);
     });
 
     it("should derive same password key for same password", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey1 = derivePasswordKey(password);
-      const passwordKey2 = derivePasswordKey(password);
+      const passwordKey1 = derivePasswordKey(password, testVaultId);
+      const passwordKey2 = derivePasswordKey(password, testVaultId);
       expect(passwordKey1.buf.toHex()).toBe(passwordKey2.buf.toHex());
     });
 
     it("should derive different password keys for different passwords", () => {
-      const passwordKey1 = derivePasswordKey("password1");
-      const passwordKey2 = derivePasswordKey("password2");
+      const passwordKey1 = derivePasswordKey("password1", testVaultId);
+      const passwordKey2 = derivePasswordKey("password2", testVaultId);
       expect(passwordKey1.buf.toHex()).not.toBe(passwordKey2.buf.toHex());
     });
 
     it("should derive encryption key from password key", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const encryptionKey = deriveEncryptionKey(passwordKey);
       expect(encryptionKey.buf.length).toBe(32);
     });
 
     it("should derive login key from password key", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const loginKey = deriveLoginKey(passwordKey);
       expect(loginKey.buf.length).toBe(32);
     });
 
     it("should derive different keys for encryption and login", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const encryptionKey = deriveEncryptionKey(passwordKey);
       const loginKey = deriveLoginKey(passwordKey);
 
@@ -343,7 +345,7 @@ describe("Index", () => {
 
     it("should derive same encryption key from same password key", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const encryptionKey1 = deriveEncryptionKey(passwordKey);
       const encryptionKey2 = deriveEncryptionKey(passwordKey);
       expect(encryptionKey1.buf.toHex()).toBe(encryptionKey2.buf.toHex());
@@ -351,7 +353,7 @@ describe("Index", () => {
 
     it("should derive same login key from same password key", () => {
       const password = "thisisaverysecurepassword";
-      const passwordKey = derivePasswordKey(password);
+      const passwordKey = derivePasswordKey(password, testVaultId);
       const loginKey1 = deriveLoginKey(passwordKey);
       const loginKey2 = deriveLoginKey(passwordKey);
       expect(loginKey1.buf.toHex()).toBe(loginKey2.buf.toHex());
@@ -372,12 +374,12 @@ describe("Index", () => {
       const password = "thisisaverysecurepassword";
 
       // First derivation
-      const passwordKey1 = derivePasswordKey(password);
+      const passwordKey1 = derivePasswordKey(password, testVaultId);
       const encryptionKey1 = deriveEncryptionKey(passwordKey1);
       const loginKey1 = deriveLoginKey(passwordKey1);
 
       // Second derivation
-      const passwordKey2 = derivePasswordKey(password);
+      const passwordKey2 = derivePasswordKey(password, testVaultId);
       const encryptionKey2 = deriveEncryptionKey(passwordKey2);
       const loginKey2 = deriveLoginKey(passwordKey2);
 

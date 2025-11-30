@@ -21,6 +21,7 @@ export const CheckNameAvailabilityResponseSchema = z.object({
 
 // Register vault
 export const RegisterVaultRequestSchema = z.object({
+  vaultId: z.string().length(26), // ULID generated client-side
   name: vaultNameSchema,
   domain: z.string().min(1).max(255),
   vaultPubKeyHash: z.string().length(64), // Blake3 hash hex = 64 chars
