@@ -12,11 +12,14 @@ session-based authentication architecture.
 
 **Current flow:**
 
-1. Client derives `loginKey` from password (100k rounds KDF)
-2. Server KDFs the login key (1k rounds) → `hashedLoginKey` for storage
+1. Client derives `loginKey` from password + vaultId (vault-specific MAC +
+   100k + 100k rounds KDF)
+2. Server KDFs the login key with vaultId salting (vault-specific MAC + 1k
+   rounds) → `hashedLoginKey` for storage
 3. Client sends `loginKey` in `X-Vault-Login-Key` header for **every**
    authenticated request
-4. Server validates by re-deriving and comparing against stored `hashedLoginKey`
+4. Server validates by re-deriving with vaultId and comparing against stored
+   `hashedLoginKey`
 
 **Current API endpoints:**
 
@@ -25,6 +28,7 @@ session-based authentication architecture.
 | `blake3`                | ❌ No         | Public utility endpoint                             |
 | `checkNameAvailability` | ❌ No         | Public endpoint (needed for registration)           |
 | `registerVault`         | ❌ No         | Public endpoint (vault creation)                    |
+| `getVaultInfoPublic`    | ❌ No         | Public endpoint (returns vaultId for import flow)   |
 | `getVaultInfo`          | ✅ Yes        | Uses `vaultAuthedProcedure` + `validateVaultAuth()` |
 | `createSecretUpdate`    | ✅ Yes        | Uses `vaultAuthedProcedure` + `validateVaultAuth()` |
 | `getSecretUpdates`      | ✅ Yes        | Uses `vaultAuthedProcedure` + `validateVaultAuth()` |
@@ -53,7 +57,7 @@ await validateVaultAuth(context.loginKey, vaultId);
 
 // Inside validateVaultAuth():
 // - Query vault by vaultId
-// - Derive hashedLoginKey from provided loginKey (1k rounds)
+// - Derive hashedLoginKey from provided loginKey + vaultId (vault-specific MAC + 1k rounds)
 // - Compare with stored hashedLoginKey
 // - Throw UNAUTHORIZED if mismatch
 ```
@@ -119,8 +123,11 @@ await validateVaultAuth(context.loginKey, vaultId);
 
 - Used ONLY for authentication (getting session token)
 - Never sent with regular API requests
-- Derived from password via 100k + 100k rounds KDF
-- Proves user knows the password
+- Derived from password + vaultId via vault-specific MAC + 100k + 100k rounds
+  KDF
+- VaultId is hashed with password client-side before PBKDF (prevents rainbow
+  table attacks)
+- Proves user knows the password and vault ID
 
 **Device ID**:
 
@@ -348,16 +355,23 @@ await db.insert(TableVault).values({
 
 ```typescript
 {
-  vaultId: string,                    // Which vault to authenticate to
-  loginKey: string,                   // 64-char hex (proves password knowledge)
+  vaultId: string,                    // Which vault to authenticate to (from client SQLite DB)
+  loginKey: string,                   // 64-char hex (proves password + vaultId knowledge)
   deviceId: string,                   // 26-char ULID (per-vault device identifier from client DB)
   clientDeviceDescription?: string,   // Optional: "macOS 14.1 (aarch64)" - auto-detected
 }
 ```
 
+**Important:** Client must have vaultId before calling login:
+
+- On vault creation: Generated client-side with `ulid()`
+- On vault import: Retrieved via `getVaultInfoPublic()` endpoint
+- On unlock: Read from local SQLite vault table
+
 **Server process:**
 
-1. Validate `loginKey` against vault's stored `hashedLoginKey`
+1. Validate `loginKey` against vault's stored `hashedLoginKey` (using vaultId
+   for salting)
 2. Check if device is recognized (exists in `device_session` table for this
    vault+device)
 3. Generate new session token (32 random bytes)
@@ -370,7 +384,8 @@ await db.insert(TableVault).values({
      later)
 7. Return **raw session token** (not hash) and whether device is new
 
-**Important:** Server generates raw token, hashes it for storage, returns raw token to client
+**Important:** Server generates raw token, hashes it for storage, returns raw
+token to client
 
 **Response:**
 
@@ -454,11 +469,13 @@ return next({
 ```
 
 **Security flow:**
+
 1. Client sends raw session token in `X-Vault-Session-Token` header
 2. Server hashes incoming token using Blake3
 3. Server queries database for matching hashed token
 4. Database never contains raw session tokens
-5. Token theft from database is useless without rainbow tables (infeasible for 32-byte random values)
+5. Token theft from database is useless without rainbow tables (infeasible for
+   32-byte random values)
 
 ### 4. Session Renewal
 
@@ -510,13 +527,15 @@ navigate("/vault/:vaultId/lock");
 ```
 
 **Server process:**
+
 1. Receive raw session token from client
 2. Hash the token using Blake3
 3. Query `device_session` table for matching hashed token
 4. Delete session record from database
 5. Return success
 
-**Security note:** Server must hash incoming token to find matching record since database only stores hashes
+**Security note:** Server must hash incoming token to find matching record since
+database only stores hashes
 
 **Effect:**
 
@@ -563,9 +582,10 @@ navigate("/vault/:vaultId/lock");
    - Device ID stored in localStorage (not sensitive)
 
 3. **Password verification still client-side**
-   - Client derives keys from password
+   - Client derives keys from password + vaultId
+   - VaultId required for key derivation (obtained from local DB or server)
    - Server only sees login key (not password)
-   - Three-tier key derivation unchanged
+   - Three-tier key derivation uses vault-specific salting
 
 ### Attack Surface Analysis
 
@@ -586,18 +606,21 @@ navigate("/vault/:vaultId/lock");
 
 **Token storage security:**
 
-| Token Type | Client Storage | Server Storage | Database Breach Impact |
-|------------|----------------|----------------|------------------------|
-| Login Key | Memory only | Blake3 hash (1k rounds) | Cannot use directly (needs 1k rounds reversal + 100k rounds reversal) |
-| Session Token | Memory only | Blake3 hash (single round) | Cannot use directly (32-byte random, no rainbow table) |
-| Encryption Key | Memory only | Never sent to server | N/A - server never sees this |
+| Token Type     | Client Storage | Server Storage                        | Database Breach Impact                                                                                             |
+| -------------- | -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Login Key      | Memory only    | Blake3 hash (vaultId MAC + 1k rounds) | Cannot use directly (needs vaultId + 1k rounds reversal + 100k rounds reversal + rainbow table for 32-byte random) |
+| Session Token  | Memory only    | Blake3 hash (single round)            | Cannot use directly (32-byte random, no rainbow table)                                                             |
+| Encryption Key | Memory only    | Never sent to server                  | N/A - server never sees this                                                                                       |
 
 **Why hashing session tokens matters:**
+
 - Session tokens are 32-byte cryptographically random values
 - Even with database access, attacker cannot use hashed tokens
-- No practical rainbow table exists for 32-byte random values (2^256 possibilities)
+- No practical rainbow table exists for 32-byte random values (2^256
+  possibilities)
 - Same security model as password hashing, but for bearer tokens
-- Defense in depth: Even if database is compromised, active sessions remain secure
+- Defense in depth: Even if database is compromised, active sessions remain
+  secure
 
 ---
 
