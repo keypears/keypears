@@ -110,7 +110,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     markVaultUnlocked(vaultId);
 
     // Start background sync
-    startBackgroundSync(vaultId, vaultDomain, vaultKey, loginKey);
+    startBackgroundSync(vaultId, vaultDomain, vaultKey, () => session?.sessionToken ?? null);
   };
 
   const lockVault = () => {

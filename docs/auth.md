@@ -673,13 +673,23 @@ database only stores hashes
 - Database breach protection: Raw session tokens never stored
 - Session expiration: 24 hours (configurable via `Date.now() + 24 * 60 * 60 * 1000`)
 
-### Phase 3: Client-Side Auth ⏳ IN PROGRESS
+### Phase 3: Client-Side Auth ✅ COMPLETE
 
-1. Add device ID generation/storage logic
-2. Update `api-client.ts` to use session tokens
-3. Implement session renewal logic
-4. Update vault unlock flow to call login endpoint
-5. Update lock vault flow to call logout endpoint
+1. ✅ Add device ID generation/storage logic (`tauri-ts/app/lib/device.ts`)
+2. ✅ Update `api-client.ts` to use session tokens
+3. ⏳ Implement session renewal logic (deferred to Phase 4)
+4. ✅ Update vault unlock flow to call login endpoint (`unlock-vault.$vaultId.tsx`)
+5. ✅ Update lock vault flow to call logout endpoint (`user-menu.tsx`)
+
+**Implementation notes:**
+
+- Added `deviceId` and `deviceDescription` fields to client vault table
+- Device IDs are per-vault ULIDs (privacy-focused)
+- Session tokens stored in memory only (React state in VaultContext)
+- Background sync uses session token getter function
+- Login flow: verify password → generate/get device ID → call /api/login → store session → unlock vault
+- Logout flow: call /api/logout → clear session → lock vault → navigate home
+- Migration: `0001_powerful_mantis.sql` adds device fields to vault table
 
 ### Phase 4: Migration
 

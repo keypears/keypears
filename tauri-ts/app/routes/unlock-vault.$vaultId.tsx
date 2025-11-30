@@ -7,11 +7,16 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { calculatePasswordEntropy } from "@keypears/lib";
 import { cn } from "~app/lib/utils";
-import { getVault } from "~app/db/models/vault";
+import { getVault, updateVault } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import { useVault } from "~app/contexts/vault-context";
 import { isVaultUnlocked } from "~app/lib/vault-session";
 import { initDb } from "~app/db";
+import {
+  generateDeviceId,
+  detectDeviceDescription,
+} from "~app/lib/device";
+import { createApiClient } from "~app/lib/api-client";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
@@ -39,7 +44,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 }
 
 export default function UnlockVault({ loaderData }: Route.ComponentProps) {
-  const { unlockVault } = useVault();
+  const { unlockVault, setSession } = useVault();
   const navigate = useNavigate();
 
   const vault = loaderData.vault;
@@ -67,6 +72,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
     setError("");
 
     try {
+      // Step 1: Verify password locally
       const result = verifyVaultPassword(
         password,
         vault.id,
@@ -74,29 +80,66 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         vault.vaultPubKeyHash,
       );
 
-      if (result.valid && result.passwordKey && result.encryptionKey && result.loginKey && result.vaultKey && result.vaultPublicKey) {
-        // Password is correct - unlock vault
-        unlockVault(
-          vault.id,
-          vault.name,
-          vault.domain,
-          result.passwordKey,
-          result.encryptionKey,
-          result.loginKey,
-          result.vaultKey,
-          result.vaultPublicKey,
-          vault.encryptedVaultKey,
-          vault.vaultPubKeyHash,
-        );
-        navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
-      } else {
+      if (!result.valid || !result.passwordKey || !result.encryptionKey || !result.loginKey || !result.vaultKey || !result.vaultPublicKey) {
         // Password is incorrect
         setError("Incorrect password");
         setPassword("");
+        return;
       }
+
+      // Step 2: Get or generate device ID and description
+      let deviceId = vault.deviceId;
+      let deviceDescription = vault.deviceDescription;
+
+      // If vault doesn't have device ID, generate one
+      if (!deviceId) {
+        deviceId = generateDeviceId();
+        deviceDescription = await detectDeviceDescription();
+
+        // Update vault in database
+        await updateVault(vault.id, {
+          deviceId,
+          deviceDescription,
+        });
+      }
+
+      // Step 3: Call /api/login to create session
+      const apiClient = createApiClient(vault.domain);
+      const loginResponse = await apiClient.login({
+        vaultId: vault.id,
+        loginKey: result.loginKey.buf.toHex(),
+        deviceId,
+        deviceDescription: deviceDescription ?? undefined,
+      });
+
+      // Step 4: Store session token in memory
+      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+
+      // Step 5: Unlock vault in context
+      unlockVault(
+        vault.id,
+        vault.name,
+        vault.domain,
+        result.passwordKey,
+        result.encryptionKey,
+        result.loginKey,
+        result.vaultKey,
+        result.vaultPublicKey,
+        vault.encryptedVaultKey,
+        vault.vaultPubKeyHash,
+        deviceId,
+        deviceDescription,
+      );
+
+      // Step 6: Navigate to vault secrets page
+      navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
     } catch (err) {
       console.error("Error unlocking vault:", err);
-      setError("Failed to unlock vault");
+      if (err instanceof Error) {
+        setError(`Failed to unlock vault: ${err.message}`);
+      } else {
+        setError("Failed to unlock vault");
+      }
     } finally {
       setIsUnlocking(false);
     }

@@ -9,18 +9,40 @@ import {
   DropdownMenuTrigger,
 } from "~app/components/ui/dropdown-menu";
 import { useVault } from "~app/contexts/vault-context";
+import { createApiClient } from "~app/lib/api-client";
 
 export function UserMenu() {
   const navigate = useNavigate();
-  const { activeVault, lockVault } = useVault();
+  const { activeVault, lockVault, getSessionToken, clearSession } = useVault();
 
   if (!activeVault) {
     return null;
   }
 
-  const handleLockVault = () => {
-    lockVault();
-    navigate("/", { replace: true });
+  const handleLockVault = async () => {
+    try {
+      // Step 1: Call /api/logout to invalidate session on server
+      const sessionToken = getSessionToken();
+      if (sessionToken) {
+        const apiClient = createApiClient(activeVault.vaultDomain, sessionToken);
+        await apiClient.logout();
+      }
+
+      // Step 2: Clear session from memory
+      clearSession();
+
+      // Step 3: Lock vault (clears keys from memory, stops background sync)
+      lockVault();
+
+      // Step 4: Navigate to home
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Error during logout:", err);
+      // Even if logout fails, still lock vault locally for security
+      clearSession();
+      lockVault();
+      navigate("/", { replace: true });
+    }
   };
 
   return (

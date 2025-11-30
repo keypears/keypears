@@ -11,7 +11,7 @@ interface VaultConfig {
   vaultId: string;
   vaultDomain: string;
   vaultKey: FixedBuf<32>;
-  loginKey: FixedBuf<32>;
+  getSessionToken: () => string | null;
 }
 
 let syncIntervalId: number | null = null;
@@ -25,7 +25,7 @@ export function startBackgroundSync(
   vaultId: string,
   vaultDomain: string,
   vaultKey: FixedBuf<32>,
-  loginKey: FixedBuf<32>,
+  getSessionToken: () => string | null,
 ): void {
   // Stop any existing sync
   stopBackgroundSync();
@@ -35,7 +35,7 @@ export function startBackgroundSync(
     vaultId,
     vaultDomain,
     vaultKey,
-    loginKey,
+    getSessionToken,
   };
 
   // Start polling every 5 seconds
@@ -75,10 +75,18 @@ async function performSync(): Promise<void> {
   }
 
   try {
+    // Get current session token
+    const sessionToken = currentVaultConfig.getSessionToken();
+    if (!sessionToken) {
+      // No session token available, skip sync
+      console.warn("Background sync skipped: no session token");
+      return;
+    }
+
     // Create authenticated API client
     const authedClient = createApiClient(
       currentVaultConfig.vaultDomain,
-      currentVaultConfig.loginKey,
+      sessionToken,
     );
 
     // Sync vault (updates SQLite database)
