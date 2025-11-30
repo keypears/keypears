@@ -292,7 +292,8 @@ Password Key (stored in device memory, encrypted with PIN)
 
 [SERVER SIDE]
 Login Key (received from client via HTTPS)
-  ↓ blake3Pbkdf(loginKey, serverLoginSalt, 1k rounds)
+  ↓ blake3Mac(context: vaultId, data: loginKey) → Salted Login Key (per-vault uniqueness)
+  ↓ blake3Pbkdf(saltedLoginKey, serverLoginSalt, 1k rounds)
 Hashed Login Key (stored in database)
 ```
 
@@ -322,13 +323,36 @@ Hashed Login Key (stored in database)
 
 ### 4. Hashed Login Key (Server-Side)
 
-- **Derived from**: Login key + server salt (1k rounds)
+- **Derived from**: Login key + **vault ID (per-vault salt)** + server salt (1k rounds)
 - **Purpose**: Database storage for authentication verification
 - **Where derived**: On the server when login key is received
 - **Stored in**: Server database only
-- **Security**: If database is compromised, attacker cannot use this to
-  authenticate (would need to reverse 1k KDF rounds to get login key, then 100k
-  rounds to get password key)
+- **Two-step process**:
+  1. Blake3 MAC with vault ID as context (per-vault uniqueness)
+  2. Blake3 PBKDF with fixed salt (1k rounds for brute-force resistance)
+- **Security**:
+  - Same password across different vaults → different hashed values (prevents password reuse detection)
+  - If database is compromised, attacker cannot use stored hash to authenticate
+  - Must reverse both MAC and 1k KDF rounds, then 100k client-side rounds
+
+**Per-Vault Salting Process:**
+
+```typescript
+// Server receives loginKey from client
+const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
+
+// Step 1: Apply vault-specific MAC (domain separation)
+const saltedLoginKey = blake3Mac(vaultId, loginKeyBuf);
+
+// Step 2: Apply 1k rounds PBKDF for computational cost
+const hashedLoginKey = deriveHashedLoginKey(saltedLoginKey);
+```
+
+**Why per-vault salting?**
+- Prevents password reuse detection across vaults
+- Two vaults with same password have different `hashedLoginKey` values
+- Vault ID is immutable (unlike vault name), safe to use as long-term salt
+- No information leakage about password patterns across vaults
 
 **Why only 1,000 rounds on server?**
 - Login key has already undergone 100,000 rounds of KDF client-side
