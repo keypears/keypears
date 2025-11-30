@@ -53,6 +53,7 @@ export async function createOrUpdateDeviceSession(
   } else {
     // Create new session
     const id = ulid();
+    const now = new Date();
     await db.insert(TableDeviceSession).values({
       id,
       vaultId,
@@ -61,6 +62,8 @@ export async function createOrUpdateDeviceSession(
       expiresAt,
       clientDeviceDescription: clientDeviceDescription || null,
       serverDeviceName: null,
+      lastActivityAt: now,
+      createdAt: now,
     });
 
     // Fetch created record
