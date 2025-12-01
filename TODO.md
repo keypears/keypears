@@ -3,6 +3,22 @@
 This document tracks all tasks required to complete the KeyPears MVP. Tasks are
 organized by MVP phase as defined in `docs/mvp.md`.
 
+---
+
+## Current Task: Third-Party API Hosting Foundation
+
+**Status**: 🚧 **IN PROGRESS**
+
+**Details**: [`docs/task-third-party.md`](docs/task-third-party.md)
+
+**Summary**: Update the KeyPears protocol to read API URLs from
+`.well-known/keypears.json` instead of constructing them from domain names. This
+lays the foundation for third-party API hosting (like email hosting) where users
+can run their website at `example.com` but have their KeyPears API hosted by a
+provider like `keypears.com`.
+
+---
+
 ## Phase 1: Cross-Device Synchronization
 
 **Status**: 🚧 **IN PROGRESS** - Currently implementing
@@ -316,15 +332,4 @@ limits.
 
 ---
 
-## Timeline Estimate
-
-- **Phase 1 (Sync)**: 3-5 days remaining
-- **Phase 2 (DH Key Exchange)**: 3-5 days
-- **Phase 3 (Multi-Domain)**: 2-3 days
-- **Phase 4 (Payment & Business)**: 3-4 days
-- **Testing & Polish**: 2-3 days
-- **Total MVP**: ~15-20 days of focused development
-
----
-
-**Last Updated**: 2025-11-26
+**Last Updated**: 2025-12-01
