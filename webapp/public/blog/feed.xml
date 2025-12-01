@@ -4,12 +4,158 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sun, 30 Nov 2025 20:43:19 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 01 Dec 2025 13:23:30 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Third-Party Hosting: Making KeyPears as Easy as Hosted Email]]></title>
+            <link>https://keypears.com/blog/2025-12-01-third-party-hosting</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-12-01-third-party-hosting</guid>
+            <pubDate>Mon, 01 Dec 2025 18:00:00 GMT</pubDate>
+            <description><![CDATA[<p>Imagine you own <code>example.com</code>. You run your own website there, but you don't run
+your own email server—Gmail or Fastmail handles that for you. Your email address
+is still <code>you@examp...]]></description>
+            <content:encoded><![CDATA[<p>Imagine you own <code>example.com</code>. You run your own website there, but you don't run
+your own email server—Gmail or Fastmail handles that for you. Your email address
+is still <code>you@example.com</code>, but Google or Fastmail does the heavy lifting of
+running the mail servers, managing spam, and keeping everything online.</p>
+<p>What if password management worked the same way?</p>
+<p>Today we shipped the foundation for exactly that: the ability to point your
+domain's KeyPears protocol at any third-party hosting provider. It's a
+proof-of-concept, but it works—and it brings us one step closer to making
+decentralized password management as easy as hosted email.</p>
+<h2>Why Decentralization Matters</h2>
+<p>Email is one of the internet's great success stories in federated architecture.
+Anyone can run an email server. Gmail users can email ProtonMail users who can
+email self-hosted server users. There's no central authority deciding who gets
+to participate. The protocol is open, the address format is universal, and
+interoperability is the default.</p>
+<p>KeyPears borrows this architecture, but improves on it in a critical way:
+<strong>end-to-end encryption by default</strong>. When <code>alice@keypears.com</code> shares a secret
+with <code>bob@company.com</code>, the servers never see the plaintext. They're just
+coordinators—dumb pipes that route encrypted blobs between clients that hold the
+real keys.</p>
+<p>The address format mirrors email intentionally. Your vault is
+<code>yourname@yourdomain.com</code>. You can use our hosted service at <code>keypears.com</code>, run
+your own server, or—with what we built today—point your domain at any KeyPears
+hosting provider you trust.</p>
+<p>This means companies with different domains and different service providers can
+still share secrets securely. Marketing at <code>acme.com</code> (hosted by Provider A) can
+share API keys with engineering at <code>partner.io</code> (self-hosted) using the same
+Diffie-Hellman key exchange that makes the whole system work.</p>
+<h2>The <code>.well-known/keypears.json</code> Protocol</h2>
+<p>The implementation is simple. Domain owners create a file at
+<code>/.well-known/keypears.json</code> that tells clients where to find the API:</p>
+<pre><code class="language-json">{
+  "version": 1,
+  "apiUrl": "https://keypears.com/api"
+}
+</code></pre>
+<p>That's it. When a KeyPears client needs to interact with vaults at
+<code>example.com</code>, it fetches <code>https://example.com/.well-known/keypears.json</code>, reads
+the <code>apiUrl</code>, and directs all API calls there.</p>
+<p>If you're running your own server, the <code>apiUrl</code> points to yourself:</p>
+<pre><code class="language-json">{
+  "version": 1,
+  "apiUrl": "https://example.com/api"
+}
+</code></pre>
+<p>If you're using a third-party host like <code>keypears.com</code>:</p>
+<pre><code class="language-json">{
+  "version": 1,
+  "apiUrl": "https://keypears.com/api"
+}
+</code></pre>
+<p>The pattern follows the established convention of <code>.well-known</code> files that power
+everything from SSL certificate validation (<code>.well-known/acme-challenge</code>) to
+security contact information (<code>.well-known/security.txt</code>). It's a proven
+approach for domain-level configuration.</p>
+<h2>What We Built Today</h2>
+<p>This week we implemented the complete infrastructure for this feature:</p>
+<p><strong>In the library (<code>@keypears/lib</code>):</strong></p>
+<ul>
+<li>A Zod schema (<code>KeypearsJsonSchema</code>) that validates the <code>keypears.json</code> format</li>
+<li>A <code>buildBaseUrl()</code> helper for constructing domain URLs</li>
+</ul>
+<p><strong>In the API server (<code>@keypears/api-server</code>):</strong></p>
+<ul>
+<li>Updated <code>validateKeypearsServer()</code> to parse and return the <code>apiUrl</code></li>
+</ul>
+<p><strong>In the webapp (<code>@keypears/webapp</code>):</strong></p>
+<ul>
+<li>A dynamic React Router resource route that serves <code>keypears.json</code></li>
+<li>Environment-aware configuration (production vs development URLs)</li>
+</ul>
+<p><strong>In the Tauri app (<code>@keypears/tauri-ts</code>):</strong></p>
+<ul>
+<li><code>fetchApiUrl()</code> function that retrieves and caches API URLs from <code>keypears.json</code></li>
+<li>Updated all API client calls to use the discovered URL instead of constructing it</li>
+</ul>
+<p>The key insight is that clients no longer assume the API lives at
+<code>https://domain.com/api</code>. They discover it dynamically. This single change
+enables the entire third-party hosting model.</p>
+<h2>What's Still Needed</h2>
+<p>We want to be transparent: this is a proof-of-concept, not a production-ready
+feature. There's a critical missing piece.</p>
+<p><strong>The problem:</strong> Right now, anyone could create a <code>keypears.json</code> file claiming
+that <code>keypears.com/api</code> hosts vaults for <code>example.com</code>. There's no verification
+that the owner of <code>example.com</code> actually authorized this.</p>
+<p><strong>The solution:</strong> Before launch, we'll add a public key (or public key hash) to
+the <code>keypears.json</code> file. The domain owner will need to prove they control this
+key, likely through a challenge-response protocol or by publishing the key in
+DNS. This cryptographic proof ensures that only the legitimate domain owner can
+authorize a hosting provider.</p>
+<p>The future format might look like:</p>
+<pre><code class="language-json">{
+  "version": 2,
+  "apiUrl": "https://keypears.com/api",
+  "domainPubKeyHash": "a1b2c3d4..."
+}
+</code></pre>
+<p>We haven't implemented this yet because the current proof-of-concept is
+sufficient for development and testing. The infrastructure is in place; the
+authentication layer comes next.</p>
+<h2>The Bigger Picture</h2>
+<p>KeyPears is building toward a world where password management works like email
+should have worked from the start: decentralized, interoperable, and encrypted
+by default.</p>
+<ul>
+<li><strong>Decentralized:</strong> No single company controls the network. Run your own server
+or choose a provider you trust.</li>
+<li><strong>Interoperable:</strong> <code>alice@keypears.com</code> can share secrets with
+<code>bob@selfhosted.org</code> seamlessly.</li>
+<li><strong>End-to-end encrypted:</strong> Servers are dumb coordinators. They never see your
+passwords, your keys, or your plaintext secrets.</li>
+<li><strong>Self-custody with convenience:</strong> You control your keys, but you get the sync
+and sharing features of cloud-based managers.</li>
+</ul>
+<p>The third-party hosting feature is a key piece of this puzzle. It means you
+don't have to choose between running your own infrastructure and using someone
+else's domain. You can have your cake and eat it too: your domain, your
+identity, someone else's servers.</p>
+<h2>What's Next</h2>
+<p>With third-party hosting infrastructure in place, our next priority is the
+Diffie-Hellman key exchange protocol for secure secret sharing between users.
+This is the feature that makes KeyPears more than just a password manager—it's
+what enables <code>alice@company.com</code> to securely share credentials with
+<code>bob@partner.io</code> without either server ever seeing the plaintext.</p>
+<p>After DH key exchange, we'll focus on:</p>
+<ul>
+<li>Multi-domain support (official KeyPears domains beyond <code>keypears.com</code>)</li>
+<li>Domain ownership verification (the public key piece mentioned above)</li>
+<li>Payment and business model (freemium with premium custom domain hosting)</li>
+</ul>
+<p>The architecture is coming together. Each piece we build makes the next piece
+possible. Today's proof-of-concept becomes tomorrow's production feature.</p>
+<p>If you're interested in following our progress, the code is open source and
+available on <a href="https://github.com/keypears/keypears">GitHub</a>. We're building in
+public because we believe the best security software is software you can verify.</p>
+<p><em>Next up: Diffie-Hellman key exchange for cross-user secret sharing. Stay
+tuned!</em></p>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Building Secure Cross-Device Sync for a Decentralized Password Manager]]></title>
             <link>https://keypears.com/blog/2025-11-30-cross-device-sync</link>
