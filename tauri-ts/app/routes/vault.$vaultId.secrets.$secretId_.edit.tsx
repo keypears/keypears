@@ -152,7 +152,7 @@ export default function EditPassword() {
 
       // Create authenticated API client with session token
       const sessionToken = getSessionToken();
-      const authedClient = createApiClient(activeVault.vaultDomain, sessionToken || undefined);
+      const authedClient = await createApiClient(activeVault.vaultDomain, sessionToken || undefined);
 
       // Push update to server (creates new version with higher localOrder)
       const serverResponse = await pushSecretUpdate(

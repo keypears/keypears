@@ -140,7 +140,7 @@ async function performSync(): Promise<void> {
     }
 
     // Create authenticated API client
-    const authedClient = createApiClient(
+    const authedClient = await createApiClient(
       currentVaultConfig.vaultDomain,
       session.token,
     );

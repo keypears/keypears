@@ -24,7 +24,7 @@ export function UserMenu() {
       // Step 1: Call /api/logout to invalidate session on server
       const sessionToken = getSessionToken();
       if (sessionToken) {
-        const apiClient = createApiClient(activeVault.vaultDomain, sessionToken);
+        const apiClient = await createApiClient(activeVault.vaultDomain, sessionToken);
         await apiClient.api.logout({ sessionToken });
       }
 

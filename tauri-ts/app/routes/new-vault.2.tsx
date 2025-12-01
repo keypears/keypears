@@ -88,7 +88,7 @@ export default function NewVaultStep2() {
 
     try {
       // Call API endpoint to check availability
-      const client = createApiClient(domain);
+      const client = await createApiClient(domain);
       const result = await client.api.checkNameAvailability({ name, domain });
       setNameAvailable(result.available);
     } catch (error) {

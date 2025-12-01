@@ -70,7 +70,7 @@ export default function NewPassword() {
 
       // Create authenticated API client with session token
       const sessionToken = getSessionToken();
-      const authedClient = createApiClient(activeVault.vaultDomain, sessionToken || undefined);
+      const authedClient = await createApiClient(activeVault.vaultDomain, sessionToken || undefined);
 
       // Push to server (server generates ID, order numbers, timestamp)
       const serverResponse = await pushSecretUpdate(

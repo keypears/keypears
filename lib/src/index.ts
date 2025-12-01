@@ -18,6 +18,7 @@ export {
   getOfficialDomains,
   isOfficialDomain,
   getDevPort,
+  buildBaseUrl,
   buildServerUrl,
 } from "./domains.js";
 

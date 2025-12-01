@@ -128,7 +128,7 @@ export default function NewVaultStep3() {
         console.log("loginKey value:", loginKeyHex);
         console.log("(Server will KDF login key with 1k rounds)");
 
-        const client = createApiClient(vaultDomain);
+        const client = await createApiClient(vaultDomain);
         console.log("Calling registerVault with:", {
           vaultId,
           name: vaultName,
