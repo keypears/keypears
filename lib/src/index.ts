@@ -21,6 +21,9 @@ export {
   buildServerUrl,
 } from "./domains.js";
 
+// Export keypears.json schema for server discovery
+export { KeypearsJsonSchema, type KeypearsJson } from "./keypears-json.js";
+
 /** for all lowercase letters, 8 chars is ~38 bits of entropy (development minimum) */
 export const StandardPasswordSchema = z.string().lowercase().min(8).max(128);
 
