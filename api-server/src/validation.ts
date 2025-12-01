@@ -1,9 +1,13 @@
 /* eslint-disable no-undef */
 // Note: fetch, AbortController, setTimeout, clearTimeout are globals in Node 18+
 
+import { KeypearsJsonSchema } from "@keypears/lib";
+import { ZodError } from "zod";
+
 export interface ServerValidationResult {
   valid: boolean;
   version?: number;
+  apiUrl?: string;
   error?: string;
 }
 
@@ -14,13 +18,14 @@ export interface ServerValidationResult {
  * @param baseUrl - Base URL of the server (e.g., "https://keypears.com" or "http://localhost:4273")
  * @param options - Validation options
  * @param options.timeout - Timeout in milliseconds (default: 5000)
- * @returns Validation result with version info or error message
+ * @returns Validation result with version, apiUrl, or error message
  *
  * @example
  * ```typescript
  * const result = await validateKeypearsServer("https://keypears.com");
  * if (result.valid) {
  *   console.log(`Valid KeyPears server v${result.version}`);
+ *   console.log(`API URL: ${result.apiUrl}`);
  * } else {
  *   console.error(`Invalid server: ${result.error}`);
  * }
@@ -68,22 +73,27 @@ export async function validateKeypearsServer(
       };
     }
 
-    const data = (await response.json()) as { version?: unknown };
+    const data: unknown = await response.json();
 
-    if (typeof data.version !== "number" || data.version < 1) {
-      const result: ServerValidationResult = {
-        valid: false,
-        error: `Incompatible version (found: ${data.version ?? "none"}, need: 1+)`,
-      };
-      if (typeof data.version === "number") {
-        result.version = data.version;
-      }
-      return result;
-    }
+    // Validate with Zod schema
+    const parsed = KeypearsJsonSchema.parse(data);
 
-    return { valid: true, version: data.version };
+    return {
+      valid: true,
+      version: parsed.version,
+      apiUrl: parsed.apiUrl,
+    };
   } catch (error) {
     clearTimeout(timeoutId);
+
+    // Zod validation errors
+    if (error instanceof ZodError) {
+      const firstIssue = error.issues[0];
+      return {
+        valid: false,
+        error: `Invalid keypears.json: ${firstIssue?.message ?? "validation failed"}`,
+      };
+    }
 
     // Actual timeout (AbortError from controller.abort())
     if ((error as Error).name === "AbortError") {

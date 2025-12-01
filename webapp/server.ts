@@ -1,15 +1,10 @@
 import compression from "compression";
 import express from "express";
 import morgan from "morgan";
-import path from "path";
-import { fileURLToPath } from "url";
 import type { Request, Response, NextFunction } from "express";
 import { router } from "@keypears/api-server";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -20,18 +15,8 @@ const app = express();
 
 app.disable("x-powered-by");
 
-// Serve .well-known directory BEFORE API handler
-// Add CORS headers for Tauri app access
-app.use(
-  "/.well-known",
-  (req: Request, res: Response, next: NextFunction) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    next();
-  },
-  express.static(path.join(__dirname, "public/.well-known")),
-);
+// Note: .well-known/keypears.json is now served by React Router route
+// at webapp/app/routes/.well-known.keypears[.]json.ts
 
 // Mount oRPC API handler at /api BEFORE compression
 // Enable CORS for Tauri app (which makes cross-origin requests)
