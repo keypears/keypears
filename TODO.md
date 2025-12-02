@@ -5,23 +5,36 @@ organized by MVP phase as defined in `docs/mvp.md`.
 
 ---
 
-## Current Task: Third-Party API Hosting Foundation
+## Recently Completed
 
-**Status**: 🚧 **IN PROGRESS**
+### Third-Party API Hosting Foundation ✅
 
-**Details**: [`docs/task-third-party.md`](docs/task-third-party.md)
+**Completed**: 2025-12-01
 
-**Summary**: Update the KeyPears protocol to read API URLs from
-`.well-known/keypears.json` instead of constructing them from domain names. This
-lays the foundation for third-party API hosting (like email hosting) where users
-can run their website at `example.com` but have their KeyPears API hosted by a
-provider like `keypears.com`.
+**Blog Post**: [Third-Party Hosting: Making KeyPears as Easy as Hosted
+Email](/blog/2025-12-01-third-party-hosting)
+
+Updated the KeyPears protocol to read API URLs from `.well-known/keypears.json`
+instead of constructing them from domain names. This lays the foundation for
+third-party API hosting where users can run their website at `example.com` but
+have their KeyPears API hosted by a provider like `keypears.com`.
+
+**What was implemented:**
+
+- `KeypearsJsonSchema` Zod schema in `@keypears/lib`
+- Dynamic `.well-known/keypears.json` route in webapp
+- Updated `validateKeypearsServer()` to return `apiUrl`
+- Updated Tauri app to fetch and cache API URLs from `keypears.json`
+
+**Still needed (future work):**
+
+- Domain ownership verification (public key in `keypears.json`)
 
 ---
 
 ## Phase 1: Cross-Device Synchronization
 
-**Status**: 🚧 **IN PROGRESS** - Currently implementing
+**Status**: ✅ **COMPLETED**
 
 **Goal**: Users can access passwords from any device via server synchronization.
 
