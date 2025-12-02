@@ -55,68 +55,73 @@ have their KeyPears API hosted by a provider like `keypears.com`.
 - [x] orpc API server setup
 - [x] Blake3 hashing endpoint (proof of concept)
 
-### Phase 1 Tasks 🚧 IN PROGRESS
+### Phase 1 Tasks ✅ COMPLETED
 
-#### Server-Side Secret Storage
+#### Server-Side Secret Storage ✅ COMPLETED
 
-- [ ] Create `secret_update` table in PostgreSQL
-  - [ ] Define schema: `id`, `vault_id`, `secret_id`, `name`, `type`,
-        `created_at`, `deleted`, `secret_update_json`
-  - [ ] Add indexes: `(vault_id, created_at)`, `(vault_id, secret_id)`
-  - [ ] Write Drizzle schema in `api-server/src/db/schema.ts`
-  - [ ] Create migration
+- [x] Create `secret_update` table in PostgreSQL
+  - [x] Schema: `id`, `vault_id`, `secret_id`, `global_order`, `local_order`,
+        `encrypted_blob`, `created_at`
+  - [x] Indexes: `idx_vault_global_order`, `idx_secret_local_order`
+  - [x] Drizzle schema in `api-server/src/db/schema.ts`
 
-#### Authentication API
+**Implementation notes**: Schema uses `encrypted_blob` instead of separate
+plaintext fields (`name`, `type`, `deleted`). This is a better zero-knowledge
+design - server only sees encrypted data.
 
-- [ ] Implement `createVault` procedure
-  - [ ] Accept: `vaultName`, `hashedLoginKey`, `encryptedMasterKey`
-  - [ ] Validate vault name (1-30 chars, alphanumeric, starts with letter)
-  - [ ] Hash the provided login key with Blake3 (server-side double hash)
-  - [ ] Store vault record in PostgreSQL
-  - [ ] Return: vault ID + success status
+#### Authentication API ✅ COMPLETED
 
-- [ ] Implement `authenticateVault` procedure
-  - [ ] Accept: `vaultName`, `loginKey`
-  - [ ] Fetch vault by name
-  - [ ] Verify login key matches stored hash
-  - [ ] Return: encrypted master key + vault metadata
+- [x] `registerVault` procedure (`api-server/src/procedures/register-vault.ts`)
+  - [x] Accepts: `vaultId`, `name`, `domain`, `vaultPubKeyHash`, `loginKey`,
+        `encryptedVaultKey`
+  - [x] Validates vault name and domain
+  - [x] KDFs login key with vault ID salt (1k rounds)
+  - [x] Stores vault record in PostgreSQL
+  - [x] Returns: vault ID
 
-#### Sync API
+- [x] `login` procedure (`api-server/src/procedures/login.ts`)
+  - [x] Accepts: `vaultId`, `loginKey`, `deviceId`, `clientDeviceDescription`
+  - [x] Verifies login key against stored hash
+  - [x] Creates device session with hashed token
+  - [x] Returns: session token + expiration + isNewDevice
 
-- [ ] Implement `pushSecretUpdates` procedure
-  - [ ] Accept: `vaultId`, `loginKey`, `secretUpdates[]`
-  - [ ] Authenticate vault with login key
-  - [ ] Validate each secret update with Zod schema
-  - [ ] Insert new secret updates (append-only, no overwrites)
-  - [ ] Return: success status + server timestamp
+#### Sync API ✅ COMPLETED
 
-- [ ] Implement `pullSecretUpdates` procedure
-  - [ ] Accept: `vaultId`, `loginKey`, `sinceTimestamp`
-  - [ ] Authenticate vault with login key
-  - [ ] Fetch secret updates created after `sinceTimestamp`
-  - [ ] Return: array of secret updates + latest server timestamp
+- [x] `createSecretUpdate` procedure
+      (`api-server/src/procedures/create-secret-update.ts`)
+  - [x] Session-authenticated (X-Vault-Session-Token header)
+  - [x] Accepts: `vaultId`, `secretId`, `encryptedBlob`
+  - [x] Server generates order numbers (globalOrder, localOrder)
+  - [x] Returns: id, globalOrder, localOrder, createdAt
 
-#### Client Sync Service
+- [x] `getSecretUpdates` procedure
+      (`api-server/src/procedures/get-secret-updates.ts`)
+  - [x] Session-authenticated
+  - [x] Accepts: `vaultId`, `sinceGlobalOrder`, `limit`
+  - [x] Returns: updates array + hasMore flag for pagination
 
-- [ ] Create `sync-service.ts` in tauri-ts
-  - [ ] Track last sync timestamp per vault
-  - [ ] Implement background sync loop (every 30 seconds)
-  - [ ] Detect offline/online state
-  - [ ] Queue changes when offline
-  - [ ] Push local changes to server
-  - [ ] Pull server changes since last sync
-  - [ ] Merge updates with last-write-wins conflict resolution
-  - [ ] Handle sync errors gracefully
+#### Client Sync Service ✅ COMPLETED
 
-#### Sync UI Indicators
+- [x] `sync-service.ts` in tauri-ts
+  - [x] Track last synced global order per vault (`vault-sync-state.ts`)
+  - [x] Background sync loop (every 5 seconds)
+  - [x] Session expiration detection
+  - [x] Exponential backoff on server errors
+  - [x] `syncVault()` pulls and decrypts server changes
+  - [x] `pushSecretUpdate()` encrypts and sends to server
+  - [x] `triggerManualSync()` for immediate sync after edits
 
-- [ ] Add sync status to vault UI
+#### Sync UI Indicators 🚧 PARTIAL
+
+- [x] `ServerStatusBanner.tsx` shows online/offline/validating status
+- [x] Sync state tracking (`lastSyncSuccess`, `syncError` in vault-sync-state)
+- [ ] Add visible sync status icons to vault UI
   - [ ] ☁️ "Synced" - Last sync < 1 minute ago
   - [ ] 🔄 "Syncing..." - Sync in progress
   - [ ] ⚠️ "Sync error" - Last sync failed
   - [ ] 📶 "Offline" - No network connection, changes queued
-- [ ] Show last sync timestamp
-- [ ] Add manual "Sync Now" button
+- [ ] Show last sync timestamp in UI
+- [ ] Add manual "Sync Now" button in UI
 
 #### Testing & Validation
 
@@ -124,7 +129,7 @@ have their KeyPears API hosted by a provider like `keypears.com`.
 - [ ] Test offline mode (queue changes, sync when reconnected)
 - [ ] Test conflict resolution (edit same secret on two devices, last write
       wins)
-- [ ] Test sync performance (30 second target for propagation)
+- [ ] Test sync performance (5 second polling interval)
 
 ---
 
@@ -345,4 +350,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-02
