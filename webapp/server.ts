@@ -5,6 +5,7 @@ import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
 import { router } from "@keypears/api-server";
 import { RPCHandler } from "@orpc/server/node";
+import { onError } from "@orpc/server";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -22,7 +23,13 @@ app.use(cors());
 // at webapp/app/routes/.well-known.keypears[.]json.ts
 
 // Mount oRPC API handler at /api BEFORE compression
-const apiHandler = new RPCHandler(router);
+const apiHandler = new RPCHandler(router, {
+  interceptors: [
+    onError((error) => {
+      console.error("[oRPC Error]", error);
+    }),
+  ],
+});
 
 app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
   try {
