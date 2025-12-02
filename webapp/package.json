@@ -5,6 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@10.17.0",
   "scripts": {
+    "db:prod:clear": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle-clear.config.ts",
+    "db:prod:push": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle.config.ts",
     "db:staging:clear": "dotenvx run -f .env.staging -- drizzle-kit push --config=drizzle-clear.config.ts",
     "db:staging:push": "dotenvx run -f .env.staging -- drizzle-kit push --config=drizzle.config.ts",
     "db:dev:clear": "dotenvx run -f .env.development -- drizzle-kit push --config=drizzle-clear.config.ts",
