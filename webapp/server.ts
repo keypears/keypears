@@ -1,10 +1,10 @@
 import compression from "compression";
+import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
 import { router } from "@keypears/api-server";
 import { RPCHandler } from "@orpc/server/node";
-import { CORSPlugin } from "@orpc/server/plugins";
 
 // Short-circuit the type-checking of the built output.
 const BUILD_PATH = "./build/server/index.js";
@@ -15,14 +15,14 @@ const app = express();
 
 app.disable("x-powered-by");
 
+// Enable CORS for all routes (required for Tauri app and federated architecture)
+app.use(cors());
+
 // Note: .well-known/keypears.json is now served by React Router route
 // at webapp/app/routes/.well-known.keypears[.]json.ts
 
 // Mount oRPC API handler at /api BEFORE compression
-// Enable CORS for Tauri app (which makes cross-origin requests)
-const apiHandler = new RPCHandler(router, {
-  plugins: [new CORSPlugin()],
-});
+const apiHandler = new RPCHandler(router);
 
 app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
   try {
