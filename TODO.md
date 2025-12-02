@@ -111,6 +111,21 @@ design - server only sees encrypted data.
   - [x] `pushSecretUpdate()` encrypts and sends to server
   - [x] `triggerManualSync()` for immediate sync after edits
 
+#### Deploy to AWS 🚧 IN PROGRESS
+
+- [ ] Configure production database with dotenvx
+  - [ ] Set up `DATABASE_URL` and other secrets via dotenvx
+  - [ ] Attach environment variables to ECS Fargate service
+  - [ ] Verify database connectivity from production container
+- [ ] Deploy latest webapp to production
+  - [ ] Build and push Docker image to ECR
+  - [ ] Deploy to ECS Fargate with no errors
+  - [ ] Verify webapp loads at keypears.com
+- [ ] Test dev app → production server sync
+  - [ ] Configure dev Tauri app to connect to production API
+  - [ ] Create vault on dev app, verify it syncs to production database
+  - [ ] Create/edit secrets on dev app, verify sync works
+
 #### Sync UI Indicators 🚧 PARTIAL
 
 - [x] `ServerStatusBanner.tsx` shows online/offline/validating status
