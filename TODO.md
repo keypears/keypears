@@ -11,7 +11,8 @@ organized by MVP phase as defined in `docs/mvp.md`.
 
 **Completed**: 2025-12-01
 
-**Blog Post**: [Third-Party Hosting: Making KeyPears as Easy as Hosted
+**Blog Post**:
+[Third-Party Hosting: Making KeyPears as Easy as Hosted
 Email](/blog/2025-12-01-third-party-hosting)
 
 Updated the KeyPears protocol to read API URLs from `.well-known/keypears.json`
@@ -113,14 +114,15 @@ design - server only sees encrypted data.
 
 #### Deploy to AWS 🚧 IN PROGRESS
 
-- [ ] Configure production database with dotenvx
-  - [ ] Set up `DATABASE_URL` and other secrets via dotenvx
-  - [ ] Attach environment variables to ECS Fargate service
-  - [ ] Verify database connectivity from production container
-- [ ] Deploy latest webapp to production
-  - [ ] Build and push Docker image to ECR
-  - [ ] Deploy to ECS Fargate with no errors
-  - [ ] Verify webapp loads at keypears.com
+- [x] Push the latest schema to the PlanetScale prod database
+- [x] Configure production database with dotenvx
+  - [x] Set up `DATABASE_URL` and other secrets via dotenvx
+  - [x] Attach environment variables to ECS Fargate service
+  - [x] Verify database connectivity from production container
+- [x] Deploy latest webapp to production
+  - [x] Build and push Docker image to ECR
+  - [x] Deploy to ECS Fargate with no errors
+  - [x] Verify webapp loads at keypears.com
 - [ ] Test dev app → production server sync
   - [ ] Configure dev Tauri app to connect to production API
   - [ ] Create vault on dev app, verify it syncs to production database
