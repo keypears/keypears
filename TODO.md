@@ -123,10 +123,10 @@ design - server only sees encrypted data.
   - [x] Build and push Docker image to ECR
   - [x] Deploy to ECS Fargate with no errors
   - [x] Verify webapp loads at keypears.com
-- [ ] Test dev app → production server sync
-  - [ ] Configure dev Tauri app to connect to production API
-  - [ ] Create vault on dev app, verify it syncs to production database
-  - [ ] Create/edit secrets on dev app, verify sync works
+- [x] Test dev app → production server sync
+  - [x] Configure dev Tauri app to connect to production API
+  - [x] Create vault on dev app, verify it syncs to production database
+  - [x] Create/edit secrets on dev app, verify sync works
 
 #### Sync UI Indicators 🚧 PARTIAL
 
