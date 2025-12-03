@@ -100,6 +100,8 @@ COPY api-server/package.json /app/api-server/
 COPY --from=build-api-server /app/api-server/dist /app/api-server/dist/
 # Copy webapp package and server files
 COPY webapp/package.json webapp/server.ts /app/webapp/
+# Copy encrypted .env.production (decrypted at runtime via dotenvx + DOTENV_PRIVATE_KEY_PRODUCTION)
+COPY webapp/.env.production /app/webapp/
 # Copy webapp markdown files (needed for blog at runtime)
 COPY webapp/markdown /app/webapp/markdown/
 # Copy webapp public directory (needed for .well-known at runtime)
