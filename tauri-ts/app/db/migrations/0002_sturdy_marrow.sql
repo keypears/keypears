@@ -1,0 +1,1 @@
+ALTER TABLE `secret_update` ADD `is_read` integer DEFAULT false NOT NULL;

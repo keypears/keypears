@@ -1,6 +1,6 @@
 import { db } from "../index";
 import { TableSecretUpdate } from "../schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, count } from "drizzle-orm";
 
 /**
  * Secret update row as stored in local database
@@ -16,6 +16,7 @@ export interface SecretUpdateRow {
   type: "password" | "envvar" | "apikey" | "walletkey" | "passkey";
   deleted: boolean;
   encryptedBlob: string;
+  isRead: boolean;
   createdAt: number;
 }
 
@@ -27,6 +28,7 @@ export interface SecretUpdateRow {
  * This handles the case where we re-sync the same updates.
  *
  * @param updates - Array of updates to insert
+ * @param isRead - Whether to mark updates as read (true for local creates, false for synced)
  */
 export async function insertSecretUpdatesFromSync(
   updates: Array<{
@@ -41,6 +43,7 @@ export async function insertSecretUpdatesFromSync(
     encryptedBlob: string;
     createdAt: number;
   }>,
+  isRead: boolean = false,
 ): Promise<void> {
   if (updates.length === 0) {
     return;
@@ -62,6 +65,7 @@ export async function insertSecretUpdatesFromSync(
         deleted: update.deleted,
         encryptedBlob: update.encryptedBlob,
         createdAt: update.createdAt,
+        isRead,
       })
       .onConflictDoUpdate({
         target: TableSecretUpdate.id,
@@ -70,6 +74,7 @@ export async function insertSecretUpdatesFromSync(
           type: update.type,
           deleted: update.deleted,
           encryptedBlob: update.encryptedBlob,
+          // Don't update isRead on conflict - preserve existing read state
         },
       });
   }
@@ -169,4 +174,102 @@ export async function getSecretHistory(
     .orderBy(TableSecretUpdate.localOrder); // ASC for chronological order
 
   return results as SecretUpdateRow[];
+}
+
+/**
+ * Get count of unread secret updates for a vault
+ *
+ * @param vaultId - The vault ID to count unread updates for
+ * @returns Number of unread secret updates
+ */
+export async function getUnreadCount(vaultId: string): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(TableSecretUpdate)
+    .where(
+      and(
+        eq(TableSecretUpdate.vaultId, vaultId),
+        eq(TableSecretUpdate.isRead, false),
+      ),
+    );
+
+  return result[0]?.count ?? 0;
+}
+
+/**
+ * Mark a single secret update as read
+ *
+ * @param id - The update ID to mark as read
+ */
+export async function markAsRead(id: string): Promise<void> {
+  await db
+    .update(TableSecretUpdate)
+    .set({ isRead: true })
+    .where(eq(TableSecretUpdate.id, id));
+}
+
+/**
+ * Mark a single secret update as unread
+ *
+ * @param id - The update ID to mark as unread
+ */
+export async function markAsUnread(id: string): Promise<void> {
+  await db
+    .update(TableSecretUpdate)
+    .set({ isRead: false })
+    .where(eq(TableSecretUpdate.id, id));
+}
+
+/**
+ * Mark all secret updates in a vault as read
+ *
+ * @param vaultId - The vault ID to mark all updates as read
+ */
+export async function markAllAsRead(vaultId: string): Promise<void> {
+  await db
+    .update(TableSecretUpdate)
+    .set({ isRead: true })
+    .where(eq(TableSecretUpdate.vaultId, vaultId));
+}
+
+/**
+ * Get all secret updates for a vault with pagination (for activity log)
+ * Returns updates ordered by globalOrder descending (newest first)
+ *
+ * @param vaultId - The vault ID to get updates for
+ * @param limit - Number of updates to return (default 50)
+ * @param offset - Number of updates to skip (default 0)
+ * @returns Array of secret updates ordered by newest first
+ */
+export async function getAllSecretUpdates(
+  vaultId: string,
+  limit: number = 50,
+  offset: number = 0,
+): Promise<SecretUpdateRow[]> {
+  const results = await db
+    .select()
+    .from(TableSecretUpdate)
+    .where(eq(TableSecretUpdate.vaultId, vaultId))
+    .orderBy(desc(TableSecretUpdate.globalOrder))
+    .limit(limit)
+    .offset(offset);
+
+  return results as SecretUpdateRow[];
+}
+
+/**
+ * Get total count of secret updates for a vault (for pagination)
+ *
+ * @param vaultId - The vault ID to count updates for
+ * @returns Total number of secret updates
+ */
+export async function getTotalSecretUpdateCount(
+  vaultId: string,
+): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(TableSecretUpdate)
+    .where(eq(TableSecretUpdate.vaultId, vaultId));
+
+  return result[0]?.count ?? 0;
 }

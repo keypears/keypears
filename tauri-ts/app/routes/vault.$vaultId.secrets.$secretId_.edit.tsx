@@ -164,6 +164,7 @@ export default function EditPassword() {
       );
 
       // Immediately store locally with server-generated data
+      // Pass isRead=true since this is a locally-created update
       const encryptedBlob = encryptSecretUpdateBlob(secretData, activeVault.vaultKey);
       await insertSecretUpdatesFromSync([{
         id: serverResponse.id,
@@ -176,7 +177,7 @@ export default function EditPassword() {
         deleted: secretData.deleted,
         encryptedBlob,
         createdAt: new Date(serverResponse.createdAt).getTime(),
-      }]);
+      }], true);
 
       // Still trigger sync to fetch any other updates
       await triggerManualSync();

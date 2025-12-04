@@ -15,6 +15,13 @@
       "when": 1764525943469,
       "tag": "0001_powerful_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1764855386902,
+      "tag": "0002_sturdy_marrow",
+      "breakpoints": true
     }
   ]
 }

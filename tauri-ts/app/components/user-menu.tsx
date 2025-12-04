@@ -1,4 +1,5 @@
-import { User, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Lock, Activity } from "lucide-react";
 import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
 import {
@@ -10,10 +11,30 @@ import {
 } from "~app/components/ui/dropdown-menu";
 import { useVault } from "~app/contexts/vault-context";
 import { createApiClient } from "~app/lib/api-client";
+import { getUnreadCount } from "~app/db/models/password";
 
 export function UserMenu() {
   const navigate = useNavigate();
   const { activeVault, lockVault, getSessionToken, clearSession } = useVault();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll for unread count every 5 seconds (matches sync interval)
+  useEffect(() => {
+    if (!activeVault) return;
+
+    const fetchUnreadCount = async () => {
+      const count = await getUnreadCount(activeVault.vaultId);
+      setUnreadCount(count);
+    };
+
+    // Initial fetch
+    fetchUnreadCount();
+
+    // Poll every 5 seconds
+    const interval = setInterval(fetchUnreadCount, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeVault]);
 
   if (!activeVault) {
     return null;
@@ -48,8 +69,11 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="User menu">
+        <Button variant="ghost" size="icon" aria-label="User menu" className="relative">
           <User size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-red-500 border-2 border-background" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -59,6 +83,17 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to={href("/vault/:vaultId/sync", { vaultId: activeVault.vaultId })} className="flex items-center">
+            <Activity size={16} className="mr-2" />
+            Sync Activity
+            {unreadCount > 0 && (
+              <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLockVault}>
           <Lock size={16} className="mr-2" />
           Lock Vault

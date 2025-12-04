@@ -59,6 +59,10 @@ export const TableSecretUpdate = sqliteTable(
     // Client decrypts to get secret metadata + encrypted password
     encryptedBlob: text("encrypted_blob").notNull(),
 
+    // Read state for notifications
+    // 0 = unread (synced from another device), 1 = read (created locally or marked read)
+    isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+
     // Timestamps
     createdAt: integer("created_at").notNull(), // Server timestamp
   },
