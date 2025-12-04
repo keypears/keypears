@@ -150,7 +150,84 @@ design - server only sees encrypted data.
 
 ---
 
-## Phase 2: Diffie-Hellman Key Exchange
+## Phase 2: Codebase Audit
+
+**Status**: ⏳ **PLANNED** - Not started
+
+**Goal**: Review entire codebase for clarity, maintainability, security,
+scalability, and UI consistency.
+
+**Timeline**: 1 day to 1 week
+
+### Audit Checklist
+
+For each file, verify:
+
+- [ ] **Clarity**: Understandable in 30 seconds, good naming, no unnecessary
+      complexity
+- [ ] **Maintainability**: No duplication, no magic values, consistent error
+      handling, explicit types
+- [ ] **Security**: Input validation, secrets handled safely, auth checked,
+      crypto correct
+- [ ] **Scalability**: No N+1 queries, no unnecessary re-renders, no memory
+      leaks
+- [ ] **UI**: Consistent styling, accessible, loading/error states, mobile
+      responsive
+
+### Package Audit Order
+
+#### 1. @keypears/lib (lib/)
+
+- [ ] src/index.ts
+- [ ] src/crypto.ts
+- [ ] src/domains.ts
+- [ ] src/keypears-json.ts
+- [ ] src/password-generator.ts
+- [ ] All other source files
+- [ ] package.json, tsconfig.json
+
+#### 2. @keypears/api-server (api-server/)
+
+- [ ] src/index.ts, src/client.ts
+- [ ] src/procedures/\*.ts
+- [ ] src/db/index.ts, src/db/schema.ts
+- [ ] src/db/models/\*.ts
+- [ ] src/zod-schemas.ts
+- [ ] package.json, tsconfig.json
+
+#### 3. @keypears/webapp (webapp/)
+
+- [ ] server.ts
+- [ ] app/routes/\*.tsx
+- [ ] app/components/\*.tsx
+- [ ] markdown/ content
+- [ ] package.json, configs
+
+#### 4. @keypears/tauri-ts (tauri-ts/)
+
+- [ ] app/routes/\*.tsx
+- [ ] app/components/\*.tsx
+- [ ] app/contexts/\*.tsx
+- [ ] app/db/\*.ts
+- [ ] app/lib/\*.ts
+- [ ] package.json, vite.config.ts
+
+#### 5. @keypears/tauri-rs (tauri-rs/)
+
+- [ ] src/lib.rs
+- [ ] Cargo.toml, tauri.conf.json
+
+#### 6. Root Configs
+
+- [ ] Dockerfile, docker-compose.yml
+- [ ] package.json, pnpm-workspace.yaml
+- [ ] Cargo.toml
+- [ ] CLAUDE.md / AGENTS.md
+- [ ] docs/\*.md
+
+---
+
+## Phase 3: Diffie-Hellman Key Exchange
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -198,7 +275,7 @@ design - server only sees encrypted data.
 
 ---
 
-## Phase 3: Multi-Domain Support
+## Phase 4: Multi-Domain Support
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -234,7 +311,7 @@ design - server only sees encrypted data.
 
 ---
 
-## Phase 4: Payment & Business Model
+## Phase 5: Payment & Business Model
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -367,4 +444,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-02
+**Last Updated**: 2025-12-04
