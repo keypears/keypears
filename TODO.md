@@ -112,7 +112,7 @@ design - server only sees encrypted data.
   - [x] `pushSecretUpdate()` encrypts and sends to server
   - [x] `triggerManualSync()` for immediate sync after edits
 
-#### Deploy to AWS 🚧 IN PROGRESS
+#### Deploy to AWS ✅ COMPLETED
 
 - [x] Push the latest schema to the PlanetScale prod database
 - [x] Configure production database with dotenvx
@@ -128,17 +128,20 @@ design - server only sees encrypted data.
   - [x] Create vault on dev app, verify it syncs to production database
   - [x] Create/edit secrets on dev app, verify sync works
 
-#### Sync UI Indicators 🚧 PARTIAL
+#### Sync UI Indicators ✅ COMPLETED
 
 - [x] `ServerStatusBanner.tsx` shows online/offline/validating status
 - [x] Sync state tracking (`lastSyncSuccess`, `syncError` in vault-sync-state)
-- [ ] Add visible sync status icons to vault UI
-  - [ ] ☁️ "Synced" - Last sync < 1 minute ago
-  - [ ] 🔄 "Syncing..." - Sync in progress
-  - [ ] ⚠️ "Sync error" - Last sync failed
-  - [ ] 📶 "Offline" - No network connection, changes queued
-- [ ] Show last sync timestamp in UI
-- [ ] Add manual "Sync Now" button in UI
+- [x] Add `isRead` column to track read/unread state of secret updates
+- [x] Notification dot on user avatar when unread updates exist
+- [x] "Sync Activity" menu item with unread count badge
+- [x] Sync Activity page (`/vault/:vaultId/sync`) with:
+  - [x] Sync status indicator (synced/error with relative timestamp)
+  - [x] Manual "Sync Now" button
+  - [x] Activity log with pagination
+  - [x] Mark as read/unread per item
+  - [x] Mark All Read button
+- [x] Efficient rendering (only UserMenu re-renders on sync, not entire app)
 
 #### Testing & Validation
 
