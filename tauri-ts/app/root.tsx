@@ -12,6 +12,7 @@ import type { Route } from "./+types/root";
 import { runMigrations } from "./db/migrate";
 import { VaultProvider } from "./contexts/vault-context";
 import { ServerStatusProvider } from "./contexts/ServerStatusContext";
+import { SyncProvider } from "./contexts/sync-context";
 
 export async function clientLoader() {
   await runMigrations();
@@ -52,11 +53,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ServerStatusProvider>
-          <VaultProvider>{children}</VaultProvider>
+          <SyncProvider>
+            <VaultProvider>{children}</VaultProvider>
+          </SyncProvider>
         </ServerStatusProvider>
         <ScrollRestoration />
         <Scripts />
-      </body>    </html>
+      </body>
+    </html>
   );
 }
 

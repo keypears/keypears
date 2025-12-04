@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, href } from "react-router";
 import { ChevronLeft, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff, CheckCheck } from "lucide-react";
 import { useVault } from "~app/contexts/vault-context";
+import { refreshSyncState } from "~app/contexts/sync-context";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -124,6 +125,8 @@ function ActivityItem({
 
 export default function VaultSyncActivity() {
   const { activeVault } = useVault();
+
+  // All state is local to this page - no context subscription
   const [syncState, setSyncState] = useState<VaultSyncState | null>(null);
   const [updates, setUpdates] = useState<SecretUpdateRow[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -132,62 +135,72 @@ export default function VaultSyncActivity() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Fetch data on mount and when page changes
-  useEffect(() => {
+  // Fetch all data locally
+  const fetchData = useCallback(async () => {
     if (!activeVault) return;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [state, activityUpdates, total, unread] = await Promise.all([
-          getVaultSyncState(activeVault.vaultId),
-          getAllSecretUpdates(activeVault.vaultId, PAGE_SIZE, page * PAGE_SIZE),
-          getTotalSecretUpdateCount(activeVault.vaultId),
-          getUnreadCount(activeVault.vaultId),
-        ]);
-        setSyncState(state ?? null);
-        setUpdates(activityUpdates);
-        setTotalCount(total);
-        setUnreadCount(unread);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-
-    // Poll every 5 seconds
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    setIsLoading(true);
+    try {
+      const [state, activityUpdates, total, unread] = await Promise.all([
+        getVaultSyncState(activeVault.vaultId),
+        getAllSecretUpdates(activeVault.vaultId, PAGE_SIZE, page * PAGE_SIZE),
+        getTotalSecretUpdateCount(activeVault.vaultId),
+        getUnreadCount(activeVault.vaultId),
+      ]);
+      setSyncState(state ?? null);
+      setUpdates(activityUpdates);
+      setTotalCount(total);
+      setUnreadCount(unread);
+    } finally {
+      setIsLoading(false);
+    }
   }, [activeVault, page]);
 
+  // Fetch data on mount and page change
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   const handleMarkRead = async (id: string) => {
+    if (!activeVault) return;
     await markAsRead(id);
+    // Update local UI immediately
     setUpdates((prev) =>
       prev.map((u) => (u.id === id ? { ...u, isRead: true } : u))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
+    // Refresh global sync state (updates notification in UserMenu)
+    await refreshSyncState();
   };
 
   const handleMarkUnread = async (id: string) => {
+    if (!activeVault) return;
     await markAsUnread(id);
+    // Update local UI immediately
     setUpdates((prev) =>
       prev.map((u) => (u.id === id ? { ...u, isRead: false } : u))
     );
     setUnreadCount((prev) => prev + 1);
+    // Refresh global sync state (updates notification in UserMenu)
+    await refreshSyncState();
   };
 
   const handleMarkAllRead = async () => {
     if (!activeVault) return;
     await markAllAsRead(activeVault.vaultId);
+    // Update local UI immediately
     setUpdates((prev) => prev.map((u) => ({ ...u, isRead: true })));
     setUnreadCount(0);
+    // Refresh global sync state (updates notification in UserMenu)
+    await refreshSyncState();
   };
 
   const handleSyncNow = async () => {
     setIsSyncing(true);
     try {
       await triggerManualSync();
+      // Refresh local data after sync
+      await fetchData();
     } finally {
       setIsSyncing(false);
     }

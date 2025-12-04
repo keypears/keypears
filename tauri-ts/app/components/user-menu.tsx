@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { User, Lock, Activity } from "lucide-react";
 import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
@@ -10,31 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "~app/components/ui/dropdown-menu";
 import { useVault } from "~app/contexts/vault-context";
+import { useSyncState } from "~app/contexts/sync-context";
 import { createApiClient } from "~app/lib/api-client";
-import { getUnreadCount } from "~app/db/models/password";
 
 export function UserMenu() {
   const navigate = useNavigate();
   const { activeVault, lockVault, getSessionToken, clearSession } = useVault();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Poll for unread count every 5 seconds (matches sync interval)
-  useEffect(() => {
-    if (!activeVault) return;
-
-    const fetchUnreadCount = async () => {
-      const count = await getUnreadCount(activeVault.vaultId);
-      setUnreadCount(count);
-    };
-
-    // Initial fetch
-    fetchUnreadCount();
-
-    // Poll every 5 seconds
-    const interval = setInterval(fetchUnreadCount, 5000);
-
-    return () => clearInterval(interval);
-  }, [activeVault]);
+  const { unreadCount } = useSyncState();
 
   if (!activeVault) {
     return null;

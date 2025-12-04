@@ -17,6 +17,7 @@ interface VaultConfig {
   vaultDomain: string;
   vaultKey: FixedBuf<32>;
   getSession: () => SessionInfo | null;
+  onSyncComplete?: () => void;
 }
 
 // Sync state management
@@ -36,12 +37,15 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes
 /**
  * Start background sync polling for a vault.
  * Only one vault can be synced at a time.
+ *
+ * @param onSyncComplete - Optional callback called after each successful sync
  */
 export function startBackgroundSync(
   vaultId: string,
   vaultDomain: string,
   vaultKey: FixedBuf<32>,
   getSession: () => SessionInfo | null,
+  onSyncComplete?: () => void,
 ): void {
   // Stop any existing sync
   stopBackgroundSync();
@@ -52,6 +56,7 @@ export function startBackgroundSync(
     vaultDomain,
     vaultKey,
     getSession,
+    onSyncComplete,
   };
 
   // Reset error tracking
@@ -159,6 +164,11 @@ async function performSync(): Promise<void> {
     consecutiveServerErrors = 0;
     lastErrorStatus = null;
     lastErrorMessage = null;
+
+    // Notify listeners that sync completed
+    if (currentVaultConfig?.onSyncComplete) {
+      currentVaultConfig.onSyncComplete();
+    }
 
   } catch (error) {
     handleSyncError(error);

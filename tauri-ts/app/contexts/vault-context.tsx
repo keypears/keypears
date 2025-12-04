@@ -12,6 +12,11 @@ import {
   startBackgroundSync,
   stopBackgroundSync,
 } from "~app/lib/sync-service";
+import {
+  setCurrentVaultId,
+  refreshSyncState,
+  clearSyncState,
+} from "./sync-context";
 
 interface UnlockedVault {
   vaultId: string;
@@ -74,7 +79,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   // Use a ref to store the session to avoid closure issues
   const sessionRef = useRef<SessionState | null>(null);
 
-  // Keep the ref in sync with the state
+  // Keep the ref in sync with state
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
@@ -118,12 +123,21 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     // Mark as unlocked in shared session state
     markVaultUnlocked(vaultId);
 
+    // Set current vault ID for sync state tracking and do initial refresh
+    setCurrentVaultId(vaultId);
+    refreshSyncState();
+
     // Start background sync - use ref to avoid closure issues and pass session info
-    startBackgroundSync(vaultId, vaultDomain, vaultKey, () =>
-      sessionRef.current ? {
+    // refreshSyncState is a stable module function, safe to pass as callback
+    startBackgroundSync(
+      vaultId,
+      vaultDomain,
+      vaultKey,
+      () => sessionRef.current ? {
         token: sessionRef.current.sessionToken,
         expiresAt: sessionRef.current.expiresAt
-      } : null
+      } : null,
+      refreshSyncState,
     );
   };
 
@@ -135,6 +149,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
     // Stop background sync
     stopBackgroundSync();
+
+    // Clear sync state and vault ID
+    setCurrentVaultId(null);
+    clearSyncState();
 
     // Clear session token
     setSessionState(null);
