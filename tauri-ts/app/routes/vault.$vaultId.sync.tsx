@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, href } from "react-router";
+import type { Route } from "./+types/vault.$vaultId.sync";
+import { useState } from "react";
+import { Link, href, useRevalidator } from "react-router";
 import { ChevronLeft, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff, CheckCheck } from "lucide-react";
-import { useVault } from "~app/contexts/vault-context";
 import { refreshSyncState } from "~app/contexts/sync-context";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -123,76 +123,72 @@ function ActivityItem({
   );
 }
 
-export default function VaultSyncActivity() {
-  const { activeVault } = useVault();
+export async function clientLoader({ params, request }: Route.ClientLoaderArgs) {
+  const vaultId = params.vaultId;
+  const url = new URL(request.url);
+  const page = parseInt(url.searchParams.get("page") || "0", 10);
 
-  // All state is local to this page - no context subscription
-  const [syncState, setSyncState] = useState<VaultSyncState | null>(null);
-  const [updates, setUpdates] = useState<SecretUpdateRow[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [page, setPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [syncState, updates, totalCount, unreadCount] = await Promise.all([
+    getVaultSyncState(vaultId),
+    getAllSecretUpdates(vaultId, PAGE_SIZE, page * PAGE_SIZE),
+    getTotalSecretUpdateCount(vaultId),
+    getUnreadCount(vaultId),
+  ]);
+
+  return {
+    vaultId,
+    syncState: syncState ?? null,
+    updates,
+    totalCount,
+    unreadCount,
+    page,
+  };
+}
+
+export function HydrateFallback() {
+  return (
+    <div className="bg-background min-h-screen">
+      <Navbar />
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-4">
+            <ChevronLeft size={16} />
+            Back to Passwords
+          </div>
+          <h1 className="text-2xl font-bold">Sync Activity</h1>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-8">
+          <p className="text-muted-foreground text-center text-sm">
+            Loading sync activity...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) {
+  const { vaultId, syncState, updates, totalCount, unreadCount, page } = loaderData;
+  const revalidator = useRevalidator();
+
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Fetch all data locally
-  const fetchData = useCallback(async () => {
-    if (!activeVault) return;
-
-    setIsLoading(true);
-    try {
-      const [state, activityUpdates, total, unread] = await Promise.all([
-        getVaultSyncState(activeVault.vaultId),
-        getAllSecretUpdates(activeVault.vaultId, PAGE_SIZE, page * PAGE_SIZE),
-        getTotalSecretUpdateCount(activeVault.vaultId),
-        getUnreadCount(activeVault.vaultId),
-      ]);
-      setSyncState(state ?? null);
-      setUpdates(activityUpdates);
-      setTotalCount(total);
-      setUnreadCount(unread);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeVault, page]);
-
-  // Fetch data on mount and page change
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const handleMarkRead = async (id: string) => {
-    if (!activeVault) return;
     await markAsRead(id);
-    // Update local UI immediately
-    setUpdates((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, isRead: true } : u))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-    // Refresh global sync state (updates notification in UserMenu)
     await refreshSyncState();
+    revalidator.revalidate();
   };
 
   const handleMarkUnread = async (id: string) => {
-    if (!activeVault) return;
     await markAsUnread(id);
-    // Update local UI immediately
-    setUpdates((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, isRead: false } : u))
-    );
-    setUnreadCount((prev) => prev + 1);
-    // Refresh global sync state (updates notification in UserMenu)
     await refreshSyncState();
+    revalidator.revalidate();
   };
 
   const handleMarkAllRead = async () => {
-    if (!activeVault) return;
-    await markAllAsRead(activeVault.vaultId);
-    // Update local UI immediately
-    setUpdates((prev) => prev.map((u) => ({ ...u, isRead: true })));
-    setUnreadCount(0);
-    // Refresh global sync state (updates notification in UserMenu)
+    await markAllAsRead(vaultId);
     await refreshSyncState();
+    revalidator.revalidate();
   };
 
   const handleSyncNow = async () => {
@@ -202,10 +198,8 @@ export default function VaultSyncActivity() {
 
     try {
       await triggerManualSync();
-      // Refresh local data after sync
-      await fetchData();
+      revalidator.revalidate();
     } finally {
-      // Wait for remaining time if sync was faster than minDuration
       const elapsed = Date.now() - startTime;
       if (elapsed < minDuration) {
         await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
@@ -213,10 +207,6 @@ export default function VaultSyncActivity() {
       setIsSyncing(false);
     }
   };
-
-  if (!activeVault) {
-    return null;
-  }
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasNextPage = page < totalPages - 1;
@@ -229,7 +219,7 @@ export default function VaultSyncActivity() {
         {/* Header with back button */}
         <div className="mb-6">
           <Link
-            to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}
+            to={href("/vault/:vaultId/secrets", { vaultId })}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ChevronLeft size={16} />
@@ -270,11 +260,7 @@ export default function VaultSyncActivity() {
 
         {/* Activity list */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
-          {isLoading && updates.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Loading activity...
-            </div>
-          ) : updates.length === 0 ? (
+          {updates.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               No sync activity yet
             </div>
@@ -298,10 +284,12 @@ export default function VaultSyncActivity() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => p - 1)}
+              asChild
               disabled={!hasPrevPage}
             >
-              Previous
+              <Link to={`?page=${page - 1}`}>
+                Previous
+              </Link>
             </Button>
             <span className="text-sm text-muted-foreground">
               Page {page + 1} of {totalPages}
@@ -309,10 +297,12 @@ export default function VaultSyncActivity() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => p + 1)}
+              asChild
               disabled={!hasNextPage}
             >
-              Next
+              <Link to={`?page=${page + 1}`}>
+                Next
+              </Link>
             </Button>
           </div>
         )}
