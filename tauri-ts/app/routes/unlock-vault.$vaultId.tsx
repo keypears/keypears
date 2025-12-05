@@ -9,8 +9,16 @@ import { calculatePasswordEntropy } from "@keypears/lib";
 import { cn } from "~app/lib/utils";
 import { getVault, updateVault } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
-import { useVault } from "~app/contexts/vault-context";
-import { isVaultUnlocked } from "~app/lib/vault-session";
+import {
+  setActiveVault,
+  setSession,
+  isVaultUnlocked,
+} from "~app/lib/vault-store";
+import {
+  setCurrentVaultId,
+  refreshSyncState,
+} from "~app/contexts/sync-context";
+import { startBackgroundSync } from "~app/lib/sync-service";
 import { initDb } from "~app/db";
 import {
   generateDeviceId,
@@ -44,7 +52,6 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 }
 
 export default function UnlockVault({ loaderData }: Route.ComponentProps) {
-  const { unlockVault, setSession } = useVault();
   const navigate = useNavigate();
 
   const vault = loaderData.vault;
@@ -112,26 +119,38 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         clientDeviceDescription: deviceDescription ?? undefined,
       });
 
-      // Step 4: Store session token in memory
+      // Step 4: Store session token in vault store
       setSession(loginResponse.sessionToken, loginResponse.expiresAt);
 
-      // Step 5: Unlock vault in context
-      unlockVault(
-        vault.id,
-        vault.name,
-        vault.domain,
-        result.passwordKey,
-        result.encryptionKey,
-        result.loginKey,
-        result.vaultKey,
-        result.vaultPublicKey,
-        vault.encryptedVaultKey,
-        vault.vaultPubKeyHash,
+      // Step 5: Set active vault in vault store
+      setActiveVault({
+        vaultId: vault.id,
+        vaultName: vault.name,
+        vaultDomain: vault.domain,
+        passwordKey: result.passwordKey,
+        encryptionKey: result.encryptionKey,
+        loginKey: result.loginKey,
+        vaultKey: result.vaultKey,
+        vaultPublicKey: result.vaultPublicKey,
+        encryptedVaultKey: vault.encryptedVaultKey,
+        vaultPubKeyHash: vault.vaultPubKeyHash,
         deviceId,
         deviceDescription,
+      });
+
+      // Step 6: Set up sync state tracking
+      setCurrentVaultId(vault.id);
+      refreshSyncState();
+
+      // Step 7: Start background sync
+      startBackgroundSync(
+        vault.id,
+        vault.domain,
+        result.vaultKey,
+        refreshSyncState, // onSyncComplete callback
       );
 
-      // Step 6: Navigate to vault secrets page
+      // Step 8: Navigate to vault secrets page
       navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
     } catch (err) {
       console.error("Error unlocking vault:", err);

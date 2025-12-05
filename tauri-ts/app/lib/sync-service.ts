@@ -1,22 +1,17 @@
 import type { FixedBuf } from "@keypears/lib";
 import { createApiClient } from "./api-client";
 import { syncVault } from "./sync";
+import { getSession, isSessionExpiringSoon } from "./vault-store";
 
 /**
  * Background sync service that runs independently of React rendering.
  * Polls server every 5 seconds and syncs vault data to local SQLite database.
  */
 
-interface SessionInfo {
-  token: string;
-  expiresAt: number; // Unix timestamp in milliseconds
-}
-
 interface VaultConfig {
   vaultId: string;
   vaultDomain: string;
   vaultKey: FixedBuf<32>;
-  getSession: () => SessionInfo | null;
   onSyncComplete?: () => void;
 }
 
@@ -32,11 +27,12 @@ let lastErrorMessage: string | null = null;
 // Constants for sync intervals
 const NORMAL_SYNC_INTERVAL = 5000; // 5 seconds
 const MAX_BACKOFF_INTERVAL = 20000; // 20 seconds
-const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Start background sync polling for a vault.
  * Only one vault can be synced at a time.
+ *
+ * Session info is obtained from the global vault-store module.
  *
  * @param onSyncComplete - Optional callback called after each successful sync
  */
@@ -44,7 +40,6 @@ export function startBackgroundSync(
   vaultId: string,
   vaultDomain: string,
   vaultKey: FixedBuf<32>,
-  getSession: () => SessionInfo | null,
   onSyncComplete?: () => void,
 ): void {
   // Stop any existing sync
@@ -55,7 +50,6 @@ export function startBackgroundSync(
     vaultId,
     vaultDomain,
     vaultKey,
-    getSession,
     onSyncComplete,
   };
 
@@ -119,8 +113,8 @@ async function performSync(): Promise<void> {
   }
 
   try {
-    // Get current session
-    const session = currentVaultConfig.getSession();
+    // Get current session from vault-store
+    const session = getSession();
     if (!session) {
       // No session token available, skip sync
       if (lastErrorMessage !== "no-session") {
@@ -131,8 +125,7 @@ async function performSync(): Promise<void> {
     }
 
     // Check if session is expiring soon
-    const now = Date.now();
-    if (session.expiresAt < now + SESSION_EXPIRY_BUFFER) {
+    if (isSessionExpiringSoon()) {
       if (lastErrorMessage !== "session-expiring") {
         console.warn(
           `Background sync skipped: session expiring soon (expires at ${new Date(
@@ -147,7 +140,7 @@ async function performSync(): Promise<void> {
     // Create authenticated API client
     const authedClient = await createApiClient(
       currentVaultConfig.vaultDomain,
-      session.token,
+      session.sessionToken,
     );
 
     // Sync vault (updates SQLite database)
@@ -178,10 +171,11 @@ async function performSync(): Promise<void> {
 /**
  * Handle sync errors with appropriate logging and backoff strategy
  */
-function handleSyncError(error: any): void {
+function handleSyncError(error: unknown): void {
   // Extract error details
-  const status = error?.status || error?.response?.status || null;
-  const message = error?.message || "Unknown error";
+  const errorObj = error as { status?: number; response?: { status?: number }; message?: string };
+  const status = errorObj?.status || errorObj?.response?.status || null;
+  const message = errorObj?.message || "Unknown error";
 
   // Determine error type and handle appropriately
   if (status === 401) {
@@ -192,7 +186,7 @@ function handleSyncError(error: any): void {
     return;
   }
 
-  if (status >= 500 && status <= 599) {
+  if (status !== null && status >= 500 && status <= 599) {
     // Server error - apply exponential backoff
     consecutiveServerErrors++;
     const backoffDelay = getBackoffDelay();
@@ -215,7 +209,7 @@ function handleSyncError(error: any): void {
     return;
   }
 
-  if (status >= 400 && status < 500) {
+  if (status !== null && status >= 400 && status < 500) {
     // Client error (not 401) - log but continue with normal interval
     if (lastErrorStatus !== status) {
       console.error(
@@ -228,7 +222,7 @@ function handleSyncError(error: any): void {
   }
 
   // Network or other error - log but continue
-  if (!status) {
+  if (status === null) {
     if (lastErrorMessage !== message) {
       console.error(
         `Background sync network error: ${message}. ` +
@@ -242,7 +236,7 @@ function handleSyncError(error: any): void {
   }
 
   // For non-server errors, reset consecutive error count
-  if (status < 500 || status > 599) {
+  if (status === null || status < 500 || status > 599) {
     consecutiveServerErrors = 0;
 
     // Reset to normal interval if we had backoff

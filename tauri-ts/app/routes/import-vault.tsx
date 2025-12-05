@@ -18,11 +18,15 @@ import { initDb } from "~app/db";
 import { createApiClient } from "~app/lib/api-client";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
-import { useVault } from "~app/contexts/vault-context";
+import { setActiveVault, setSession } from "~app/lib/vault-store";
+import {
+  setCurrentVaultId,
+  refreshSyncState,
+} from "~app/contexts/sync-context";
+import { startBackgroundSync } from "~app/lib/sync-service";
 
 export default function ImportVault() {
   const navigate = useNavigate();
-  const { setSession, unlockVault } = useVault();
   useServerStatus(); // Ensure server status is checked
 
   const [domain, setDomain] = useState(getOfficialDomains()[0] || "");
@@ -104,9 +108,6 @@ export default function ImportVault() {
       });
       console.log("Session obtained, expires at:", new Date(loginResponse.expiresAt));
 
-      // Store session in context
-      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
-
       // 7. Verify vault info with session auth
       console.log("\n--- Step 7: Verify Vault with Session ---");
       const authedClient = await createApiClient(domain, loginResponse.sessionToken);
@@ -142,23 +143,40 @@ export default function ImportVault() {
       );
       console.log("Vault saved to database with ID:", vault.id);
 
-      // 12. Unlock vault in context
-      console.log("\n--- Step 12: Unlock Vault in Context ---");
-      unlockVault(
-        vault.id,
-        vault.name,
-        vault.domain,
+      // 12. Store session in vault store
+      console.log("\n--- Step 12: Store Session ---");
+      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+
+      // 13. Set active vault in vault store
+      console.log("\n--- Step 13: Set Active Vault ---");
+      setActiveVault({
+        vaultId: vault.id,
+        vaultName: vault.name,
+        vaultDomain: vault.domain,
         passwordKey,
         encryptionKey,
         loginKey,
         vaultKey,
         vaultPublicKey,
-        vault.encryptedVaultKey,
-        vault.vaultPubKeyHash,
+        encryptedVaultKey: vault.encryptedVaultKey,
+        vaultPubKeyHash: vault.vaultPubKeyHash,
         deviceId,
         deviceDescription,
+      });
+
+      // 14. Set up sync state tracking
+      console.log("\n--- Step 14: Set up Sync State ---");
+      setCurrentVaultId(vault.id);
+      refreshSyncState();
+
+      // 15. Start background sync
+      console.log("\n--- Step 15: Start Background Sync ---");
+      startBackgroundSync(
+        vault.id,
+        vault.domain,
+        vaultKey,
+        refreshSyncState, // onSyncComplete callback
       );
-      console.log("Vault unlocked in context");
 
       console.log("\n=== Import Vault Complete ===\n");
       setSuccess(true);

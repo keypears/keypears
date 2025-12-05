@@ -1,39 +1,40 @@
-import { useEffect, useRef } from "react";
-import { useParams, useNavigate, Outlet, href } from "react-router";
-import { useVault } from "~app/contexts/vault-context";
+import type { Route } from "./+types/vault.$vaultId.secrets";
+import { Outlet, redirect, href } from "react-router";
+import { isVaultUnlocked, getActiveVault } from "~app/lib/vault-store";
 import { ServerStatusProvider } from "~app/contexts/ServerStatusContext";
 import { ServerStatusBanner } from "~app/components/ServerStatusBanner";
 import { buildServerUrl } from "@keypears/api-server/client";
 
-export default function VaultPasswordsLayout() {
-  const params = useParams();
-  const navigate = useNavigate();
-  const { activeVault } = useVault();
-  const mountedRef = useRef(true);
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const vaultId = params.vaultId;
 
-  // Redirect to unlock page if vault is not unlocked
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (
-      (!activeVault || activeVault.vaultId !== params.vaultId) &&
-      mountedRef.current &&
-      params.vaultId
-    ) {
-      navigate(href("/unlock-vault/:vaultId", { vaultId: params.vaultId }));
-    }
-  }, [activeVault, params.vaultId, navigate]);
-
-  if (!activeVault || activeVault.vaultId !== params.vaultId) {
-    return null;
+  if (!vaultId) {
+    throw redirect(href("/"));
   }
 
+  // Redirect to unlock page if vault is not unlocked
+  if (!isVaultUnlocked(vaultId)) {
+    throw redirect(href("/unlock-vault/:vaultId", { vaultId }));
+  }
+
+  const activeVault = getActiveVault();
+  if (!activeVault) {
+    throw redirect(href("/unlock-vault/:vaultId", { vaultId }));
+  }
+
+  return {
+    vaultId,
+    vaultDomain: activeVault.vaultDomain,
+  };
+}
+
+export default function VaultPasswordsLayout({
+  loaderData,
+}: Route.ComponentProps) {
+  const { vaultDomain } = loaderData;
+
   return (
-    <ServerStatusProvider serverUrl={buildServerUrl(activeVault.vaultDomain)}>
+    <ServerStatusProvider serverUrl={buildServerUrl(vaultDomain)}>
       <ServerStatusBanner />
       <Outlet />
     </ServerStatusProvider>

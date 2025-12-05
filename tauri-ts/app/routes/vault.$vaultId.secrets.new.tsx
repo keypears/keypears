@@ -1,11 +1,18 @@
+import type { Route } from "./+types/vault.$vaultId.secrets.new";
 import { useState } from "react";
-import { useNavigate, Link, href } from "react-router";
+import { useNavigate, Link, href, redirect } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
-import { useVault } from "~app/contexts/vault-context";
+import {
+  getActiveVault,
+  isVaultUnlocked,
+  encryptPassword as encryptPasswordFromStore,
+  getVaultKey,
+  getSessionToken,
+} from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createApiClient } from "~app/lib/api-client";
 import { pushSecretUpdate } from "~app/lib/sync";
@@ -14,9 +21,37 @@ import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { triggerManualSync } from "~app/lib/sync-service";
 import { ulid } from "ulid";
 
-export default function NewPassword() {
+interface LoaderData {
+  vaultId: string;
+  vaultName: string;
+  vaultDomain: string;
+}
+
+export async function clientLoader({
+  params,
+}: Route.ClientLoaderArgs): Promise<LoaderData | Response> {
+  const { vaultId } = params;
+
+  if (!vaultId || !isVaultUnlocked(vaultId)) {
+    throw redirect(href("/"));
+  }
+
+  const activeVault = getActiveVault();
+  if (!activeVault) {
+    throw redirect(href("/"));
+  }
+
+  return {
+    vaultId: activeVault.vaultId,
+    vaultName: activeVault.vaultName,
+    vaultDomain: activeVault.vaultDomain,
+  };
+}
+
+export default function NewPassword({ loaderData }: Route.ComponentProps) {
+  const { vaultId, vaultName, vaultDomain } = loaderData;
+
   const navigate = useNavigate();
-  const { activeVault, encryptPassword, getSessionToken } = useVault();
   const { status } = useServerStatus();
 
   const [name, setName] = useState("");
@@ -28,10 +63,6 @@ export default function NewPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  if (!activeVault) {
-    return null;
-  }
 
   const isValid = name.trim().length > 0;
 
@@ -51,9 +82,11 @@ export default function NewPassword() {
       const secretId = ulid();
 
       // Encrypt password and notes if provided
-      const encryptedData = password ? encryptPassword(password) : undefined;
+      const encryptedData = password
+        ? encryptPasswordFromStore(password)
+        : undefined;
       const encryptedNotes = notes.trim()
-        ? encryptPassword(notes.trim())
+        ? encryptPasswordFromStore(notes.trim())
         : undefined;
 
       // Create secret blob data
@@ -70,40 +103,49 @@ export default function NewPassword() {
 
       // Create authenticated API client with session token
       const sessionToken = getSessionToken();
-      const authedClient = await createApiClient(activeVault.vaultDomain, sessionToken || undefined);
+      const authedClient = await createApiClient(
+        vaultDomain,
+        sessionToken || undefined,
+      );
+
+      // Get vault key for encryption
+      const vaultKey = getVaultKey();
 
       // Push to server (server generates ID, order numbers, timestamp)
       const serverResponse = await pushSecretUpdate(
-        activeVault.vaultId,
+        vaultId,
         secretId,
         secretData,
-        activeVault.vaultKey,
+        vaultKey,
         authedClient,
       );
 
       // Immediately store locally with server-generated data
       // Pass isRead=true since this is a locally-created secret
-      const encryptedBlob = encryptSecretUpdateBlob(secretData, activeVault.vaultKey);
-      await insertSecretUpdatesFromSync([{
-        id: serverResponse.id,
-        vaultId: activeVault.vaultId,
-        secretId,
-        globalOrder: serverResponse.globalOrder,
-        localOrder: serverResponse.localOrder,
-        name: secretData.name,
-        type: secretData.type,
-        deleted: secretData.deleted,
-        encryptedBlob,
-        createdAt: new Date(serverResponse.createdAt).getTime(),
-      }], true);
+      const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
+      await insertSecretUpdatesFromSync(
+        [
+          {
+            id: serverResponse.id,
+            vaultId,
+            secretId,
+            globalOrder: serverResponse.globalOrder,
+            localOrder: serverResponse.localOrder,
+            name: secretData.name,
+            type: secretData.type,
+            deleted: secretData.deleted,
+            encryptedBlob,
+            createdAt: new Date(serverResponse.createdAt).getTime(),
+          },
+        ],
+        true,
+      );
 
       // Still trigger sync to fetch any other updates
       await triggerManualSync();
 
       // Navigate back to passwords list
-      navigate(
-        href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId }),
-      );
+      navigate(href("/vault/:vaultId/secrets", { vaultId }));
     } catch (err) {
       console.error("Failed to create password:", err);
       setError(
@@ -119,9 +161,9 @@ export default function NewPassword() {
       <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
-          vaultId={activeVault.vaultId}
-          vaultName={activeVault.vaultName}
-          vaultDomain={activeVault.vaultDomain}
+          vaultId={vaultId}
+          vaultName={vaultName}
+          vaultDomain={vaultDomain}
           currentPage="New Password"
         />
         <div className="border-border bg-card rounded-lg border p-8">
@@ -254,7 +296,7 @@ export default function NewPassword() {
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
                 to={href("/vault/:vaultId/secrets", {
-                  vaultId: activeVault.vaultId,
+                  vaultId,
                 })}
               >
                 Cancel

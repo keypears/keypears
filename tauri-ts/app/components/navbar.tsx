@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, href } from "react-router";
 import { Menu, ArrowLeft } from "lucide-react";
 import { Button } from "~app/components/ui/button";
@@ -8,17 +8,32 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~app/components/ui/sheet";
-import { useVault } from "~app/contexts/vault-context";
+import { getActiveVault, type UnlockedVault } from "~app/lib/vault-store";
 import { UserMenu } from "./user-menu";
 
 interface NavbarProps {
   showBackButton?: boolean;
 }
 
+// Poll interval for checking vault state
+const VAULT_POLL_INTERVAL = 500; // 500ms
+
 export function Navbar({ showBackButton = false }: NavbarProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { activeVault } = useVault();
+  const [activeVault, setActiveVault] = useState<UnlockedVault | null>(() =>
+    getActiveVault()
+  );
+
+  // Poll vault-store for state changes (handles lock/unlock without React context)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentVault = getActiveVault();
+      setActiveVault(currentVault);
+    }, VAULT_POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>

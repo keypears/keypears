@@ -10,7 +10,6 @@ import {
 import "./app.css";
 import type { Route } from "./+types/root";
 import { runMigrations } from "./db/migrate";
-import { VaultProvider } from "./contexts/vault-context";
 import { ServerStatusProvider } from "./contexts/ServerStatusContext";
 import { SyncProvider } from "./contexts/sync-context";
 
@@ -53,9 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ServerStatusProvider>
-          <SyncProvider>
-            <VaultProvider>{children}</VaultProvider>
-          </SyncProvider>
+          <SyncProvider>{children}</SyncProvider>
         </ServerStatusProvider>
         <ScrollRestoration />
         <Scripts />

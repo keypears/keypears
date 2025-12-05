@@ -4,7 +4,7 @@ import { Key, Plus, Globe, User, Trash2 } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { getAllCurrentSecrets } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
-import { useVault } from "~app/contexts/vault-context";
+import { getActiveVault, getVaultKey } from "~app/lib/vault-store";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 
@@ -17,25 +17,25 @@ interface DecryptedSecret extends SecretUpdateRow {
 }
 
 export function PasswordList({ showDeleted = false }: PasswordListProps) {
-  const { activeVault } = useVault();
   const [passwords, setPasswords] = useState<DecryptedSecret[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [vaultId, setVaultId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPasswords = async () => {
+      const activeVault = getActiveVault();
       if (!activeVault) return;
 
+      setVaultId(activeVault.vaultId);
       setIsLoading(true);
       try {
+        const vaultKey = getVaultKey();
         const currentSecrets = await getAllCurrentSecrets(activeVault.vaultId);
 
         // Decrypt blobs for display (domain, username, etc.)
         const decryptedSecrets = currentSecrets.map((secret) => ({
           ...secret,
-          decryptedBlob: decryptSecretUpdateBlob(
-            secret.encryptedBlob,
-            activeVault.vaultKey,
-          ),
+          decryptedBlob: decryptSecretUpdateBlob(secret.encryptedBlob, vaultKey),
         }));
 
         setPasswords(decryptedSecrets);
@@ -47,12 +47,12 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
     };
 
     loadPasswords();
-  }, [activeVault]);
+  }, []);
 
   // Filter passwords based on showDeleted prop
   const filteredPasswords = passwords.filter((p) => p.deleted === showDeleted);
 
-  if (!activeVault) {
+  if (!vaultId) {
     return null;
   }
 
@@ -85,7 +85,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
             <Button asChild size="lg" className="w-full">
               <Link
                 to={href("/vault/:vaultId/secrets/new", {
-                  vaultId: activeVault.vaultId,
+                  vaultId,
                 })}
               >
                 <Plus size={20} className="mr-2" />
@@ -110,7 +110,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
             <Button asChild variant="outline">
               <Link
                 to={href("/vault/:vaultId/secrets/deleted", {
-                  vaultId: activeVault.vaultId,
+                  vaultId,
                 })}
               >
                 <Trash2 size={18} className="mr-2" />
@@ -120,7 +120,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
             <Button asChild>
               <Link
                 to={href("/vault/:vaultId/secrets/new", {
-                  vaultId: activeVault.vaultId,
+                  vaultId,
                 })}
               >
                 <Plus size={20} className="mr-2" />
@@ -137,7 +137,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
           <Link
             key={password.id}
             to={href("/vault/:vaultId/secrets/:secretId", {
-              vaultId: activeVault.vaultId,
+              vaultId,
               secretId: password.secretId,
             })}
             className="block"
@@ -160,13 +160,17 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
                     {password.decryptedBlob.domain && (
                       <div className="flex items-center gap-1.5">
                         <Globe size={14} />
-                        <span className="truncate">{password.decryptedBlob.domain}</span>
+                        <span className="truncate">
+                          {password.decryptedBlob.domain}
+                        </span>
                       </div>
                     )}
                     {password.decryptedBlob.username && (
                       <div className="flex items-center gap-1.5">
                         <User size={14} />
-                        <span className="truncate">{password.decryptedBlob.username}</span>
+                        <span className="truncate">
+                          {password.decryptedBlob.username}
+                        </span>
                       </div>
                     )}
                   </div>

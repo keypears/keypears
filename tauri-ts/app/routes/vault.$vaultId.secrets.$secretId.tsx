@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useParams, Link, href } from "react-router";
+import type { Route } from "./+types/vault.$vaultId.secrets.$secretId";
+import { useState } from "react";
+import { Link, href, redirect, useRevalidator } from "react-router";
 import {
   Eye,
   EyeOff,
@@ -24,78 +25,105 @@ import {
 } from "~app/components/ui/alert-dialog";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
-import { useVault } from "~app/contexts/vault-context";
+import {
+  getActiveVault,
+  isVaultUnlocked,
+  decryptPassword as decryptPasswordFromStore,
+  getVaultKey,
+} from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { getLatestSecret } from "~app/db/models/password";
-import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { triggerManualSync } from "~app/lib/sync-service";
 
-export default function PasswordDetail() {
-  const params = useParams();
-  const { activeVault, decryptPassword } = useVault();
-  const { status, client } = useServerStatus();
+interface LoaderData {
+  vaultId: string;
+  vaultName: string;
+  vaultDomain: string;
+  secretId: string;
+  passwordName: string;
+  isDeleted: boolean;
+  decryptedBlob: SecretBlobData;
+  decryptedPassword: string;
+  decryptedNotes: string;
+}
 
-  const [password, setPassword] = useState<SecretUpdateRow | null>(null);
-  const [decryptedBlob, setDecryptedBlob] = useState<SecretBlobData | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
+export async function clientLoader({
+  params,
+}: Route.ClientLoaderArgs): Promise<LoaderData | Response> {
+  const { vaultId, secretId } = params;
+
+  if (!vaultId || !secretId || !isVaultUnlocked(vaultId)) {
+    throw redirect(href("/"));
+  }
+
+  const activeVault = getActiveVault();
+  if (!activeVault) {
+    throw redirect(href("/"));
+  }
+
+  // Load the password from the database
+  const latest = await getLatestSecret(secretId);
+  if (!latest) {
+    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
+  }
+
+  // Decrypt the blob
+  const vaultKey = getVaultKey();
+  const decryptedBlob = decryptSecretUpdateBlob(latest.encryptedBlob, vaultKey);
+
+  // Decrypt password field if present
+  const decryptedPassword = decryptedBlob.encryptedData
+    ? decryptPasswordFromStore(decryptedBlob.encryptedData)
+    : "";
+
+  // Decrypt notes if present
+  const decryptedNotes = decryptedBlob.encryptedNotes
+    ? decryptPasswordFromStore(decryptedBlob.encryptedNotes)
+    : "";
+
+  return {
+    vaultId: activeVault.vaultId,
+    vaultName: activeVault.vaultName,
+    vaultDomain: activeVault.vaultDomain,
+    secretId: latest.secretId,
+    passwordName: latest.name,
+    isDeleted: latest.deleted,
+    decryptedBlob,
+    decryptedPassword,
+    decryptedNotes,
+  };
+}
+
+export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
+  const {
+    vaultId,
+    vaultName,
+    vaultDomain,
+    secretId,
+    passwordName,
+    isDeleted,
+    decryptedBlob,
+    decryptedPassword,
+    decryptedNotes,
+  } = loaderData;
+
+  const { status, client } = useServerStatus();
+  const revalidator = useRevalidator();
+
   const [showPassword, setShowPassword] = useState(false);
-  const [decryptedPassword, setDecryptedPassword] = useState<string>("");
-  const [decryptedNotes, setDecryptedNotes] = useState<string>("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load password
-  useEffect(() => {
-    const loadPassword = async () => {
-      if (!params.secretId || !activeVault) return;
-
-      setIsLoading(true);
-      try {
-        const latest = await getLatestSecret(params.secretId);
-        if (latest) {
-          setPassword(latest);
-          // Decrypt blob for display
-          const blob = decryptSecretUpdateBlob(
-            latest.encryptedBlob,
-            activeVault.vaultKey,
-          );
-          setDecryptedBlob(blob);
-
-          // Decrypt password field if present
-          if (blob.encryptedData) {
-            const pwd = decryptPassword(blob.encryptedData);
-            setDecryptedPassword(pwd);
-          }
-
-          // Decrypt notes if present
-          if (blob.encryptedNotes) {
-            const notes = decryptPassword(blob.encryptedNotes);
-            setDecryptedNotes(notes);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load password:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPassword();
-  }, [params.secretId, activeVault, decryptPassword]);
-
-  // Toggle password visibility
   const handleTogglePassword = () => {
     if (!decryptedBlob?.encryptedData) return;
     setShowPassword(!showPassword);
   };
 
   const handleDelete = async () => {
-    if (!password || !activeVault || !decryptedBlob) return;
+    if (!decryptedBlob) return;
 
     // Check server status
     if (!status.isOnline) {
@@ -109,41 +137,18 @@ export default function PasswordDetail() {
       // Create tombstone version (same data but deleted: true)
       const secretData: SecretBlobData = {
         ...decryptedBlob,
-        deleted: !password.deleted, // Toggle deleted state
+        deleted: !isDeleted, // Toggle deleted state
       };
 
       // Push tombstone to server (creates new version with higher localOrder)
-      await pushSecretUpdate(
-        activeVault.vaultId,
-        password.secretId,
-        secretData,
-        activeVault.vaultKey,
-        client,
-      );
+      const vaultKey = getVaultKey();
+      await pushSecretUpdate(vaultId, secretId, secretData, vaultKey, client);
 
       // Trigger immediate sync to fetch the tombstone
       await triggerManualSync();
 
-      // Reload the secret to show updated state
-      const latest = await getLatestSecret(password.secretId);
-      if (latest) {
-        setPassword(latest);
-        const blob = decryptSecretUpdateBlob(
-          latest.encryptedBlob,
-          activeVault.vaultKey,
-        );
-        setDecryptedBlob(blob);
-
-        // Decrypt password and notes if present
-        if (blob.encryptedData) {
-          const pwd = decryptPassword(blob.encryptedData);
-          setDecryptedPassword(pwd);
-        }
-        if (blob.encryptedNotes) {
-          const notes = decryptPassword(blob.encryptedNotes);
-          setDecryptedNotes(notes);
-        }
-      }
+      // Revalidate to reload the data
+      revalidator.revalidate();
     } catch (error) {
       console.error("Failed to toggle password deleted state:", error);
       alert(
@@ -157,57 +162,23 @@ export default function PasswordDetail() {
     }
   };
 
-  if (!activeVault) {
-    return null;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Navbar />
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <div className="border-border bg-card rounded-lg border p-8">
-            <p className="text-muted-foreground text-center text-sm">
-              Loading password...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!password) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Navbar />
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <div className="border-border bg-card rounded-lg border p-8">
-            <p className="text-muted-foreground text-center text-sm">
-              Password not found
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-background min-h-screen">
       <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
-          vaultId={activeVault.vaultId}
-          vaultName={activeVault.vaultName}
-          vaultDomain={activeVault.vaultDomain}
-          passwordName={password.name}
-          passwordSecretId={password.secretId}
+          vaultId={vaultId}
+          vaultName={vaultName}
+          vaultDomain={vaultDomain}
+          passwordName={passwordName}
+          passwordSecretId={secretId}
         />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6 flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{password.name}</h1>
-                {password.deleted && (
+                <h1 className="text-2xl font-bold">{passwordName}</h1>
+                {isDeleted && (
                   <span className="text-destructive rounded bg-red-500/10 px-2 py-1 text-xs font-medium">
                     DELETED
                   </span>
@@ -227,8 +198,8 @@ export default function PasswordDetail() {
               >
                 <Link
                   to={href("/vault/:vaultId/secrets/:secretId/edit", {
-                    vaultId: activeVault.vaultId,
-                    secretId: password.secretId,
+                    vaultId,
+                    secretId,
                   })}
                 >
                   <Edit size={18} />
@@ -239,15 +210,9 @@ export default function PasswordDetail() {
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={!status.isOnline}
-                aria-label={
-                  password.deleted ? "Restore password" : "Delete password"
-                }
+                aria-label={isDeleted ? "Restore password" : "Delete password"}
               >
-                {password.deleted ? (
-                  <RotateCcw size={18} />
-                ) : (
-                  <Trash2 size={18} />
-                )}
+                {isDeleted ? <RotateCcw size={18} /> : <Trash2 size={18} />}
               </Button>
             </div>
           </div>
@@ -325,17 +290,14 @@ export default function PasswordDetail() {
           </div>
 
           {/* Delete/Restore confirmation dialog */}
-          <AlertDialog
-            open={showDeleteDialog}
-            onOpenChange={setShowDeleteDialog}
-          >
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {password.deleted ? "Restore Password?" : "Delete Password?"}
+                  {isDeleted ? "Restore Password?" : "Delete Password?"}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {password.deleted
+                  {isDeleted
                     ? "This will restore the password and make it active again."
                     : "This will mark the password as deleted. You can still see it in the Deleted tab."}
                 </AlertDialogDescription>
@@ -346,16 +308,16 @@ export default function PasswordDetail() {
                   onClick={handleDelete}
                   disabled={isDeleting}
                   className={
-                    password.deleted
+                    isDeleted
                       ? ""
                       : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   }
                 >
                   {isDeleting
-                    ? password.deleted
+                    ? isDeleted
                       ? "Restoring..."
                       : "Deleting..."
-                    : password.deleted
+                    : isDeleted
                       ? "Restore"
                       : "Delete"}
                 </AlertDialogAction>

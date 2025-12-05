@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { User, Lock, Activity } from "lucide-react";
 import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
@@ -8,14 +9,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~app/components/ui/dropdown-menu";
-import { useVault } from "~app/contexts/vault-context";
+import {
+  getActiveVault,
+  getSessionToken,
+  clearActiveVault,
+  clearSession,
+  type UnlockedVault,
+} from "~app/lib/vault-store";
 import { useSyncState } from "~app/contexts/sync-context";
 import { createApiClient } from "~app/lib/api-client";
+import { stopBackgroundSync } from "~app/lib/sync-service";
+
+// Poll interval for checking vault state
+const VAULT_POLL_INTERVAL = 500; // 500ms
 
 export function UserMenu() {
   const navigate = useNavigate();
-  const { activeVault, lockVault, getSessionToken, clearSession } = useVault();
   const { unreadCount } = useSyncState();
+  const [activeVault, setActiveVault] = useState<UnlockedVault | null>(() =>
+    getActiveVault()
+  );
+
+  // Poll vault-store for state changes (handles lock/unlock without React context)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentVault = getActiveVault();
+      setActiveVault(currentVault);
+    }, VAULT_POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (!activeVault) {
     return null;
@@ -30,19 +53,21 @@ export function UserMenu() {
         await apiClient.api.logout({ sessionToken });
       }
 
-      // Step 2: Clear session from memory
-      clearSession();
+      // Step 2: Stop background sync
+      stopBackgroundSync();
 
-      // Step 3: Lock vault (clears keys from memory, stops background sync)
-      lockVault();
+      // Step 3: Clear session and vault from memory
+      clearSession();
+      clearActiveVault();
 
       // Step 4: Navigate to home
       navigate("/", { replace: true });
     } catch (err) {
       console.error("Error during logout:", err);
       // Even if logout fails, still lock vault locally for security
+      stopBackgroundSync();
       clearSession();
-      lockVault();
+      clearActiveVault();
       navigate("/", { replace: true });
     }
   };

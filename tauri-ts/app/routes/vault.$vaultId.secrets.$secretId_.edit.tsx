@@ -1,121 +1,105 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link, href } from "react-router";
+import type { Route } from "./+types/vault.$vaultId.secrets.$secretId_.edit";
+import { useState } from "react";
+import { useNavigate, Link, href, redirect } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
-import { useVault } from "~app/contexts/vault-context";
+import {
+  getActiveVault,
+  isVaultUnlocked,
+  encryptPassword as encryptPasswordFromStore,
+  decryptPassword as decryptPasswordFromStore,
+  getVaultKey,
+  getSessionToken,
+} from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createApiClient } from "~app/lib/api-client";
 import { getLatestSecret, insertSecretUpdatesFromSync } from "~app/db/models/password";
-import type { SecretUpdateRow } from "~app/db/models/password";
 import { decryptSecretUpdateBlob, encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { triggerManualSync } from "~app/lib/sync-service";
 
-export default function EditPassword() {
-  const params = useParams();
+interface LoaderData {
+  vaultId: string;
+  vaultName: string;
+  vaultDomain: string;
+  secretId: string;
+  passwordName: string;
+  existingBlob: SecretBlobData;
+  decryptedNotes: string;
+}
+
+export async function clientLoader({
+  params,
+}: Route.ClientLoaderArgs): Promise<LoaderData | Response> {
+  const { vaultId, secretId } = params;
+
+  if (!vaultId || !secretId || !isVaultUnlocked(vaultId)) {
+    throw redirect(href("/"));
+  }
+
+  const activeVault = getActiveVault();
+  if (!activeVault) {
+    throw redirect(href("/"));
+  }
+
+  // Load the password from the database
+  const latest = await getLatestSecret(secretId);
+  if (!latest) {
+    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
+  }
+
+  // Decrypt the blob
+  const vaultKey = getVaultKey();
+  const existingBlob = decryptSecretUpdateBlob(latest.encryptedBlob, vaultKey);
+
+  // Decrypt notes if present
+  const decryptedNotes = existingBlob.encryptedNotes
+    ? decryptPasswordFromStore(existingBlob.encryptedNotes)
+    : "";
+
+  return {
+    vaultId: activeVault.vaultId,
+    vaultName: activeVault.vaultName,
+    vaultDomain: activeVault.vaultDomain,
+    secretId: latest.secretId,
+    passwordName: latest.name,
+    existingBlob,
+    decryptedNotes,
+  };
+}
+
+export default function EditPassword({ loaderData }: Route.ComponentProps) {
+  const {
+    vaultId,
+    vaultName,
+    vaultDomain,
+    secretId,
+    passwordName,
+    existingBlob,
+    decryptedNotes: initialNotes,
+  } = loaderData;
+
   const navigate = useNavigate();
-  const { activeVault, encryptPassword, decryptPassword, getSessionToken } = useVault();
   const { status } = useServerStatus();
 
-  const [existingPassword, setExistingPassword] =
-    useState<SecretUpdateRow | null>(null);
-  const [existingBlob, setExistingBlob] = useState<SecretBlobData | null>(null);
-  const [isLoadingPassword, setIsLoadingPassword] = useState(true);
-
-  const [name, setName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [notes, setNotes] = useState("");
+  const [name, setName] = useState(existingBlob.name);
+  const [domain, setDomain] = useState(existingBlob.domain || "");
+  const [username, setUsername] = useState(existingBlob.username || "");
+  const [email, setEmail] = useState(existingBlob.email || "");
+  const [notes, setNotes] = useState(initialNotes);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Load existing password
-  useEffect(() => {
-    const loadPassword = async () => {
-      if (!params.secretId || !activeVault) return;
-
-      setIsLoadingPassword(true);
-      try {
-        const latest = await getLatestSecret(params.secretId);
-        if (latest) {
-          setExistingPassword(latest);
-
-          // Decrypt blob to get current values
-          const blob = decryptSecretUpdateBlob(
-            latest.encryptedBlob,
-            activeVault.vaultKey,
-          );
-          setExistingBlob(blob);
-
-          // Pre-fill form fields
-          setName(blob.name);
-          setDomain(blob.domain || "");
-          setUsername(blob.username || "");
-          setEmail(blob.email || "");
-
-          // Decrypt and pre-fill notes if present
-          if (blob.encryptedNotes) {
-            const decryptedNotes = decryptPassword(blob.encryptedNotes);
-            setNotes(decryptedNotes);
-          }
-
-          // Do NOT pre-fill password field for security
-        }
-      } catch (error) {
-        console.error("Failed to load password:", error);
-      } finally {
-        setIsLoadingPassword(false);
-      }
-    };
-
-    loadPassword();
-  }, [params.secretId, activeVault, decryptPassword]);
-
-  if (!activeVault) {
-    return null;
-  }
-
-  if (isLoadingPassword) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Navbar />
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <div className="border-border bg-card rounded-lg border p-8">
-            <p className="text-muted-foreground text-center text-sm">
-              Loading password...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!existingPassword) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Navbar />
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <div className="border-border bg-card rounded-lg border p-8">
-            <p className="text-muted-foreground text-center text-sm">
-              Password not found
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const isValid = name.trim().length > 0;
 
   const handleSubmit = async () => {
-    if (!isValid || !existingPassword || !existingBlob) return;
+    if (!isValid) return;
 
     // Check server status
     if (!status.isOnline) {
@@ -130,12 +114,12 @@ export default function EditPassword() {
       // If password field is filled, encrypt new password
       // Otherwise, keep existing encrypted password
       const encryptedData = password
-        ? encryptPassword(password)
+        ? encryptPasswordFromStore(password)
         : existingBlob.encryptedData;
 
       // Encrypt notes if provided
       const encryptedNotes = notes.trim()
-        ? encryptPassword(notes.trim())
+        ? encryptPasswordFromStore(notes.trim())
         : undefined;
 
       // Create updated secret blob data
@@ -152,32 +136,43 @@ export default function EditPassword() {
 
       // Create authenticated API client with session token
       const sessionToken = getSessionToken();
-      const authedClient = await createApiClient(activeVault.vaultDomain, sessionToken || undefined);
+      const authedClient = await createApiClient(
+        vaultDomain,
+        sessionToken || undefined,
+      );
+
+      // Get vault key for encryption
+      const vaultKey = getVaultKey();
 
       // Push update to server (creates new version with higher localOrder)
       const serverResponse = await pushSecretUpdate(
-        activeVault.vaultId,
-        existingPassword.secretId, // Same secretId for versioning
+        vaultId,
+        secretId, // Same secretId for versioning
         secretData,
-        activeVault.vaultKey,
+        vaultKey,
         authedClient,
       );
 
       // Immediately store locally with server-generated data
       // Pass isRead=true since this is a locally-created update
-      const encryptedBlob = encryptSecretUpdateBlob(secretData, activeVault.vaultKey);
-      await insertSecretUpdatesFromSync([{
-        id: serverResponse.id,
-        vaultId: activeVault.vaultId,
-        secretId: existingPassword.secretId,
-        globalOrder: serverResponse.globalOrder,
-        localOrder: serverResponse.localOrder,
-        name: secretData.name,
-        type: secretData.type,
-        deleted: secretData.deleted,
-        encryptedBlob,
-        createdAt: new Date(serverResponse.createdAt).getTime(),
-      }], true);
+      const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
+      await insertSecretUpdatesFromSync(
+        [
+          {
+            id: serverResponse.id,
+            vaultId,
+            secretId,
+            globalOrder: serverResponse.globalOrder,
+            localOrder: serverResponse.localOrder,
+            name: secretData.name,
+            type: secretData.type,
+            deleted: secretData.deleted,
+            encryptedBlob,
+            createdAt: new Date(serverResponse.createdAt).getTime(),
+          },
+        ],
+        true,
+      );
 
       // Still trigger sync to fetch any other updates
       await triggerManualSync();
@@ -185,8 +180,8 @@ export default function EditPassword() {
       // Navigate back to password detail
       navigate(
         href("/vault/:vaultId/secrets/:secretId", {
-          vaultId: activeVault.vaultId,
-          secretId: existingPassword.secretId,
+          vaultId,
+          secretId,
         }),
       );
     } catch (err) {
@@ -204,11 +199,11 @@ export default function EditPassword() {
       <Navbar />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
-          vaultId={activeVault.vaultId}
-          vaultName={activeVault.vaultName}
-          vaultDomain={activeVault.vaultDomain}
-          passwordName={existingPassword.name}
-          passwordSecretId={existingPassword.secretId}
+          vaultId={vaultId}
+          vaultName={vaultName}
+          vaultDomain={vaultDomain}
+          passwordName={passwordName}
+          passwordSecretId={secretId}
           currentPage="Edit"
         />
         <div className="border-border bg-card rounded-lg border p-8">
@@ -344,8 +339,8 @@ export default function EditPassword() {
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
                 to={href("/vault/:vaultId/secrets/:secretId", {
-                  vaultId: activeVault.vaultId,
-                  secretId: existingPassword.secretId,
+                  vaultId,
+                  secretId,
                 })}
               >
                 Cancel
