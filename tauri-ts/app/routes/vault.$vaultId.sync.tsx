@@ -197,11 +197,19 @@ export default function VaultSyncActivity() {
 
   const handleSyncNow = async () => {
     setIsSyncing(true);
+    const minDuration = 1000; // 1 second minimum for visible feedback
+    const startTime = Date.now();
+
     try {
       await triggerManualSync();
       // Refresh local data after sync
       await fetchData();
     } finally {
+      // Wait for remaining time if sync was faster than minDuration
+      const elapsed = Date.now() - startTime;
+      if (elapsed < minDuration) {
+        await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+      }
       setIsSyncing(false);
     }
   };
