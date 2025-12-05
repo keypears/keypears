@@ -1,8 +1,8 @@
 import type { Route } from "./+types/vault.$vaultId.sync";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
+import { useSyncState, refreshSyncState } from "~app/contexts/sync-context";
 import { ChevronLeft, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff, CheckCheck } from "lucide-react";
-import { refreshSyncState } from "~app/contexts/sync-context";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -145,33 +145,21 @@ export async function clientLoader({ params, request }: Route.ClientLoaderArgs) 
   };
 }
 
-export function HydrateFallback() {
-  return (
-    <div className="bg-background min-h-screen">
-      <Navbar />
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-4">
-            <ChevronLeft size={16} />
-            Back to Passwords
-          </div>
-          <h1 className="text-2xl font-bold">Sync Activity</h1>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-8">
-          <p className="text-muted-foreground text-center text-sm">
-            Loading sync activity...
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) {
   const { vaultId, syncState, updates, totalCount, unreadCount, page } = loaderData;
   const revalidator = useRevalidator();
+  const { unreadCount: globalUnreadCount } = useSyncState();
+  const prevUnreadCount = useRef(globalUnreadCount);
 
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Revalidate when new notifications arrive (detected via global sync state)
+  useEffect(() => {
+    if (globalUnreadCount > prevUnreadCount.current) {
+      revalidator.revalidate();
+    }
+    prevUnreadCount.current = globalUnreadCount;
+  }, [globalUnreadCount, revalidator]);
 
   const handleMarkRead = async (id: string) => {
     await markAsRead(id);
