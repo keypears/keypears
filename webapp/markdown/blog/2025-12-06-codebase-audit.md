@@ -1,13 +1,13 @@
 +++
-title = "Phase 2 Complete: What We Found in Our Codebase Audit"
+title = "What We Found in Our Codebase Audit"
 date = "2025-12-06T12:00:00-06:00"
 author = "KeyPears Team"
 +++
 
-Before moving to Phase 3 (Diffie-Hellman key exchange), we decided to pause and
-audit our entire codebase. Phase 1 shipped fast—cross-device sync, server
-authentication, encrypted secret storage—and we wanted to make sure we hadn't
-accumulated technical debt or, worse, security issues along the way.
+We recently paused feature development to audit our entire codebase. KeyPears
+shipped fast—cross-device sync, server authentication, encrypted secret
+storage—and we wanted to make sure we hadn't accumulated technical debt or,
+worse, security issues along the way.
 
 What we found was instructive. The good news: our architecture is sound, our
 cryptography is correct, and our zero-knowledge design holds up. The concerning
@@ -171,23 +171,7 @@ For future reference, here's how we structured the audit:
 4. **Document findings**: Update the audit guide with lessons learned. Future
    audits benefit from past discoveries.
 
-We've published our full audit checklist in the repository at `audit.md`. It
-covers everything from TypeScript best practices to zero-knowledge architecture
-verification to UI accessibility checks.
-
-## What's Next
-
-With the audit complete and all critical issues resolved, we're ready for Phase
-3: Diffie-Hellman key exchange for secure secret sharing between users.
-
-This is the feature that transforms KeyPears from a personal password manager
-into a collaborative secrets platform. When `alice@keypears.com` wants to share
-an API key with `bob@company.com`, they'll establish a shared secret using
-Diffie-Hellman key exchange. Neither server ever sees the plaintext. The keys
-are derived client-side, used once to encrypt the shared secret, and discarded.
-
-The foundation is solid. The code is clean. Time to build the next piece.
-
-*The full audit checklist is available at
-[audit.md](https://github.com/keypears/keypears/blob/main/audit.md) in the
-KeyPears repository.*
+We've published our full audit checklist in the repository at
+[docs/audit.md](https://github.com/keypears/keypears/blob/main/docs/audit.md).
+It covers everything from TypeScript best practices to zero-knowledge
+architecture verification to UI accessibility checks.

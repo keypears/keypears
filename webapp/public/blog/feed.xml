@@ -4,24 +4,24 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 06 Dec 2025 15:23:58 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 06 Dec 2025 15:28:33 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
         <item>
-            <title><![CDATA[Phase 2 Complete: What We Found in Our Codebase Audit]]></title>
-            <link>https://keypears.com/blog/2025-12-06-phase-2-codebase-audit</link>
-            <guid isPermaLink="false">https://keypears.com/blog/2025-12-06-phase-2-codebase-audit</guid>
+            <title><![CDATA[What We Found in Our Codebase Audit]]></title>
+            <link>https://keypears.com/blog/2025-12-06-codebase-audit</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-12-06-codebase-audit</guid>
             <pubDate>Sat, 06 Dec 2025 18:00:00 GMT</pubDate>
-            <description><![CDATA[<p>Before moving to Phase 3 (Diffie-Hellman key exchange), we decided to pause and
-audit our entire codebase. Phase 1 shipped fast—cross-device sync, server
-authentication, encrypted secret storage—an...]]></description>
-            <content:encoded><![CDATA[<p>Before moving to Phase 3 (Diffie-Hellman key exchange), we decided to pause and
-audit our entire codebase. Phase 1 shipped fast—cross-device sync, server
-authentication, encrypted secret storage—and we wanted to make sure we hadn't
-accumulated technical debt or, worse, security issues along the way.</p>
+            <description><![CDATA[<p>We recently paused feature development to audit our entire codebase. KeyPears
+shipped fast—cross-device sync, server authentication, encrypted secret
+storage—and we wanted to make sure we hadn't ac...]]></description>
+            <content:encoded><![CDATA[<p>We recently paused feature development to audit our entire codebase. KeyPears
+shipped fast—cross-device sync, server authentication, encrypted secret
+storage—and we wanted to make sure we hadn't accumulated technical debt or,
+worse, security issues along the way.</p>
 <p>What we found was instructive. The good news: our architecture is sound, our
 cryptography is correct, and our zero-knowledge design holds up. The concerning
 news: we found debug logging that would have exposed cryptographic keys in
@@ -148,21 +148,10 @@ Security issues get fixed immediately; style issues get noted for later.</p>
 audits benefit from past discoveries.</p>
 </li>
 </ol>
-<p>We've published our full audit checklist in the repository at <code>audit.md</code>. It
-covers everything from TypeScript best practices to zero-knowledge architecture
-verification to UI accessibility checks.</p>
-<h2>What's Next</h2>
-<p>With the audit complete and all critical issues resolved, we're ready for Phase
-3: Diffie-Hellman key exchange for secure secret sharing between users.</p>
-<p>This is the feature that transforms KeyPears from a personal password manager
-into a collaborative secrets platform. When <code>alice@keypears.com</code> wants to share
-an API key with <code>bob@company.com</code>, they'll establish a shared secret using
-Diffie-Hellman key exchange. Neither server ever sees the plaintext. The keys
-are derived client-side, used once to encrypt the shared secret, and discarded.</p>
-<p>The foundation is solid. The code is clean. Time to build the next piece.</p>
-<p><em>The full audit checklist is available at
-<a href="https://github.com/keypears/keypears/blob/main/audit.md">audit.md</a> in the
-KeyPears repository.</em></p>]]></content:encoded>
+<p>We've published our full audit checklist in the repository at
+<a href="https://github.com/keypears/keypears/blob/main/docs/audit.md">docs/audit.md</a>.
+It covers everything from TypeScript best practices to zero-knowledge
+architecture verification to UI accessibility checks.</p>]]></content:encoded>
         </item>
         <item>
             <title><![CDATA[Third-Party Hosting: Making KeyPears as Easy as Hosted Email]]></title>
