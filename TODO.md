@@ -181,52 +181,118 @@ For each file, verify:
 
 #### 1. @keypears/lib (lib/)
 
-- [ ] src/index.ts
-- [ ] src/crypto.ts
-- [ ] src/domains.ts
-- [ ] src/keypears-json.ts
-- [ ] src/password-generator.ts
-- [ ] All other source files
-- [ ] package.json, tsconfig.json
+**Files to review:**
+
+- src/index.ts
+- src/crypto.ts
+- src/domains.ts
+- src/keypears-json.ts
+- src/password-generator.ts
+- All other source files
+- package.json, tsconfig.json
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 1.1 General Software Best Practices
+- [ ] 1.2 Third-Party Tools & Dependencies
+- [ ] 1.3 Security Assessment
+- [ ] 1.4 Scalability
+- [ ] 1.5 UI/UX Consistency
+- [ ] 1.6 File-Specific Checks
 
 #### 2. @keypears/api-server (api-server/)
 
-- [ ] src/index.ts, src/client.ts
-- [ ] src/procedures/\*.ts
-- [ ] src/db/index.ts, src/db/schema.ts
-- [ ] src/db/models/\*.ts
-- [ ] src/zod-schemas.ts
-- [ ] package.json, tsconfig.json
+**Files to review:**
+
+- src/index.ts, src/client.ts
+- src/procedures/\*.ts
+- src/db/index.ts, src/db/schema.ts
+- src/db/models/\*.ts
+- src/zod-schemas.ts
+- package.json, tsconfig.json
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 2.1 General Software Best Practices
+- [ ] 2.2 Third-Party Tools & Dependencies
+- [ ] 2.3 Security Assessment
+- [ ] 2.4 Scalability
+- [ ] 2.5 UI/UX Consistency
+- [ ] 2.6 File-Specific Checks
 
 #### 3. @keypears/webapp (webapp/)
 
-- [ ] server.ts
-- [ ] app/routes/\*.tsx
-- [ ] app/components/\*.tsx
-- [ ] markdown/ content
-- [ ] package.json, configs
+**Files to review:**
+
+- server.ts
+- app/routes/\*.tsx
+- app/components/\*.tsx
+- markdown/ content
+- package.json, configs
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 3.1 General Software Best Practices
+- [ ] 3.2 Third-Party Tools & Dependencies
+- [ ] 3.3 Security Assessment
+- [ ] 3.4 Scalability
+- [ ] 3.5 UI/UX Consistency
+- [ ] 3.6 File-Specific Checks
 
 #### 4. @keypears/tauri-ts (tauri-ts/)
 
-- [ ] app/routes/\*.tsx
-- [ ] app/components/\*.tsx
-- [ ] app/contexts/\*.tsx
-- [ ] app/db/\*.ts
-- [ ] app/lib/\*.ts
-- [ ] package.json, vite.config.ts
+**Files to review:**
+
+- app/routes/\*.tsx
+- app/components/\*.tsx
+- app/contexts/\*.tsx
+- app/db/\*.ts
+- app/lib/\*.ts
+- package.json, vite.config.ts
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 4.1 General Software Best Practices
+- [ ] 4.2 Third-Party Tools & Dependencies
+- [ ] 4.3 Security Assessment
+- [ ] 4.4 Scalability
+- [ ] 4.5 UI/UX Consistency
+- [ ] 4.6 File-Specific Checks
 
 #### 5. @keypears/tauri-rs (tauri-rs/)
 
-- [ ] src/lib.rs
-- [ ] Cargo.toml, tauri.conf.json
+**Files to review:**
+
+- src/lib.rs
+- Cargo.toml, tauri.conf.json
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 5.1 General Software Best Practices
+- [ ] 5.2 Third-Party Tools & Dependencies
+- [ ] 5.3 Security Assessment
+- [ ] 5.4 Scalability
+- [ ] 5.5 UI/UX Consistency
+- [ ] 5.6 File-Specific Checks
 
 #### 6. Root Configs
 
-- [ ] Dockerfile, docker-compose.yml
-- [ ] package.json, pnpm-workspace.yaml
-- [ ] Cargo.toml
-- [ ] CLAUDE.md / AGENTS.md
-- [ ] docs/\*.md
+**Files to review:**
+
+- Dockerfile, docker-compose.yml
+- package.json, pnpm-workspace.yaml
+- Cargo.toml
+- CLAUDE.md / AGENTS.md
+- docs/\*.md
+
+**Audit checklist (see audit.md for details):**
+
+- [ ] 6.1 General Software Best Practices
+- [ ] 6.2 Third-Party Tools & Dependencies
+- [ ] 6.3 Security Assessment
+- [ ] 6.4 Scalability
+- [ ] 6.5 UI/UX Consistency
+- [ ] 6.6 File-Specific Checks
 
 ---
 
