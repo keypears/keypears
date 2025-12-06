@@ -1,7 +1,7 @@
 import type { Route } from "./+types/vault.$vaultId.sync";
 import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
-import { useSyncState, refreshSyncState } from "~app/contexts/sync-context";
+import { useUnreadCount, refreshSyncState } from "~app/contexts/sync-context";
 import { ChevronLeft, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff, CheckCheck } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -148,7 +148,7 @@ export async function clientLoader({ params, request }: Route.ClientLoaderArgs) 
 export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) {
   const { vaultId, syncState, updates, totalCount, unreadCount, page } = loaderData;
   const revalidator = useRevalidator();
-  const { unreadCount: globalUnreadCount } = useSyncState();
+  const globalUnreadCount = useUnreadCount(vaultId);
   const prevUnreadCount = useRef(globalUnreadCount);
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -163,19 +163,19 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
 
   const handleMarkRead = async (id: string) => {
     await markAsRead(id);
-    await refreshSyncState();
+    await refreshSyncState(vaultId);
     revalidator.revalidate();
   };
 
   const handleMarkUnread = async (id: string) => {
     await markAsUnread(id);
-    await refreshSyncState();
+    await refreshSyncState(vaultId);
     revalidator.revalidate();
   };
 
   const handleMarkAllRead = async () => {
     await markAllAsRead(vaultId);
-    await refreshSyncState();
+    await refreshSyncState(vaultId);
     revalidator.revalidate();
   };
 
@@ -185,7 +185,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
     const startTime = Date.now();
 
     try {
-      await triggerManualSync();
+      await triggerManualSync(vaultId);
       revalidator.revalidate();
     } finally {
       const elapsed = Date.now() - startTime;
@@ -202,7 +202,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar />
+      <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
         {/* Header with back button */}
         <div className="mb-6">

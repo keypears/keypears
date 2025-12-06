@@ -7,7 +7,7 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import {
-  getActiveVault,
+  getUnlockedVault,
   isVaultUnlocked,
   encryptPassword as encryptPasswordFromStore,
   getVaultKey,
@@ -36,15 +36,15 @@ export async function clientLoader({
     throw redirect(href("/"));
   }
 
-  const activeVault = getActiveVault();
-  if (!activeVault) {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
     throw redirect(href("/"));
   }
 
   return {
-    vaultId: activeVault.vaultId,
-    vaultName: activeVault.vaultName,
-    vaultDomain: activeVault.vaultDomain,
+    vaultId: vault.vaultId,
+    vaultName: vault.vaultName,
+    vaultDomain: vault.vaultDomain,
   };
 }
 
@@ -83,10 +83,10 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
 
       // Encrypt password and notes if provided
       const encryptedData = password
-        ? encryptPasswordFromStore(password)
+        ? encryptPasswordFromStore(vaultId, password)
         : undefined;
       const encryptedNotes = notes.trim()
-        ? encryptPasswordFromStore(notes.trim())
+        ? encryptPasswordFromStore(vaultId, notes.trim())
         : undefined;
 
       // Create secret blob data
@@ -102,13 +102,13 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
       };
 
       // Create authenticated API client with session token
-      const sessionToken = getSessionToken();
+      const sessionToken = getSessionToken(vaultId);
       const authedClient = await createClientFromDomain(vaultDomain, {
         sessionToken: sessionToken || undefined,
       });
 
       // Get vault key for encryption
-      const vaultKey = getVaultKey();
+      const vaultKey = getVaultKey(vaultId);
 
       // Push to server (server generates ID, order numbers, timestamp)
       const serverResponse = await pushSecretUpdate(
@@ -141,7 +141,7 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
       );
 
       // Still trigger sync to fetch any other updates
-      await triggerManualSync();
+      await triggerManualSync(vaultId);
 
       // Navigate back to passwords list
       navigate(href("/vault/:vaultId/secrets", { vaultId }));
@@ -157,7 +157,7 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar />
+      <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={vaultId}

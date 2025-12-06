@@ -1,6 +1,6 @@
 import type { Route } from "./+types/vault.$vaultId.secrets.deleted";
 import { redirect, href } from "react-router";
-import { getActiveVault, isVaultUnlocked } from "~app/lib/vault-store";
+import { getUnlockedVault, isVaultUnlocked } from "~app/lib/vault-store";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import { PasswordList } from "~app/components/password-list";
@@ -12,15 +12,15 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     throw redirect(href("/"));
   }
 
-  const activeVault = getActiveVault();
-  if (!activeVault) {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
     throw redirect(href("/"));
   }
 
   return {
-    vaultId: activeVault.vaultId,
-    vaultName: activeVault.vaultName,
-    vaultDomain: activeVault.vaultDomain,
+    vaultId: vault.vaultId,
+    vaultName: vault.vaultName,
+    vaultDomain: vault.vaultDomain,
   };
 }
 
@@ -31,7 +31,7 @@ export default function VaultPasswordsDeleted({
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar showBackButton />
+      <Navbar showBackButton vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={vaultId}

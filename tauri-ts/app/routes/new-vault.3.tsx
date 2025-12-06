@@ -19,11 +19,8 @@ import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
-import { setActiveVault, setSession } from "~app/lib/vault-store";
-import {
-  setCurrentVaultId,
-  refreshSyncState,
-} from "~app/contexts/sync-context";
+import { unlockVault, setSession } from "~app/lib/vault-store";
+import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 
 export default function NewVaultStep3() {
@@ -198,13 +195,13 @@ export default function NewVaultStep3() {
           loginResponse.expiresAt,
         );
 
-        // 12. Set session in vault-store
+        // 12. Set session in vault-store (now requires vaultId)
         console.log("\n--- Step 12: Set Session ---");
-        setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+        setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
 
-        // 13. Set active vault with all derived keys
-        console.log("\n--- Step 13: Set Active Vault ---");
-        setActiveVault({
+        // 13. Unlock vault with all derived keys
+        console.log("\n--- Step 13: Unlock Vault ---");
+        unlockVault({
           vaultId: vault.id,
           vaultName,
           vaultDomain,
@@ -219,15 +216,14 @@ export default function NewVaultStep3() {
           deviceDescription,
         });
 
-        // 14. Set current vault ID for sync context and refresh state
-        console.log("\n--- Step 14: Initialize Sync Context ---");
-        setCurrentVaultId(vault.id);
-        await refreshSyncState();
+        // 14. Refresh sync state for this vault
+        console.log("\n--- Step 14: Initialize Sync State ---");
+        await refreshSyncState(vault.id);
 
-        // 15. Start background sync
+        // 15. Start background sync for this vault
         console.log("\n--- Step 15: Start Background Sync ---");
         startBackgroundSync(vault.id, vaultDomain, vaultKey, () => {
-          refreshSyncState();
+          refreshSyncState(vault.id);
         });
 
         // Store created vault ID for navigation

@@ -1,88 +1,146 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getUnreadCount } from "~app/db/models/password";
-
-// Module-level state for tracking current vault and providing stable functions
-let currentVaultId: string | null = null;
-let currentUnreadCount = 0;
-let setUnreadCountFn: ((count: number) => void) | null = null;
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { getUnreadCount as getUnreadCountFromDb } from "~app/db/models/password";
 
 /**
- * Set the current vault ID for sync state tracking.
- * Called by VaultContext when a vault is unlocked/locked.
+ * Sync Context for Multi-Vault Support
+ *
+ * Tracks unread notification counts per vault.
+ * Components can subscribe to updates for specific vaults.
  */
-export function setCurrentVaultId(vaultId: string | null): void {
-  currentVaultId = vaultId;
-  if (vaultId === null) {
-    currentUnreadCount = 0;
-  }
-}
+
+// Module-level state for tracking unread counts per vault
+const unreadCounts: Map<string, number> = new Map();
+let setUnreadCountsFn: ((counts: Map<string, number>) => void) | null = null;
 
 /**
- * Refresh sync state from database.
+ * Refresh sync state for a specific vault from database.
  * Only updates React state if unreadCount actually changed.
- * This is a stable function that doesn't cause re-renders when called.
  */
-export async function refreshSyncState(): Promise<void> {
-  if (!currentVaultId) {
-    return;
-  }
-
-  const count = await getUnreadCount(currentVaultId);
+export async function refreshSyncState(vaultId: string): Promise<void> {
+  const count = await getUnreadCountFromDb(vaultId);
+  const currentCount = unreadCounts.get(vaultId) ?? 0;
 
   // Only update React state if the count actually changed
-  if (count !== currentUnreadCount) {
-    currentUnreadCount = count;
-    if (setUnreadCountFn) {
-      setUnreadCountFn(count);
+  if (count !== currentCount) {
+    unreadCounts.set(vaultId, count);
+    if (setUnreadCountsFn) {
+      // Create a new Map to trigger React re-render
+      setUnreadCountsFn(new Map(unreadCounts));
     }
   }
 }
 
 /**
- * Clear sync state (called when vault is locked).
+ * Clear sync state for a specific vault (called when vault is locked).
  */
-export function clearSyncState(): void {
-  currentVaultId = null;
-  currentUnreadCount = 0;
-  if (setUnreadCountFn) {
-    setUnreadCountFn(0);
+export function clearSyncState(vaultId: string): void {
+  unreadCounts.delete(vaultId);
+  if (setUnreadCountsFn) {
+    setUnreadCountsFn(new Map(unreadCounts));
   }
 }
 
-// Context only holds unreadCount for components that need to re-render
+/**
+ * Clear all sync state (called when all vaults are locked).
+ */
+export function clearAllSyncState(): void {
+  unreadCounts.clear();
+  if (setUnreadCountsFn) {
+    setUnreadCountsFn(new Map());
+  }
+}
+
+/**
+ * Get unread count for a specific vault (non-reactive, for use outside React).
+ */
+export function getUnreadCountForVault(vaultId: string): number {
+  return unreadCounts.get(vaultId) ?? 0;
+}
+
+// Context holds unreadCounts map for components that need to re-render
 interface SyncContextType {
-  unreadCount: number;
+  unreadCounts: Map<string, number>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [counts, setCounts] = useState<Map<string, number>>(
+    () => new Map(unreadCounts),
+  );
 
   // Register the setState function so module-level functions can update React state
   useEffect(() => {
-    setUnreadCountFn = setUnreadCount;
+    setUnreadCountsFn = setCounts;
     return () => {
-      setUnreadCountFn = null;
+      setUnreadCountsFn = null;
     };
   }, []);
 
   return (
-    <SyncContext.Provider value={{ unreadCount }}>
+    <SyncContext.Provider value={{ unreadCounts: counts }}>
       {children}
     </SyncContext.Provider>
   );
 }
 
 /**
- * Hook to subscribe to unreadCount changes.
- * ONLY use this in components that need to re-render when unreadCount changes (e.g., UserMenu).
- * Do NOT use this in pages/forms that shouldn't re-render on sync.
+ * Hook to get unread count for a specific vault.
+ * Re-renders when the count changes.
  */
-export function useSyncState(): SyncContextType {
+export function useUnreadCount(vaultId: string): number {
+  const context = useContext(SyncContext);
+  if (context === undefined) {
+    throw new Error("useUnreadCount must be used within a SyncProvider");
+  }
+  return context.unreadCounts.get(vaultId) ?? 0;
+}
+
+/**
+ * Hook to get all unread counts.
+ * Re-renders when any count changes.
+ */
+export function useAllUnreadCounts(): Map<string, number> {
+  const context = useContext(SyncContext);
+  if (context === undefined) {
+    throw new Error("useAllUnreadCounts must be used within a SyncProvider");
+  }
+  return context.unreadCounts;
+}
+
+// ============================================================================
+// Backward Compatibility (DEPRECATED - to be removed after migration)
+// ============================================================================
+
+// For backward compatibility during migration
+let currentVaultIdForCompat: string | null = null;
+
+/**
+ * @deprecated Use refreshSyncState(vaultId) instead
+ * Set the current vault ID for sync state tracking.
+ */
+export function setCurrentVaultId(vaultId: string | null): void {
+  currentVaultIdForCompat = vaultId;
+}
+
+/**
+ * @deprecated No longer needed - state is tracked per vault
+ * Legacy hook for backward compatibility.
+ */
+export function useSyncState(): { unreadCount: number } {
   const context = useContext(SyncContext);
   if (context === undefined) {
     throw new Error("useSyncState must be used within a SyncProvider");
   }
-  return context;
+  // Return count for the "current" vault (backward compat)
+  const count = currentVaultIdForCompat
+    ? (context.unreadCounts.get(currentVaultIdForCompat) ?? 0)
+    : 0;
+  return { unreadCount: count };
 }

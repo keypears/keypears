@@ -7,7 +7,7 @@ import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import {
-  getActiveVault,
+  getUnlockedVault,
   isVaultUnlocked,
   encryptPassword as encryptPasswordFromStore,
   decryptPassword as decryptPasswordFromStore,
@@ -16,8 +16,14 @@ import {
 } from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import { getLatestSecret, insertSecretUpdatesFromSync } from "~app/db/models/password";
-import { decryptSecretUpdateBlob, encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
+import {
+  getLatestSecret,
+  insertSecretUpdatesFromSync,
+} from "~app/db/models/password";
+import {
+  decryptSecretUpdateBlob,
+  encryptSecretUpdateBlob,
+} from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { triggerManualSync } from "~app/lib/sync-service";
@@ -41,8 +47,8 @@ export async function clientLoader({
     throw redirect(href("/"));
   }
 
-  const activeVault = getActiveVault();
-  if (!activeVault) {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
     throw redirect(href("/"));
   }
 
@@ -53,18 +59,18 @@ export async function clientLoader({
   }
 
   // Decrypt the blob
-  const vaultKey = getVaultKey();
+  const vaultKey = getVaultKey(vaultId);
   const existingBlob = decryptSecretUpdateBlob(latest.encryptedBlob, vaultKey);
 
   // Decrypt notes if present
   const decryptedNotes = existingBlob.encryptedNotes
-    ? decryptPasswordFromStore(existingBlob.encryptedNotes)
+    ? decryptPasswordFromStore(vaultId, existingBlob.encryptedNotes)
     : "";
 
   return {
-    vaultId: activeVault.vaultId,
-    vaultName: activeVault.vaultName,
-    vaultDomain: activeVault.vaultDomain,
+    vaultId: vault.vaultId,
+    vaultName: vault.vaultName,
+    vaultDomain: vault.vaultDomain,
     secretId: latest.secretId,
     passwordName: latest.name,
     existingBlob,
@@ -114,12 +120,12 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       // If password field is filled, encrypt new password
       // Otherwise, keep existing encrypted password
       const encryptedData = password
-        ? encryptPasswordFromStore(password)
+        ? encryptPasswordFromStore(vaultId, password)
         : existingBlob.encryptedData;
 
       // Encrypt notes if provided
       const encryptedNotes = notes.trim()
-        ? encryptPasswordFromStore(notes.trim())
+        ? encryptPasswordFromStore(vaultId, notes.trim())
         : undefined;
 
       // Create updated secret blob data
@@ -135,13 +141,13 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       };
 
       // Create authenticated API client with session token
-      const sessionToken = getSessionToken();
+      const sessionToken = getSessionToken(vaultId);
       const authedClient = await createClientFromDomain(vaultDomain, {
         sessionToken: sessionToken || undefined,
       });
 
       // Get vault key for encryption
-      const vaultKey = getVaultKey();
+      const vaultKey = getVaultKey(vaultId);
 
       // Push update to server (creates new version with higher localOrder)
       const serverResponse = await pushSecretUpdate(
@@ -174,7 +180,7 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       );
 
       // Still trigger sync to fetch any other updates
-      await triggerManualSync();
+      await triggerManualSync(vaultId);
 
       // Navigate back to password detail
       navigate(
@@ -195,7 +201,7 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar />
+      <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={vaultId}

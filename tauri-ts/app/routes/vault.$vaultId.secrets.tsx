@@ -1,6 +1,6 @@
 import type { Route } from "./+types/vault.$vaultId.secrets";
 import { Outlet, redirect, href } from "react-router";
-import { isVaultUnlocked, getActiveVault } from "~app/lib/vault-store";
+import { isVaultUnlocked, getUnlockedVault } from "~app/lib/vault-store";
 import { ServerStatusProvider } from "~app/contexts/ServerStatusContext";
 import { ServerStatusBanner } from "~app/components/ServerStatusBanner";
 import { buildServerUrl } from "@keypears/api-server/client";
@@ -17,14 +17,14 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     throw redirect(href("/unlock-vault/:vaultId", { vaultId }));
   }
 
-  const activeVault = getActiveVault();
-  if (!activeVault) {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
     throw redirect(href("/unlock-vault/:vaultId", { vaultId }));
   }
 
   return {
     vaultId,
-    vaultDomain: activeVault.vaultDomain,
+    vaultDomain: vault.vaultDomain,
   };
 }
 

@@ -17,7 +17,9 @@ import {
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { useState, useEffect } from "react";
-import { getActiveVault } from "~app/lib/vault-store";
+import { getAllUnlockedVaultIds, lockVault } from "~app/lib/vault-store";
+import { useAllUnreadCounts, clearSyncState } from "~app/contexts/sync-context";
+import { stopBackgroundSync } from "~app/lib/sync-service";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   await initDb();
@@ -31,20 +33,21 @@ const VAULT_POLL_INTERVAL = 500; // 500ms
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
   const [vaults, setVaults] = useState(loaderData.vaults);
   const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
-  const [activeVaultId, setActiveVaultId] = useState<string | null>(() =>
-    getActiveVault()?.vaultId ?? null
+  const [unlockedVaultIds, setUnlockedVaultIds] = useState<Set<string>>(() =>
+    new Set(getAllUnlockedVaultIds())
   );
+  const unreadCounts = useAllUnreadCounts();
 
   // Sync local state with loaderData when it changes
   useEffect(() => {
     setVaults(loaderData.vaults);
   }, [loaderData.vaults]);
 
-  // Poll vault-store for active vault changes
+  // Poll vault-store for unlocked vault changes
   useEffect(() => {
     const interval = setInterval(() => {
-      const currentVault = getActiveVault();
-      setActiveVaultId(currentVault?.vaultId ?? null);
+      const currentUnlockedIds = getAllUnlockedVaultIds();
+      setUnlockedVaultIds(new Set(currentUnlockedIds));
     }, VAULT_POLL_INTERVAL);
 
     return () => clearInterval(interval);
@@ -52,6 +55,13 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
 
   const handleDelete = async () => {
     if (!vaultToDelete) return;
+
+    // If the vault is unlocked, clean up its state
+    if (unlockedVaultIds.has(vaultToDelete.id)) {
+      stopBackgroundSync(vaultToDelete.id);
+      clearSyncState(vaultToDelete.id);
+      lockVault(vaultToDelete.id);
+    }
 
     await deleteVault(vaultToDelete.id);
     const updatedVaults = await getVaults();
@@ -103,7 +113,8 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
             /* Vault List */
             <div className="space-y-3">
               {vaults.map((vault) => {
-                const isUnlocked = vault.id === activeVaultId;
+                const isUnlocked = unlockedVaultIds.has(vault.id);
+                const unreadCount = unreadCounts.get(vault.id) ?? 0;
                 return (
                   <div
                     key={vault.id}
@@ -118,11 +129,16 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                         }
                         className="flex flex-1 items-center gap-3"
                       >
-                        <div className="bg-primary/10 rounded-full p-2">
+                        <div className="bg-primary/10 relative rounded-full p-2">
                           {isUnlocked ? (
                             <LockOpen className="text-primary h-4 w-4" />
                           ) : (
                             <Lock className="text-primary h-4 w-4" />
+                          )}
+                          {isUnlocked && unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+                              {unreadCount > 9 ? "9+" : unreadCount}
+                            </span>
                           )}
                         </div>
                         <div className="flex-1">

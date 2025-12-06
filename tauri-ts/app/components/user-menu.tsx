@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { User, Lock, Activity } from "lucide-react";
 import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
@@ -10,64 +9,57 @@ import {
   DropdownMenuTrigger,
 } from "~app/components/ui/dropdown-menu";
 import {
-  getActiveVault,
+  getUnlockedVault,
   getSessionToken,
-  clearActiveVault,
-  clearSession,
-  type UnlockedVault,
+  lockVault,
 } from "~app/lib/vault-store";
-import { useSyncState } from "~app/contexts/sync-context";
+import { useUnreadCount, clearSyncState } from "~app/contexts/sync-context";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { stopBackgroundSync } from "~app/lib/sync-service";
 
-// Poll interval for checking vault state
-const VAULT_POLL_INTERVAL = 500; // 500ms
+interface UserMenuProps {
+  vaultId: string;
+}
 
-export function UserMenu() {
+export function UserMenu({ vaultId }: UserMenuProps) {
   const navigate = useNavigate();
-  const { unreadCount } = useSyncState();
-  const [activeVault, setActiveVault] = useState<UnlockedVault | null>(() =>
-    getActiveVault()
-  );
+  const unreadCount = useUnreadCount(vaultId);
 
-  // Poll vault-store for state changes (handles lock/unlock without React context)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentVault = getActiveVault();
-      setActiveVault(currentVault);
-    }, VAULT_POLL_INTERVAL);
+  // Get vault info
+  const vault = getUnlockedVault(vaultId);
 
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!activeVault) {
+  if (!vault) {
     return null;
   }
 
   const handleLockVault = async () => {
     try {
       // Step 1: Call /api/logout to invalidate session on server
-      const sessionToken = getSessionToken();
+      const sessionToken = getSessionToken(vaultId);
       if (sessionToken) {
-        const apiClient = await createClientFromDomain(activeVault.vaultDomain, { sessionToken });
+        const apiClient = await createClientFromDomain(vault.vaultDomain, {
+          sessionToken,
+        });
         await apiClient.api.logout({ sessionToken });
       }
 
-      // Step 2: Stop background sync
-      stopBackgroundSync();
+      // Step 2: Stop background sync for this vault
+      stopBackgroundSync(vaultId);
 
-      // Step 3: Clear session and vault from memory
-      clearSession();
-      clearActiveVault();
+      // Step 3: Clear sync state for this vault
+      clearSyncState(vaultId);
 
-      // Step 4: Navigate to home
+      // Step 4: Lock this vault (removes from memory)
+      lockVault(vaultId);
+
+      // Step 5: Navigate to home
       navigate("/", { replace: true });
     } catch (err) {
       console.error("Error during logout:", err);
       // Even if logout fails, still lock vault locally for security
-      stopBackgroundSync();
-      clearSession();
-      clearActiveVault();
+      stopBackgroundSync(vaultId);
+      clearSyncState(vaultId);
+      lockVault(vaultId);
       navigate("/", { replace: true });
     }
   };
@@ -75,7 +67,12 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="User menu" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="User menu"
+          className="relative"
+        >
           <User size={20} />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-red-500 border-2 border-background" />
@@ -84,13 +81,16 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem asChild>
-          <Link to={href("/vault/:vaultId/secrets", { vaultId: activeVault.vaultId })}>
-            {activeVault.vaultName}@{activeVault.vaultDomain}
+          <Link to={href("/vault/:vaultId/secrets", { vaultId })}>
+            {vault.vaultName}@{vault.vaultDomain}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to={href("/vault/:vaultId/sync", { vaultId: activeVault.vaultId })} className="flex items-center">
+          <Link
+            to={href("/vault/:vaultId/sync", { vaultId })}
+            className="flex items-center"
+          >
             <Activity size={16} className="mr-2" />
             Sync Activity
             {unreadCount > 0 && (

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, href } from "react-router";
+import { Link, href, useParams } from "react-router";
 import { Key, Plus, Globe, User, Trash2 } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { getAllCurrentSecrets } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
-import { getActiveVault, getVaultKey } from "~app/lib/vault-store";
+import { getVaultKey } from "~app/lib/vault-store";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 
@@ -17,20 +17,20 @@ interface DecryptedSecret extends SecretUpdateRow {
 }
 
 export function PasswordList({ showDeleted = false }: PasswordListProps) {
+  const params = useParams<{ vaultId: string }>();
+  const vaultId = params.vaultId;
+
   const [passwords, setPasswords] = useState<DecryptedSecret[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [vaultId, setVaultId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPasswords = async () => {
-      const activeVault = getActiveVault();
-      if (!activeVault) return;
+      if (!vaultId) return;
 
-      setVaultId(activeVault.vaultId);
       setIsLoading(true);
       try {
-        const vaultKey = getVaultKey();
-        const currentSecrets = await getAllCurrentSecrets(activeVault.vaultId);
+        const vaultKey = getVaultKey(vaultId);
+        const currentSecrets = await getAllCurrentSecrets(vaultId);
 
         // Decrypt blobs for display (domain, username, etc.)
         const decryptedSecrets = currentSecrets.map((secret) => ({
@@ -47,7 +47,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
     };
 
     loadPasswords();
-  }, []);
+  }, [vaultId]);
 
   // Filter passwords based on showDeleted prop
   const filteredPasswords = passwords.filter((p) => p.deleted === showDeleted);

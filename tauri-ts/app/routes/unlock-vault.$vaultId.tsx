@@ -10,14 +10,11 @@ import { cn } from "~app/lib/utils";
 import { getVault, updateVault } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import {
-  setActiveVault,
+  unlockVault,
   setSession,
   isVaultUnlocked,
 } from "~app/lib/vault-store";
-import {
-  setCurrentVaultId,
-  refreshSyncState,
-} from "~app/contexts/sync-context";
+import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 import { initDb } from "~app/db";
 import {
@@ -119,11 +116,11 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         clientDeviceDescription: deviceDescription ?? undefined,
       });
 
-      // Step 4: Store session token in vault store
-      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+      // Step 4: Set session token in vault store (now requires vaultId)
+      setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
 
-      // Step 5: Set active vault in vault store
-      setActiveVault({
+      // Step 5: Unlock vault in vault store
+      unlockVault({
         vaultId: vault.id,
         vaultName: vault.name,
         vaultDomain: vault.domain,
@@ -138,16 +135,15 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         deviceDescription,
       });
 
-      // Step 6: Set up sync state tracking
-      setCurrentVaultId(vault.id);
-      refreshSyncState();
+      // Step 6: Refresh sync state for this vault
+      await refreshSyncState(vault.id);
 
-      // Step 7: Start background sync
+      // Step 7: Start background sync for this vault
       startBackgroundSync(
         vault.id,
         vault.domain,
         result.vaultKey,
-        refreshSyncState, // onSyncComplete callback
+        () => refreshSyncState(vault.id), // onSyncComplete callback
       );
 
       // Step 8: Navigate to vault secrets page

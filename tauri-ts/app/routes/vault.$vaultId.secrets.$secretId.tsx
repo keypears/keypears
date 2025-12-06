@@ -26,7 +26,7 @@ import {
 import { Navbar } from "~app/components/navbar";
 import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
 import {
-  getActiveVault,
+  getUnlockedVault,
   isVaultUnlocked,
   decryptPassword as decryptPasswordFromStore,
   getVaultKey,
@@ -59,8 +59,8 @@ export async function clientLoader({
     throw redirect(href("/"));
   }
 
-  const activeVault = getActiveVault();
-  if (!activeVault) {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
     throw redirect(href("/"));
   }
 
@@ -71,23 +71,23 @@ export async function clientLoader({
   }
 
   // Decrypt the blob
-  const vaultKey = getVaultKey();
+  const vaultKey = getVaultKey(vaultId);
   const decryptedBlob = decryptSecretUpdateBlob(latest.encryptedBlob, vaultKey);
 
   // Decrypt password field if present
   const decryptedPassword = decryptedBlob.encryptedData
-    ? decryptPasswordFromStore(decryptedBlob.encryptedData)
+    ? decryptPasswordFromStore(vaultId, decryptedBlob.encryptedData)
     : "";
 
   // Decrypt notes if present
   const decryptedNotes = decryptedBlob.encryptedNotes
-    ? decryptPasswordFromStore(decryptedBlob.encryptedNotes)
+    ? decryptPasswordFromStore(vaultId, decryptedBlob.encryptedNotes)
     : "";
 
   return {
-    vaultId: activeVault.vaultId,
-    vaultName: activeVault.vaultName,
-    vaultDomain: activeVault.vaultDomain,
+    vaultId: vault.vaultId,
+    vaultName: vault.vaultName,
+    vaultDomain: vault.vaultDomain,
     secretId: latest.secretId,
     passwordName: latest.name,
     isDeleted: latest.deleted,
@@ -141,11 +141,11 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
       };
 
       // Push tombstone to server (creates new version with higher localOrder)
-      const vaultKey = getVaultKey();
+      const vaultKey = getVaultKey(vaultId);
       await pushSecretUpdate(vaultId, secretId, secretData, vaultKey, client);
 
       // Trigger immediate sync to fetch the tombstone
-      await triggerManualSync();
+      await triggerManualSync(vaultId);
 
       // Revalidate to reload the data
       revalidator.revalidate();
@@ -164,7 +164,7 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="bg-background min-h-screen">
-      <Navbar />
+      <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PasswordBreadcrumbs
           vaultId={vaultId}

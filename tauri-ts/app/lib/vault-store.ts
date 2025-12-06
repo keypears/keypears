@@ -1,7 +1,8 @@
 /**
  * Global Vault Store
  *
- * Module-level state for the currently unlocked vault and session.
+ * Module-level state for unlocked vaults and their sessions.
+ * Supports multiple vaults being unlocked simultaneously.
  * This allows both clientLoaders and React components to access vault state.
  *
  * Data is stored in-memory only and lost on page refresh (intentional for security).
@@ -33,27 +34,48 @@ export interface SessionState {
   expiresAt: number;
 }
 
-// Module-level state
-let activeVault: UnlockedVault | null = null;
-let session: SessionState | null = null;
+// Module-level state - Maps keyed by vaultId
+const unlockedVaults: Map<string, UnlockedVault> = new Map();
+const sessions: Map<string, SessionState> = new Map();
 
 // ============================================================================
 // Getters
 // ============================================================================
 
-export function getActiveVault(): UnlockedVault | null {
-  return activeVault;
+/**
+ * Get an unlocked vault by ID.
+ * Returns null if the vault is not unlocked.
+ */
+export function getUnlockedVault(vaultId: string): UnlockedVault | null {
+  return unlockedVaults.get(vaultId) ?? null;
 }
 
-export function getSession(): SessionState | null {
-  return session;
+/**
+ * Get all unlocked vault IDs.
+ */
+export function getAllUnlockedVaultIds(): string[] {
+  return Array.from(unlockedVaults.keys());
 }
 
-export function getSessionToken(): string | null {
-  return session?.sessionToken ?? null;
+/**
+ * Get session for a specific vault.
+ */
+export function getSession(vaultId: string): SessionState | null {
+  return sessions.get(vaultId) ?? null;
 }
 
-export function isSessionExpiringSoon(): boolean {
+/**
+ * Get session token for a specific vault.
+ */
+export function getSessionToken(vaultId: string): string | null {
+  return sessions.get(vaultId)?.sessionToken ?? null;
+}
+
+/**
+ * Check if a specific vault's session is expiring soon.
+ */
+export function isSessionExpiringSoon(vaultId: string): boolean {
+  const session = sessions.get(vaultId);
   if (!session) {
     return false;
   }
@@ -61,85 +83,180 @@ export function isSessionExpiringSoon(): boolean {
   return session.expiresAt < Date.now() + SESSION_EXPIRY_BUFFER;
 }
 
-export function isVaultUnlocked(vaultId?: string): boolean {
-  if (!activeVault) return false;
-  if (vaultId) return activeVault.vaultId === vaultId;
-  return true;
+/**
+ * Check if a vault is unlocked.
+ */
+export function isVaultUnlocked(vaultId: string): boolean {
+  return unlockedVaults.has(vaultId);
 }
 
-export function getVaultKey(): FixedBuf<32> {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the vault key for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getVaultKey(vaultId: string): FixedBuf<32> {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.vaultKey;
+  return vault.vaultKey;
 }
 
-export function getEncryptionKey(): FixedBuf<32> {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the encryption key for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getEncryptionKey(vaultId: string): FixedBuf<32> {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.encryptionKey;
+  return vault.encryptionKey;
 }
 
-export function getLoginKey(): FixedBuf<32> {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the login key for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getLoginKey(vaultId: string): FixedBuf<32> {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.loginKey;
+  return vault.loginKey;
 }
 
-export function getPasswordKey(): FixedBuf<32> {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the password key for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getPasswordKey(vaultId: string): FixedBuf<32> {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.passwordKey;
+  return vault.passwordKey;
 }
 
-export function getVaultPublicKey(): FixedBuf<33> {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the vault public key for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getVaultPublicKey(vaultId: string): FixedBuf<33> {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.vaultPublicKey;
+  return vault.vaultPublicKey;
 }
 
-export function getDeviceId(): string {
-  if (!activeVault) {
-    throw new Error("No active vault");
+/**
+ * Get the device ID for a specific vault.
+ * Throws if vault is not unlocked.
+ */
+export function getDeviceId(vaultId: string): string {
+  const vault = unlockedVaults.get(vaultId);
+  if (!vault) {
+    throw new Error(`Vault ${vaultId} is not unlocked`);
   }
-  return activeVault.deviceId;
+  return vault.deviceId;
 }
 
 // ============================================================================
 // Setters
 // ============================================================================
 
-export function setActiveVault(vault: UnlockedVault): void {
-  activeVault = vault;
+/**
+ * Unlock a vault (add to unlocked vaults).
+ */
+export function unlockVault(vault: UnlockedVault): void {
+  unlockedVaults.set(vault.vaultId, vault);
 }
 
-export function clearActiveVault(): void {
-  activeVault = null;
-  session = null;
+/**
+ * Lock a vault (remove from unlocked vaults and clear its session).
+ */
+export function lockVault(vaultId: string): void {
+  unlockedVaults.delete(vaultId);
+  sessions.delete(vaultId);
 }
 
-export function setSession(sessionToken: string, expiresAt: number): void {
-  session = { sessionToken, expiresAt };
+/**
+ * Lock all vaults (clear all unlocked vaults and sessions).
+ */
+export function lockAllVaults(): void {
+  unlockedVaults.clear();
+  sessions.clear();
 }
 
-export function clearSession(): void {
-  session = null;
+/**
+ * Set session for a specific vault.
+ */
+export function setSession(
+  vaultId: string,
+  sessionToken: string,
+  expiresAt: number,
+): void {
+  sessions.set(vaultId, { sessionToken, expiresAt });
+}
+
+/**
+ * Clear session for a specific vault.
+ */
+export function clearSession(vaultId: string): void {
+  sessions.delete(vaultId);
 }
 
 // ============================================================================
 // Crypto Helpers
 // ============================================================================
 
-export function encryptPassword(password: string): string {
-  const encryptionKey = getEncryptionKey();
+/**
+ * Encrypt a password using a specific vault's encryption key.
+ */
+export function encryptPassword(vaultId: string, password: string): string {
+  const encryptionKey = getEncryptionKey(vaultId);
   return libEncryptPassword(password, encryptionKey);
 }
 
-export function decryptPassword(encryptedPasswordHex: string): string {
-  const encryptionKey = getEncryptionKey();
+/**
+ * Decrypt a password using a specific vault's encryption key.
+ */
+export function decryptPassword(
+  vaultId: string,
+  encryptedPasswordHex: string,
+): string {
+  const encryptionKey = getEncryptionKey(vaultId);
   return libDecryptPassword(encryptedPasswordHex, encryptionKey);
+}
+
+// ============================================================================
+// Backward Compatibility (DEPRECATED - to be removed after migration)
+// ============================================================================
+
+/**
+ * @deprecated Use getUnlockedVault(vaultId) instead
+ * Get the first unlocked vault (for backward compatibility during migration).
+ */
+export function getActiveVault(): UnlockedVault | null {
+  const firstKey = unlockedVaults.keys().next().value;
+  if (firstKey === undefined) return null;
+  return unlockedVaults.get(firstKey) ?? null;
+}
+
+/**
+ * @deprecated Use unlockVault(vault) instead
+ * Set the active vault (for backward compatibility during migration).
+ */
+export function setActiveVault(vault: UnlockedVault): void {
+  unlockVault(vault);
+}
+
+/**
+ * @deprecated Use lockVault(vaultId) instead
+ * Clear the active vault (for backward compatibility during migration).
+ */
+export function clearActiveVault(): void {
+  // This clears ALL vaults - deprecated behavior
+  lockAllVaults();
 }

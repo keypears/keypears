@@ -18,11 +18,8 @@ import { initDb } from "~app/db";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
-import { setActiveVault, setSession } from "~app/lib/vault-store";
-import {
-  setCurrentVaultId,
-  refreshSyncState,
-} from "~app/contexts/sync-context";
+import { unlockVault, setSession } from "~app/lib/vault-store";
+import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 
 export default function ImportVault() {
@@ -143,13 +140,13 @@ export default function ImportVault() {
       );
       console.log("Vault saved to database with ID:", vault.id);
 
-      // 12. Store session in vault store
+      // 12. Store session in vault store (now requires vaultId)
       console.log("\n--- Step 12: Store Session ---");
-      setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+      setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
 
-      // 13. Set active vault in vault store
-      console.log("\n--- Step 13: Set Active Vault ---");
-      setActiveVault({
+      // 13. Unlock vault in vault store
+      console.log("\n--- Step 13: Unlock Vault ---");
+      unlockVault({
         vaultId: vault.id,
         vaultName: vault.name,
         vaultDomain: vault.domain,
@@ -164,18 +161,17 @@ export default function ImportVault() {
         deviceDescription,
       });
 
-      // 14. Set up sync state tracking
+      // 14. Refresh sync state for this vault
       console.log("\n--- Step 14: Set up Sync State ---");
-      setCurrentVaultId(vault.id);
-      refreshSyncState();
+      await refreshSyncState(vault.id);
 
-      // 15. Start background sync
+      // 15. Start background sync for this vault
       console.log("\n--- Step 15: Start Background Sync ---");
       startBackgroundSync(
         vault.id,
         vault.domain,
         vaultKey,
-        refreshSyncState, // onSyncComplete callback
+        () => refreshSyncState(vault.id), // onSyncComplete callback
       );
 
       console.log("\n=== Import Vault Complete ===\n");

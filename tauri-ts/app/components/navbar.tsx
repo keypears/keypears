@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, href } from "react-router";
 import { Menu, ArrowLeft } from "lucide-react";
 import { Button } from "~app/components/ui/button";
@@ -8,32 +8,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~app/components/ui/sheet";
-import { getActiveVault, type UnlockedVault } from "~app/lib/vault-store";
+import { getUnlockedVault } from "~app/lib/vault-store";
 import { UserMenu } from "./user-menu";
 
 interface NavbarProps {
   showBackButton?: boolean;
+  /**
+   * If provided, shows the vault info and user menu in the navbar.
+   * Only pass this when on a vault sub-page (e.g., /vault/:vaultId/secrets).
+   */
+  vaultId?: string;
 }
 
-// Poll interval for checking vault state
-const VAULT_POLL_INTERVAL = 500; // 500ms
-
-export function Navbar({ showBackButton = false }: NavbarProps) {
+export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const [activeVault, setActiveVault] = useState<UnlockedVault | null>(() =>
-    getActiveVault()
-  );
 
-  // Poll vault-store for state changes (handles lock/unlock without React context)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentVault = getActiveVault();
-      setActiveVault(currentVault);
-    }, VAULT_POLL_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Get vault info if vaultId is provided and vault is unlocked
+  const vault = vaultId ? getUnlockedVault(vaultId) : null;
 
   return (
     <>
@@ -61,19 +53,19 @@ export function Navbar({ showBackButton = false }: NavbarProps) {
             )}
           </div>
 
-          {/* Right: Vault Info + Avatar (if unlocked) */}
+          {/* Right: Vault Info + User Menu (only if on a vault page with unlocked vault) */}
           <div className="flex items-center gap-2">
-            {activeVault && (
+            {vault && vaultId && (
               <>
                 <Link
                   to={href("/vault/:vaultId/secrets", {
-                    vaultId: activeVault.vaultId,
+                    vaultId: vault.vaultId,
                   })}
                   className="text-foreground hover:text-primary font-mono text-sm transition-colors"
                 >
-                  {activeVault.vaultName}@{activeVault.vaultDomain}
+                  {vault.vaultName}@{vault.vaultDomain}
                 </Link>
-                <UserMenu />
+                <UserMenu vaultId={vaultId} />
               </>
             )}
           </div>

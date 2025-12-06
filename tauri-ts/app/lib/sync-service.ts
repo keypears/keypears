@@ -5,24 +5,27 @@ import { getSession, isSessionExpiringSoon } from "./vault-store";
 
 /**
  * Background sync service that runs independently of React rendering.
- * Polls server every 5 seconds and syncs vault data to local SQLite database.
+ * Supports multiple vaults syncing simultaneously.
+ * Each vault polls its server every 5 seconds and syncs data to local SQLite database.
  */
 
-interface VaultConfig {
+interface VaultSyncConfig {
   vaultId: string;
   vaultDomain: string;
   vaultKey: FixedBuf<32>;
   onSyncComplete?: () => void;
 }
 
-// Sync state management
-let syncIntervalId: number | null = null;
-let currentVaultConfig: VaultConfig | null = null;
+interface VaultSyncState {
+  config: VaultSyncConfig;
+  intervalId: number;
+  consecutiveServerErrors: number;
+  lastErrorStatus: number | null;
+  lastErrorMessage: string | null;
+}
 
-// Error tracking for exponential backoff
-let consecutiveServerErrors = 0;
-let lastErrorStatus: number | null = null;
-let lastErrorMessage: string | null = null;
+// Sync state management - Maps keyed by vaultId
+const vaultSyncStates: Map<string, VaultSyncState> = new Map();
 
 // Constants for sync intervals
 const NORMAL_SYNC_INTERVAL = 5000; // 5 seconds
@@ -30,9 +33,7 @@ const MAX_BACKOFF_INTERVAL = 20000; // 20 seconds
 
 /**
  * Start background sync polling for a vault.
- * Only one vault can be synced at a time.
- *
- * Session info is obtained from the global vault-store module.
+ * Multiple vaults can sync simultaneously.
  *
  * @param onSyncComplete - Optional callback called after each successful sync
  */
@@ -42,168 +43,193 @@ export function startBackgroundSync(
   vaultKey: FixedBuf<32>,
   onSyncComplete?: () => void,
 ): void {
-  // Stop any existing sync
-  stopBackgroundSync();
+  // Stop any existing sync for this vault
+  stopBackgroundSync(vaultId);
 
-  // Store vault config
-  currentVaultConfig = {
+  const config: VaultSyncConfig = {
     vaultId,
     vaultDomain,
     vaultKey,
     onSyncComplete,
   };
 
-  // Reset error tracking
-  consecutiveServerErrors = 0;
-  lastErrorStatus = null;
-  lastErrorMessage = null;
-
   // Start polling every 5 seconds
-  syncIntervalId = window.setInterval(() => {
-    performSync();
+  const intervalId = window.setInterval(() => {
+    performSync(vaultId);
   }, NORMAL_SYNC_INTERVAL);
 
+  // Store sync state
+  vaultSyncStates.set(vaultId, {
+    config,
+    intervalId,
+    consecutiveServerErrors: 0,
+    lastErrorStatus: null,
+    lastErrorMessage: null,
+  });
+
   // Perform initial sync immediately
-  performSync();
+  performSync(vaultId);
 }
 
 /**
- * Stop background sync polling.
+ * Stop background sync polling for a specific vault.
  */
-export function stopBackgroundSync(): void {
-  if (syncIntervalId !== null) {
-    clearInterval(syncIntervalId);
-    syncIntervalId = null;
+export function stopBackgroundSync(vaultId: string): void {
+  const state = vaultSyncStates.get(vaultId);
+  if (state) {
+    clearInterval(state.intervalId);
+    vaultSyncStates.delete(vaultId);
   }
-  currentVaultConfig = null;
-  consecutiveServerErrors = 0;
-  lastErrorStatus = null;
-  lastErrorMessage = null;
 }
 
 /**
- * Trigger an immediate manual sync (used after creating/editing secrets).
+ * Stop background sync polling for all vaults.
+ */
+export function stopAllBackgroundSync(): void {
+  for (const [vaultId] of vaultSyncStates) {
+    stopBackgroundSync(vaultId);
+  }
+}
+
+/**
+ * Check if a vault is currently syncing.
+ */
+export function isVaultSyncing(vaultId: string): boolean {
+  return vaultSyncStates.has(vaultId);
+}
+
+/**
+ * Trigger an immediate manual sync for a specific vault.
  * Returns a promise that resolves when sync completes.
  */
-export async function triggerManualSync(): Promise<void> {
-  await performSync();
+export async function triggerManualSync(vaultId: string): Promise<void> {
+  await performSync(vaultId);
 }
 
 /**
- * Calculate backoff delay based on consecutive errors
+ * Calculate backoff delay based on consecutive errors for a vault.
  */
-function getBackoffDelay(): number {
-  if (consecutiveServerErrors === 0) {
+function getBackoffDelay(vaultId: string): number {
+  const state = vaultSyncStates.get(vaultId);
+  if (!state || state.consecutiveServerErrors === 0) {
     return NORMAL_SYNC_INTERVAL;
   }
   // Exponential backoff: 5s -> 10s -> 20s -> 20s (capped)
   const delay = Math.min(
-    NORMAL_SYNC_INTERVAL * Math.pow(2, consecutiveServerErrors),
-    MAX_BACKOFF_INTERVAL
+    NORMAL_SYNC_INTERVAL * Math.pow(2, state.consecutiveServerErrors),
+    MAX_BACKOFF_INTERVAL,
   );
   return delay;
 }
 
 /**
- * Internal function that performs the actual sync operation.
+ * Internal function that performs the actual sync operation for a vault.
  */
-async function performSync(): Promise<void> {
-  if (!currentVaultConfig) {
+async function performSync(vaultId: string): Promise<void> {
+  const state = vaultSyncStates.get(vaultId);
+  if (!state) {
     return;
   }
 
+  const { config } = state;
+
   try {
-    // Get current session from vault-store
-    const session = getSession();
+    // Get current session for this vault from vault-store
+    const session = getSession(vaultId);
     if (!session) {
       // No session token available, skip sync
-      if (lastErrorMessage !== "no-session") {
-        console.warn("Background sync skipped: no session token");
-        lastErrorMessage = "no-session";
+      if (state.lastErrorMessage !== "no-session") {
+        console.warn(`Background sync skipped for vault ${vaultId}: no session token`);
+        state.lastErrorMessage = "no-session";
       }
       return;
     }
 
     // Check if session is expiring soon
-    if (isSessionExpiringSoon()) {
-      if (lastErrorMessage !== "session-expiring") {
+    if (isSessionExpiringSoon(vaultId)) {
+      if (state.lastErrorMessage !== "session-expiring") {
         console.warn(
-          `Background sync skipped: session expiring soon (expires at ${new Date(
-            session.expiresAt
-          ).toISOString()})`
+          `Background sync skipped for vault ${vaultId}: session expiring soon (expires at ${new Date(
+            session.expiresAt,
+          ).toISOString()})`,
         );
-        lastErrorMessage = "session-expiring";
+        state.lastErrorMessage = "session-expiring";
       }
       return;
     }
 
     // Create authenticated API client
-    const authedClient = await createClientFromDomain(
-      currentVaultConfig.vaultDomain,
-      { sessionToken: session.sessionToken },
-    );
+    const authedClient = await createClientFromDomain(config.vaultDomain, {
+      sessionToken: session.sessionToken,
+    });
 
     // Sync vault (updates SQLite database)
-    await syncVault(
-      currentVaultConfig.vaultId,
-      currentVaultConfig.vaultKey,
-      authedClient,
-    );
+    await syncVault(config.vaultId, config.vaultKey, authedClient);
 
     // Sync completed successfully - reset error tracking
-    if (consecutiveServerErrors > 0 || lastErrorStatus !== null) {
-      console.log("Background sync recovered successfully");
+    if (state.consecutiveServerErrors > 0 || state.lastErrorStatus !== null) {
+      console.log(`Background sync recovered successfully for vault ${vaultId}`);
     }
-    consecutiveServerErrors = 0;
-    lastErrorStatus = null;
-    lastErrorMessage = null;
+    state.consecutiveServerErrors = 0;
+    state.lastErrorStatus = null;
+    state.lastErrorMessage = null;
 
     // Notify listeners that sync completed
-    if (currentVaultConfig?.onSyncComplete) {
-      currentVaultConfig.onSyncComplete();
+    if (config.onSyncComplete) {
+      config.onSyncComplete();
     }
-
   } catch (error) {
-    handleSyncError(error);
+    handleSyncError(vaultId, error);
   }
 }
 
 /**
- * Handle sync errors with appropriate logging and backoff strategy
+ * Handle sync errors with appropriate logging and backoff strategy.
  */
-function handleSyncError(error: unknown): void {
+function handleSyncError(vaultId: string, error: unknown): void {
+  const state = vaultSyncStates.get(vaultId);
+  if (!state) {
+    return;
+  }
+
   // Extract error details
-  const errorObj = error as { status?: number; response?: { status?: number }; message?: string };
+  const errorObj = error as {
+    status?: number;
+    response?: { status?: number };
+    message?: string;
+  };
   const status = errorObj?.status || errorObj?.response?.status || null;
   const message = errorObj?.message || "Unknown error";
 
   // Determine error type and handle appropriately
   if (status === 401) {
-    // Session invalid/expired - stop syncing
-    console.error("Background sync stopped: Session invalid or expired (401)");
-    stopBackgroundSync();
+    // Session invalid/expired - stop syncing this vault
+    console.error(
+      `Background sync stopped for vault ${vaultId}: Session invalid or expired (401)`,
+    );
+    stopBackgroundSync(vaultId);
     // Could emit an event here for UI to handle re-authentication
     return;
   }
 
   if (status !== null && status >= 500 && status <= 599) {
     // Server error - apply exponential backoff
-    consecutiveServerErrors++;
-    const backoffDelay = getBackoffDelay();
+    state.consecutiveServerErrors++;
+    const backoffDelay = getBackoffDelay(vaultId);
 
-    if (lastErrorStatus !== status) {
+    if (state.lastErrorStatus !== status) {
       console.error(
-        `Background sync server error (${status}): ${message}. ` +
-        `Backing off to ${backoffDelay / 1000}s interval.`
+        `Background sync server error for vault ${vaultId} (${status}): ${message}. ` +
+          `Backing off to ${backoffDelay / 1000}s interval.`,
       );
-      lastErrorStatus = status;
+      state.lastErrorStatus = status;
     }
 
     // Reschedule with backoff if needed
-    if (backoffDelay > NORMAL_SYNC_INTERVAL && syncIntervalId !== null) {
-      clearInterval(syncIntervalId);
-      syncIntervalId = window.setInterval(() => {
-        performSync();
+    if (backoffDelay > NORMAL_SYNC_INTERVAL) {
+      clearInterval(state.intervalId);
+      state.intervalId = window.setInterval(() => {
+        performSync(vaultId);
       }, backoffDelay);
     }
     return;
@@ -211,39 +237,41 @@ function handleSyncError(error: unknown): void {
 
   if (status !== null && status >= 400 && status < 500) {
     // Client error (not 401) - log but continue with normal interval
-    if (lastErrorStatus !== status) {
+    if (state.lastErrorStatus !== status) {
       console.error(
-        `Background sync client error (${status}): ${message}. ` +
-        `Continuing with normal sync interval.`
+        `Background sync client error for vault ${vaultId} (${status}): ${message}. ` +
+          `Continuing with normal sync interval.`,
       );
-      lastErrorStatus = status;
+      state.lastErrorStatus = status;
     }
     return;
   }
 
   // Network or other error - log but continue
   if (status === null) {
-    if (lastErrorMessage !== message) {
+    if (state.lastErrorMessage !== message) {
       console.error(
-        `Background sync network error: ${message}. ` +
-        `Will retry at normal interval.`
+        `Background sync network error for vault ${vaultId}: ${message}. ` +
+          `Will retry at normal interval.`,
       );
-      lastErrorMessage = message;
+      state.lastErrorMessage = message;
     }
   } else {
     // Unknown error with status
-    console.error(`Background sync error (${status}): ${message}`);
+    console.error(
+      `Background sync error for vault ${vaultId} (${status}): ${message}`,
+    );
   }
 
   // For non-server errors, reset consecutive error count
   if (status === null || status < 500 || status > 599) {
-    consecutiveServerErrors = 0;
+    state.consecutiveServerErrors = 0;
 
     // Reset to normal interval if we had backoff
-    if (syncIntervalId !== null && getBackoffDelay() > NORMAL_SYNC_INTERVAL) {
-      clearInterval(syncIntervalId);
-      syncIntervalId = window.setInterval(() => {
-        performSync();
+    if (getBackoffDelay(vaultId) > NORMAL_SYNC_INTERVAL) {
+      clearInterval(state.intervalId);
+      state.intervalId = window.setInterval(() => {
+        performSync(vaultId);
       }, NORMAL_SYNC_INTERVAL);
     }
   }
