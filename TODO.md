@@ -287,12 +287,12 @@ For each file, verify:
 
 **Audit checklist (see audit.md for details):**
 
-- [ ] 6.1 General Software Best Practices
-- [ ] 6.2 Third-Party Tools & Dependencies
-- [ ] 6.3 Security Assessment
-- [ ] 6.4 Scalability
-- [ ] 6.5 UI/UX Consistency
-- [ ] 6.6 File-Specific Checks
+- [x] 6.1 General Software Best Practices
+- [x] 6.2 Third-Party Tools & Dependencies
+- [x] 6.3 Security Assessment
+- [x] 6.4 Scalability
+- [x] 6.5 UI/UX Consistency
+- [x] 6.6 File-Specific Checks
 
 ---
 
