@@ -18,7 +18,6 @@ import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { useState, useEffect } from "react";
 import { getActiveVault } from "~app/lib/vault-store";
-import { cn } from "~app/lib/utils";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   await initDb();
@@ -119,14 +118,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                         }
                         className="flex flex-1 items-center gap-3"
                       >
-                        <div
-                          className={cn(
-                            "rounded-full p-2",
-                            isUnlocked ? "bg-green-500/10" : "bg-primary/10"
-                          )}
-                        >
+                        <div className="bg-primary/10 rounded-full p-2">
                           {isUnlocked ? (
-                            <LockOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <LockOpen className="text-primary h-4 w-4" />
                           ) : (
                             <Lock className="text-primary h-4 w-4" />
                           )}
