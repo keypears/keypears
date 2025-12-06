@@ -108,10 +108,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 return (
                   <div
                     key={vault.id}
-                    className={cn(
-                      "border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors",
-                      isUnlocked && "border-l-4 border-l-green-500"
-                    )}
+                    className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <Link
