@@ -1,6 +1,6 @@
 import type { Route } from "./+types/_index";
 import { Link, href } from "react-router";
-import { Lock, X } from "lucide-react";
+import { Lock, LockOpen, X } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
@@ -17,6 +17,8 @@ import {
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { useState, useEffect } from "react";
+import { getActiveVault } from "~app/lib/vault-store";
+import { cn } from "~app/lib/utils";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   await initDb();
@@ -24,14 +26,30 @@ export async function clientLoader(_args: Route.ClientLoaderArgs) {
   return { vaults };
 }
 
+// Poll interval for checking vault state
+const VAULT_POLL_INTERVAL = 500; // 500ms
+
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
   const [vaults, setVaults] = useState(loaderData.vaults);
   const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
+  const [activeVaultId, setActiveVaultId] = useState<string | null>(() =>
+    getActiveVault()?.vaultId ?? null
+  );
 
   // Sync local state with loaderData when it changes
   useEffect(() => {
     setVaults(loaderData.vaults);
   }, [loaderData.vaults]);
+
+  // Poll vault-store for active vault changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentVault = getActiveVault();
+      setActiveVaultId(currentVault?.vaultId ?? null);
+    }, VAULT_POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDelete = async () => {
     if (!vaultToDelete) return;
@@ -85,42 +103,68 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
           ) : (
             /* Vault List */
             <div className="space-y-3">
-              {vaults.map((vault) => (
-                <div
-                  key={vault.id}
-                  className="border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to={href("/unlock-vault/:vaultId", { vaultId: vault.id })}
-                      className="flex flex-1 items-center gap-3"
-                    >
-                      <div className="bg-primary/10 rounded-full p-2">
-                        <Lock className="text-primary h-4 w-4" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">
-                          {vault.name}@{vault.domain}
-                        </h3>
-                        <p className="text-muted-foreground font-mono text-xs">
-                          {vault.id.slice(0, 8)}
-                        </p>
-                      </div>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Delete vault"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setVaultToDelete(vault);
-                      }}
-                    >
-                      <X size={20} />
-                    </Button>
+              {vaults.map((vault) => {
+                const isUnlocked = vault.id === activeVaultId;
+                return (
+                  <div
+                    key={vault.id}
+                    className={cn(
+                      "border-border bg-card hover:bg-accent rounded-lg border p-4 transition-colors",
+                      isUnlocked && "border-l-4 border-l-green-500"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={
+                          isUnlocked
+                            ? href("/vault/:vaultId/secrets", { vaultId: vault.id })
+                            : href("/unlock-vault/:vaultId", { vaultId: vault.id })
+                        }
+                        className="flex flex-1 items-center gap-3"
+                      >
+                        <div
+                          className={cn(
+                            "rounded-full p-2",
+                            isUnlocked ? "bg-green-500/10" : "bg-primary/10"
+                          )}
+                        >
+                          {isUnlocked ? (
+                            <LockOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Lock className="text-primary h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">
+                              {vault.name}@{vault.domain}
+                            </h3>
+                            {isUnlocked && (
+                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                Unlocked
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-muted-foreground font-mono text-xs">
+                            {vault.id.slice(0, 8)}
+                          </p>
+                        </div>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Delete vault"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setVaultToDelete(vault);
+                        }}
+                      >
+                        <X size={20} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
