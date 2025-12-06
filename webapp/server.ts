@@ -1,7 +1,3 @@
-// DEBUG: Log dotenvx private key info before anything else
-console.log("DOTENV_PRIVATE_KEY_PRODUCTION length:", process.env.DOTENV_PRIVATE_KEY_PRODUCTION?.length);
-console.log("DOTENV_PRIVATE_KEY_PRODUCTION first 4 chars:", process.env.DOTENV_PRIVATE_KEY_PRODUCTION?.slice(0, 4));
-
 import compression from "compression";
 import cors from "cors";
 import express from "express";

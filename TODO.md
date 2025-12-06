@@ -232,7 +232,7 @@ For each file, verify:
 
 **Audit checklist (see audit.md for details):**
 
-- [ ] 3.1 General Software Best Practices
+- [x] 3.1 General Software Best Practices
 - [ ] 3.2 Third-Party Tools & Dependencies
 - [ ] 3.3 Security Assessment
 - [ ] 3.4 Scalability
