@@ -213,12 +213,12 @@ For each file, verify:
 
 **Audit checklist (see audit.md for details):**
 
-- [ ] 2.1 General Software Best Practices
-- [ ] 2.2 Third-Party Tools & Dependencies
-- [ ] 2.3 Security Assessment
-- [ ] 2.4 Scalability
-- [ ] 2.5 UI/UX Consistency
-- [ ] 2.6 File-Specific Checks
+- [x] 2.1 General Software Best Practices
+- [x] 2.2 Third-Party Tools & Dependencies
+- [x] 2.3 Security Assessment
+- [x] 2.4 Scalability
+- [x] 2.5 UI/UX Consistency
+- [x] 2.6 File-Specific Checks
 
 #### 3. @keypears/webapp (webapp/)
 
