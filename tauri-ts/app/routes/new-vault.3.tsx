@@ -19,6 +19,9 @@ import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
+import { setActiveVault, setSession } from "~app/lib/vault-store";
+import { setCurrentVaultId, refreshSyncState } from "~app/contexts/sync-context";
+import { startBackgroundSync } from "~app/lib/sync-service";
 
 export default function NewVaultStep3() {
   const location = useLocation();
@@ -33,6 +36,7 @@ export default function NewVaultStep3() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
   const [passwordEntropy, setPasswordEntropy] = useState(0);
+  const [createdVaultId, setCreatedVaultId] = useState<string | null>(null);
   const hasRun = useRef(false);
 
   // Redirect to step 1 if missing previous state
@@ -169,6 +173,51 @@ export default function NewVaultStep3() {
         console.log("Vault saved to database with ID:", vault.id);
         console.log("Vault PubKeyHash:", vault.vaultPubKeyHash);
 
+        // 11. Login to get session token
+        console.log("\n--- Step 11: Login to Get Session Token ---");
+        const loginResponse = await client.api.login({
+          vaultId: vault.id,
+          loginKey: loginKeyHex,
+          deviceId,
+          clientDeviceDescription: deviceDescription,
+        });
+        console.log("Login successful, session expires at:", loginResponse.expiresAt);
+
+        // 12. Set session in vault-store
+        console.log("\n--- Step 12: Set Session ---");
+        setSession(loginResponse.sessionToken, loginResponse.expiresAt);
+
+        // 13. Set active vault with all derived keys
+        console.log("\n--- Step 13: Set Active Vault ---");
+        setActiveVault({
+          vaultId: vault.id,
+          vaultName,
+          vaultDomain,
+          passwordKey,
+          encryptionKey,
+          loginKey,
+          vaultKey,
+          vaultPublicKey,
+          encryptedVaultKey: encryptedVaultKey.toHex(),
+          vaultPubKeyHash: vaultPubKeyHash.buf.toHex(),
+          deviceId,
+          deviceDescription,
+        });
+
+        // 14. Set current vault ID for sync context and refresh state
+        console.log("\n--- Step 14: Initialize Sync Context ---");
+        setCurrentVaultId(vault.id);
+        await refreshSyncState();
+
+        // 15. Start background sync
+        console.log("\n--- Step 15: Start Background Sync ---");
+        startBackgroundSync(vault.id, vaultDomain, vaultKey, () => {
+          refreshSyncState();
+        });
+
+        // Store created vault ID for navigation
+        setCreatedVaultId(vault.id);
+
         console.log("\n=== Vault Creation Complete ===\n");
       } catch (err) {
         console.error("Error creating vault:", err);
@@ -195,7 +244,11 @@ export default function NewVaultStep3() {
   }
 
   const handleContinue = () => {
-    navigate(href("/"));
+    if (createdVaultId) {
+      navigate(href("/vault/:vaultId/secrets", { vaultId: createdVaultId }));
+    } else {
+      navigate(href("/"));
+    }
   };
 
   return (
