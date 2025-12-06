@@ -17,7 +17,7 @@ import {
 import { createVault } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 
 export default function NewVaultStep3() {
@@ -128,7 +128,7 @@ export default function NewVaultStep3() {
         console.log("loginKey value:", loginKeyHex);
         console.log("(Server will KDF login key with 1k rounds)");
 
-        const client = await createApiClient(vaultDomain);
+        const client = await createClientFromDomain(vaultDomain);
         console.log("Calling registerVault with:", {
           vaultId,
           name: vaultName,

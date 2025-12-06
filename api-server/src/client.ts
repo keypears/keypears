@@ -4,14 +4,40 @@ import { RPCLink } from "@orpc/client/fetch";
 import type { router } from "./index.js";
 import {
   validateKeypearsServer,
+  fetchKeypearsJson,
   type ServerValidationResult,
 } from "./validation.js";
+import { buildBaseUrl } from "@keypears/lib";
 
 // Re-export schemas for client convenience
 export * from "./zod-schemas.js";
 
 // Re-export domain utilities for client convenience
 export { buildServerUrl } from "@keypears/lib";
+
+// ============================================================================
+// API URL Cache
+// ============================================================================
+
+/**
+ * Cache for discovered API URLs (domain -> apiUrl)
+ * This avoids fetching .well-known/keypears.json on every client creation
+ */
+const apiUrlCache = new Map<string, string>();
+
+/**
+ * Clear the API URL cache for a specific domain or all domains.
+ * Useful for testing or after encountering errors.
+ *
+ * @param domain - Optional domain to clear. If not provided, clears all cached URLs.
+ */
+export function clearApiUrlCache(domain?: string): void {
+  if (domain) {
+    apiUrlCache.delete(domain);
+  } else {
+    apiUrlCache.clear();
+  }
+}
 
 export interface ClientConfig {
   url?: string;
@@ -102,3 +128,86 @@ export function createClient(config?: ClientConfig): {
  * Structure: { api: RouterClient, validateServer: () => Promise<...> }
  */
 export type KeypearsClient = ReturnType<typeof createClient>;
+
+// ============================================================================
+// Domain-based Client Creation
+// ============================================================================
+
+export interface ClientFromDomainOptions {
+  /**
+   * Session token for authenticated requests.
+   * This is the 64-character hex token returned from the login procedure.
+   */
+  sessionToken?: string;
+
+  /**
+   * Timeout for fetching .well-known/keypears.json in milliseconds.
+   * Default: 5000ms
+   */
+  timeout?: number;
+}
+
+/**
+ * Create a KeyPears client from a domain name.
+ *
+ * This is the recommended way to create a client when you know the domain
+ * (e.g., "keypears.com") but not the API URL. The function automatically
+ * discovers the API URL by fetching .well-known/keypears.json.
+ *
+ * The discovered API URL is cached to avoid repeated fetches.
+ *
+ * @param domain - The KeyPears domain (e.g., "keypears.com", "keypears.localhost")
+ * @param options - Optional configuration
+ * @param options.sessionToken - Session token for authenticated requests
+ * @param options.timeout - Timeout for discovery in milliseconds (default: 5000)
+ * @returns Promise resolving to a KeypearsClient
+ * @throws Error if the server cannot be reached or is not a valid KeyPears server
+ *
+ * @example
+ * ```typescript
+ * // Unauthenticated client (for login, registration, public endpoints)
+ * const client = await createClientFromDomain("keypears.com");
+ * const vaultInfo = await client.api.getVaultInfoPublic({ name: "alice", domain: "keypears.com" });
+ *
+ * // Authenticated client (after login)
+ * const authedClient = await createClientFromDomain("keypears.com", {
+ *   sessionToken: loginResponse.sessionToken
+ * });
+ * await authedClient.api.pushSecretUpdate({ ... });
+ * ```
+ */
+export async function createClientFromDomain(
+  domain: string,
+  options: ClientFromDomainOptions = {},
+): Promise<KeypearsClient> {
+  const { sessionToken, timeout } = options;
+
+  // Check cache first
+  let apiUrl = apiUrlCache.get(domain);
+
+  if (!apiUrl) {
+    // Discover API URL via .well-known/keypears.json
+    const baseUrl = buildBaseUrl(domain);
+    const result = await fetchKeypearsJson(baseUrl, { timeout });
+
+    if (!result.success) {
+      // Provide user-friendly error message with domain context
+      throw new Error(`${result.error} (${domain})`);
+    }
+
+    apiUrl = result.apiUrl;
+    apiUrlCache.set(domain, apiUrl);
+  }
+
+  // Build headers with session token if provided
+  const headers: Record<string, string> = {};
+  if (sessionToken) {
+    headers["X-Vault-Session-Token"] = sessionToken;
+  }
+
+  // Create and return the client
+  return createClient({
+    url: apiUrl,
+    ...(Object.keys(headers).length > 0 && { headers }),
+  });
+}

@@ -15,7 +15,7 @@ import {
 } from "@keypears/lib";
 import { createVault, getVaultByNameAndDomain } from "~app/db/models/vault";
 import { initDb } from "~app/db";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { setActiveVault, setSession } from "~app/lib/vault-store";
@@ -64,7 +64,7 @@ export default function ImportVault() {
       // 1. Call server to get vault info first (to get vaultId)
       console.log("\n--- Step 1: Get Vault Info from Server (Public) ---");
       // Use temporary client without auth to get vault ID
-      const tempClient = await createApiClient(domain);
+      const tempClient = await createClientFromDomain(domain);
       const vaultInfo = await tempClient.api.getVaultInfoPublic({ name, domain });
       const vaultId = vaultInfo.vaultId;
       console.log("Vault ID:", vaultId);
@@ -99,7 +99,7 @@ export default function ImportVault() {
 
       // 6. Login to get session token
       console.log("\n--- Step 6: Login to Get Session ---");
-      const apiClient = await createApiClient(domain);
+      const apiClient = await createClientFromDomain(domain);
       const loginResponse = await apiClient.api.login({
         vaultId,
         loginKey: loginKey.buf.toHex(),
@@ -110,7 +110,7 @@ export default function ImportVault() {
 
       // 7. Verify vault info with session auth
       console.log("\n--- Step 7: Verify Vault with Session ---");
-      const authedClient = await createApiClient(domain, loginResponse.sessionToken);
+      const authedClient = await createClientFromDomain(domain, { sessionToken: loginResponse.sessionToken });
       await authedClient.api.getVaultInfo({ name, domain });
       console.log("Vault verified with session authentication");
 

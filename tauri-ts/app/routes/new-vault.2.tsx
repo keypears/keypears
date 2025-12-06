@@ -6,7 +6,7 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema, getOfficialDomains } from "@keypears/lib";
 import { ZodError } from "zod";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 
 export default function NewVaultStep2() {
   const location = useLocation();
@@ -88,7 +88,7 @@ export default function NewVaultStep2() {
 
     try {
       // Call API endpoint to check availability
-      const client = await createApiClient(domain);
+      const client = await createClientFromDomain(domain);
       const result = await client.api.checkNameAvailability({ name, domain });
       setNameAvailable(result.available);
     } catch (error) {

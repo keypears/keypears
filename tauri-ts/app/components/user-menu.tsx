@@ -17,7 +17,7 @@ import {
   type UnlockedVault,
 } from "~app/lib/vault-store";
 import { useSyncState } from "~app/contexts/sync-context";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 import { stopBackgroundSync } from "~app/lib/sync-service";
 
 // Poll interval for checking vault state
@@ -49,7 +49,7 @@ export function UserMenu() {
       // Step 1: Call /api/logout to invalidate session on server
       const sessionToken = getSessionToken();
       if (sessionToken) {
-        const apiClient = await createApiClient(activeVault.vaultDomain, sessionToken);
+        const apiClient = await createClientFromDomain(activeVault.vaultDomain, { sessionToken });
         await apiClient.api.logout({ sessionToken });
       }
 

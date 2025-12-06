@@ -14,7 +14,7 @@ import {
   getSessionToken,
 } from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { insertSecretUpdatesFromSync } from "~app/db/models/password";
 import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
@@ -103,10 +103,9 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
 
       // Create authenticated API client with session token
       const sessionToken = getSessionToken();
-      const authedClient = await createApiClient(
-        vaultDomain,
-        sessionToken || undefined,
-      );
+      const authedClient = await createClientFromDomain(vaultDomain, {
+        sessionToken: sessionToken || undefined,
+      });
 
       // Get vault key for encryption
       const vaultKey = getVaultKey();

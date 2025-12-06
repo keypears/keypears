@@ -24,7 +24,7 @@ import {
   generateDeviceId,
   detectDeviceDescription,
 } from "~app/lib/device";
-import { createApiClient } from "~app/lib/api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
@@ -111,7 +111,7 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
       }
 
       // Step 3: Call /api/login to create session
-      const apiClient = await createApiClient(vault.domain);
+      const apiClient = await createClientFromDomain(vault.domain);
       const loginResponse = await apiClient.api.login({
         vaultId: vault.id,
         loginKey: result.loginKey.buf.toHex(),

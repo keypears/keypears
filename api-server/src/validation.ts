@@ -4,11 +4,118 @@
 import { KeypearsJsonSchema } from "@keypears/lib";
 import { ZodError } from "zod";
 
+/**
+ * Result of fetching and parsing keypears.json
+ */
+export type KeypearsJsonResult =
+  | {
+      success: true;
+      version: number;
+      apiUrl: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 export interface ServerValidationResult {
   valid: boolean;
   version?: number;
   apiUrl?: string;
   error?: string;
+}
+
+export interface FetchOptions {
+  timeout?: number | undefined;
+}
+
+/**
+ * Fetches and parses the .well-known/keypears.json file from a server.
+ * This is the core function used by both createClientFromDomain() and validateKeypearsServer().
+ *
+ * @param baseUrl - Base URL of the server (e.g., "https://keypears.com")
+ * @param options - Fetch options
+ * @param options.timeout - Timeout in milliseconds (default: 5000)
+ * @returns Parsed keypears.json data or error
+ */
+export async function fetchKeypearsJson(
+  baseUrl: string,
+  options: FetchOptions = {},
+): Promise<KeypearsJsonResult> {
+  const timeout = options.timeout ?? 5000;
+  const wellKnownUrl = `${baseUrl}/.well-known/keypears.json`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(wellKnownUrl, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: "Not a valid KeyPears server (missing /.well-known/keypears.json)",
+        };
+      }
+
+      if (response.status >= 500) {
+        return {
+          success: false,
+          error: `Server error (HTTP ${response.status})`,
+        };
+      }
+
+      return {
+        success: false,
+        error: `Server returned HTTP ${response.status}`,
+      };
+    }
+
+    const data: unknown = await response.json();
+    const parsed = KeypearsJsonSchema.parse(data);
+
+    return {
+      success: true,
+      version: parsed.version,
+      apiUrl: parsed.apiUrl,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof ZodError) {
+      const firstIssue = error.issues[0];
+      return {
+        success: false,
+        error: `Invalid keypears.json: ${firstIssue?.message ?? "validation failed"}`,
+      };
+    }
+
+    if ((error as Error).name === "AbortError") {
+      return {
+        success: false,
+        error: "Connection timed out",
+      };
+    }
+
+    // Network errors (DNS failure, connection refused, etc.)
+    // These show up as TypeError with messages like "Load failed" or "Failed to fetch"
+    if (error instanceof TypeError) {
+      return {
+        success: false,
+        error: "Cannot connect to server",
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
 
 /**
@@ -33,91 +140,20 @@ export interface ServerValidationResult {
  */
 export async function validateKeypearsServer(
   baseUrl: string,
-  options: { timeout?: number } = {},
+  options: FetchOptions = {},
 ): Promise<ServerValidationResult> {
-  const timeout = options.timeout ?? 5000;
-  const wellKnownUrl = `${baseUrl}/.well-known/keypears.json`;
+  const result = await fetchKeypearsJson(baseUrl, options);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(wellKnownUrl, {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      // 404 = Not a KeyPears server (most common case)
-      if (response.status === 404) {
-        return {
-          valid: false,
-          error:
-            "Not a valid KeyPears server (missing /.well-known/keypears.json)",
-        };
-      }
-
-      // Server errors (500-level)
-      if (response.status >= 500) {
-        return {
-          valid: false,
-          error: `Server error (HTTP ${response.status})`,
-        };
-      }
-
-      // Other HTTP errors
-      return {
-        valid: false,
-        error: `Server returned HTTP ${response.status}`,
-      };
-    }
-
-    const data: unknown = await response.json();
-
-    // Validate with Zod schema
-    const parsed = KeypearsJsonSchema.parse(data);
-
+  if (result.success) {
     return {
       valid: true,
-      version: parsed.version,
-      apiUrl: parsed.apiUrl,
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-
-    // Zod validation errors
-    if (error instanceof ZodError) {
-      const firstIssue = error.issues[0];
-      return {
-        valid: false,
-        error: `Invalid keypears.json: ${firstIssue?.message ?? "validation failed"}`,
-      };
-    }
-
-    // Actual timeout (AbortError from controller.abort())
-    if ((error as Error).name === "AbortError") {
-      return {
-        valid: false,
-        error: "Not a valid KeyPears server (connection failed or blocked)",
-      };
-    }
-
-    // Network errors (DNS failure, connection refused, etc.)
-    if (
-      error instanceof TypeError &&
-      (error.message.includes("fetch") || error.message.includes("Failed"))
-    ) {
-      return {
-        valid: false,
-        error: "Cannot connect to server",
-      };
-    }
-
-    // Unknown errors
-    return {
-      valid: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      version: result.version,
+      apiUrl: result.apiUrl,
     };
   }
+
+  return {
+    valid: false,
+    error: result.error,
+  };
 }

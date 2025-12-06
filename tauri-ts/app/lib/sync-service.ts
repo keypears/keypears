@@ -1,5 +1,5 @@
 import type { FixedBuf } from "@keypears/lib";
-import { createApiClient } from "./api-client";
+import { createClientFromDomain } from "@keypears/api-server/client";
 import { syncVault } from "./sync";
 import { getSession, isSessionExpiringSoon } from "./vault-store";
 
@@ -138,9 +138,9 @@ async function performSync(): Promise<void> {
     }
 
     // Create authenticated API client
-    const authedClient = await createApiClient(
+    const authedClient = await createClientFromDomain(
       currentVaultConfig.vaultDomain,
-      session.sessionToken,
+      { sessionToken: session.sessionToken },
     );
 
     // Sync vault (updates SQLite database)
