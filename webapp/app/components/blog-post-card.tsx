@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { formatDate, type BlogPost } from "~/util/blog";
 
 interface BlogPostCardProps {
@@ -11,7 +11,7 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
     return (
       <div className="space-y-1">
         <Link
-          to={`/blog/${post.slug}`}
+          to={href("/blog/:slug", { slug: post.slug })}
           className="text-lg font-semibold text-primary hover:underline hover:opacity-80 transition-opacity"
         >
           {post.title}
@@ -26,7 +26,7 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
   return (
     <article className="rounded-lg border border-border bg-card p-6 transition-shadow hover:shadow-md">
       <Link
-        to={`/blog/${post.slug}`}
+        to={href("/blog/:slug", { slug: post.slug })}
         className="block space-y-3"
       >
         <h2 className="text-xl font-semibold text-primary hover:underline hover:opacity-80 transition-opacity">
