@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { $aicon } from "~/util/aicons";
 
 export function Footer() {
@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-border py-8">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-4 text-center">
-        <Link to="/" className="inline-block transition-opacity hover:opacity-80">
+        <Link to={href("/")} className="inline-block transition-opacity hover:opacity-80">
           <img
             src={$aicon("/images/keypears-3-96.webp")}
             alt="KeyPears"
@@ -15,19 +15,19 @@ export function Footer() {
           />
         </Link>
         <div className="space-y-2">
-          <Link to="/" className="block font-semibold text-foreground hover:text-primary transition-opacity hover:opacity-80">
+          <Link to={href("/")} className="block font-semibold text-foreground hover:text-primary transition-opacity hover:opacity-80">
             KeyPears
           </Link>
           <div className="flex justify-center gap-2 text-sm text-muted-foreground">
-            <Link to="/about" className="hover:text-primary transition-opacity hover:opacity-80">
+            <Link to={href("/about")} className="hover:text-primary transition-opacity hover:opacity-80">
               About
             </Link>
             <span>·</span>
-            <Link to="/privacy" className="hover:text-primary transition-opacity hover:opacity-80">
+            <Link to={href("/privacy")} className="hover:text-primary transition-opacity hover:opacity-80">
               Privacy
             </Link>
             <span>·</span>
-            <Link to="/terms" className="hover:text-primary transition-opacity hover:opacity-80">
+            <Link to={href("/terms")} className="hover:text-primary transition-opacity hover:opacity-80">
               Terms
             </Link>
           </div>

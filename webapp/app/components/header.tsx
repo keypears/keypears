@@ -1,10 +1,10 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { $aicon } from "~/util/aicons";
 
 export function Header() {
   return (
     <header className="mb-12 text-center">
-      <Link to="/" className="inline-block">
+      <Link to={href("/")} className="inline-block">
         <img
           src={$aicon("/images/keypears-3-300.webp")}
           alt="KeyPears"

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { loadBlogPost, formatDate } from "~/util/blog";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
@@ -36,7 +36,7 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
         <Header />
 
         <Link
-          to="/blog"
+          to={href("/blog")}
           className="mb-8 mt-8 inline-block text-sm text-primary hover:underline"
         >
           ← Back to blog

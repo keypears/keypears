@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
 import { Header } from "~/components/header";
@@ -56,7 +56,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">Recent Posts</h2>
               <Link
-                to="/blog"
+                to={href("/blog")}
                 className="text-primary text-sm transition-opacity hover:underline hover:opacity-80"
               >
                 View all →
