@@ -146,10 +146,10 @@ design - server only sees encrypted data.
 #### Testing & Validation
 
 - [x] Test cross-device sync (create secret on Device A, appears on Device B)
-- [ ] Test offline mode (queue changes, sync when reconnected)
-- [ ] Test conflict resolution (edit same secret on two devices, last write
+- [x] Test offline mode (queue changes, sync when reconnected)
+- [x] Test conflict resolution (edit same secret on two devices, last write
       wins)
-- [ ] Test sync performance (5 second polling interval)
+- [x] Test sync performance (5 second polling interval)
 
 ---
 
