@@ -32,6 +32,8 @@ npm install @webbuf/webbuf @webbuf/fixedbuf @webbuf/sha256 # etc.
 | `@webbuf/aescbc`    | AES-CBC encryption (no authentication)                             |
 | `@webbuf/acb3`      | AES-CBC + BLAKE3 MAC (authenticated encryption)                    |
 | `@webbuf/acb3dh`    | ACB3 + ECDH key exchange                                           |
+| `@webbuf/acs2`      | AES-CBC + SHA-256 HMAC (authenticated encryption)                  |
+| `@webbuf/acs2dh`    | ACS2 + ECDH key exchange                                           |
 
 ---
 
@@ -110,6 +112,12 @@ const key = FixedBuf.alloc<32>(32);                           // 32 zero bytes
 const iv = FixedBuf.alloc<16>(16, 0xff);                      // 16 bytes of 0xff
 const hash = FixedBuf.fromHex<32>(32, "ba7816bf8f01cfea...");  // From hex (must be exactly 32 bytes)
 const random = FixedBuf.fromRandom<32>(32);                   // 32 cryptographically random bytes
+
+// Shortcut
+const key = FixedBuf.alloc(32);                           // 32 zero bytes
+const iv = FixedBuf.alloc(16, 0xff);                      // 16 bytes of 0xff
+const hash = FixedBuf.fromHex(32, "ba7816bf8f01cfea...");  // From hex (must be exactly 32 bytes)
+const random = FixedBuf.fromRandom(32);                   // 32 cryptographically random bytes
 
 // Access underlying WebBuf
 const webBuf: WebBuf = key.buf;
@@ -365,6 +373,52 @@ const ciphertext = acb3dhEncrypt(alicePriv, bobPub, WebBuf.fromUtf8("Hello Bob!"
 const plaintext = acb3dhDecrypt(bobPriv, alicePub, ciphertext);
 ```
 
+### ACS2 - Authenticated Encryption (@webbuf/acs2)
+
+AES-CBC encryption with SHA-256 HMAC authentication. Uses the Encrypt-then-MAC
+pattern for secure authenticated encryption.
+
+```typescript
+import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
+
+const key = FixedBuf.fromRandom<32>(32);
+const plaintext = WebBuf.fromUtf8("Secret message");
+
+// Encrypt (IV generated automatically if not provided)
+const ciphertext = acs2Encrypt(plaintext, key);
+
+// Decrypt with authentication verification
+try {
+  const decrypted = acs2Decrypt(ciphertext, key);
+  // Success - data is authentic
+} catch (e) {
+  // Authentication failed - data was tampered
+}
+```
+
+### ACS2DH - Authenticated Encryption with Key Exchange (@webbuf/acs2dh)
+
+Combines ECDH key derivation with ACS2 encryption. The shared secret is hashed
+with SHA-256 to derive the encryption key.
+
+```typescript
+import { acs2dhEncrypt, acs2dhDecrypt } from "@webbuf/acs2dh";
+import { publicKeyCreate } from "@webbuf/secp256k1";
+
+const alicePriv = FixedBuf.fromRandom<32>(32);
+const alicePub = publicKeyCreate(alicePriv);
+const bobPriv = FixedBuf.fromRandom<32>(32);
+const bobPub = publicKeyCreate(bobPriv);
+
+// Alice encrypts to Bob
+const ciphertext = acs2dhEncrypt(alicePriv, bobPub, WebBuf.fromUtf8("Hello Bob!"));
+
+// Bob decrypts from Alice
+const plaintext = acs2dhDecrypt(bobPriv, alicePub, ciphertext);
+```
+
 ---
 
 ## Common Patterns
@@ -437,8 +491,24 @@ webbuf/
     ├── npm-webbuf-aescbc/      # @webbuf/aescbc
     ├── npm-webbuf-acb3/        # @webbuf/acb3
     ├── npm-webbuf-acb3dh/      # @webbuf/acb3dh
+    ├── npm-webbuf-acs2/        # @webbuf/acs2
+    ├── npm-webbuf-acs2dh/      # @webbuf/acs2dh
     └── npm-webbuf/             # webbuf (re-exports all)
 ```
+
+## Security Audits
+
+The webbuf library undergoes rigorous security auditing to verify correctness of
+all cryptographic implementations. Each package is tested against official test
+vectors, cross-verified with trusted implementations, and checked for proper
+security properties.
+
+| Audit                                      | Date     | Packages | Tests | Bugs Found |
+| ------------------------------------------ | -------- | -------- | ----- | ---------- |
+| [December 2025](./audits/2025-12-audit.md) | Dec 2025 | 13       | 598   | 2 (fixed)  |
+
+For more information about our audit process and methodology, see the
+[audits README](./audits/README.md).
 
 ## License
 
