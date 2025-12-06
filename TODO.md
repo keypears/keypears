@@ -193,7 +193,7 @@ For each file, verify:
 
 **Audit checklist (see audit.md for details):**
 
-- [ ] 1.1 General Software Best Practices
+- [x] 1.1 General Software Best Practices
 - [ ] 1.2 Third-Party Tools & Dependencies
 - [ ] 1.3 Security Assessment
 - [ ] 1.4 Scalability

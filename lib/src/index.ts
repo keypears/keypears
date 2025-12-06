@@ -5,6 +5,12 @@ import { publicKeyCreate } from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
 
+// KDF round constants
+// Client-side derivation uses 100k rounds for computational cost against brute force
+const CLIENT_KDF_ROUNDS = 100_000;
+// Server-side uses 1k rounds (client already did heavy lifting, prevents DoS)
+const SERVER_KDF_ROUNDS = 1_000;
+
 export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
 
 // Re-export publicKeyCreate for deriving public keys from private keys
@@ -183,9 +189,9 @@ export function derivePasswordKey(
   const passwordBuf = WebBuf.fromUtf8(password);
   const vaultSpecificPassword = blake3Mac(vaultIdKey, passwordBuf);
 
-  // Step 2: Derive password key with 100k rounds PBKDF
+  // Step 2: Derive password key with PBKDF
   const salt = derivePasswordSalt(password);
-  return blake3Pbkdf(vaultSpecificPassword.buf, salt, 100_000);
+  return blake3Pbkdf(vaultSpecificPassword.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -200,7 +206,7 @@ export function derivePasswordKey(
  */
 export function deriveEncryptionKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
   const salt = deriveEncryptionSalt();
-  return blake3Pbkdf(passwordKey.buf, salt, 100_000);
+  return blake3Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -215,7 +221,7 @@ export function deriveEncryptionKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
  */
 export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
   const salt = deriveLoginSalt();
-  return blake3Pbkdf(passwordKey.buf, salt, 100_000);
+  return blake3Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -258,9 +264,9 @@ export function deriveHashedLoginKey(
   const vaultIdKey = blake3Hash(WebBuf.fromUtf8(vaultId));
   const saltedLoginKey = blake3Mac(vaultIdKey, loginKey.buf);
 
-  // Step 2: Derive hashed login key with 1k rounds PBKDF
+  // Step 2: Derive hashed login key with PBKDF
   const salt = deriveServerHashedLoginKeySalt();
-  return blake3Pbkdf(saltedLoginKey.buf, salt, 1_000);
+  return blake3Pbkdf(saltedLoginKey.buf, salt, SERVER_KDF_ROUNDS);
 }
 
 /**
