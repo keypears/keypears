@@ -1,6 +1,6 @@
 # KeyPears
 
-**Decentralized Diffie-Hellman Key Exchange System**
+**Decentralized Password Manager**
 
 ---
 
