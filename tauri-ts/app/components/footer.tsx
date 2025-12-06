@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { href, Link } from "react-router";
 import { $aicon } from "~app/util/aicons";
 
 export function Footer() {
@@ -8,7 +8,7 @@ export function Footer() {
     <footer className="border-border mt-16 border-t py-8">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-4 text-center">
         <Link
-          to="/"
+          to={href("/")}
           className="inline-block transition-opacity hover:opacity-80"
         >
           <img
@@ -19,7 +19,7 @@ export function Footer() {
         </Link>
         <div className="space-y-2">
           <Link
-            to="/"
+            to={href("/")}
             className="text-foreground hover:text-primary block font-semibold transition-opacity hover:opacity-80"
           >
             KeyPears

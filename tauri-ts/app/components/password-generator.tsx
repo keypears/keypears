@@ -73,10 +73,10 @@ export function PasswordGenerator() {
   };
 
   const getEntropyLabelColor = (entropy: number): string => {
-    if (entropy < 75) return "text-red-500";
+    if (entropy < 75) return "text-destructive";
     if (entropy < 100) return "text-yellow-500";
     if (entropy < 128) return "text-green-500";
-    return "text-blue-500";
+    return "text-primary";
   };
 
   // Count how many character sets are enabled

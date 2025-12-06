@@ -288,7 +288,7 @@ export function PasswordMemorizer() {
                       {attempt.correct ? (
                         <Check size={14} className="text-green-500" />
                       ) : (
-                        <X size={14} className="text-red-500" />
+                        <X size={14} className="text-destructive" />
                       )}
                     </div>
                     <span className="text-muted-foreground flex-1 font-mono text-sm">

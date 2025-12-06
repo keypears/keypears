@@ -54,48 +54,28 @@ export default function ImportVault() {
       // Initialize database
       await initDb();
 
-      console.log("=== Import Vault ===");
-      console.log("Domain:", domain);
-      console.log("Name:", name);
-
       // 1. Call server to get vault info first (to get vaultId)
-      console.log("\n--- Step 1: Get Vault Info from Server (Public) ---");
-      // Use temporary client without auth to get vault ID
       const tempClient = await createClientFromDomain(domain);
       const vaultInfo = await tempClient.api.getVaultInfoPublic({ name, domain });
       const vaultId = vaultInfo.vaultId;
-      console.log("Vault ID:", vaultId);
-      console.log("Vault Name:", vaultInfo.name);
-      console.log("Vault Domain:", vaultInfo.domain);
-      console.log("Encrypted Vault Key:", vaultInfo.encryptedVaultKey);
-      console.log("Vault PubKeyHash:", vaultInfo.vaultPubKeyHash);
 
       // 2. Check if vault already exists locally
-      console.log("\n--- Step 2: Check if vault exists locally ---");
       const existingVault = await getVaultByNameAndDomain(name, domain);
       if (existingVault) {
         throw new Error("Vault already exists locally. If you want to re-import, please delete it first.");
       }
 
       // 3. Derive password key from password with vaultId
-      console.log("\n--- Step 3: Derive Password Key ---");
       const passwordKey = derivePasswordKey(password, vaultId);
-      console.log("Password Key:", passwordKey.buf.toHex());
 
       // 4. Derive login key for server authentication
-      console.log("\n--- Step 4: Derive Login Key ---");
       const loginKey = deriveLoginKey(passwordKey);
-      console.log("Login Key:", loginKey.buf.toHex());
 
       // 5. Generate device ID and description
-      console.log("\n--- Step 5: Generate Device Info ---");
       const deviceId = generateDeviceId();
       const deviceDescription = await detectDeviceDescription();
-      console.log("Device ID:", deviceId);
-      console.log("Device Description:", deviceDescription);
 
       // 6. Login to get session token
-      console.log("\n--- Step 6: Login to Get Session ---");
       const apiClient = await createClientFromDomain(domain);
       const loginResponse = await apiClient.api.login({
         vaultId,
@@ -103,32 +83,22 @@ export default function ImportVault() {
         deviceId,
         clientDeviceDescription: deviceDescription,
       });
-      console.log("Session obtained, expires at:", new Date(loginResponse.expiresAt));
 
       // 7. Verify vault info with session auth
-      console.log("\n--- Step 7: Verify Vault with Session ---");
       const authedClient = await createClientFromDomain(domain, { sessionToken: loginResponse.sessionToken });
       await authedClient.api.getVaultInfo({ name, domain });
-      console.log("Vault verified with session authentication");
 
       // 8. Derive encryption key from password key
-      console.log("\n--- Step 8: Derive Encryption Key ---");
       const encryptionKey = deriveEncryptionKey(passwordKey);
-      console.log("Encryption Key:", encryptionKey.buf.toHex());
 
       // 9. Decrypt vault key using encryption key
-      console.log("\n--- Step 9: Decrypt Vault Key ---");
       const encryptedVaultKeyBuf = WebBuf.fromHex(vaultInfo.encryptedVaultKey);
       const vaultKey = decryptKey(encryptedVaultKeyBuf, encryptionKey);
-      console.log("Decrypted Vault Key:", vaultKey.buf.toHex());
 
       // 10. Derive vault public key from private key
-      console.log("\n--- Step 10: Derive Vault Public Key ---");
       const vaultPublicKey = publicKeyCreate(vaultKey);
-      console.log("Vault Public Key:", vaultPublicKey.buf.toHex());
 
       // 11. Save vault to local database with device info
-      console.log("\n--- Step 11: Save to Local Database ---");
       const vault = await createVault(
         vaultInfo.vaultId,
         vaultInfo.name,
@@ -138,14 +108,11 @@ export default function ImportVault() {
         deviceId,
         deviceDescription,
       );
-      console.log("Vault saved to database with ID:", vault.id);
 
       // 12. Store session in vault store (now requires vaultId)
-      console.log("\n--- Step 12: Store Session ---");
       setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
 
       // 13. Unlock vault in vault store
-      console.log("\n--- Step 13: Unlock Vault ---");
       unlockVault({
         vaultId: vault.id,
         vaultName: vault.name,
@@ -162,11 +129,9 @@ export default function ImportVault() {
       });
 
       // 14. Refresh sync state for this vault
-      console.log("\n--- Step 14: Set up Sync State ---");
       await refreshSyncState(vault.id);
 
       // 15. Start background sync for this vault
-      console.log("\n--- Step 15: Start Background Sync ---");
       startBackgroundSync(
         vault.id,
         vault.domain,
@@ -174,7 +139,6 @@ export default function ImportVault() {
         () => refreshSyncState(vault.id), // onSyncComplete callback
       );
 
-      console.log("\n=== Import Vault Complete ===\n");
       setSuccess(true);
 
       // Navigate to vault after successful import
@@ -249,7 +213,7 @@ export default function ImportVault() {
                   </Button>
                   <div className="text-center">
                     <Link
-                      to="/"
+                      to={href("/")}
                       className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
                     >
                       Cancel
@@ -399,7 +363,7 @@ export default function ImportVault() {
                   </Button>
                   <div className="text-center">
                     <Link
-                      to="/"
+                      to={href("/")}
                       className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
                     >
                       Cancel

@@ -308,7 +308,7 @@ export default function NewVaultStep2() {
               </Button>
               <div className="text-center">
                 <Link
-                  to="/new-vault/1"
+                  to={href("/new-vault/1")}
                   className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
                 >
                   Back

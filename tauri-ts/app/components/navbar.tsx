@@ -80,42 +80,42 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
           </SheetHeader>
           <nav className="flex flex-col gap-2">
             <Link
-              to="/"
+              to={href("/")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Vaults
             </Link>
             <Link
-              to="/generate-password"
+              to={href("/generate-password")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Generate Password
             </Link>
             <Link
-              to="/password-memorizer"
+              to={href("/password-memorizer")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Memorize Password
             </Link>
             <Link
-              to="/test-tauri"
+              to={href("/test-tauri")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Test Tauri
             </Link>
             <Link
-              to="/test-blake3"
+              to={href("/test-blake3")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
               Test Blake3
             </Link>
             <Link
-              to="/about"
+              to={href("/about")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >

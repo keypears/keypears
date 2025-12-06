@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { href, Link, useNavigate } from "react-router";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { vaultNameSchema } from "@keypears/lib";
@@ -135,7 +135,7 @@ export function NewVaultName() {
             Your vault:{" "}
             <span className="font-mono">{name || "___"}@localhost</span>
           </p>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-destructive text-sm">{error}</p>}
           {isChecking && (
             <p className="text-muted-foreground text-xs">
               Checking availability...
@@ -162,7 +162,7 @@ export function NewVaultName() {
         </Button>
         <div className="text-center">
           <Link
-            to="/"
+            to={href("/")}
             className="text-muted-foreground text-sm transition-opacity hover:opacity-80"
           >
             Cancel
