@@ -1,7 +1,24 @@
-# KeyPears Codebase Audit Checklist
+# KeyPears Codebase Audit Guide
 
-This document defines what to look for when auditing each file in the KeyPears
-codebase. Use this checklist when reviewing files listed in TODO.md Phase 2.
+This document defines what to look for when auditing the KeyPears codebase. Use
+this checklist when performing periodic audits (recommended before each major
+phase milestone).
+
+## When to Perform an Audit
+
+- **Before major releases**: Before Phase 3, Phase 4, etc.
+- **After significant changes**: New authentication flows, crypto changes, major
+  refactors
+- **Periodically**: Every 1-2 months during active development
+- **After security incidents**: If vulnerabilities are discovered elsewhere
+
+## Audit Process Overview
+
+1. **Run automated checks first**: lint, typecheck, tests for all packages
+2. **Check dependencies**: `pnpm outdated` for each package
+3. **Review each package** using the checklist below
+4. **Document findings** in TODO.md or a dedicated issue
+5. **Fix critical/high issues immediately**, schedule others for later
 
 ---
 
@@ -244,6 +261,7 @@ codebase. Use this checklist when reviewing files listed in TODO.md Phase 2.
 ### 5.1 Visual Design
 
 - [ ] **Catppuccin theme**: Are colors from Catppuccin palette?
+- [ ] **Theme variables**: Use `text-destructive` not `text-red-500` for errors
 - [ ] **Primary color**: Is green used as the primary accent?
 - [ ] **Consistent spacing**: Are margins/padding consistent (Tailwind scale)?
 - [ ] **Typography**: Is font sizing consistent?
@@ -316,33 +334,18 @@ codebase. Use this checklist when reviewing files listed in TODO.md Phase 2.
 - [ ] Are secrets kept out of config (use environment variables)?
 - [ ] Are development and production configs separate?
 - [ ] Are config values documented?
+- [ ] Are paths correct (watch for typos like `ts-tauri` vs `tauri-ts`)?
 
 ---
 
-## Audit Process
-
-For each file in the Package Audit Order (TODO.md):
-
-1. **Read the file** and understand its purpose
-2. **Check against this checklist** - note any issues
-3. **Document findings** with file path and line numbers
-4. **Categorize severity**:
-   - **Critical**: Security issues, data loss risk
-   - **High**: Bugs, significant maintainability issues
-   - **Medium**: Code quality, minor UX issues
-   - **Low**: Style, minor improvements
-5. **Fix or note for later** depending on severity
-
----
-
-## Quick Reference: Common Issues
+## Quick Reference: Common Issues Found
 
 ### Security Red Flags
 
 - `any` type on user input
 - `.innerHTML` or `dangerouslySetInnerHTML`
 - Hardcoded secrets
-- `console.log` with sensitive data
+- `console.log` with sensitive data (keys, passwords, tokens)
 - Missing auth checks on routes
 - Non-parameterized SQL
 - Weak random number generation
@@ -354,6 +357,7 @@ For each file in the Package Audit Order (TODO.md):
 - No loading states
 - Sync operations blocking UI
 - Large bundle imports (import entire library vs specific exports)
+- N+1 queries in loops
 
 ### Maintainability Red Flags
 
@@ -363,6 +367,76 @@ For each file in the Package Audit Order (TODO.md):
 - Unclear variable names (e.g., `x`, `temp`, `data`)
 - Missing TypeScript types
 - No error handling
+- String literals for routes instead of `href()`
+
+### UI Consistency Red Flags
+
+- Hardcoded colors (`text-red-500`) instead of theme variables
+  (`text-destructive`)
+- Mixed icon libraries
+- Inconsistent button sizes/variants
+- Missing loading/error/empty states
+
+---
+
+## Lessons Learned from Past Audits
+
+### December 2025 Audit (Phase 2)
+
+**Critical finding - Debug logging exposing secrets:**
+
+Found ~80 `console.log` statements in `import-vault.tsx` and `new-vault.3.tsx`
+that logged sensitive cryptographic material:
+
+```typescript
+// BAD - Found and removed:
+console.log("Password Key:", passwordKey.buf.toHex());
+console.log("Login Key:", loginKey.buf.toHex());
+console.log("Encryption Key:", encryptionKey.buf.toHex());
+console.log("Decrypted Vault Key:", vaultKey.buf.toHex());
+```
+
+**Lesson**: Always search for `console.log` containing key-related terms during
+security audits. Debug logging during development can become a security
+vulnerability if not removed.
+
+**Type safety - String URLs vs href():**
+
+Found string literal URLs (`to="/"`) instead of type-safe `href("/")` in
+multiple components. This bypasses React Router's type checking and won't catch
+errors when routes are renamed.
+
+```typescript
+// BAD:
+<Link to="/">Home</Link>
+
+// GOOD:
+<Link to={href("/")}>Home</Link>
+```
+
+**UI consistency - Theme colors:**
+
+Found inconsistent error colors using `text-red-500` instead of
+`text-destructive`. Theme variables ensure consistency across light/dark modes.
+
+**Config typos:**
+
+Found `frontendDist: "../ts-tauri/dist"` instead of `"../tauri-ts/dist"` in
+`tauri.conf.json`. Path typos in config files can cause silent build failures.
+
+---
+
+## Audit Severity Levels
+
+When documenting findings, categorize by severity:
+
+- **Critical**: Security issues, data loss risk, production blockers
+- **High**: Bugs, significant maintainability issues, performance problems
+- **Medium**: Code quality, minor UX issues, technical debt
+- **Low**: Style, documentation, minor improvements
+
+Fix critical and high issues before proceeding. Medium and low can be tracked
+for later.
 
 ---
 

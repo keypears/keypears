@@ -247,6 +247,8 @@ KeyPears has comprehensive design pattern documentation:
 - **[Cryptography Patterns](docs/crypto.md)**: Three-tier key derivation system,
   algorithms (Blake3, ACB3, AES-256), password policy, cross-platform WASM
   crypto stack
+- **[Audit Guide](docs/audit.md)**: Codebase audit checklist, security
+  assessment, lessons learned from past audits
 
 ## Business Strategy
 
