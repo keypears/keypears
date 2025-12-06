@@ -20,7 +20,10 @@ import { cn } from "~app/lib/utils";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { setActiveVault, setSession } from "~app/lib/vault-store";
-import { setCurrentVaultId, refreshSyncState } from "~app/contexts/sync-context";
+import {
+  setCurrentVaultId,
+  refreshSyncState,
+} from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 
 export default function NewVaultStep3() {
@@ -104,7 +107,9 @@ export default function NewVaultStep3() {
         console.log("\n--- Step 7: Derive Login Key ---");
         const loginKey = deriveLoginKey(passwordKey);
         console.log("Login Key:", loginKey.buf.toHex());
-        console.log("(Login key will be sent to server unhashed - server will KDF it with 1k rounds)");
+        console.log(
+          "(Login key will be sent to server unhashed - server will KDF it with 1k rounds)",
+        );
 
         // Calculate and log entropy
         const pwdEntropy = calculatePasswordEntropy(password.length, {
@@ -125,7 +130,11 @@ export default function NewVaultStep3() {
         const loginKeyHex = loginKey.buf.toHex();
         const encryptedVaultKeyHex = encryptedVaultKey.toHex();
 
-        console.log("vaultPubKeyHash length:", vaultPubKeyHashHex.length, "expected: 64");
+        console.log(
+          "vaultPubKeyHash length:",
+          vaultPubKeyHashHex.length,
+          "expected: 64",
+        );
         console.log("loginKey length:", loginKeyHex.length, "expected: 64");
         console.log("encryptedVaultKey length:", encryptedVaultKeyHex.length);
         console.log("vaultPubKeyHash value:", vaultPubKeyHashHex);
@@ -150,7 +159,10 @@ export default function NewVaultStep3() {
           loginKey: loginKeyHex,
           encryptedVaultKey: encryptedVaultKeyHex,
         });
-        console.log("Server registration successful. Vault ID:", registrationResult.vaultId);
+        console.log(
+          "Server registration successful. Vault ID:",
+          registrationResult.vaultId,
+        );
 
         // 9. Generate device ID and description
         console.log("\n--- Step 9: Generate Device Info ---");
@@ -181,7 +193,10 @@ export default function NewVaultStep3() {
           deviceId,
           clientDeviceDescription: deviceDescription,
         });
-        console.log("Login successful, session expires at:", loginResponse.expiresAt);
+        console.log(
+          "Login successful, session expires at:",
+          loginResponse.expiresAt,
+        );
 
         // 12. Set session in vault-store
         console.log("\n--- Step 12: Set Session ---");
@@ -296,7 +311,9 @@ export default function NewVaultStep3() {
                     <CheckCircle className="text-primary h-12 w-12" />
                   </div>
                   <h1 className="text-2xl font-bold">
-                    {isCreating ? "Creating Vault..." : "Vault Created Successfully"}
+                    {isCreating
+                      ? "Creating Vault..."
+                      : "Vault Created Successfully"}
                   </h1>
                 </div>
 
@@ -312,7 +329,9 @@ export default function NewVaultStep3() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Name:</span>
-                            <span className="font-mono">{vaultName}@{vaultDomain}</span>
+                            <span className="font-mono">
+                              {vaultName}@{vaultDomain}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
@@ -341,7 +360,7 @@ export default function NewVaultStep3() {
                       onClick={handleContinue}
                       disabled={isCreating}
                     >
-                      Continue to Vaults
+                      Continue to Vault
                     </Button>
                   </>
                 )}
