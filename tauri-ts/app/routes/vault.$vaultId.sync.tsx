@@ -93,7 +93,7 @@ function ActivityItem({
 
   return (
     <div
-      className={`flex items-center justify-between border-b border-border p-4 ${
+      className={`flex items-center justify-between border-b border-border last:border-b-0 p-4 ${
         !update.isRead ? "bg-muted/50" : ""
       }`}
     >
