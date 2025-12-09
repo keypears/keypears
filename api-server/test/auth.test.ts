@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { ulid } from "ulid";
 import { eq } from "drizzle-orm";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { createClient } from "../src/client.js";
@@ -30,12 +30,12 @@ describe("Authentication API", () => {
     await db.delete(TableVault);
 
     // Create login key (in real app, this would be derived from password)
-    const loginKeyBuf = blake3Hash(WebBuf.fromUtf8("test-password-key"));
+    const loginKeyBuf = sha256Hash(WebBuf.fromUtf8("test-password-key"));
     testLoginKey = loginKeyBuf.buf.toHex();
 
     // Register a test vault
-    const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-    const encryptedVaultKey = blake3Hash(
+    const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+    const encryptedVaultKey = sha256Hash(
       WebBuf.fromUtf8("test-encrypted-vault-key"),
     );
     await client.api.registerVault({
@@ -70,7 +70,7 @@ describe("Authentication API", () => {
     });
 
     it("should reject invalid login key", async () => {
-      const wrongLoginKey = blake3Hash(WebBuf.fromUtf8("wrong-password")).buf.toHex();
+      const wrongLoginKey = sha256Hash(WebBuf.fromUtf8("wrong-password")).buf.toHex();
 
       await expect(
         client.api.login({
@@ -140,7 +140,7 @@ describe("Authentication API", () => {
       expect(result1.sessionToken).not.toBe(result2.sessionToken);
     });
 
-    it("should store only Blake3 hash of session token", async () => {
+    it("should store only SHA-256 hash of session token", async () => {
       const result = await client.api.login({
         vaultId: testVaultId,
         loginKey: testLoginKey,
@@ -155,9 +155,9 @@ describe("Authentication API", () => {
 
       expect(sessions).toHaveLength(1);
 
-      // Verify stored hash matches Blake3(sessionToken)
+      // Verify stored hash matches SHA256(sessionToken)
       const sessionTokenBuf = WebBuf.fromHex(result.sessionToken);
-      const expectedHash = blake3Hash(sessionTokenBuf).buf.toHex();
+      const expectedHash = sha256Hash(sessionTokenBuf).buf.toHex();
       expect(sessions[0]?.hashedSessionToken).toBe(expectedHash);
 
       // Verify raw token is NOT stored
@@ -232,7 +232,7 @@ describe("Authentication API", () => {
 
       // Verify it's device 2's session
       const sessionTokenBuf = WebBuf.fromHex(session2.sessionToken);
-      const expectedHash = blake3Hash(sessionTokenBuf).buf.toHex();
+      const expectedHash = sha256Hash(sessionTokenBuf).buf.toHex();
       expect(sessions[0]?.hashedSessionToken).toBe(expectedHash);
     });
   });
@@ -262,7 +262,7 @@ describe("Authentication API", () => {
 
       // Manually expire the session in database
       const sessionTokenBuf = WebBuf.fromHex(loginResult.sessionToken);
-      const hashedToken = blake3Hash(sessionTokenBuf).buf.toHex();
+      const hashedToken = sha256Hash(sessionTokenBuf).buf.toHex();
 
       await db
         .update(TableDeviceSession)

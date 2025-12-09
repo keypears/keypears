@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf, deriveHashedLoginKey } from "@keypears/lib";
 import { ulid } from "ulid";
@@ -32,9 +32,9 @@ describe("Vault API", () => {
 
     it("should return available=false for taken name", async () => {
       // First, register a vault
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
       await client.api.registerVault({
         vaultId: ulid(),
         name: "alice",
@@ -55,9 +55,9 @@ describe("Vault API", () => {
 
     it("should be per-domain (alice@keypears.com ≠ alice@hevybags.com)", async () => {
       // Register alice@keypears.com
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
       await client.api.registerVault({
         vaultId: ulid(),
         name: "alice",
@@ -85,9 +85,9 @@ describe("Vault API", () => {
 
   describe("registerVault", () => {
     it("should register a new vault successfully", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       const result = await client.api.registerVault({
         vaultId: ulid(),
@@ -103,10 +103,10 @@ describe("Vault API", () => {
     });
 
     it("should reject duplicate name+domain combination", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash1 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
-      const testPubKeyHash2 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash1 = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
+      const testPubKeyHash2 = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       // Register first vault
       await client.api.registerVault({
@@ -132,10 +132,10 @@ describe("Vault API", () => {
     });
 
     it("should allow same name on different domains", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash1 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
-      const testPubKeyHash2 = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash1 = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey-1"));
+      const testPubKeyHash2 = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey-2"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       // Register alice@keypears.com
       const result1 = await client.api.registerVault({
@@ -163,9 +163,9 @@ describe("Vault API", () => {
     });
 
     it("should reject invalid domain", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
         client.api.registerVault({
@@ -180,9 +180,9 @@ describe("Vault API", () => {
     });
 
     it("should reject invalid vault name (must start with letter)", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
         client.api.registerVault({
@@ -197,9 +197,9 @@ describe("Vault API", () => {
     });
 
     it("should reject invalid vault name (must be alphanumeric)", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       await expect(
         client.api.registerVault({
@@ -214,11 +214,11 @@ describe("Vault API", () => {
     });
 
     it("should KDF the login key on server (100k rounds)", async () => {
-      const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
+      const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
       const vaultId = ulid();
       const expectedServerHashedLoginKey = deriveHashedLoginKey(FixedBuf.fromBuf(32, loginKey.buf), vaultId);
-      const testPubKeyHash = blake3Hash(WebBuf.fromUtf8("test-vault-pubkey"));
-      const encryptedVaultKey = blake3Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
+      const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
+      const encryptedVaultKey = sha256Hash(WebBuf.fromUtf8("test-encrypted-vault-key")); // Dummy value for testing
 
       const result = await client.api.registerVault({
         vaultId,

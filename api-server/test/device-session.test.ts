@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { ulid } from "ulid";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import {
   createOrUpdateDeviceSession,
@@ -33,9 +33,9 @@ describe("Device Session Model", () => {
       id: testVaultId,
       name: "alice",
       domain: "keypears.com",
-      vaultPubKeyHash: blake3Hash(WebBuf.fromUtf8("test-pubkey")).buf.toHex(),
-      hashedLoginKey: blake3Hash(WebBuf.fromUtf8("test-login-key")).buf.toHex(),
-      encryptedVaultKey: blake3Hash(WebBuf.fromUtf8("test-vault-key")).buf.toHex(),
+      vaultPubKeyHash: sha256Hash(WebBuf.fromUtf8("test-pubkey")).buf.toHex(),
+      hashedLoginKey: sha256Hash(WebBuf.fromUtf8("test-login-key")).buf.toHex(),
+      encryptedVaultKey: sha256Hash(WebBuf.fromUtf8("test-vault-key")).buf.toHex(),
       createdAt: now,
       updatedAt: now,
     });
@@ -43,7 +43,7 @@ describe("Device Session Model", () => {
 
   describe("createOrUpdateDeviceSession", () => {
     it("should create a new device session", async () => {
-      const hashedToken = blake3Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
+      const hashedToken = sha256Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       const result = await createOrUpdateDeviceSession(
@@ -64,8 +64,8 @@ describe("Device Session Model", () => {
     });
 
     it("should update existing device session", async () => {
-      const hashedToken1 = blake3Hash(WebBuf.fromUtf8("token-1")).buf.toHex();
-      const hashedToken2 = blake3Hash(WebBuf.fromUtf8("token-2")).buf.toHex();
+      const hashedToken1 = sha256Hash(WebBuf.fromUtf8("token-1")).buf.toHex();
+      const hashedToken2 = sha256Hash(WebBuf.fromUtf8("token-2")).buf.toHex();
       const expiresAt1 = Date.now() + 1000;
       const expiresAt2 = Date.now() + 24 * 60 * 60 * 1000;
 
@@ -97,8 +97,8 @@ describe("Device Session Model", () => {
     });
 
     it("should support multiple devices for same vault", async () => {
-      const hashedToken1 = blake3Hash(WebBuf.fromUtf8("device-1-token")).buf.toHex();
-      const hashedToken2 = blake3Hash(WebBuf.fromUtf8("device-2-token")).buf.toHex();
+      const hashedToken1 = sha256Hash(WebBuf.fromUtf8("device-1-token")).buf.toHex();
+      const hashedToken2 = sha256Hash(WebBuf.fromUtf8("device-2-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       // Create session for device 1
@@ -129,7 +129,7 @@ describe("Device Session Model", () => {
 
   describe("getDeviceSessionByHashedToken", () => {
     it("should retrieve session by hashed token", async () => {
-      const hashedToken = blake3Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
+      const hashedToken = sha256Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       // Create session
@@ -150,7 +150,7 @@ describe("Device Session Model", () => {
     });
 
     it("should return null for non-existent token", async () => {
-      const fakeHashedToken = blake3Hash(WebBuf.fromUtf8("fake-token")).buf.toHex();
+      const fakeHashedToken = sha256Hash(WebBuf.fromUtf8("fake-token")).buf.toHex();
 
       const session = await getDeviceSessionByHashedToken(fakeHashedToken);
 
@@ -160,7 +160,7 @@ describe("Device Session Model", () => {
 
   describe("deleteDeviceSessionByHashedToken", () => {
     it("should delete session by hashed token", async () => {
-      const hashedToken = blake3Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
+      const hashedToken = sha256Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       // Create session
@@ -184,7 +184,7 @@ describe("Device Session Model", () => {
     });
 
     it("should not error when deleting non-existent session", async () => {
-      const fakeHashedToken = blake3Hash(WebBuf.fromUtf8("fake-token")).buf.toHex();
+      const fakeHashedToken = sha256Hash(WebBuf.fromUtf8("fake-token")).buf.toHex();
 
       // Should not throw
       await expect(
@@ -195,7 +195,7 @@ describe("Device Session Model", () => {
 
   describe("updateDeviceSessionActivity", () => {
     it("should update lastActivityAt timestamp", async () => {
-      const hashedToken = blake3Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
+      const hashedToken = sha256Hash(WebBuf.fromUtf8("test-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       // Create session
@@ -228,8 +228,8 @@ describe("Device Session Model", () => {
 
   describe("getDeviceSessionsByVaultId", () => {
     it("should return all sessions for a vault", async () => {
-      const hashedToken1 = blake3Hash(WebBuf.fromUtf8("device-1-token")).buf.toHex();
-      const hashedToken2 = blake3Hash(WebBuf.fromUtf8("device-2-token")).buf.toHex();
+      const hashedToken1 = sha256Hash(WebBuf.fromUtf8("device-1-token")).buf.toHex();
+      const hashedToken2 = sha256Hash(WebBuf.fromUtf8("device-2-token")).buf.toHex();
       const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
 
       // Create sessions for two devices
@@ -263,9 +263,9 @@ describe("Device Session Model", () => {
         id: emptyVaultId,
         name: "bob",
         domain: "keypears.com",
-        vaultPubKeyHash: blake3Hash(WebBuf.fromUtf8("bob-pubkey")).buf.toHex(),
-        hashedLoginKey: blake3Hash(WebBuf.fromUtf8("bob-login-key")).buf.toHex(),
-        encryptedVaultKey: blake3Hash(WebBuf.fromUtf8("bob-vault-key")).buf.toHex(),
+        vaultPubKeyHash: sha256Hash(WebBuf.fromUtf8("bob-pubkey")).buf.toHex(),
+        hashedLoginKey: sha256Hash(WebBuf.fromUtf8("bob-login-key")).buf.toHex(),
+        encryptedVaultKey: sha256Hash(WebBuf.fromUtf8("bob-vault-key")).buf.toHex(),
         createdAt: now,
         updatedAt: now,
       });

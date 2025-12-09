@@ -1,4 +1,4 @@
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { describe, expect, it } from "vitest";
@@ -35,14 +35,14 @@ describe("Index", () => {
     });
 
     it("should produce the exact same encrypted output for the same input", () => {
-      const encryptionKey = blake3Hash(
+      const encryptionKey = sha256Hash(
         WebBuf.fromUtf8("deterministic encryption key"),
       );
-      const keyToEncrypt = blake3Hash(WebBuf.fromUtf8("deterministic key"));
+      const keyToEncrypt = sha256Hash(WebBuf.fromUtf8("deterministic key"));
       const iv = FixedBuf.fromHex(16, "000102030405060708090a0b0c0d0e0f");
       const encryptedKey = encryptKey(keyToEncrypt, encryptionKey, iv);
       expect(encryptedKey.toHex()).toBe(
-        "391d2c03a37bd24cd07bafcff57819c326900425bcbfb960fb1f92b7edc8e2f9000102030405060708090a0b0c0d0e0f919023e4474560a150cc3dc8ae1740a8b56ef795beedf4c2673fd6fe3ac1e05588ecd21e431c36684a94184bebd096c9",
+        "efeb377e248660ec3352340a79d24eacb4dd3ef7f5649df5b31751429bdc6bb7000102030405060708090a0b0c0d0e0fb680420618e1cc2c656ff2702d501d840a58674e1266da972990ca077d2b76e4db131bfdd4c57407f5b0eeed08fbb8ee",
       );
     });
 
