@@ -4,12 +4,237 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 06 Dec 2025 15:28:33 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 09 Dec 2025 13:12:03 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2025 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Why We Switched from Blake3 to SHA-256]]></title>
+            <link>https://keypears.com/blog/2025-12-09-switching-to-sha256</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2025-12-09-switching-to-sha256</guid>
+            <pubDate>Tue, 09 Dec 2025 12:00:00 GMT</pubDate>
+            <description><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve b...]]></description>
+            <content:encoded><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve before our official release.</p>
+<p>Last week we completed a significant migration: replacing Blake3 with SHA-256
+throughout the KeyPears codebase. This wasn't because Blake3 failed us—it worked
+perfectly. We switched because SHA-256 is the industry standard, and that
+matters more than we initially appreciated.</p>
+<p>This post explains the technical tradeoffs and why we made this decision.</p>
+<h2>What We Changed</h2>
+<p>The migration touched every layer of our stack:</p>
+<p><strong>Dependencies:</strong></p>
+<ul>
+<li><code>@webbuf/blake3</code> → <code>@webbuf/sha256</code></li>
+<li><code>@webbuf/acb3</code> → <code>@webbuf/acs2</code></li>
+</ul>
+<p><strong>Functions:</strong></p>
+<ul>
+<li><code>blake3Hash()</code> → <code>sha256Hash()</code></li>
+<li><code>blake3Mac()</code> → <code>sha256Hmac()</code></li>
+<li><code>blake3Pbkdf()</code> → <code>sha256Pbkdf()</code></li>
+<li><code>acb3Encrypt()</code> / <code>acb3Decrypt()</code> → <code>acs2Encrypt()</code> / <code>acs2Decrypt()</code></li>
+</ul>
+<p><strong>Encryption scheme:</strong></p>
+<ul>
+<li>ACB3 (AES-256-CBC + Blake3-MAC) → ACS2 (AES-256-CBC + SHA-256-HMAC)</li>
+</ul>
+<p>Both hash functions produce 32-byte (256-bit) output, so our <code>FixedBuf&#x3C;32></code>
+types remained unchanged. The migration was primarily find-and-replace with
+updated test vectors.</p>
+<h2>Why Blake3 Is Excellent</h2>
+<p>Let's be clear: Blake3 is a technically superior hash function in many respects.</p>
+<p><strong>Speed</strong>: Blake3 is significantly faster than SHA-256, especially for large
+data. It achieves this through a Merkle tree construction that enables parallel
+hashing across multiple CPU cores. Where SHA-256 processes data sequentially,
+Blake3 can divide large inputs into chunks and hash them simultaneously.</p>
+<p><strong>Modern design</strong>: Blake3 was designed in 2020 with modern cryptographic
+insights. It's built on the well-analyzed BLAKE2 (used in Argon2, the
+recommended password hashing algorithm) and incorporates lessons from decades of
+hash function cryptanalysis.</p>
+<p><strong>Versatility</strong>: Blake3 supports keyed hashing (MAC), key derivation (KDF), and
+extendable output (XOF) natively. SHA-256 requires wrapper constructions like
+HMAC and HKDF for equivalent functionality.</p>
+<p><strong>Simplicity</strong>: Despite its speed, Blake3 has a remarkably simple specification.
+The reference implementation is ~500 lines of C.</p>
+<p>We were happy with Blake3. Our key derivation system worked flawlessly:</p>
+<pre><code class="language-typescript">// Three-tier key derivation (unchanged structure, new primitives)
+function sha256Pbkdf(
+  password: string | WebBuf,
+  salt: FixedBuf&#x3C;32>,
+  rounds: number = 100_000,
+): FixedBuf&#x3C;32> {
+  const passwordBuf = typeof password === "string"
+    ? WebBuf.fromUtf8(password)
+    : password;
+
+  let result = sha256Hmac(salt, passwordBuf);
+  for (let i = 1; i &#x3C; rounds; i++) {
+    result = sha256Hmac(salt, result.buf);
+  }
+  return result;
+}
+</code></pre>
+<h2>Why We Switched Anyway</h2>
+<h3>1. The Speed Advantage Doesn't Apply to Our Use Case</h3>
+<p>Blake3's killer feature is parallel hashing of large data. But KeyPears doesn't
+hash large data. We hash:</p>
+<ul>
+<li><strong>Passwords</strong>: 8-64 characters (typically under 100 bytes)</li>
+<li><strong>Secrets</strong>: API keys, credentials, wallet seeds (typically under 1KB)</li>
+<li><strong>Keys</strong>: 32-byte fixed buffers</li>
+</ul>
+<p>For inputs this small, Blake3's Merkle tree construction provides no benefit.
+The parallelization overhead might actually make it slower than sequential
+hashing for tiny inputs. And even if Blake3 were faster for small data, the
+difference would be measured in microseconds—completely irrelevant when our key
+derivation performs 100,000 PBKDF rounds that dominate execution time.</p>
+<p>When we profiled vault creation:</p>
+<ul>
+<li>Key derivation: ~800ms (100k rounds × 2 keys)</li>
+<li>Individual hash operations: ~0.001ms</li>
+</ul>
+<p>The hash function choice affects performance by roughly 0.0001%. Switching from
+Blake3 to SHA-256 has no measurable impact on user experience.</p>
+<h3>2. Industry Standard Matters for Customer Acquisition</h3>
+<p>When enterprise customers evaluate password managers, they ask questions like:</p>
+<ul>
+<li>"What encryption algorithm do you use?"</li>
+<li>"Is your cryptography FIPS 140-2 compliant?"</li>
+<li>"Do you use industry-standard algorithms?"</li>
+</ul>
+<p>With Blake3, our answers required explanation: "We use Blake3, which is a modern
+hash function designed in 2020. It's based on BLAKE2, which is used in Argon2.
+It's very fast and secure, though it's not yet widely adopted..."</p>
+<p>With SHA-256, our answer is: "Yes."</p>
+<p>SHA-256 is:</p>
+<ul>
+<li>Part of the SHA-2 family standardized by NIST</li>
+<li>FIPS 140-2 approved</li>
+<li>Used by Bitcoin, TLS, HTTPS, and virtually every security system</li>
+<li>Understood by every security auditor</li>
+<li>Required by many compliance frameworks</li>
+</ul>
+<p>The security difference between Blake3 and SHA-256 is negligible for our threat
+model—both provide 256-bit security against preimage and collision attacks. But
+the compliance difference is significant.</p>
+<h3>3. Battle-Tested at Scale</h3>
+<p>SHA-256 has been deployed in production systems since 2001. It secures:</p>
+<ul>
+<li>Every Bitcoin transaction ever made (~900 million transactions)</li>
+<li>Every HTTPS connection using TLS (trillions daily)</li>
+<li>Every Git commit in every repository worldwide</li>
+<li>Government systems, financial institutions, healthcare records</li>
+</ul>
+<p>This deployment scale represents the most extensive real-world cryptanalysis
+possible. If SHA-256 had weaknesses, attackers with billions of dollars in
+incentive would have found them.</p>
+<p>Blake3 is mathematically sound and designed by respected cryptographers. But it
+was released in 2020 and hasn't yet accumulated the same scale of real-world
+testing. Given that both algorithms provide equivalent security for our use
+case, we chose the one with 24 years of battle-testing.</p>
+<h3>4. Ecosystem Compatibility</h3>
+<p>SHA-256 implementations exist in every programming language, every platform, and
+every hardware security module. If we ever need to:</p>
+<ul>
+<li>Integrate with HSMs for enterprise key management</li>
+<li>Support hardware security keys (FIDO2/WebAuthn)</li>
+<li>Interface with existing enterprise systems</li>
+<li>Pass third-party security audits</li>
+</ul>
+<p>SHA-256 will be expected and supported. Blake3 might require custom integration
+work.</p>
+<h2>What We're Not Saying</h2>
+<p>This decision is <strong>not</strong> a criticism of Blake3. We want to be explicit:</p>
+<p><strong>Blake3 is secure.</strong> There are no known attacks, weaknesses, or concerns about
+Blake3's cryptographic security. It was designed by a team including the
+creators of Argon2 and BLAKE2.</p>
+<p><strong>Blake3 is technically superior for large data.</strong> If we were building a backup
+system, a file integrity checker, or a content-addressed storage system, Blake3
+would be the obvious choice.</p>
+<p><strong>Blake3 may become an industry standard.</strong> It's gaining adoption, and in five
+years the "unknown algorithm" concern may disappear. We might even switch back.</p>
+<p>We switched because <strong>SHA-256 is good enough for our specific use case, and the
+industry standard status provides tangible benefits that Blake3's technical
+advantages don't.</strong> This is an engineering tradeoff, not a quality judgment.</p>
+<h2>The Migration Process</h2>
+<p>The actual migration took about a day:</p>
+<ol>
+<li>
+<p><strong>Update dependencies</strong>: Replace <code>@webbuf/blake3</code> with <code>@webbuf/sha256</code>,
+<code>@webbuf/acb3</code> with <code>@webbuf/acs2</code></p>
+</li>
+<li>
+<p><strong>Update function calls</strong>: Find-and-replace across lib, api-server, tauri-ts,
+webapp</p>
+</li>
+<li>
+<p><strong>Update test vectors</strong>: SHA-256 produces different output than Blake3, so
+test expectations needed updating</p>
+</li>
+<li>
+<p><strong>Update documentation</strong>: Replace Blake3 references in crypto.md, auth.md,
+and AGENTS.md</p>
+</li>
+<li>
+<p><strong>Run tests</strong>: All 71 tests pass (40 in lib, 31 in api-server)</p>
+</li>
+<li>
+<p><strong>Manual testing</strong>: Create vaults, sync across devices, verify encryption
+works</p>
+</li>
+</ol>
+<p>The migration was straightforward because both hash functions have identical
+output sizes (32 bytes) and the <code>@webbuf</code> packages have matching APIs. The
+hardest part was updating documentation.</p>
+<p><strong>Breaking change note</strong>: This migration breaks compatibility with any existing
+encrypted data. Since we're pre-MVP with no real user data, this was acceptable.
+A production migration would require a more careful versioning strategy.</p>
+<h2>Current Cryptography Stack</h2>
+<p>After this migration, KeyPears uses:</p>
+<ul>
+<li><strong>Hashing</strong>: SHA-256 (via <code>@webbuf/sha256</code>)</li>
+<li><strong>MAC</strong>: SHA-256-HMAC (via <code>sha256Hmac()</code>)</li>
+<li><strong>KDF</strong>: Custom PBKDF using SHA-256-HMAC (100,000 rounds)</li>
+<li><strong>Encryption</strong>: ACS2 = AES-256-CBC + SHA-256-HMAC (via <code>@webbuf/acs2</code>)</li>
+</ul>
+<p>All cryptographic primitives are NIST-standardized algorithms with decades of
+real-world deployment. The underlying implementations are Rust compiled to
+WebAssembly, providing both memory safety and cross-platform consistency.</p>
+<h2>Lessons Learned</h2>
+<p><strong>Technical superiority isn't always the deciding factor.</strong> Blake3 is faster,
+more modern, and arguably more elegant. SHA-256 is more widely understood,
+trusted, and required. For a security product, trust and compliance matter as
+much as technical merit.</p>
+<p><strong>Know your actual use case.</strong> Blake3's parallel hashing is irrelevant when
+you're hashing 32-byte keys. We spent time with an optimization we couldn't
+benefit from.</p>
+<p><strong>Industry standards exist for good reasons.</strong> NIST standardization, FIPS
+compliance, and widespread adoption aren't bureaucratic checkboxes—they
+represent accumulated trust that takes decades to build. Sometimes the "boring"
+choice is the right choice.</p>
+<p><strong>Migrations are easier early.</strong> Changing cryptographic primitives after MVP
+launch would require careful data migration and backward compatibility. Doing it
+now, with no real user data, was trivial.</p>
+<h2>Conclusion</h2>
+<p>We switched from Blake3 to SHA-256 not because Blake3 failed, but because
+SHA-256 succeeds in ways that matter more for our product: industry recognition,
+compliance compatibility, and customer trust.</p>
+<p>Blake3 is an excellent hash function, and we'd recommend it for use cases that
+benefit from its parallel performance—large file hashing, content-addressed
+storage, or high-throughput data processing.</p>
+<p>For a password manager where we're hashing small secrets and deriving keys,
+SHA-256 provides identical practical security with better industry positioning.
+When both options are secure, we chose the one that makes "Do you use
+industry-standard cryptography?" easy to answer.</p>
+<p>The migration is complete, all tests pass, and vaults sync correctly. We're back
+to building features.</p>]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[What We Found in Our Codebase Audit]]></title>
             <link>https://keypears.com/blog/2025-12-06-codebase-audit</link>
