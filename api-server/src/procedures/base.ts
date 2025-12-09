@@ -63,7 +63,7 @@ export const sessionAuthedProcedure = base.use(async ({ context, next }) => {
   }
 
   // Hash incoming session token to look up in database
-  const { blake3Hash } = await import("@webbuf/blake3");
+  const { sha256Hash } = await import("@webbuf/sha256");
   const { WebBuf } = await import("@webbuf/webbuf");
 
   // Validate session token is valid hex before processing
@@ -75,7 +75,7 @@ export const sessionAuthedProcedure = base.use(async ({ context, next }) => {
       message: "Invalid session token format",
     });
   }
-  const hashedSessionToken = blake3Hash(sessionTokenBuf).buf.toHex();
+  const hashedSessionToken = sha256Hash(sessionTokenBuf).buf.toHex();
 
   // Query device session by hashed token
   const { getDeviceSessionByHashedToken, updateDeviceSessionActivity, deleteDeviceSessionByHashedToken } = await import("../db/models/device-session.js");

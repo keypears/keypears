@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { base, validateVaultAuth } from "./base.js";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { createOrUpdateDeviceSession } from "../db/models/device-session.js";
 
@@ -25,14 +25,14 @@ const LoginResponseSchema = z.object({
  * Flow:
  * 1. Validate login key (proves user knows password)
  * 2. Generate random 32-byte session token
- * 3. Hash session token with Blake3 for storage
+ * 3. Hash session token with SHA-256 for storage
  * 4. Create or update device session in database
  * 5. Return raw session token (not hash) to client
  *
  * Security:
  * - Login key sent once per login (not every request)
  * - Session token is time-limited (24 hours)
- * - Server stores only Blake3 hash of session token
+ * - Server stores only SHA-256 hash of session token
  * - Database breach does not expose usable tokens
  */
 export const loginProcedure = base
@@ -48,8 +48,8 @@ export const loginProcedure = base
     const sessionTokenFixedBuf = FixedBuf.fromRandom(32);
     const sessionToken = sessionTokenFixedBuf.buf.toHex(); // 64-char hex
 
-    // Hash session token for storage (Blake3)
-    const hashedSessionToken = blake3Hash(sessionTokenFixedBuf.buf).buf.toHex();
+    // Hash session token for storage (SHA-256)
+    const hashedSessionToken = sha256Hash(sessionTokenFixedBuf.buf).buf.toHex();
 
     // Set expiration (24 hours from now)
     const expiresAt = Date.now() + 24 * 60 * 60 * 1000;

@@ -14,7 +14,7 @@ import { base } from "./base.js";
  *
  * Security: Server KDFs the login key with vault ID salting (100k rounds)
  * - Client sends: vaultId (ULID), loginKey (unhashed, already underwent 100k rounds)
- * - Server derives: hashedLoginKey = blake3Mac(vaultId, loginKey) then blake3Pbkdf(..., 100k)
+ * - Server derives: hashedLoginKey = sha256Hmac(vaultId, loginKey) then sha256Pbkdf(..., 100k)
  * - Server stores: hashedLoginKey + encryptedVaultKey
  *
  * Vault ID salting provides two security benefits:

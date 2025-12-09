@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { base } from "./base.js";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { deleteDeviceSessionByHashedToken } from "../db/models/device-session.js";
 
@@ -19,7 +19,7 @@ const LogoutResponseSchema = z.object({
  *
  * Flow:
  * 1. Receive raw session token from client
- * 2. Hash session token with Blake3
+ * 2. Hash session token with SHA-256
  * 3. Delete matching device session from database
  * 4. Return success (no error if session not found)
  *
@@ -42,7 +42,7 @@ export const logoutProcedure = base
 
     // Hash incoming session token to find database record
     const sessionTokenBuf = WebBuf.fromHex(sessionToken);
-    const hashedSessionToken = blake3Hash(sessionTokenBuf).buf.toHex();
+    const hashedSessionToken = sha256Hash(sessionTokenBuf).buf.toHex();
 
     // Delete session (don't error if not found - idempotent)
     await deleteDeviceSessionByHashedToken(hashedSessionToken);
