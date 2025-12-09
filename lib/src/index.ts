@@ -1,5 +1,5 @@
-import { acb3Decrypt, acb3Encrypt } from "@webbuf/acb3";
-import { blake3Hash, blake3Mac } from "@webbuf/blake3";
+import { acs2Decrypt, acs2Encrypt } from "@webbuf/acs2";
+import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { publicKeyCreate } from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
@@ -11,7 +11,7 @@ const CLIENT_KDF_ROUNDS = 100_000;
 // Server-side also uses 100k rounds for maximum security
 const SERVER_KDF_ROUNDS = 100_000;
 
-export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
+export { sha256Hash, sha256Hmac, acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf };
 
 // Re-export publicKeyCreate for deriving public keys from private keys
 // This is used to derive vault public keys from vault private keys
@@ -86,32 +86,32 @@ export function generateKey(): FixedBuf<32> {
 
 /** Hashes a 32-byte key to produce a key suitable for encrypting secrets */
 export function hashKey(key: FixedBuf<32>): FixedBuf<32> {
-  return blake3Hash(key.buf);
+  return sha256Hash(key.buf);
 }
 
 /**
- * Password-Based Key Derivation Function using Blake3
+ * Password-Based Key Derivation Function using SHA-256 HMAC
  *
  * This is a PBKDF (Password-Based Key Derivation Function) similar to PBKDF2,
- * but using Blake3's keyed MAC mode instead of HMAC-SHA. It's called "blake3Pbkdf"
- * to distinguish it from standard PBKDF2 while clearly indicating it serves the
- * same purpose: deriving a cryptographic key from a password.
+ * but using SHA-256 HMAC. It's called "sha256Pbkdf" to distinguish it from
+ * standard PBKDF2 while clearly indicating it serves the same purpose:
+ * deriving a cryptographic key from a password.
  *
- * The function performs iterative key stretching by repeatedly applying Blake3's
- * MAC operation. This increases the computational cost of brute-force attacks
+ * The function performs iterative key stretching by repeatedly applying
+ * HMAC-SHA256. This increases the computational cost of brute-force attacks
  * while remaining efficient for legitimate use (100,000 rounds completes in
- * milliseconds with Blake3's speed).
+ * milliseconds).
  *
  * Algorithm:
- * - Round 1: result = blake3_mac(salt, password)
- * - Round N: result = blake3_mac(salt, previous_result)
+ * - Round 1: result = hmac_sha256(salt, password)
+ * - Round N: result = hmac_sha256(salt, previous_result)
  *
  * @param password - The input password as a string or WebBuf
  * @param salt - A 32-byte salt as FixedBuf<32>
  * @param rounds - Number of iterations (default: 100,000)
  * @returns A derived 32-byte key as FixedBuf<32>
  */
-export function blake3Pbkdf(
+export function sha256Pbkdf(
   password: string | WebBuf,
   salt: FixedBuf<32>,
   rounds: number = 100_000,
@@ -124,12 +124,12 @@ export function blake3Pbkdf(
   const passwordBuf =
     typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
-  // First round: MAC(salt, password)
-  let result = blake3Mac(salt, passwordBuf);
+  // First round: HMAC(salt, password)
+  let result = sha256Hmac(salt.buf, passwordBuf);
 
-  // Subsequent rounds: MAC(salt, previous_result)
+  // Subsequent rounds: HMAC(salt, previous_result)
   for (let i = 1; i < rounds; i++) {
-    result = blake3Mac(salt, result.buf);
+    result = sha256Hmac(salt.buf, result.buf);
   }
 
   return result;
@@ -139,23 +139,23 @@ export function blake3Pbkdf(
  * Generate a deterministic but unique salt from password for deriving the password key
  */
 export function derivePasswordSalt(password: string): FixedBuf<32> {
-  const context = blake3Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
+  const context = sha256Hash(WebBuf.fromUtf8("KeyPears password salt v1"));
   const passwordBuf = WebBuf.fromUtf8(password);
-  return blake3Mac(context, passwordBuf);
+  return sha256Hmac(context.buf, passwordBuf);
 }
 
 /**
  * Generate a deterministic salt for deriving the encryption key from the password key
  */
 export function deriveEncryptionSalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("KeyPears encryption salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("KeyPears encryption salt v1"));
 }
 
 /**
  * Generate a deterministic salt for deriving the login key from the password key
  */
 export function deriveLoginSalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("KeyPears login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("KeyPears login salt v1"));
 }
 
 /**
@@ -168,8 +168,8 @@ export function deriveLoginSalt(): FixedBuf<32> {
  * - Vault-specific: same password + different vault ID → different password key
  *
  * Two-step derivation process:
- * 1. Blake3 MAC with vault ID as context (prevents rainbow table attacks)
- * 2. Blake3 PBKDF with password salt (100k rounds for computational cost)
+ * 1. SHA-256 HMAC with vault ID as context (prevents rainbow table attacks)
+ * 2. SHA-256 PBKDF with password salt (100k rounds for computational cost)
  *
  * Security properties:
  * - Malicious server cannot build rainbow table without knowing vault ID
@@ -184,14 +184,14 @@ export function derivePasswordKey(
   password: string,
   vaultId: string,
 ): FixedBuf<32> {
-  // Step 1: Apply vault-specific MAC (prevents rainbow table attacks)
-  const vaultIdKey = blake3Hash(WebBuf.fromUtf8(vaultId));
+  // Step 1: Apply vault-specific HMAC (prevents rainbow table attacks)
+  const vaultIdKey = sha256Hash(WebBuf.fromUtf8(vaultId));
   const passwordBuf = WebBuf.fromUtf8(password);
-  const vaultSpecificPassword = blake3Mac(vaultIdKey, passwordBuf);
+  const vaultSpecificPassword = sha256Hmac(vaultIdKey.buf, passwordBuf);
 
   // Step 2: Derive password key with PBKDF
   const salt = derivePasswordSalt(password);
-  return blake3Pbkdf(vaultSpecificPassword.buf, salt, CLIENT_KDF_ROUNDS);
+  return sha256Pbkdf(vaultSpecificPassword.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -206,7 +206,7 @@ export function derivePasswordKey(
  */
 export function deriveEncryptionKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
   const salt = deriveEncryptionSalt();
-  return blake3Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
+  return sha256Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -221,7 +221,7 @@ export function deriveEncryptionKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
  */
 export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
   const salt = deriveLoginSalt();
-  return blake3Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
+  return sha256Pbkdf(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 /**
@@ -229,7 +229,7 @@ export function deriveLoginKey(passwordKey: FixedBuf<32>): FixedBuf<32> {
  * This is used server-side only to hash the login key before storing in database
  */
 export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("KeyPears server login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("KeyPears server login salt v1"));
 }
 
 /**
@@ -241,8 +241,8 @@ export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
  * need to reverse 100,000 rounds of KDF.
  *
  * Two-step derivation process:
- * 1. Blake3 MAC with vault ID as context (prevents password reuse detection)
- * 2. Blake3 PBKDF with server login salt (100k rounds for computational cost)
+ * 1. SHA-256 HMAC with vault ID as context (prevents password reuse detection)
+ * 2. SHA-256 PBKDF with server login salt (100k rounds for computational cost)
  *
  * Security properties:
  * - Vault ID salting prevents password reuse detection across vaults
@@ -259,20 +259,20 @@ export function deriveHashedLoginKey(
   loginKey: FixedBuf<32>,
   vaultId: string,
 ): FixedBuf<32> {
-  // Step 1: Apply vault-specific MAC (prevents password reuse detection)
-  const vaultIdKey = blake3Hash(WebBuf.fromUtf8(vaultId));
-  const saltedLoginKey = blake3Mac(vaultIdKey, loginKey.buf);
+  // Step 1: Apply vault-specific HMAC (prevents password reuse detection)
+  const vaultIdKey = sha256Hash(WebBuf.fromUtf8(vaultId));
+  const saltedLoginKey = sha256Hmac(vaultIdKey.buf, loginKey.buf);
 
   // Step 2: Derive hashed login key with PBKDF
   const salt = deriveServerHashedLoginKeySalt();
-  return blake3Pbkdf(saltedLoginKey.buf, salt, SERVER_KDF_ROUNDS);
+  return sha256Pbkdf(saltedLoginKey.buf, salt, SERVER_KDF_ROUNDS);
 }
 
 /**
  * Encrypts a key using another key
  *
  * Generic encryption function that encrypts one 32-byte key with another
- * 32-byte key using ACB3 (AES-256-CBC + Blake3-MAC).
+ * 32-byte key using ACS2 (AES-256-CBC + SHA-256-HMAC).
  *
  * @param keyToEncrypt - The 32-byte key to encrypt
  * @param encryptionKey - The 32-byte key used for encryption
@@ -284,14 +284,14 @@ export function encryptKey(
   encryptionKey: FixedBuf<32>,
   iv?: FixedBuf<16>,
 ): WebBuf {
-  return acb3Encrypt(keyToEncrypt.buf, encryptionKey, iv);
+  return acs2Encrypt(keyToEncrypt.buf, encryptionKey, iv);
 }
 
 /**
  * Decrypts a key using another key
  *
  * Generic decryption function that decrypts an encrypted key using a
- * 32-byte decryption key via ACB3 (AES-256-CBC + Blake3-MAC).
+ * 32-byte decryption key via ACS2 (AES-256-CBC + SHA-256-HMAC).
  *
  * @param encryptedKey - The encrypted key as WebBuf
  * @param decryptionKey - The 32-byte key used for decryption
@@ -301,14 +301,14 @@ export function decryptKey(
   encryptedKey: WebBuf,
   decryptionKey: FixedBuf<32>,
 ): FixedBuf<32> {
-  const decrypted = acb3Decrypt(encryptedKey, decryptionKey);
+  const decrypted = acs2Decrypt(encryptedKey, decryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
 }
 
 /**
  * Encrypts a password string with the vault key
  *
- * Takes a plaintext password and encrypts it using ACB3 (AES-256-CBC + Blake3-MAC).
+ * Takes a plaintext password and encrypts it using ACS2 (AES-256-CBC + SHA-256-HMAC).
  * Returns a hex-encoded string suitable for storage in the database.
  *
  * @param password - The plaintext password to encrypt
@@ -320,15 +320,15 @@ export function encryptPassword(
   vaultKey: FixedBuf<32>,
 ): string {
   const passwordBuf = WebBuf.fromUtf8(password);
-  const encrypted = acb3Encrypt(passwordBuf, vaultKey);
+  const encrypted = acs2Encrypt(passwordBuf, vaultKey);
   return encrypted.toHex();
 }
 
 /**
  * Decrypts an encrypted password string with the vault key
  *
- * Takes a hex-encoded encrypted password and decrypts it using ACB3
- * (AES-256-CBC + Blake3-MAC), returning the plaintext password.
+ * Takes a hex-encoded encrypted password and decrypts it using ACS2
+ * (AES-256-CBC + SHA-256-HMAC), returning the plaintext password.
  *
  * @param encryptedPasswordHex - Hex-encoded encrypted password
  * @param vaultKey - The 32-byte vault key used for decryption
@@ -339,7 +339,7 @@ export function decryptPassword(
   vaultKey: FixedBuf<32>,
 ): string {
   const encrypted = WebBuf.fromHex(encryptedPasswordHex);
-  const decrypted = acb3Decrypt(encrypted, vaultKey);
+  const decrypted = acs2Decrypt(encrypted, vaultKey);
   return decrypted.toUtf8();
 }
 
