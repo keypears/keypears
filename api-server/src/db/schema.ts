@@ -30,7 +30,7 @@ export const TableVault = pgTable(
     // Hashed login key - server stores KDF of the login key for authentication
     // Client derives: password → password key (100k rounds) → login key (100k rounds)
     // Client sends: login key (unhashed) to server via HTTPS
-    // Server derives: hashed login key (1k rounds KDF)
+    // Server derives: hashed login key (100k rounds KDF)
     // Server stores: hashed login key for verification
     // This is what the server checks to verify the user knows the password
     // Server CANNOT derive the password key or encryption key from this

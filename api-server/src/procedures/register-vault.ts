@@ -12,16 +12,16 @@ import { base } from "./base.js";
  * Register vault procedure
  * Registers a new vault with the server
  *
- * Security: Server KDFs the login key with vault ID salting (1k rounds)
+ * Security: Server KDFs the login key with vault ID salting (100k rounds)
  * - Client sends: vaultId (ULID), loginKey (unhashed, already underwent 100k rounds)
- * - Server derives: hashedLoginKey = blake3Mac(vaultId, loginKey) then blake3Pbkdf(..., 1k)
+ * - Server derives: hashedLoginKey = blake3Mac(vaultId, loginKey) then blake3Pbkdf(..., 100k)
  * - Server stores: hashedLoginKey + encryptedVaultKey
  *
  * Vault ID salting provides two security benefits:
  * 1. Prevents password reuse detection across vaults
  * 2. Same password + different vault ID → different hashed login key
  *
- * This prevents the server from storing raw login key while minimizing DOS risk.
+ * This prevents the server from storing raw login key with maximum security.
  */
 export const registerVaultProcedure = base
   .input(RegisterVaultRequestSchema)
@@ -45,8 +45,8 @@ export const registerVaultProcedure = base
       });
     }
 
-    // 3. KDF the login key on server with vault ID salting (1k rounds for security + DOS prevention)
-    // Client already did 100k rounds, we do MAC with vault ID + 1k rounds more
+    // 3. KDF the login key on server with vault ID salting (100k rounds for maximum security)
+    // Client already did 100k rounds, we do MAC with vault ID + 100k rounds more
     const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
     const serverHashedLoginKey = deriveHashedLoginKey(loginKeyBuf, vaultId);
 

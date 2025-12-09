@@ -8,8 +8,8 @@ import { z } from "zod";
 // KDF round constants
 // Client-side derivation uses 100k rounds for computational cost against brute force
 const CLIENT_KDF_ROUNDS = 100_000;
-// Server-side uses 1k rounds (client already did heavy lifting, prevents DoS)
-const SERVER_KDF_ROUNDS = 1_000;
+// Server-side also uses 100k rounds for maximum security
+const SERVER_KDF_ROUNDS = 100_000;
 
 export { blake3Hash, blake3Mac, acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf };
 
@@ -238,19 +238,18 @@ export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
  * This function is called on the server after receiving the login key from the client.
  * The server stores this hashed login key in the database. If the database is compromised,
  * an attacker cannot use the stolen hashed login key to authenticate because they would
- * need to reverse 1,000 rounds of KDF.
+ * need to reverse 100,000 rounds of KDF.
  *
  * Two-step derivation process:
  * 1. Blake3 MAC with vault ID as context (prevents password reuse detection)
- * 2. Blake3 PBKDF with server login salt (1k rounds for computational cost)
+ * 2. Blake3 PBKDF with server login salt (100k rounds for computational cost)
  *
  * Security properties:
  * - Vault ID salting prevents password reuse detection across vaults
  * - Same password + different vault ID → different hashed login key
  * - Complements client-side vault ID salting
- * - Reduces server CPU load vs 100k rounds (client already did heavy lifting)
- * - Prevents DOS attacks via fake login attempts
- * - Attacker needs to reverse 1k + 100k rounds total to get password key
+ * - 100k rounds matches client-side security for maximum protection
+ * - Attacker needs to reverse 100k + 100k rounds total to get password key
  *
  * @param loginKey - The 32-byte login key received from the client (unhashed)
  * @param vaultId - The vault ID (ULID) to salt the login key for

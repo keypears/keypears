@@ -131,7 +131,7 @@ export async function validateVaultAuth(
     });
   }
 
-  // Derive hashed login key from provided login key with vault ID salting (1k rounds)
+  // Derive hashed login key from provided login key with vault ID salting (100k rounds)
   const providedLoginKey = FixedBuf.fromHex(32, loginKeyHex);
   const derivedHashedLoginKey = deriveHashedLoginKey(providedLoginKey, vaultId);
 

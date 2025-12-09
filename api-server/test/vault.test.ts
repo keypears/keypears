@@ -213,7 +213,7 @@ describe("Vault API", () => {
       ).rejects.toThrow();
     });
 
-    it("should KDF the login key on server (1k rounds)", async () => {
+    it("should KDF the login key on server (100k rounds)", async () => {
       const loginKey = blake3Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
       const vaultId = ulid();
       const expectedServerHashedLoginKey = deriveHashedLoginKey(FixedBuf.fromBuf(32, loginKey.buf), vaultId);
@@ -229,7 +229,7 @@ describe("Vault API", () => {
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
       });
 
-      // Query database to verify server KDF'd it (1k rounds)
+      // Query database to verify server KDF'd it (100k rounds)
       const vault = await db
         .select()
         .from(TableVault)
