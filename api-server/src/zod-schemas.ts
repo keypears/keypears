@@ -1,14 +1,6 @@
 import { z } from "zod";
 import { vaultNameSchema } from "@keypears/lib";
 
-export const Blake3RequestSchema = z.object({
-  data: z.string(),
-});
-
-export const Blake3ResponseSchema = z.object({
-  hash: z.string().length(64),
-});
-
 // Check name availability
 export const CheckNameAvailabilityRequestSchema = z.object({
   name: vaultNameSchema,

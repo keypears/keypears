@@ -48,7 +48,7 @@ export interface ClientConfig {
  * Create an oRPC client for the KeyPears Node API
  *
  * Returns a simple client object with two properties:
- * - `api`: oRPC client with all API procedures (e.g., client.api.blake3(...))
+ * - `api`: oRPC client with all API procedures (e.g., client.api.checkNameAvailability(...))
  * - `validateServer`: Function to validate the server (client.validateServer())
  *
  * @param config - Client configuration (optional)
@@ -65,7 +65,7 @@ export interface ClientConfig {
  * const client = createClient({ url: "http://localhost:4273/api" });
  *
  * // Call API methods under .api namespace
- * const result = await client.api.blake3({ data: "aGVsbG8=" });
+ * const result = await client.api.checkNameAvailability({ name: "alice", domain: "keypears.com" });
  *
  * // Validate server explicitly when needed
  * const validation = await client.validateServer();

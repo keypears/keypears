@@ -1,4 +1,3 @@
-import { blake3Procedure } from "./procedures/blake3.js";
 import { checkNameAvailabilityProcedure } from "./procedures/check-name-availability.js";
 import { registerVaultProcedure } from "./procedures/register-vault.js";
 import { loginProcedure } from "./procedures/login.js";
@@ -13,7 +12,6 @@ import { getVaultInfoPublicProcedure } from "./procedures/get-vault-info-public.
  * TypeScript implementation of the KeyPears API
  */
 export const router = {
-  blake3: blake3Procedure,
   checkNameAvailability: checkNameAvailabilityProcedure,
   registerVault: registerVaultProcedure,
   login: loginProcedure,
