@@ -19,12 +19,12 @@ importers:
       '@orpc/server':
         specifier: ^1.9.2
         version: 1.10.2
-      '@webbuf/blake3':
-        specifier: ^3.3.0
-        version: 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/fixedbuf':
         specifier: ^3.3.0
         version: 3.3.0(@webbuf/webbuf@3.3.0)
+      '@webbuf/sha256':
+        specifier: ^3.3.0
+        version: 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/webbuf':
         specifier: ^3.3.0
         version: 3.3.0
@@ -101,16 +101,16 @@ importers:
 
   lib:
     dependencies:
-      '@webbuf/acb3':
+      '@webbuf/acs2':
         specifier: ^3.3.0
-        version: 3.3.0(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/blake3@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
-      '@webbuf/blake3':
-        specifier: ^3.3.0
-        version: 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
+        version: 3.3.0(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/sha256@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/fixedbuf':
         specifier: ^3.3.0
         version: 3.3.0(@webbuf/webbuf@3.3.0)
       '@webbuf/secp256k1':
+        specifier: ^3.3.0
+        version: 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
+      '@webbuf/sha256':
         specifier: ^3.3.0
         version: 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/webbuf':
@@ -2580,13 +2580,13 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@webbuf/acb3@3.3.0':
-    resolution: {integrity: sha512-gT+i6deZKWEHTKylGjOFVnipE0yl6dWS7aXkoGYwgG5t32L0fhWWiJSMv8lkANuGXbqY8GEhVwa/8lib2ScaCg==}
+  '@webbuf/acs2@3.3.0':
+    resolution: {integrity: sha512-HnXn7gkWGHsuQTnglgvnQET/fpFPLVmPApvHpbVDWMivFlIg9O8nA1esedggW5adZw7SW5Yf8Q8PUNaKLXTU7A==}
     engines: {node: '>=20.8.0'}
     peerDependencies:
       '@webbuf/aescbc': ^3.3.0
-      '@webbuf/blake3': ^3.3.0
       '@webbuf/fixedbuf': ^3.3.0
+      '@webbuf/sha256': ^3.3.0
       '@webbuf/webbuf': ^3.3.0
 
   '@webbuf/aescbc@3.0.28':
@@ -2596,13 +2596,6 @@ packages:
       '@webbuf/fixedbuf': ^3.0.28
       '@webbuf/webbuf': ^3.0.28
 
-  '@webbuf/blake3@3.3.0':
-    resolution: {integrity: sha512-6K09AtgGSUHUUhcFSs3Vct9oban5jM2Lq9Se1VfcSDwl28Vm7ynPJcWC57refZvQaDL+0cDg9hxMyfb5XrRHtg==}
-    engines: {node: '>=20.8.0'}
-    peerDependencies:
-      '@webbuf/fixedbuf': ^3.3.0
-      '@webbuf/webbuf': ^3.3.0
-
   '@webbuf/fixedbuf@3.3.0':
     resolution: {integrity: sha512-DaEIkH6BuSzDL74YPGNWhsQBFi+7hotoLZKVASAq2kqcOR3ffQhFIqTHuimMRJUX3WtC0beVV6tDmopr5inlww==}
     engines: {node: '>=20.8.0'}
@@ -2611,6 +2604,13 @@ packages:
 
   '@webbuf/secp256k1@3.3.0':
     resolution: {integrity: sha512-erVTBIx61HNkjbUiLT3spc/7Wss0NQj+I5cKv9im0ro75KvdXEq3kqyfjGDirvtqyLr7dh7qtvK9advbyRvOXg==}
+    engines: {node: '>=20.8.0'}
+    peerDependencies:
+      '@webbuf/fixedbuf': ^3.3.0
+      '@webbuf/webbuf': ^3.3.0
+
+  '@webbuf/sha256@3.3.0':
+    resolution: {integrity: sha512-Oqqyo8LCjzL5oTL+pkTJLSZiWlF1I4Bb5W0XvfVZl9wXt/hLgNXyHFbS0xpaVB4o5Zzklecy3/eT3aU05BHD8A==}
     engines: {node: '>=20.8.0'}
     peerDependencies:
       '@webbuf/fixedbuf': ^3.3.0
@@ -7725,19 +7725,14 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@webbuf/acb3@3.3.0(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/blake3@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
+  '@webbuf/acs2@3.3.0(@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/sha256@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
     dependencies:
       '@webbuf/aescbc': 3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
-      '@webbuf/blake3': 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/fixedbuf': 3.3.0(@webbuf/webbuf@3.3.0)
+      '@webbuf/sha256': 3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)
       '@webbuf/webbuf': 3.3.0
 
   '@webbuf/aescbc@3.0.28(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
-    dependencies:
-      '@webbuf/fixedbuf': 3.3.0(@webbuf/webbuf@3.3.0)
-      '@webbuf/webbuf': 3.3.0
-
-  '@webbuf/blake3@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
     dependencies:
       '@webbuf/fixedbuf': 3.3.0(@webbuf/webbuf@3.3.0)
       '@webbuf/webbuf': 3.3.0
@@ -7747,6 +7742,11 @@ snapshots:
       '@webbuf/webbuf': 3.3.0
 
   '@webbuf/secp256k1@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
+    dependencies:
+      '@webbuf/fixedbuf': 3.3.0(@webbuf/webbuf@3.3.0)
+      '@webbuf/webbuf': 3.3.0
+
+  '@webbuf/sha256@3.3.0(@webbuf/fixedbuf@3.3.0(@webbuf/webbuf@3.3.0))(@webbuf/webbuf@3.3.0)':
     dependencies:
       '@webbuf/fixedbuf': 3.3.0(@webbuf/webbuf@3.3.0)
       '@webbuf/webbuf': 3.3.0

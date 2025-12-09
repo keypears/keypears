@@ -57,7 +57,7 @@
     "@keypears/lib": "workspace:*",
     "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",
-    "@webbuf/blake3": "^3.3.0",
+    "@webbuf/sha256": "^3.3.0",
     "@webbuf/fixedbuf": "^3.3.0",
     "@webbuf/webbuf": "^3.3.0",
     "drizzle-orm": "^0.44.6",
