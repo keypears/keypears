@@ -3,7 +3,7 @@ import {
   deriveEncryptionKey,
   deriveLoginKey,
   decryptKey,
-  blake3Hash,
+  sha256Hash,
   WebBuf,
   FixedBuf,
 } from "@keypears/lib";
@@ -48,7 +48,7 @@ export function verifyVaultPassword(
     const vaultPublicKey = publicKeyCreate(vaultKey);
 
     // 5. Hash the public key
-    const derivedPubKeyHash = blake3Hash(vaultPublicKey.buf);
+    const derivedPubKeyHash = sha256Hash(vaultPublicKey.buf);
 
     // 6. Compare with stored pubkeyhash
     if (derivedPubKeyHash.buf.toHex() === storedVaultPubKeyHashHex) {

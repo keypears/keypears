@@ -10,7 +10,7 @@ import {
   deriveEncryptionKey,
   deriveLoginKey,
   encryptKey,
-  blake3Hash,
+  sha256Hash,
   publicKeyCreate,
   FixedBuf,
 } from "@keypears/lib";
@@ -79,7 +79,7 @@ export default function NewVaultStep3() {
         const vaultPublicKey = publicKeyCreate(vaultKey);
 
         // 5. Hash the public key to get pubkeyhash (vault identity)
-        const vaultPubKeyHash = blake3Hash(vaultPublicKey.buf);
+        const vaultPubKeyHash = sha256Hash(vaultPublicKey.buf);
 
         // 6. Encrypt vault key with encryption key
         const encryptedVaultKey = encryptKey(vaultKey, encryptionKey);

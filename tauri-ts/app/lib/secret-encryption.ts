@@ -1,4 +1,4 @@
-import { acb3Encrypt, acb3Decrypt, FixedBuf, WebBuf } from "@keypears/lib";
+import { acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf } from "@keypears/lib";
 
 /**
  * Secret data that goes in the encrypted blob
@@ -43,8 +43,8 @@ export function encryptSecretUpdateBlob(
   // Convert to WebBuf
   const jsonBuf = WebBuf.fromUtf8(json);
 
-  // Encrypt with ACB3
-  const encrypted = acb3Encrypt(jsonBuf, vaultKey);
+  // Encrypt with ACS2
+  const encrypted = acs2Encrypt(jsonBuf, vaultKey);
 
   // Return as hex string
   return encrypted.toHex();
@@ -68,8 +68,8 @@ export function decryptSecretUpdateBlob(
   // Convert from hex
   const encrypted = WebBuf.fromHex(encryptedBlobHex);
 
-  // Decrypt with ACB3
-  const decrypted = acb3Decrypt(encrypted, vaultKey);
+  // Decrypt with ACS2
+  const decrypted = acs2Decrypt(encrypted, vaultKey);
 
   // Convert to string
   const json = decrypted.toUtf8();
