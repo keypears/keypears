@@ -72,9 +72,7 @@ curl http://keypears.localhost:4273/privacy
 curl http://keypears.localhost:4273/terms
 
 # Test the API (integrated orpc API)
-curl -X POST http://keypears.localhost:4273/api/blake3 \
-  -H "Content-Type: application/json" \
-  -d '{"data":"aGVsbG8gd29ybGQ="}'
+curl http://keypears.localhost:4273/api
 ```
 
 ### Manual Docker Commands (Alternative)
@@ -533,16 +531,10 @@ curl https://www.keypears.com
   - About: `https://keypears.com/about`
   - Privacy: `https://keypears.com/privacy`
   - Terms: `https://keypears.com/terms`
-  - API Test Page: `https://keypears.com/api-test` (Blake3 hashing demo)
 - [x] Test API endpoints directly:
   ```bash
-  # Test Blake3 hashing endpoint (base64 input "hello world")
-  curl -X POST https://keypears.com/api/blake3 \
-    -H "Content-Type: application/json" \
-    -d '{"data":"aGVsbG8gd29ybGQ="}'
-
-  # Expected output:
-  # {"hash":"d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24"}
+  # Test API availability
+  curl https://keypears.com/api
   ```
 - [x] Check ECS service health:
   - Go to ECS → Clusters → `keypears-cluster` → Services →

@@ -239,10 +239,10 @@ export const TableDeviceSession = pgTable(
     // User-editable device name (set by vault owner via UI)
     serverDeviceName: varchar('server_device_name', { length: 100 }), // e.g., "Ryan's MacBook Pro"
 
-    // Hashed session token (Blake3 hash of 32-byte random token)
-    // Server NEVER stores raw session token - only Blake3 hash
+    // Hashed session token (SHA-256 hash of 32-byte random token)
+    // Server NEVER stores raw session token - only SHA-256 hash
     // Client sends raw token, server hashes and compares
-    hashedSessionToken: varchar('hashed_session_token', { length: 64 }).notNull(), // Blake3 hex = 64 chars
+    hashedSessionToken: varchar('hashed_session_token', { length: 64 }).notNull(), // SHA-256 hex = 64 chars
 
     // Session expiration (Unix milliseconds)
     expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
@@ -269,7 +269,7 @@ export const TableDeviceSession = pgTable(
 **Design decisions:**
 
 - One active session per vault+device (re-authentication replaces old session)
-- **Hashed session tokens**: Server stores Blake3 hash, not raw token
+- **Hashed session tokens**: Server stores SHA-256 hash, not raw token
   - Client sends raw 32-byte session token in header
   - Server hashes incoming token and compares with stored hash
   - Database breach does not expose usable session tokens
@@ -375,7 +375,7 @@ await db.insert(TableVault).values({
 2. Check if device is recognized (exists in `device_session` table for this
    vault+device)
 3. Generate new session token (32 random bytes)
-4. **Hash the session token** using Blake3 for database storage
+4. **Hash the session token** using SHA-256 for database storage
 5. Set expiration time (e.g., 24 hours from now)
 6. Upsert session record:
    - If device exists: Update hashedSessionToken, expiresAt, lastActivityAt, and
@@ -420,7 +420,7 @@ X-Vault-Session-Token: <sessionToken>
 **Server middleware:**
 
 ```typescript
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 
 // Extract raw session token from header
@@ -432,7 +432,7 @@ if (!rawSessionToken) {
 
 // Hash the incoming token to compare with database
 const sessionTokenBuf = WebBuf.fromHex(rawSessionToken);
-const hashedSessionToken = blake3Hash(sessionTokenBuf).buf.toHex();
+const hashedSessionToken = sha256Hash(sessionTokenBuf).buf.toHex();
 
 // Query device_session table using HASHED token
 const session = await db
@@ -471,7 +471,7 @@ return next({
 **Security flow:**
 
 1. Client sends raw session token in `X-Vault-Session-Token` header
-2. Server hashes incoming token using Blake3
+2. Server hashes incoming token using SHA-256
 3. Server queries database for matching hashed token
 4. Database never contains raw session tokens
 5. Token theft from database is useless without rainbow tables (infeasible for
@@ -529,7 +529,7 @@ navigate("/vault/:vaultId/lock");
 **Server process:**
 
 1. Receive raw session token from client
-2. Hash the token using Blake3
+2. Hash the token using SHA-256
 3. Query `device_session` table for matching hashed token
 4. Delete session record from database
 5. Return success
@@ -608,8 +608,8 @@ database only stores hashes
 
 | Token Type     | Client Storage | Server Storage                        | Database Breach Impact                                                                                             |
 | -------------- | -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Login Key      | Memory only    | Blake3 hash (vaultId MAC + 1k rounds) | Cannot use directly (needs vaultId + 1k rounds reversal + 100k rounds reversal + rainbow table for 32-byte random) |
-| Session Token  | Memory only    | Blake3 hash (single round)            | Cannot use directly (32-byte random, no rainbow table)                                                             |
+| Login Key      | Memory only    | SHA-256 hash (vaultId MAC + 100k rounds) | Cannot use directly (needs vaultId + 100k rounds reversal + 100k rounds reversal + rainbow table for 32-byte random) |
+| Session Token  | Memory only    | SHA-256 hash (single round)            | Cannot use directly (32-byte random, no rainbow table)                                                             |
 | Encryption Key | Memory only    | Never sent to server                  | N/A - server never sees this                                                                                       |
 
 **Why hashing session tokens matters:**
@@ -636,7 +636,7 @@ database only stores hashes
 **Implementation notes:**
 
 - Used Drizzle ORM with PostgreSQL
-- Session tokens stored as Blake3 hashes (64-char hex)
+- Session tokens stored as SHA-256 hashes (64-char hex)
 - Unique constraint on (vaultId, deviceId) ensures one session per device per
   vault
 - Cascade delete when vault is deleted

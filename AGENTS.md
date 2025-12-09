@@ -170,8 +170,8 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
   factory (for client-side usage).
 - **orpc**: Modern TypeScript RPC framework with full type safety, similar to
   tRPC but with better OpenAPI integration
-- **Current status**: Proof-of-concept complete with Blake3 hashing endpoint
-  (`/api/blake3`)
+- **Current status**: Proof-of-concept complete with vault registration and
+  authentication endpoints
 - **Future work**: All backend vault operations and sync protocol will be
   implemented in TypeScript and exposed via orpc procedures
 - **Branding**: The API server is called a "KeyPears API server" to emphasize
@@ -201,7 +201,7 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
     `.toBase64()`, `.toUtf8()`
   - **`FixedBuf<N>`**: Container with `.buf` property (which is a WebBuf) for
     fixed-size data like hashes
-  - Example: `FixedBuf<32>` for Blake3 hashes (32 bytes)
+  - Example: `FixedBuf<32>` for SHA-256 hashes (32 bytes)
 - **UI components**: `shadcn` (with Catppuccin theme)
 - **Icons**: `lucide-react` (never inline SVG)
 - **Routing**: React Router with type-safe `href()` function for **all
@@ -245,7 +245,7 @@ KeyPears has comprehensive design pattern documentation:
   keys, Drizzle ORM), performance (debouncing, optimistic updates), error
   handling
 - **[Cryptography Patterns](docs/crypto.md)**: Three-tier key derivation system,
-  algorithms (Blake3, ACB3, AES-256), password policy, cross-platform WASM
+  algorithms (SHA-256, ACS2, AES-256), password policy, cross-platform WASM
   crypto stack
 - **[Audit Guide](docs/audit.md)**: Codebase audit checklist, security
   assessment, lessons learned from past audits
@@ -357,7 +357,7 @@ refined for production data safety.
 
 ### Cryptography
 
-- **Algorithms**: Blake3 (hashing/KDF), ACB3 (AES-256-CBC + Blake3-MAC)
+- **Algorithms**: SHA-256 (hashing/KDF), ACS2 (AES-256-CBC + SHA-256-HMAC)
 - **Key derivation**: Three-tier system (password key → encryption key + login
   key)
 - **Password policy**: Minimum 8 characters, default lowercase-only for mobile

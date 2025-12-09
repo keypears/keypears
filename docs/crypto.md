@@ -72,7 +72,7 @@ enabling:
 Vault Private Key (32 bytes)
   ↓ secp256k1 public key derivation
 Vault Public Key (33 bytes, compressed)
-  ↓ blake3Hash()
+  ↓ sha256Hash()
 Vault PubKeyHash (32 bytes)
 ```
 
@@ -82,7 +82,7 @@ Vault PubKeyHash (32 bytes)
   the vault
 - **Vault Public Key** (33 bytes) - Derived from vault private key using
   secp256k1
-- **Vault PubKeyHash** = **Vault Public Key Hash** (32 bytes) - Blake3 hash of
+- **Vault PubKeyHash** = **Vault Public Key Hash** (32 bytes) - SHA-256 hash of
   public key
 
 ### Vault PubKeyHash (Public Identity)
@@ -92,11 +92,11 @@ publicly. Instead, the **vault pubkeyhash** serves as the public vault identity:
 
 ```typescript
 import { publicKeyCreate } from "@webbuf/secp256k1";
-import { blake3Hash } from "@keypears/lib";
+import { sha256Hash } from "@keypears/lib";
 
 const vaultKey: FixedBuf<32> = /* 32-byte private key */;
 const vaultPublicKey: FixedBuf<33> = publicKeyCreate(vaultKey); // Compressed
-const vaultPubKeyHash: FixedBuf<32> = blake3Hash(vaultPublicKey.buf);
+const vaultPubKeyHash: FixedBuf<32> = sha256Hash(vaultPublicKey.buf);
 ```
 
 **Why hash the public key?**
@@ -155,7 +155,7 @@ const vaultKey = decryptKey(encryptedVaultKey, encryptionKey);
 const vaultPublicKey = publicKeyCreate(vaultKey);
 
 // 4. Hash the public key
-const derivedPubKeyHash = blake3Hash(vaultPublicKey.buf);
+const derivedPubKeyHash = sha256Hash(vaultPublicKey.buf);
 
 // 5. Compare with stored pubkeyhash
 if (derivedPubKeyHash.toHex() === storedVaultPubKeyHash) {
@@ -244,7 +244,7 @@ Both Sides:
 
 **What's exposed**:
 
-- ✅ Vault pubkeyhash (32-byte Blake3 hash) - public identifier
+- ✅ Vault pubkeyhash (32-byte SHA-256 hash) - public identifier
 - ✅ Relationship-specific derived public keys (only to counterparty)
 - ❌ Primary vault public key - **never exposed**
 - ❌ Vault private key - **never leaves device**
@@ -278,23 +278,23 @@ vault encryption keys while enabling secure server authentication.
 ## Overview
 
 The system derives three keys from a single master password through iterative
-application of Blake3-based PBKDF. The server then derives a fourth key for
+application of SHA-256-based PBKDF. The server then derives a fourth key for
 secure database storage:
 
 ```
 [CLIENT SIDE]
 Master Password + Vault ID
-  ↓ blake3Mac(context: vaultId, data: password) → Vault-Specific Password
-  ↓ blake3Pbkdf(vaultPassword, passwordSalt, 100k rounds)
+  ↓ sha256Hmac(context: vaultId, data: password) → Vault-Specific Password
+  ↓ sha256Pbkdf(vaultPassword, passwordSalt, 100k rounds)
 Password Key (stored in device memory, encrypted with PIN)
   ↓
-  ├→ blake3Pbkdf(passwordKey, encryptionSalt, 100k rounds) → Encryption Key (stays on device)
-  └→ blake3Pbkdf(passwordKey, loginSalt, 100k rounds) → Login Key (sent to server)
+  ├→ sha256Pbkdf(passwordKey, encryptionSalt, 100k rounds) → Encryption Key (stays on device)
+  └→ sha256Pbkdf(passwordKey, loginSalt, 100k rounds) → Login Key (sent to server)
 
 [SERVER SIDE]
 Login Key (received from client via HTTPS)
-  ↓ blake3Mac(context: vaultId, data: loginKey) → Salted Login Key (per-vault uniqueness)
-  ↓ blake3Pbkdf(saltedLoginKey, serverLoginSalt, 100k rounds)
+  ↓ sha256Hmac(context: vaultId, data: loginKey) → Salted Login Key (per-vault uniqueness)
+  ↓ sha256Pbkdf(saltedLoginKey, serverLoginSalt, 100k rounds)
 Hashed Login Key (stored in database)
 ```
 
@@ -304,8 +304,8 @@ Hashed Login Key (stored in database)
 
 - **Derived from**: Vault ID + master password + password salt (100k rounds)
 - **Two-step derivation**:
-  1. Blake3 MAC with vault ID as context (per-vault uniqueness)
-  2. Blake3 PBKDF with password salt (100k rounds for computational cost)
+  1. SHA-256 HMAC with vault ID as context (per-vault uniqueness)
+  2. SHA-256 PBKDF with password salt (100k rounds for computational cost)
 - **Stored**: On device, encrypted with user's PIN
 - **Purpose**: Intermediate key for deriving encryption and login keys
 - **Never sent**: Neither to server nor used directly for encryption
@@ -351,8 +351,8 @@ Hashed Login Key (stored in database)
 - **Where derived**: On the server when login key is received
 - **Stored in**: Server database only
 - **Two-step process**:
-  1. Blake3 MAC with vault ID as context (per-vault uniqueness)
-  2. Blake3 PBKDF with fixed salt (100k rounds for brute-force resistance)
+  1. SHA-256 HMAC with vault ID as context (per-vault uniqueness)
+  2. SHA-256 PBKDF with fixed salt (100k rounds for brute-force resistance)
 - **Security**:
   - Same password across different vaults → different hashed values (prevents password reuse detection)
   - If database is compromised, attacker cannot use stored hash to authenticate
@@ -364,8 +364,8 @@ Hashed Login Key (stored in database)
 // Server receives loginKey from client
 const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
 
-// Step 1: Apply vault-specific MAC (domain separation)
-const saltedLoginKey = blake3Mac(vaultId, loginKeyBuf);
+// Step 1: Apply vault-specific HMAC (domain separation)
+const saltedLoginKey = sha256Hmac(vaultId, loginKeyBuf);
 
 // Step 2: Apply 100k rounds PBKDF for computational cost
 const hashedLoginKey = deriveHashedLoginKey(saltedLoginKey);
@@ -392,8 +392,8 @@ never computes or sends this value.
 
 ```typescript
 derivePasswordSalt(password: string) → FixedBuf<32>
-context = blake3Hash("KeyPears password salt v1")
-return blake3Mac(context, password)
+context = sha256Hash("KeyPears password salt v1")
+return sha256Hmac(context, password)
 ```
 
 Deterministic but unique per password.
@@ -402,7 +402,7 @@ Deterministic but unique per password.
 
 ```typescript
 deriveEncryptionSalt() → FixedBuf<32>
-return blake3Hash("KeyPears encryption salt v1")
+return sha256Hash("KeyPears encryption salt v1")
 ```
 
 Global constant for all users.
@@ -411,7 +411,7 @@ Global constant for all users.
 
 ```typescript
 deriveLoginSalt() → FixedBuf<32>
-return blake3Hash("KeyPears login salt v1")
+return sha256Hash("KeyPears login salt v1")
 ```
 
 Global constant for all users.
@@ -420,7 +420,7 @@ Global constant for all users.
 
 ```typescript
 deriveServerHashedLoginKeySalt() → FixedBuf<32>
-return blake3Hash("KeyPears server login salt v1")
+return sha256Hash("KeyPears server login salt v1")
 ```
 
 Global constant for all users. Used server-side only.
@@ -429,7 +429,7 @@ Global constant for all users. Used server-side only.
 
 ### Defense in Depth
 
-Each key is separated by 100,000 rounds of Blake3 PBKDF. Even if one key is
+Each key is separated by 100,000 rounds of SHA-256 PBKDF. Even if one key is
 compromised:
 
 - **Server compromise** (login key stolen): Cannot derive password key or
@@ -493,23 +493,23 @@ after a configurable time period, requiring full password re-entry.
 - On mobile, OS process termination provides additional security (keys cleared
   by OS)
 
-## Blake3 PBKDF
+## SHA-256 PBKDF
 
-The key derivation function uses Blake3's keyed MAC mode iteratively:
+The key derivation function uses SHA-256 HMAC mode iteratively:
 
 ```typescript
-blake3Pbkdf(password: string | WebBuf, salt: FixedBuf<32>, rounds: number)
-  Round 1: result = blake3Mac(salt, password)
-  Round N: result = blake3Mac(salt, previous_result)
+sha256Pbkdf(password: string | WebBuf, salt: FixedBuf<32>, rounds: number)
+  Round 1: result = sha256Hmac(salt, password)
+  Round N: result = sha256Hmac(salt, previous_result)
   return result
 ```
 
 Properties:
 
-- 100,000 rounds completes in milliseconds (Blake3 speed)
+- 100,000 rounds completes in milliseconds
 - Increases computational cost of brute-force attacks
 - Not a standard KDF like PBKDF2, but cryptographically sound
-- Uses Blake3's keyed mode (secure MAC construction)
+- Uses SHA-256 HMAC (secure MAC construction)
 
 ## Server-Side KDF Security
 
@@ -593,9 +593,9 @@ Security guarantee: Even with full database access, attacker cannot:
 **Client side**:
 
 1. User enters password
-2. Derive password key: `blake3Pbkdf(password, passwordSalt, 100k)`
-3. Derive encryption key: `blake3Pbkdf(passwordKey, encryptionSalt, 100k)`
-4. Derive login key: `blake3Pbkdf(passwordKey, loginSalt, 100k)`
+2. Derive password key: `sha256Pbkdf(password, passwordSalt, 100k)`
+3. Derive encryption key: `sha256Pbkdf(passwordKey, encryptionSalt, 100k)`
+4. Derive login key: `sha256Pbkdf(passwordKey, loginSalt, 100k)`
 5. Generate random 32-byte vault key
 6. Encrypt vault key with encryption key
 7. Send to server:
@@ -604,7 +604,7 @@ Security guarantee: Even with full database access, attacker cannot:
 **Server side**:
 
 1. Receive login key (unhashed)
-2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)` (100k
+2. Derive hashed login key: `sha256Pbkdf(loginKey, serverLoginSalt, 100k)` (100k
    rounds)
 3. Store in database:
    `{ name, domain, hashedLoginKey, encryptedVaultKey, vaultPubKeyHash }`
@@ -621,14 +621,14 @@ Security guarantee: Even with full database access, attacker cannot:
 **Client side**:
 
 1. User enters vault name and password
-2. Derive password key: `blake3Pbkdf(password, passwordSalt, 100k)`
-3. Derive login key: `blake3Pbkdf(passwordKey, loginSalt, 100k)`
+2. Derive password key: `sha256Pbkdf(password, passwordSalt, 100k)`
+3. Derive login key: `sha256Pbkdf(passwordKey, loginSalt, 100k)`
 4. Send to server: `{ vaultId, loginKey }`
 
 **Server side**:
 
 1. Receive login key (unhashed)
-2. Derive hashed login key: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)` (100k
+2. Derive hashed login key: `sha256Pbkdf(loginKey, serverLoginSalt, 100k)` (100k
    rounds)
 3. Compare with stored `hashedLoginKey` in database
 4. If match: return `{ encryptedVaultKey, vaultPubKeyHash }`
@@ -637,8 +637,8 @@ Security guarantee: Even with full database access, attacker cannot:
 **Client side (after successful auth)**:
 
 1. Receive encrypted vault key from server
-2. Derive encryption key: `blake3Pbkdf(passwordKey, encryptionSalt, 100k)`
-3. Decrypt vault key: `acb3Decrypt(encryptedVaultKey, encryptionKey)`
+2. Derive encryption key: `sha256Pbkdf(passwordKey, encryptionSalt, 100k)`
+3. Decrypt vault key: `acs2Decrypt(encryptedVaultKey, encryptionKey)`
 4. Verify password by deriving public key and comparing hash
 5. Store vault locally
 
@@ -647,7 +647,7 @@ Security guarantee: Even with full database access, attacker cannot:
 **Current implementation (MVP)**:
 
 - Each API request includes login key in header: `X-KeyPears-Auth: <loginKey>`
-- Server validates by computing: `blake3Pbkdf(loginKey, serverLoginSalt, 100k)`
+- Server validates by computing: `sha256Pbkdf(loginKey, serverLoginSalt, 100k)`
   and comparing with stored `hashedLoginKey`
 - Login key is the same across all devices for the same vault
 - 100k rounds provides maximum security for authentication

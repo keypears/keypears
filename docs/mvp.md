@@ -69,7 +69,7 @@ export const TableVault = sqliteTable("vault", {
 
 1. **Server-side secret storage**: PostgreSQL table storing append-only secret
    updates
-2. **Authentication**: Login key verification (Blake3 hash of client-provided
+2. **Authentication**: Login key verification (SHA-256 hash of client-provided
    login key)
 3. **Sync API**:
    - `createVault` - Register new vault on server
@@ -232,7 +232,7 @@ All MVP features must work on:
 
 **Server only stores**:
 
-- Hashed login keys (Blake3 hash for authentication)
+- Hashed login keys (SHA-256 hash for authentication)
 - Encrypted master vault keys (cannot decrypt)
 - Encrypted secret updates (cannot decrypt)
 - DH public keys (public by design)
@@ -241,10 +241,10 @@ All MVP features must work on:
 
 ```
 User Password
-     ↓ (blake3Pbkdf 100k rounds)
+     ↓ (sha256Pbkdf 100k rounds)
 Password Key (32 bytes, stored on device encrypted with PIN)
      ↓                              ↓
-     ↓ (blake3Pbkdf 100k rounds)    ↓ (blake3Pbkdf 100k rounds)
+     ↓ (sha256Pbkdf 100k rounds)    ↓ (sha256Pbkdf 100k rounds)
 Encryption Key                 Login Key
      ↓                              ↓
 Encrypts/decrypts              Sent to server (hashed again server-side)
@@ -259,8 +259,8 @@ master vault key               for authentication
 
 ### Cryptography Stack
 
-- **Hashing/KDF**: Blake3 (via @webbuf/blake3 WASM)
-- **Encryption**: ACB3 = AES-256-CBC + Blake3-MAC (via @webbuf/acb3 WASM)
+- **Hashing/KDF**: SHA-256 (via @webbuf/sha256 WASM)
+- **Encryption**: ACS2 = AES-256-CBC + SHA-256-HMAC (via @webbuf/acs2 WASM)
 - **Key size**: 256 bits (32 bytes) for all keys
 - **Password policy**: Minimum 8 characters (default: lowercase-only for ~75
   bits entropy)
@@ -273,7 +273,7 @@ master vault key               for authentication
 - **Framework**: React Router 7 (SSR + type-safe routing)
 - **Database**: SQLite (via Tauri SQL plugin)
 - **ORM**: Drizzle ORM
-- **Crypto**: WASM packages (@webbuf/blake3, @webbuf/acb3, @webbuf/fixedbuf)
+- **Crypto**: WASM packages (@webbuf/sha256, @webbuf/acs2, @webbuf/fixedbuf)
 - **UI**: shadcn components + Catppuccin theme
 - **Desktop**: Tauri 2.0 (minimal Rust backend, ~33 lines)
 - **Mobile**: Tauri 2.0 (iOS + Android support)

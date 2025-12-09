@@ -40,8 +40,8 @@ exchange cryptographic keys and secrets safely in a connected world.
 - **Node.js + TypeScript** — Core server and client logic.
 - **React Router 7** — Modern front-end routing for the web client.
 - **WebBuf** — High-performance buffer library for Node.js and browsers.
-- **WASM Cryptography** — Blake3 and ACB3 encryption via TypeScript WASM
-  packages (`@webbuf/blake3`, `@webbuf/acb3`).
+- **WASM Cryptography** — SHA-256 and ACS2 encryption via TypeScript WASM
+  packages (`@webbuf/sha256`, `@webbuf/acs2`).
 - **Tauri** — Cross-platform native apps for **Windows, macOS, Linux, Android,
   and iOS**. One codebase, all platforms.
 
