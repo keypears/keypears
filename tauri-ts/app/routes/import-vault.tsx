@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, href } from "react-router";
-import { Eye, EyeOff, ChevronDown, CheckCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
+import { VaultAddressInput } from "~app/components/vault-address-input";
 import {
   derivePasswordKey,
   deriveEncryptionKey,
@@ -26,23 +27,25 @@ export default function ImportVault() {
   const navigate = useNavigate();
   useServerStatus(); // Ensure server status is checked
 
-  const [domain, setDomain] = useState(getOfficialDomains()[0] || "");
   const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
 
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const officialDomains = getOfficialDomains();
-  const isFormValid = domain.length > 0 && name.length > 0 && password.length >= 8;
+  // Set default domain on mount
+  useEffect(() => {
+    const domains = getOfficialDomains();
+    if (domains.length > 0) {
+      setDomain(domains[0] || "");
+    }
+  }, []);
 
-  const handleSelectDomain = (selectedDomain: string) => {
-    setDomain(selectedDomain);
-    setIsDomainDropdownOpen(false);
-  };
+  const isFormValid =
+    domain.length > 0 && name.length > 0 && password.length >= 8;
 
   const handleImport = async () => {
     if (!isFormValid) return;
@@ -56,13 +59,18 @@ export default function ImportVault() {
 
       // 1. Call server to get vault info first (to get vaultId)
       const tempClient = await createClientFromDomain(domain);
-      const vaultInfo = await tempClient.api.getVaultInfoPublic({ name, domain });
+      const vaultInfo = await tempClient.api.getVaultInfoPublic({
+        name,
+        domain,
+      });
       const vaultId = vaultInfo.vaultId;
 
       // 2. Check if vault already exists locally
       const existingVault = await getVaultByNameAndDomain(name, domain);
       if (existingVault) {
-        throw new Error("Vault already exists locally. If you want to re-import, please delete it first.");
+        throw new Error(
+          "Vault already exists locally. If you want to re-import, please delete it first.",
+        );
       }
 
       // 3. Derive password key from password with vaultId
@@ -85,7 +93,9 @@ export default function ImportVault() {
       });
 
       // 7. Verify vault info with session auth
-      const authedClient = await createClientFromDomain(domain, { sessionToken: loginResponse.sessionToken });
+      const authedClient = await createClientFromDomain(domain, {
+        sessionToken: loginResponse.sessionToken,
+      });
       await authedClient.api.getVaultInfo({ name, domain });
 
       // 8. Derive encryption key from password key
@@ -172,7 +182,9 @@ export default function ImportVault() {
                   <div className="bg-primary/10 mb-4 rounded-full p-4">
                     <CheckCircle className="text-primary h-12 w-12" />
                   </div>
-                  <h1 className="text-2xl font-bold">Vault Imported Successfully</h1>
+                  <h1 className="text-2xl font-bold">
+                    Vault Imported Successfully
+                  </h1>
                   <p className="text-muted-foreground mt-2 text-sm">
                     Your vault has been imported and sync has started
                   </p>
@@ -232,77 +244,15 @@ export default function ImportVault() {
                 </div>
 
                 <div className="mb-6 space-y-4">
-                  {/* Domain Selector */}
-                  <div className="space-y-2">
-                    <label htmlFor="domain" className="text-sm font-medium">
-                      Domain
-                    </label>
-                    <div className="relative">
-                      <Input
-                        id="domain"
-                        type="text"
-                        value={domain}
-                        onChange={(e) => setDomain(e.target.value)}
-                        onFocus={() => setIsDomainDropdownOpen(true)}
-                        placeholder="keypears.com"
-                        className="pr-10"
-                        disabled={isImporting}
-                      />
-                      <div className="absolute top-1/2 right-2 -translate-y-1/2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          tabIndex={-1}
-                          onClick={() =>
-                            setIsDomainDropdownOpen(!isDomainDropdownOpen)
-                          }
-                          aria-label="Show domain suggestions"
-                          disabled={isImporting}
-                        >
-                          <ChevronDown size={18} />
-                        </Button>
-                      </div>
-                      {isDomainDropdownOpen && (
-                        <div className="bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 w-full rounded-md border shadow-md">
-                          <div className="p-1">
-                            {officialDomains.map((d) => (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => handleSelectDomain(d)}
-                                className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
-                              >
-                                {d}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vault Name */}
-                  <div className="space-y-2">
-                    <label htmlFor="vault-name" className="text-sm font-medium">
-                      Vault Name
-                    </label>
-                    <Input
-                      id="vault-name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="alice"
-                      disabled={isImporting}
-                      autoFocus
-                    />
-                    <p className="text-muted-foreground text-xs">
-                      Your vault:{" "}
-                      <span className="font-mono">
-                        {name || "___"}@{domain}
-                      </span>
-                    </p>
-                  </div>
+                  {/* Vault Address Input */}
+                  <VaultAddressInput
+                    name={name}
+                    domain={domain}
+                    onNameChange={setName}
+                    onDomainChange={setDomain}
+                    disabled={isImporting}
+                    autoFocus
+                  />
 
                   {/* Password */}
                   <div className="space-y-2">
