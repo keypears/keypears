@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { Navbar } from "~app/components/navbar";
-import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
+import { Breadcrumbs } from "~app/components/breadcrumbs";
 import {
   getUnlockedVault,
   isVaultUnlocked,
@@ -40,8 +40,6 @@ import { triggerManualSync } from "~app/lib/sync-service";
 
 interface LoaderData {
   vaultId: string;
-  vaultName: string;
-  vaultDomain: string;
   secretId: string;
   passwordName: string;
   isDeleted: boolean;
@@ -86,8 +84,6 @@ export async function clientLoader({
 
   return {
     vaultId: vault.vaultId,
-    vaultName: vault.vaultName,
-    vaultDomain: vault.vaultDomain,
     secretId: latest.secretId,
     passwordName: latest.name,
     isDeleted: latest.deleted,
@@ -100,8 +96,6 @@ export async function clientLoader({
 export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
   const {
     vaultId,
-    vaultName,
-    vaultDomain,
     secretId,
     passwordName,
     isDeleted,
@@ -166,12 +160,10 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <PasswordBreadcrumbs
+        <Breadcrumbs
           vaultId={vaultId}
-          vaultName={vaultName}
-          vaultDomain={vaultDomain}
-          passwordName={passwordName}
-          passwordSecretId={secretId}
+          secretName={passwordName}
+          secretId={secretId}
         />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6 flex items-start justify-between">

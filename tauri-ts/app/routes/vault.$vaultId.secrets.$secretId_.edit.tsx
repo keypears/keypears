@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Navbar } from "~app/components/navbar";
-import { PasswordBreadcrumbs } from "~app/components/password-breadcrumbs";
+import { Breadcrumbs } from "~app/components/breadcrumbs";
 import {
   getUnlockedVault,
   isVaultUnlocked,
@@ -30,7 +30,6 @@ import { triggerManualSync } from "~app/lib/sync-service";
 
 interface LoaderData {
   vaultId: string;
-  vaultName: string;
   vaultDomain: string;
   secretId: string;
   passwordName: string;
@@ -69,7 +68,6 @@ export async function clientLoader({
 
   return {
     vaultId: vault.vaultId,
-    vaultName: vault.vaultName,
     vaultDomain: vault.vaultDomain,
     secretId: latest.secretId,
     passwordName: latest.name,
@@ -81,7 +79,6 @@ export async function clientLoader({
 export default function EditPassword({ loaderData }: Route.ComponentProps) {
   const {
     vaultId,
-    vaultName,
     vaultDomain,
     secretId,
     passwordName,
@@ -203,12 +200,10 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <PasswordBreadcrumbs
+        <Breadcrumbs
           vaultId={vaultId}
-          vaultName={vaultName}
-          vaultDomain={vaultDomain}
-          passwordName={passwordName}
-          passwordSecretId={secretId}
+          secretName={passwordName}
+          secretId={secretId}
           currentPage="Edit"
         />
         <div className="border-border bg-card rounded-lg border p-8">

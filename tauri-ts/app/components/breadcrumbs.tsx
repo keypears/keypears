@@ -1,5 +1,5 @@
 import { Link, href } from "react-router";
-import { Lock, Key } from "lucide-react";
+import { Key } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -9,53 +9,24 @@ import {
   BreadcrumbSeparator,
 } from "~app/components/ui/breadcrumb";
 
-interface PasswordBreadcrumbsProps {
+interface BreadcrumbsProps {
   vaultId: string;
-  vaultName: string;
-  vaultDomain: string;
-  passwordName?: string;
-  passwordSecretId?: string;
+  secretName?: string;
+  secretId?: string;
   currentPage?: string;
 }
 
-export function PasswordBreadcrumbs({
+export function Breadcrumbs({
   vaultId,
-  vaultName,
-  vaultDomain,
-  passwordName,
-  passwordSecretId,
+  secretName,
+  secretId,
   currentPage,
-}: PasswordBreadcrumbsProps) {
+}: BreadcrumbsProps) {
   return (
     <Breadcrumb className="mb-4">
       <BreadcrumbList>
-        {/* Vault name link or page */}
-        {!passwordName && !currentPage ? (
-          <BreadcrumbItem>
-            <BreadcrumbPage className="flex items-center gap-1.5">
-              <Lock size={14} />
-              {vaultName}@{vaultDomain}
-            </BreadcrumbPage>
-          </BreadcrumbItem>
-        ) : (
-          <>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link
-                  to={href("/vault/:vaultId/secrets", { vaultId })}
-                  className="flex items-center gap-1.5"
-                >
-                  <Lock size={14} />
-                  {vaultName}@{vaultDomain}
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-          </>
-        )}
-
-        {/* Password name link or page */}
-        {passwordName && passwordSecretId && (
+        {/* Secret name link or page */}
+        {secretName && secretId && (
           <>
             {currentPage ? (
               <>
@@ -64,12 +35,12 @@ export function PasswordBreadcrumbs({
                     <Link
                       to={href("/vault/:vaultId/secrets/:secretId", {
                         vaultId,
-                        secretId: passwordSecretId,
+                        secretId,
                       })}
                       className="flex items-center gap-1.5"
                     >
                       <Key size={14} />
-                      {passwordName}
+                      {secretName}
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -79,14 +50,14 @@ export function PasswordBreadcrumbs({
               <BreadcrumbItem>
                 <BreadcrumbPage className="flex items-center gap-1.5">
                   <Key size={14} />
-                  {passwordName}
+                  {secretName}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             )}
           </>
         )}
 
-        {/* Current page (if provided) */}
+        {/* Current page */}
         {currentPage && (
           <BreadcrumbItem>
             <BreadcrumbPage>{currentPage}</BreadcrumbPage>
