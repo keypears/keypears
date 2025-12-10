@@ -7,7 +7,7 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { calculatePasswordEntropy } from "@keypears/lib";
 import { cn } from "~app/lib/utils";
-import { getVault, updateVault } from "~app/db/models/vault";
+import { getVault, updateVault, updateVaultLastAccessed } from "~app/db/models/vault";
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import {
   unlockVault,
@@ -146,7 +146,10 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         () => refreshSyncState(vault.id), // onSyncComplete callback
       );
 
-      // Step 8: Navigate to vault secrets page
+      // Step 8: Update last accessed timestamp
+      await updateVaultLastAccessed(vault.id);
+
+      // Step 9: Navigate to vault secrets page
       navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
     } catch (err) {
       console.error("Error unlocking vault:", err);

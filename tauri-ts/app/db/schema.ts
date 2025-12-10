@@ -21,6 +21,7 @@ export const TableVault = sqliteTable(
     deviceDescription: text("device_description"), // Auto-detected OS info (e.g., "macOS 14.1 (aarch64)")
 
     lastSyncTimestamp: integer("last_sync_timestamp"),
+    lastAccessedAt: integer("last_accessed_at"),
     createdAt: integer("created_at")
       .notNull()
       .$defaultFn(() => Date.now()),

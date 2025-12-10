@@ -1,6 +1,6 @@
 import { db } from "../index";
 import { TableVault } from "../schema";
-import { eq, count, and } from "drizzle-orm";
+import { eq, count, and, desc } from "drizzle-orm";
 import { vaultNameSchema } from "@keypears/lib";
 import { createVaultSyncState } from "./vault-sync-state";
 
@@ -13,6 +13,7 @@ export interface Vault {
   deviceId: string;
   deviceDescription: string | null;
   lastSyncTimestamp: number | null;
+  lastAccessedAt: number | null;
   createdAt: number;
 }
 
@@ -73,7 +74,15 @@ export async function getVaultByNameAndDomain(
 }
 
 export async function getVaults(): Promise<Vault[]> {
-  return await db.select().from(TableVault);
+  // Sort by lastAccessedAt descending (most recent first), with nulls last
+  // Then by createdAt descending as a secondary sort for vaults never accessed
+  return await db
+    .select()
+    .from(TableVault)
+    .orderBy(
+      desc(TableVault.lastAccessedAt),
+      desc(TableVault.createdAt),
+    );
 }
 
 export async function countVaults(): Promise<number> {
@@ -91,7 +100,15 @@ export async function updateVault(
     deviceId: string;
     deviceDescription: string | null;
     lastSyncTimestamp: number | null;
+    lastAccessedAt: number | null;
   }>,
 ): Promise<void> {
   await db.update(TableVault).set(updates).where(eq(TableVault.id, id));
+}
+
+export async function updateVaultLastAccessed(id: string): Promise<void> {
+  await db
+    .update(TableVault)
+    .set({ lastAccessedAt: Date.now() })
+    .where(eq(TableVault.id, id));
 }

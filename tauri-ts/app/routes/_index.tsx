@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
+import { formatRelativeTime } from "~app/lib/format";
 import { initDb } from "~app/db";
 import { useState, useEffect } from "react";
 import { getAllUnlockedVaultIds, lockVault } from "~app/lib/vault-store";
@@ -152,8 +153,8 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                               </span>
                             )}
                           </div>
-                          <p className="text-muted-foreground font-mono text-xs">
-                            {vault.id.slice(0, 8)}
+                          <p className="text-muted-foreground text-xs">
+                            {formatRelativeTime(vault.lastAccessedAt)}
                           </p>
                         </div>
                       </Link>

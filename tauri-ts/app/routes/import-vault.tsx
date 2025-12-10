@@ -14,7 +14,7 @@ import {
   publicKeyCreate,
   WebBuf,
 } from "@keypears/lib";
-import { createVault, getVaultByNameAndDomain } from "~app/db/models/vault";
+import { createVault, getVaultByNameAndDomain, updateVaultLastAccessed } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
@@ -148,6 +148,9 @@ export default function ImportVault() {
         vaultKey,
         () => refreshSyncState(vault.id), // onSyncComplete callback
       );
+
+      // 16. Update last accessed timestamp
+      await updateVaultLastAccessed(vault.id);
 
       setSuccess(true);
 

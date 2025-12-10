@@ -14,7 +14,7 @@ import {
   publicKeyCreate,
   FixedBuf,
 } from "@keypears/lib";
-import { createVault } from "~app/db/models/vault";
+import { createVault, updateVaultLastAccessed } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
 import { createClientFromDomain } from "@keypears/api-server/client";
@@ -162,6 +162,9 @@ export default function NewVaultStep3() {
         startBackgroundSync(vault.id, vaultDomain, vaultKey, () => {
           refreshSyncState(vault.id);
         });
+
+        // 16. Update last accessed timestamp
+        await updateVaultLastAccessed(vault.id);
 
         // Store created vault ID for navigation
         setCreatedVaultId(vault.id);
