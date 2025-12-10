@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, href } from "react-router";
-import { Menu, ArrowLeft } from "lucide-react";
+import { Menu, Home, ArrowLeft } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import {
   Sheet,
@@ -31,7 +31,7 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
     <>
       <nav className="border-border bg-background sticky top-0 z-40 w-full border-b">
         <div className="flex h-14 items-center justify-between px-4">
-          {/* Left: Burger Menu + Optional Back Button */}
+          {/* Left: Burger Menu + Home + Optional Back Button */}
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -40,6 +40,15 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
               aria-label="Open menu"
             >
               <Menu size={20} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+            >
+              <Link to={href("/")} aria-label="Go home">
+                <Home size={20} />
+              </Link>
             </Button>
             {showBackButton && (
               <Button

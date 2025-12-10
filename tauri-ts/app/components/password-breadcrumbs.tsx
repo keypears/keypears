@@ -1,5 +1,5 @@
 import { Link, href } from "react-router";
-import { Home, Lock, Key } from "lucide-react";
+import { Lock, Key } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -29,16 +29,6 @@ export function PasswordBreadcrumbs({
   return (
     <Breadcrumb className="mb-4">
       <BreadcrumbList>
-        {/* Vaults link */}
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link to={href("/")} className="flex items-center gap-1.5">
-              <Home size={14} />
-            </Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-
         {/* Vault name link or page */}
         {!passwordName && !currentPage ? (
           <BreadcrumbItem>
