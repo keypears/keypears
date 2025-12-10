@@ -133,15 +133,24 @@ export function VaultAddressInput({
     onDomainBlur?.();
   };
 
-  // Handle name focus - select all
-  const handleNameFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
+  // Handle name focus - show dropdown is not needed for name
+  const handleNameFocus = () => {
+    // Selection handled by mouseUp
   };
 
-  // Handle domain focus - select all and show dropdown
-  const handleDomainFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
+  // Handle name mouseUp - select all
+  const handleNameMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    e.currentTarget.select();
+  };
+
+  // Handle domain focus - show dropdown
+  const handleDomainFocus = () => {
     setIsDomainDropdownOpen(true);
+  };
+
+  // Handle domain mouseUp - select all
+  const handleDomainMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    e.currentTarget.select();
   };
 
   // Handle domain blur
@@ -166,6 +175,7 @@ export function VaultAddressInput({
             onChange={handleNameChange}
             onKeyDown={handleNameKeyDown}
             onFocus={handleNameFocus}
+            onMouseUp={handleNameMouseUp}
             onBlur={onNameBlur}
             placeholder="alice"
             disabled={disabled}
@@ -200,6 +210,7 @@ export function VaultAddressInput({
             onChange={handleDomainChange}
             onKeyDown={handleDomainKeyDown}
             onFocus={handleDomainFocus}
+            onMouseUp={handleDomainMouseUp}
             onBlur={handleDomainBlur}
             placeholder="keypears.com"
             disabled={disabled}
