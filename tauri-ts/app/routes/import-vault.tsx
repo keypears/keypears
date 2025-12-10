@@ -157,11 +157,6 @@ export default function ImportVault() {
       await updateVaultLastAccessed(vault.id);
 
       setSuccess(true);
-
-      // Navigate to vault after successful import
-      setTimeout(() => {
-        navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
-      }, 1500);
     } catch (err) {
       console.error("Error importing vault:", err);
 
