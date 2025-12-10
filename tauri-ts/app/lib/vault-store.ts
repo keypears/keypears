@@ -38,6 +38,9 @@ export interface SessionState {
 const unlockedVaults: Map<string, UnlockedVault> = new Map();
 const sessions: Map<string, SessionState> = new Map();
 
+// Track the currently active vault (for detecting vault switches)
+let currentVaultId: string | null = null;
+
 // ============================================================================
 // Getters
 // ============================================================================
@@ -88,6 +91,13 @@ export function isSessionExpiringSoon(vaultId: string): boolean {
  */
 export function isVaultUnlocked(vaultId: string): boolean {
   return unlockedVaults.has(vaultId);
+}
+
+/**
+ * Get the currently active vault ID.
+ */
+export function getCurrentVaultId(): string | null {
+  return currentVaultId;
 }
 
 /**
@@ -205,6 +215,18 @@ export function setSession(
  */
 export function clearSession(vaultId: string): void {
   sessions.delete(vaultId);
+}
+
+/**
+ * Switch to a vault. Returns true if this is a different vault than the current one.
+ * Use this to detect vault switches and update lastAccessedAt accordingly.
+ */
+export function switchToVault(vaultId: string): boolean {
+  if (currentVaultId === vaultId) {
+    return false; // Same vault, no switch
+  }
+  currentVaultId = vaultId;
+  return true; // Different vault, switch occurred
 }
 
 // ============================================================================
