@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { createClient, type KeypearsClient } from "@keypears/api-server/client";
 
 export interface ServerStatus {
@@ -46,26 +46,18 @@ export function ServerStatusProvider({
   children,
   serverUrl,
 }: ServerStatusProviderProps): JSX.Element {
-  const [client, setClient] = useState<KeypearsClient | null>(null);
+  // Create client synchronously - createClient() is a pure function
+  const client = useMemo(
+    () => createClient({ url: serverUrl || "http://localhost:4273/api" }),
+    [serverUrl],
+  );
 
   const [status, setStatus] = useState<ServerStatus>({
     isOnline: false,
     isValidating: false,
   });
 
-  // Create client only on client-side (after hydration)
-  useEffect(() => {
-    const newClient = createClient({
-      url: serverUrl || "http://localhost:4273/api",
-    });
-    setClient(newClient);
-  }, [serverUrl]);
-
   const checkServer = useCallback(async (): Promise<void> => {
-    if (!client) {
-      return;
-    }
-
     setStatus((prev) => ({ ...prev, isValidating: true }));
 
     try {
@@ -98,17 +90,10 @@ export function ServerStatusProvider({
     }
   }, [client]);
 
-  // Initial server check on mount (after client is created)
+  // Initial server check on mount
   useEffect(() => {
-    if (client) {
-      checkServer();
-    }
-  }, [client, checkServer]);
-
-  // Don't render children until client is ready
-  if (!client) {
-    return <div>Loading...</div>;
-  }
+    checkServer();
+  }, [checkServer]);
 
   return (
     <ServerStatusContext.Provider
