@@ -84,17 +84,21 @@ approach for domain-level configuration.
 This week we implemented the complete infrastructure for this feature:
 
 **In the library (`@keypears/lib`):**
+
 - A Zod schema (`KeypearsJsonSchema`) that validates the `keypears.json` format
 - A `buildBaseUrl()` helper for constructing domain URLs
 
 **In the API server (`@keypears/api-server`):**
+
 - Updated `validateKeypearsServer()` to parse and return the `apiUrl`
 
 **In the webapp (`@keypears/webapp`):**
+
 - A dynamic React Router resource route that serves `keypears.json`
 - Environment-aware configuration (production vs development URLs)
 
 **In the Tauri app (`@keypears/tauri-ts`):**
+
 - `fetchApiUrl()` function that retrieves and caches API URLs from `keypears.json`
 - Updated all API client calls to use the discovered URL instead of constructing it
 
@@ -160,6 +164,7 @@ what enables `alice@company.com` to securely share credentials with
 `bob@partner.io` without either server ever seeing the plaintext.
 
 After DH key exchange, we'll focus on:
+
 - Multi-domain support (official KeyPears domains beyond `keypears.com`)
 - Domain ownership verification (the public key piece mentioned above)
 - Payment and business model (freemium with premium custom domain hosting)
@@ -171,5 +176,5 @@ If you're interested in following our progress, the code is open source and
 available on [GitHub](https://github.com/keypears/keypears). We're building in
 public because we believe the best security software is software you can verify.
 
-*Next up: Diffie-Hellman key exchange for cross-user secret sharing. Stay
-tuned!*
+_Next up: Diffie-Hellman key exchange for cross-user secret sharing. Stay
+tuned!_

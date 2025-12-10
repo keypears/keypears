@@ -79,10 +79,7 @@ export async function getVaults(): Promise<Vault[]> {
   return await db
     .select()
     .from(TableVault)
-    .orderBy(
-      desc(TableVault.lastAccessedAt),
-      desc(TableVault.createdAt),
-    );
+    .orderBy(desc(TableVault.lastAccessedAt), desc(TableVault.createdAt));
 }
 
 export async function countVaults(): Promise<number> {

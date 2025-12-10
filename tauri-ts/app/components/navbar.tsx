@@ -41,11 +41,7 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
             >
               <Menu size={20} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-            >
+            <Button variant="ghost" size="icon" asChild>
               <Link to={href("/")} aria-label="Go home">
                 <Home size={20} />
               </Link>

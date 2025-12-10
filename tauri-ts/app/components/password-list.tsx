@@ -35,7 +35,10 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
         // Decrypt blobs for display (domain, username, etc.)
         const decryptedSecrets = currentSecrets.map((secret) => ({
           ...secret,
-          decryptedBlob: decryptSecretUpdateBlob(secret.encryptedBlob, vaultKey),
+          decryptedBlob: decryptSecretUpdateBlob(
+            secret.encryptedBlob,
+            vaultKey,
+          ),
         }));
 
         setPasswords(decryptedSecrets);

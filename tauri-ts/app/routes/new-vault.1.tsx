@@ -131,7 +131,8 @@ export default function NewVaultStep1() {
     });
   };
 
-  const isValid = name.length > 0 && domain.length > 0 && !nameError && !domainError;
+  const isValid =
+    name.length > 0 && domain.length > 0 && !nameError && !domainError;
 
   return (
     <div className="bg-background flex min-h-screen flex-col">

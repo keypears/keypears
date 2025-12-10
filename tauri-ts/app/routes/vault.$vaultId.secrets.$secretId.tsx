@@ -282,7 +282,10 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
           </div>
 
           {/* Delete/Restore confirmation dialog */}
-          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>

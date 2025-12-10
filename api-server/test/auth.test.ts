@@ -70,7 +70,9 @@ describe("Authentication API", () => {
     });
 
     it("should reject invalid login key", async () => {
-      const wrongLoginKey = sha256Hash(WebBuf.fromUtf8("wrong-password")).buf.toHex();
+      const wrongLoginKey = sha256Hash(
+        WebBuf.fromUtf8("wrong-password"),
+      ).buf.toHex();
 
       await expect(
         client.api.login({

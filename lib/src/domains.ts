@@ -3,8 +3,12 @@
  */
 
 export const OFFICIAL_DOMAINS = {
-  production: ['keypears.com', 'hevybags.com', 'wokerium.com'],
-  development: ['keypears.localhost', 'hevybags.localhost', 'wokerium.localhost'],
+  production: ["keypears.com", "hevybags.com", "wokerium.com"],
+  development: [
+    "keypears.localhost",
+    "hevybags.localhost",
+    "wokerium.localhost",
+  ],
 } as const;
 
 /**
@@ -12,9 +16,9 @@ export const OFFICIAL_DOMAINS = {
  * Each domain gets a unique port (+10 increments for auxiliary services)
  */
 export const DEV_PORT_MAP = {
-  'keypears.localhost': 4273,
-  'hevybags.localhost': 4283,
-  'wokerium.localhost': 4293,
+  "keypears.localhost": 4273,
+  "hevybags.localhost": 4283,
+  "wokerium.localhost": 4293,
 } as const;
 
 /**
@@ -25,11 +29,15 @@ export function getOfficialDomains(): string[] {
   // Check if we're in a browser environment with import.meta.env
   // Use unknown and type guard to check for env.MODE property
   const isDev =
-    typeof import.meta !== 'undefined' &&
-    typeof (import.meta as unknown as { env?: { MODE?: string } }).env === 'object' &&
-    (import.meta as unknown as { env: { MODE?: string } }).env.MODE === 'development';
+    typeof import.meta !== "undefined" &&
+    typeof (import.meta as unknown as { env?: { MODE?: string } }).env ===
+      "object" &&
+    (import.meta as unknown as { env: { MODE?: string } }).env.MODE ===
+      "development";
 
-  return isDev ? [...OFFICIAL_DOMAINS.development] : [...OFFICIAL_DOMAINS.production];
+  return isDev
+    ? [...OFFICIAL_DOMAINS.development]
+    : [...OFFICIAL_DOMAINS.production];
 }
 
 /**
@@ -38,7 +46,10 @@ export function getOfficialDomains(): string[] {
  * @returns True if domain is official
  */
 export function isOfficialDomain(domain: string): boolean {
-  const allDomains: string[] = [...OFFICIAL_DOMAINS.production, ...OFFICIAL_DOMAINS.development];
+  const allDomains: string[] = [
+    ...OFFICIAL_DOMAINS.production,
+    ...OFFICIAL_DOMAINS.development,
+  ];
   return allDomains.includes(domain);
 }
 
@@ -78,7 +89,7 @@ export function buildBaseUrl(domain: string): string {
   }
 
   // Check if domain already includes a port (custom development)
-  if (domain.includes(':')) {
+  if (domain.includes(":")) {
     return `http://${domain}`;
   }
 

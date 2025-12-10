@@ -85,8 +85,8 @@ export function PasswordMemorizer() {
         <div className="mb-6">
           <p className="text-muted-foreground mb-4 text-sm">
             Practice memorizing a password through repetition. This tool helps
-            you build muscle memory by typing the password multiple times without
-            visual feedback.
+            you build muscle memory by typing the password multiple times
+            without visual feedback.
           </p>
 
           <div className="space-y-2">

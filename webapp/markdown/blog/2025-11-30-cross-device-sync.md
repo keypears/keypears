@@ -50,13 +50,13 @@ const { sessionToken, expiresAt } = await client.login({
   vaultId,
   loginKey,
   deviceId,
-  deviceDescription: "macOS 14.1 (aarch64)"
+  deviceDescription: "macOS 14.1 (aarch64)",
 });
 
 // Use session token for all subsequent requests
 const secrets = await client.getSecretUpdates({
   vaultId,
-  lastUpdatedAt: lastSync
+  lastUpdatedAt: lastSync,
 });
 ```
 
@@ -143,7 +143,9 @@ startBackgroundSync(vaultId, domain, key, () => session?.token);
 
 // FIX: Use ref to get current value
 const sessionRef = useRef(session);
-useEffect(() => { sessionRef.current = session; }, [session]);
+useEffect(() => {
+  sessionRef.current = session;
+}, [session]);
 startBackgroundSync(vaultId, domain, key, () => sessionRef.current?.token);
 ```
 
@@ -241,4 +243,3 @@ server, your secrets stay yours.
 
 _Next up: Implementing the Diffie-Hellman key exchange protocol for secure
 secret sharing between users. Stay tuned!_
-

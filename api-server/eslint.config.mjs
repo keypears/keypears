@@ -173,7 +173,7 @@ export default [
       "import/no-unresolved": [
         "error",
         {
-          ignore: ["^@keypears/"],  // Allow workspace packages
+          ignore: ["^@keypears/"], // Allow workspace packages
         },
       ],
 
@@ -276,7 +276,7 @@ export default [
       "import/no-unresolved": [
         "error",
         {
-          ignore: ["^@keypears/"],  // Allow workspace packages
+          ignore: ["^@keypears/"], // Allow workspace packages
         },
       ],
 

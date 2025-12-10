@@ -69,9 +69,8 @@ function sha256Pbkdf(
   salt: FixedBuf<32>,
   rounds: number = 100_000,
 ): FixedBuf<32> {
-  const passwordBuf = typeof password === "string"
-    ? WebBuf.fromUtf8(password)
-    : password;
+  const passwordBuf =
+    typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
   let result = sha256Hmac(salt, passwordBuf);
   for (let i = 1; i < rounds; i++) {

@@ -21,10 +21,7 @@ export const KeypearsJsonSchema = z.object({
    * Protocol version number. Must be >= 1.
    * Used for future protocol upgrades and compatibility checks.
    */
-  version: z
-    .number()
-    .int()
-    .min(1, "Version must be at least 1"),
+  version: z.number().int().min(1, "Version must be at least 1"),
 
   /**
    * The full URL to the KeyPears API endpoint.
@@ -38,10 +35,7 @@ export const KeypearsJsonSchema = z.object({
   apiUrl: z
     .string()
     .url("apiUrl must be a valid URL")
-    .refine(
-      (url) => url.endsWith("/api"),
-      "apiUrl must end with '/api'",
-    ),
+    .refine((url) => url.endsWith("/api"), "apiUrl must end with '/api'"),
 });
 
 /**

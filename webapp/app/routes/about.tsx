@@ -28,14 +28,12 @@ export default function About({ loaderData }: Route.ComponentProps) {
   const { content } = loaderData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <Header />
 
         <article className="keypears-prose mt-8 max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {content}
-          </ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </article>
 
         <Footer />

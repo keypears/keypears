@@ -42,9 +42,9 @@ support, dual hierarchy mechanisms, and JSON-based storage.
 First, we made the schema generic enough to handle any small secret:
 
 ```typescript
-type: "password" | "envvar" | "apikey" | "walletkey" | "passkey"
-encryptedData: string  // Previously: encryptedPassword
-encryptedNotes: string // Previously: notes
+type: "password" | "envvar" | "apikey" | "walletkey" | "passkey";
+encryptedData: string; // Previously: encryptedPassword
+encryptedNotes: string; // Previously: notes
 ```
 
 The `type` field distinguishes what kind of secret this is. The generic
@@ -78,9 +78,9 @@ parentId: string       // ULID of parent secret (max depth 1)
 array of strings representing the path:
 
 ```typescript
-folders: ["Work", "AWS", "Production"]
-folders: ["Personal", "Banking"]
-folders: []  // Root level
+folders: ["Work", "AWS", "Production"];
+folders: ["Personal", "Banking"];
+folders: []; // Root level
 ```
 
 This maps perfectly to KeePass Groups and lets users organize thousands of
@@ -90,7 +90,7 @@ secrets into a familiar folder structure.
 cross-cutting concerns:
 
 ```typescript
-tags: ["production-env", "requires-rotation", "shared-with-team"]
+tags: ["production-env", "requires-rotation", "shared-with-team"];
 ```
 
 **ParentId** creates actual parent-child relationships between secrets. This is

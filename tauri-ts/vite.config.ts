@@ -12,7 +12,7 @@ export default defineConfig(async () => ({
 
   // Pre-optimize all dependencies upfront to avoid 504 errors during navigation
   optimizeDeps: {
-    entries: ['app/**/*.tsx', 'app/**/*.ts'], // Scan all app code and optimize dependencies upfront
+    entries: ["app/**/*.tsx", "app/**/*.ts"], // Scan all app code and optimize dependencies upfront
     force: true, // Always rebuild optimization cache on server start
   },
 

@@ -1,6 +1,10 @@
 import type { Route } from "./+types/vault.$vaultId.secrets";
 import { Outlet, redirect, href } from "react-router";
-import { isVaultUnlocked, getUnlockedVault, switchToVault } from "~app/lib/vault-store";
+import {
+  isVaultUnlocked,
+  getUnlockedVault,
+  switchToVault,
+} from "~app/lib/vault-store";
 import { ServerStatusProvider } from "~app/contexts/ServerStatusContext";
 import { ServerStatusBanner } from "~app/components/ServerStatusBanner";
 import { buildServerUrl } from "@keypears/api-server/client";

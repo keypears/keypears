@@ -28,12 +28,14 @@ This post explains why we made that decision.
 Let's start with the facts. Here's what we did:
 
 **October 2025:** Built a complete Rust backend
+
 - `rs-lib`: Full cryptography library (Blake3, ACB3, key derivation)
 - `rs-node`: Axum-based API server with OpenAPI via utoipa
 - Dual-server deployment: Node.js webapp proxying to Rust API
 - Everything worked as described in the October blog post
 
 **November 2025:** Removed the entire Rust backend
+
 - Deleted `rs-lib` package completely
 - Deleted `rs-node` package completely
 - Rewrote cryptography in TypeScript using `@webbuf` WASM packages
@@ -41,6 +43,7 @@ Let's start with the facts. Here's what we did:
 - Integrated API server directly into Express webapp
 
 **Current state:**
+
 - **Rust code:** 33 lines total (just the minimal Tauri shell)
 - **TypeScript code:** ~5,400 lines (lib, api-server, tauri app, webapp)
 - All cryptography now TypeScript + WASM
@@ -155,6 +158,7 @@ manual work to keep them in sync.
 The final reason we removed the Rust backend: **context switching costs.**
 
 With the dual-language architecture, every feature required:
+
 - Writing Rust for crypto/API logic
 - Writing TypeScript for UI/database logic
 - Translating between Rust and TypeScript idioms
@@ -168,6 +172,7 @@ you're writing Rust or TypeScript, and the last 10 minutes before bed context
 switching back.
 
 With TypeScript-only:
+
 - One type system
 - One package manager
 - One testing framework
@@ -183,6 +188,7 @@ make fewer mistakes.
 The Rust backend also complicated deployment:
 
 **With Rust (October architecture):**
+
 - Dual-server: Node.js webapp (port 4273) + Rust API (port 4274)
 - HTTP proxy from webapp to Rust server
 - Docker image: Node + Rust toolchain + cross-compilation
@@ -190,6 +196,7 @@ The Rust backend also complicated deployment:
 - More complex service coordination
 
 **With TypeScript-only (current):**
+
 - Single Express server (port 4273)
 - orpc API mounted directly at `/api`
 - Docker image: Just Node.js (~200MB)
@@ -228,9 +235,8 @@ export function blake3Pbkdf(
   salt: FixedBuf<32>,
   rounds: number = 100_000,
 ): FixedBuf<32> {
-  const passwordBuf = typeof password === "string"
-    ? WebBuf.fromUtf8(password)
-    : password;
+  const passwordBuf =
+    typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
   let result = blake3Mac(salt, passwordBuf);
   for (let i = 1; i < rounds; i++) {

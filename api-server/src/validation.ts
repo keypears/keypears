@@ -59,7 +59,8 @@ export async function fetchKeypearsJson(
       if (response.status === 404) {
         return {
           success: false,
-          error: "Not a valid KeyPears server (missing /.well-known/keypears.json)",
+          error:
+            "Not a valid KeyPears server (missing /.well-known/keypears.json)",
         };
       }
 

@@ -13,8 +13,8 @@ export function ServerStatusBanner(): JSX.Element | null {
   // Only show banner when offline (after validation completed with error)
   if (!status.isOnline && !status.isValidating) {
     return (
-      <div className="bg-red dark:bg-red/20 border-b border-red-dark dark:border-red flex items-center justify-center gap-2 px-4 py-2 text-sm">
-        <AlertCircle className="h-4 w-4 text-text dark:text-text" />
+      <div className="bg-red dark:bg-red/20 border-red-dark dark:border-red flex items-center justify-center gap-2 border-b px-4 py-2 text-sm">
+        <AlertCircle className="text-text dark:text-text h-4 w-4" />
         <span className="text-text dark:text-text">
           Server offline: {status.error || "Unable to connect"}
         </span>

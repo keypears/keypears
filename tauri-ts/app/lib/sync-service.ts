@@ -139,7 +139,9 @@ async function performSync(vaultId: string): Promise<void> {
     if (!session) {
       // No session token available, skip sync
       if (state.lastErrorMessage !== "no-session") {
-        console.warn(`Background sync skipped for vault ${vaultId}: no session token`);
+        console.warn(
+          `Background sync skipped for vault ${vaultId}: no session token`,
+        );
         state.lastErrorMessage = "no-session";
       }
       return;
@@ -168,7 +170,9 @@ async function performSync(vaultId: string): Promise<void> {
 
     // Sync completed successfully - reset error tracking
     if (state.consecutiveServerErrors > 0 || state.lastErrorStatus !== null) {
-      console.log(`Background sync recovered successfully for vault ${vaultId}`);
+      console.log(
+        `Background sync recovered successfully for vault ${vaultId}`,
+      );
     }
     state.consecutiveServerErrors = 0;
     state.lastErrorStatus = null;

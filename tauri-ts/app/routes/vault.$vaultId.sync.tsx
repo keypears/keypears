@@ -2,7 +2,15 @@ import type { Route } from "./+types/vault.$vaultId.sync";
 import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
 import { useUnreadCount, refreshSyncState } from "~app/contexts/sync-context";
-import { ChevronLeft, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff, CheckCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  CheckCheck,
+} from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -14,7 +22,10 @@ import {
   markAllAsRead,
   type SecretUpdateRow,
 } from "~app/db/models/password";
-import { getVaultSyncState, type VaultSyncState } from "~app/db/models/vault-sync-state";
+import {
+  getVaultSyncState,
+  type VaultSyncState,
+} from "~app/db/models/vault-sync-state";
 import { triggerManualSync } from "~app/lib/sync-service";
 
 const PAGE_SIZE = 20;
@@ -36,10 +47,14 @@ function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString();
 }
 
-function SyncStatusIndicator({ syncState }: { syncState: VaultSyncState | null }) {
+function SyncStatusIndicator({
+  syncState,
+}: {
+  syncState: VaultSyncState | null;
+}) {
   if (!syncState) {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="text-muted-foreground flex items-center gap-2">
         <RefreshCw size={16} className="animate-spin" />
         <span>Initializing...</span>
       </div>
@@ -48,11 +63,11 @@ function SyncStatusIndicator({ syncState }: { syncState: VaultSyncState | null }
 
   const lastSync = syncState.lastSyncSuccess;
   const hasError = syncState.syncError !== null;
-  const isRecent = lastSync && (Date.now() - lastSync) < 60000; // Less than 1 minute
+  const isRecent = lastSync && Date.now() - lastSync < 60000; // Less than 1 minute
 
   if (hasError) {
     return (
-      <div className="flex items-center gap-2 text-destructive">
+      <div className="text-destructive flex items-center gap-2">
         <AlertCircle size={16} />
         <span>Sync error: {syncState.syncError}</span>
       </div>
@@ -69,9 +84,11 @@ function SyncStatusIndicator({ syncState }: { syncState: VaultSyncState | null }
   }
 
   return (
-    <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="text-muted-foreground flex items-center gap-2">
       <RefreshCw size={16} />
-      <span>Last synced {lastSync ? formatRelativeTime(lastSync) : "never"}</span>
+      <span>
+        Last synced {lastSync ? formatRelativeTime(lastSync) : "never"}
+      </span>
     </div>
   );
 }
@@ -93,28 +110,28 @@ function ActivityItem({
 
   return (
     <div
-      className={`flex items-center justify-between border-b border-border last:border-b-0 p-4 ${
+      className={`border-border flex items-center justify-between border-b p-4 last:border-b-0 ${
         !update.isRead ? "bg-muted/50" : ""
       }`}
     >
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {!update.isRead && (
-            <span className="h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
           )}
-          <span className="font-medium truncate">{update.name}</span>
-          <span className="text-muted-foreground text-sm">
-            {actionText}
-          </span>
+          <span className="truncate font-medium">{update.name}</span>
+          <span className="text-muted-foreground text-sm">{actionText}</span>
         </div>
-        <div className="text-sm text-muted-foreground mt-1">
+        <div className="text-muted-foreground mt-1 text-sm">
           {formatRelativeTime(update.createdAt)}
         </div>
       </div>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => update.isRead ? onMarkUnread(update.id) : onMarkRead(update.id)}
+        onClick={() =>
+          update.isRead ? onMarkUnread(update.id) : onMarkRead(update.id)
+        }
         title={update.isRead ? "Mark as unread" : "Mark as read"}
       >
         {update.isRead ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -123,7 +140,10 @@ function ActivityItem({
   );
 }
 
-export async function clientLoader({ params, request }: Route.ClientLoaderArgs) {
+export async function clientLoader({
+  params,
+  request,
+}: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get("page") || "0", 10);
@@ -145,8 +165,11 @@ export async function clientLoader({ params, request }: Route.ClientLoaderArgs) 
   };
 }
 
-export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) {
-  const { vaultId, syncState, updates, totalCount, unreadCount, page } = loaderData;
+export default function VaultSyncActivity({
+  loaderData,
+}: Route.ComponentProps) {
+  const { vaultId, syncState, updates, totalCount, unreadCount, page } =
+    loaderData;
   const revalidator = useRevalidator();
   const globalUnreadCount = useUnreadCount(vaultId);
   const prevUnreadCount = useRef(globalUnreadCount);
@@ -190,7 +213,9 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
     } finally {
       const elapsed = Date.now() - startTime;
       if (elapsed < minDuration) {
-        await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+        await new Promise((resolve) =>
+          setTimeout(resolve, minDuration - elapsed),
+        );
       }
       setIsSyncing(false);
     }
@@ -208,7 +233,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
         <div className="mb-6">
           <Link
             to={href("/vault/:vaultId/secrets", { vaultId })}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+            className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
           >
             <ChevronLeft size={16} />
             Back to Passwords
@@ -217,7 +242,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
         </div>
 
         {/* Sync status card */}
-        <div className="rounded-lg border border-border bg-card p-4 mb-6">
+        <div className="border-border bg-card mb-6 rounded-lg border p-4">
           <div className="flex items-center justify-between">
             <SyncStatusIndicator syncState={syncState} />
             <Button
@@ -227,7 +252,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
               disabled={isSyncing}
             >
               {isSyncing ? (
-                <RefreshCw size={16} className="animate-spin mr-2" />
+                <RefreshCw size={16} className="mr-2 animate-spin" />
               ) : (
                 <RefreshCw size={16} className="mr-2" />
               )}
@@ -238,7 +263,7 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
 
         {/* Mark all read button */}
         {unreadCount > 0 && (
-          <div className="flex justify-end mb-4">
+          <div className="mb-4 flex justify-end">
             <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
               <CheckCheck size={16} className="mr-2" />
               Mark All Read ({unreadCount})
@@ -247,9 +272,9 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
         )}
 
         {/* Activity list */}
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="border-border bg-card overflow-hidden rounded-lg border">
           {updates.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="text-muted-foreground p-8 text-center">
               No sync activity yet
             </div>
           ) : (
@@ -268,29 +293,15 @@ export default function VaultSyncActivity({ loaderData }: Route.ComponentProps) 
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              disabled={!hasPrevPage}
-            >
-              <Link to={`?page=${page - 1}`}>
-                Previous
-              </Link>
+          <div className="mt-4 flex items-center justify-between">
+            <Button variant="outline" size="sm" asChild disabled={!hasPrevPage}>
+              <Link to={`?page=${page - 1}`}>Previous</Link>
             </Button>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               Page {page + 1} of {totalPages}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              disabled={!hasNextPage}
-            >
-              <Link to={`?page=${page + 1}`}>
-                Next
-              </Link>
+            <Button variant="outline" size="sm" asChild disabled={!hasNextPage}>
+              <Link to={`?page=${page + 1}`}>Next</Link>
             </Button>
           </div>
         )}

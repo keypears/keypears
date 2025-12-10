@@ -34,8 +34,8 @@ const VAULT_POLL_INTERVAL = 500; // 500ms
 export default function AppIndex({ loaderData }: Route.ComponentProps) {
   const [vaults, setVaults] = useState(loaderData.vaults);
   const [vaultToDelete, setVaultToDelete] = useState<Vault | null>(null);
-  const [unlockedVaultIds, setUnlockedVaultIds] = useState<Set<string>>(() =>
-    new Set(getAllUnlockedVaultIds())
+  const [unlockedVaultIds, setUnlockedVaultIds] = useState<Set<string>>(
+    () => new Set(getAllUnlockedVaultIds()),
   );
   const unreadCounts = useAllUnreadCounts();
 
@@ -101,7 +101,12 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                   Create your first vault or import an existing one
                 </p>
                 <div className="flex w-full gap-2">
-                  <Button size="lg" variant="outline" className="flex-1" asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1"
+                    asChild
+                  >
                     <Link to={href("/import-vault")}>Import Vault</Link>
                   </Button>
                   <Button size="lg" className="flex-1" asChild>
@@ -125,8 +130,12 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                       <Link
                         to={
                           isUnlocked
-                            ? href("/vault/:vaultId/secrets", { vaultId: vault.id })
-                            : href("/unlock-vault/:vaultId", { vaultId: vault.id })
+                            ? href("/vault/:vaultId/secrets", {
+                                vaultId: vault.id,
+                              })
+                            : href("/unlock-vault/:vaultId", {
+                                vaultId: vault.id,
+                              })
                         }
                         className="flex flex-1 items-center gap-3"
                       >

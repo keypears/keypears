@@ -99,7 +99,7 @@ export function PasswordGenerator() {
           {/* Password input - full width */}
           <div className="overflow-x-auto p-4">
             <pre className="text-foreground m-0 bg-transparent font-mono text-sm">
-              {showPassword ? password : '•'.repeat(password.length)}
+              {showPassword ? password : "•".repeat(password.length)}
             </pre>
           </div>
 
@@ -152,7 +152,10 @@ export function PasswordGenerator() {
                 setTimeout(() => setRefreshing(false), 1000);
               }}
             >
-              <RotateCw size={20} className={refreshing ? "animate-spin" : ""} />
+              <RotateCw
+                size={20}
+                className={refreshing ? "animate-spin" : ""}
+              />
             </Button>
           </div>
         </div>

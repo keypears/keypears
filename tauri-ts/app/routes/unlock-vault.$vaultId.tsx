@@ -7,20 +7,17 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { calculatePasswordEntropy } from "@keypears/lib";
 import { cn } from "~app/lib/utils";
-import { getVault, updateVault, updateVaultLastAccessed } from "~app/db/models/vault";
-import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import {
-  unlockVault,
-  setSession,
-  isVaultUnlocked,
-} from "~app/lib/vault-store";
+  getVault,
+  updateVault,
+  updateVaultLastAccessed,
+} from "~app/db/models/vault";
+import { verifyVaultPassword } from "~app/lib/vault-crypto";
+import { unlockVault, setSession, isVaultUnlocked } from "~app/lib/vault-store";
 import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 import { initDb } from "~app/db";
-import {
-  generateDeviceId,
-  detectDeviceDescription,
-} from "~app/lib/device";
+import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { createClientFromDomain } from "@keypears/api-server/client";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
@@ -84,7 +81,14 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
         vault.vaultPubKeyHash,
       );
 
-      if (!result.valid || !result.passwordKey || !result.encryptionKey || !result.loginKey || !result.vaultKey || !result.vaultPublicKey) {
+      if (
+        !result.valid ||
+        !result.passwordKey ||
+        !result.encryptionKey ||
+        !result.loginKey ||
+        !result.vaultKey ||
+        !result.vaultPublicKey
+      ) {
         // Password is incorrect
         setError("Incorrect password");
         setPassword("");
@@ -171,7 +175,10 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Unlock Vault</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Vault: <span className="font-mono">{vault.name}@{vault.domain}</span>
+              Vault:{" "}
+              <span className="font-mono">
+                {vault.name}@{vault.domain}
+              </span>
             </p>
           </div>
 

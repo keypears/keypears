@@ -36,7 +36,7 @@ export default function About({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="flex-1">
                   <h2 className="mb-1 font-semibold">Database Location</h2>
-                  <p className="text-muted-foreground break-all font-mono text-sm">
+                  <p className="text-muted-foreground font-mono text-sm break-all">
                     {dbPath || "Not yet initialized"}
                   </p>
                 </div>

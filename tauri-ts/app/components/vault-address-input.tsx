@@ -61,7 +61,9 @@ export function VaultAddressInput({
   }, [isDomainDropdownOpen]);
 
   // Parse email address and split into name/domain
-  const parseEmailAddress = (value: string): { name: string; domain: string } | null => {
+  const parseEmailAddress = (
+    value: string,
+  ): { name: string; domain: string } | null => {
     const atIndex = value.indexOf("@");
     if (atIndex === -1) return null;
 
@@ -215,7 +217,7 @@ export function VaultAddressInput({
             placeholder="keypears.com"
             disabled={disabled}
             className={cn(
-              "rounded-l-none pl-7 pr-8",
+              "rounded-l-none pr-8 pl-7",
               domainError && "border-destructive",
             )}
           />
@@ -242,7 +244,7 @@ export function VaultAddressInput({
                     key={d}
                     type="button"
                     onClick={() => handleSelectDomain(d)}
-                    className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+                    className="focus:bg-accent focus:text-accent-foreground hover:bg-accent hover:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none"
                   >
                     {d}
                   </button>

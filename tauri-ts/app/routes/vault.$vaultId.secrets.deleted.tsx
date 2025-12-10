@@ -24,10 +24,7 @@ export default function VaultPasswordsDeleted({
     <div className="bg-background min-h-screen">
       <Navbar showBackButton vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Breadcrumbs
-          vaultId={vaultId}
-          currentPage="Deleted"
-        />
+        <Breadcrumbs vaultId={vaultId} currentPage="Deleted" />
         <PasswordList showDeleted={true} />
       </div>
     </div>

@@ -157,10 +157,7 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Breadcrumbs
-          vaultId={vaultId}
-          currentPage="New Secret"
-        />
+        <Breadcrumbs vaultId={vaultId} currentPage="New Secret" />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">New Secret</h1>

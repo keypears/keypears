@@ -12,11 +12,11 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
       <div className="space-y-1">
         <Link
           to={href("/blog/:slug", { slug: post.slug })}
-          className="text-lg font-semibold text-primary hover:underline hover:opacity-80 transition-opacity"
+          className="text-primary text-lg font-semibold transition-opacity hover:underline hover:opacity-80"
         >
           {post.title}
         </Link>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-sm">
           {formatDate(post.date)} · {post.author}
         </div>
       </div>
@@ -24,15 +24,15 @@ export function BlogPostCard({ post, compact = false }: BlogPostCardProps) {
   }
 
   return (
-    <article className="rounded-lg border border-border bg-card p-6 transition-shadow hover:shadow-md">
+    <article className="border-border bg-card rounded-lg border p-6 transition-shadow hover:shadow-md">
       <Link
         to={href("/blog/:slug", { slug: post.slug })}
         className="block space-y-3"
       >
-        <h2 className="text-xl font-semibold text-primary hover:underline hover:opacity-80 transition-opacity">
+        <h2 className="text-primary text-xl font-semibold transition-opacity hover:underline hover:opacity-80">
           {post.title}
         </h2>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-sm">
           {formatDate(post.date)} · {post.author}
         </div>
       </Link>

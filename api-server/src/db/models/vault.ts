@@ -88,7 +88,14 @@ export async function createVault(params: {
   hashedLoginKey: string;
   encryptedVaultKey: string;
 }): Promise<Vault> {
-  const { id, name, domain, vaultPubKeyHash, hashedLoginKey, encryptedVaultKey } = params;
+  const {
+    id,
+    name,
+    domain,
+    vaultPubKeyHash,
+    hashedLoginKey,
+    encryptedVaultKey,
+  } = params;
 
   await db.insert(TableVault).values({
     id,

@@ -137,7 +137,11 @@ export default function NewVaultStep3() {
         });
 
         // 12. Set session in vault-store
-        setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
+        setSession(
+          vault.id,
+          loginResponse.sessionToken,
+          loginResponse.expiresAt,
+        );
 
         // 13. Unlock vault with all derived keys
         unlockVault({

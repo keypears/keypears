@@ -83,32 +83,22 @@
       "indexes": {
         "idx_secret_updates_vault_global_order": {
           "name": "idx_secret_updates_vault_global_order",
-          "columns": [
-            "vault_id",
-            "global_order"
-          ],
+          "columns": ["vault_id", "global_order"],
           "isUnique": false
         },
         "idx_secret_updates_secret_local_order": {
           "name": "idx_secret_updates_secret_local_order",
-          "columns": [
-            "secret_id",
-            "local_order"
-          ],
+          "columns": ["secret_id", "local_order"],
           "isUnique": false
         },
         "idx_secret_updates_name": {
           "name": "idx_secret_updates_name",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": false
         },
         "idx_secret_updates_type": {
           "name": "idx_secret_updates_type",
-          "columns": [
-            "type"
-          ],
+          "columns": ["type"],
           "isUnique": false
         }
       },
@@ -117,12 +107,8 @@
           "name": "secret_update_vault_id_vault_id_fk",
           "tableFrom": "secret_update",
           "tableTo": "vault",
-          "columnsFrom": [
-            "vault_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vault_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -187,10 +173,7 @@
       "indexes": {
         "vault_name_domain_unique": {
           "name": "vault_name_domain_unique",
-          "columns": [
-            "name",
-            "domain"
-          ],
+          "columns": ["name", "domain"],
           "isUnique": true
         }
       },
@@ -245,12 +228,8 @@
           "name": "vault_sync_state_vault_id_vault_id_fk",
           "tableFrom": "vault_sync_state",
           "tableTo": "vault",
-          "columnsFrom": [
-            "vault_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vault_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

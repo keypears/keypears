@@ -31,20 +31,20 @@ export default function BlogPost({ loaderData }: Route.ComponentProps) {
   const { post } = loaderData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <Header />
 
         <Link
           to={href("/blog")}
-          className="mb-8 mt-8 inline-block text-sm text-primary hover:underline"
+          className="text-primary mt-8 mb-8 inline-block text-sm hover:underline"
         >
           ← Back to blog
         </Link>
 
         <article className="mb-8 space-y-4">
           <h1 className="text-3xl font-bold md:text-4xl">{post.title}</h1>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-muted-foreground text-sm">
             {formatDate(post.date)} · {post.author}
           </div>
           <hr className="border-border" />

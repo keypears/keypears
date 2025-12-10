@@ -155,21 +155,25 @@ This Swagger UI is generated directly from our Rust code. Every endpoint, reques
 The Blake3 endpoint is just the beginning. We're actively building:
 
 ### Vault Operations
+
 - Create and encrypt vaults
 - Derive encryption keys from passwords
 - Store and retrieve encrypted secrets
 
 ### Synchronization Protocol
+
 - Append-only logs for conflict-free sync
 - Server-side coordination for multi-device sync
 - End-to-end encryption (servers never see plaintext)
 
 ### Diffie-Hellman Key Exchange
+
 - Peer-to-peer secret sharing across domains
 - Email-style addressing (`alice@example.com` ↔ `bob@example2.com`)
 - Public key discovery via federated nodes
 
 ### Cross-Platform Clients
+
 - Desktop apps (Windows, macOS, Linux) via Tauri
 - Mobile apps (Android, iOS) - coming soon
 - Web interface for emergency access

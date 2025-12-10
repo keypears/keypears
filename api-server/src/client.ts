@@ -90,7 +90,13 @@ export function createClient(config?: ClientConfig): {
     // Try to auto-detect from browser location
     const win =
       typeof globalThis !== "undefined"
-        ? (globalThis as { window?: { location?: { protocol: string; hostname: string; port: string } } }).window
+        ? (
+            globalThis as {
+              window?: {
+                location?: { protocol: string; hostname: string; port: string };
+              };
+            }
+          ).window
         : undefined;
     if (win?.location) {
       const { protocol, hostname, port } = win.location;

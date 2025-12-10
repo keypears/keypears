@@ -27,7 +27,14 @@ export const registerVaultProcedure = base
   .input(RegisterVaultRequestSchema)
   .output(RegisterVaultResponseSchema)
   .handler(async ({ input }): Promise<{ vaultId: string }> => {
-    const { vaultId, name, domain, vaultPubKeyHash, loginKey, encryptedVaultKey } = input;
+    const {
+      vaultId,
+      name,
+      domain,
+      vaultPubKeyHash,
+      loginKey,
+      encryptedVaultKey,
+    } = input;
 
     // 1. Validate domain is official
     if (!isOfficialDomain(domain)) {

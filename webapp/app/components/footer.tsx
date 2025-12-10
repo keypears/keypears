@@ -5,9 +5,12 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 border-t border-border py-8">
+    <footer className="border-border mt-16 border-t py-8">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-4 text-center">
-        <Link to={href("/")} className="inline-block transition-opacity hover:opacity-80">
+        <Link
+          to={href("/")}
+          className="inline-block transition-opacity hover:opacity-80"
+        >
           <img
             src={$aicon("/images/keypears-3-96.webp")}
             alt="KeyPears"
@@ -15,23 +18,35 @@ export function Footer() {
           />
         </Link>
         <div className="space-y-2">
-          <Link to={href("/")} className="block font-semibold text-foreground hover:text-primary transition-opacity hover:opacity-80">
+          <Link
+            to={href("/")}
+            className="text-foreground hover:text-primary block font-semibold transition-opacity hover:opacity-80"
+          >
             KeyPears
           </Link>
-          <div className="flex justify-center gap-2 text-sm text-muted-foreground">
-            <Link to={href("/about")} className="hover:text-primary transition-opacity hover:opacity-80">
+          <div className="text-muted-foreground flex justify-center gap-2 text-sm">
+            <Link
+              to={href("/about")}
+              className="hover:text-primary transition-opacity hover:opacity-80"
+            >
               About
             </Link>
             <span>·</span>
-            <Link to={href("/privacy")} className="hover:text-primary transition-opacity hover:opacity-80">
+            <Link
+              to={href("/privacy")}
+              className="hover:text-primary transition-opacity hover:opacity-80"
+            >
               Privacy
             </Link>
             <span>·</span>
-            <Link to={href("/terms")} className="hover:text-primary transition-opacity hover:opacity-80">
+            <Link
+              to={href("/terms")}
+              className="hover:text-primary transition-opacity hover:opacity-80"
+            >
               Terms
             </Link>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             © {currentYear} Identellica LLC
           </p>
         </div>

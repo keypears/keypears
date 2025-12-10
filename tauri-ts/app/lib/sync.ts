@@ -1,6 +1,9 @@
 import { FixedBuf } from "@keypears/lib";
 import type { KeypearsClient } from "@keypears/api-server/client";
-import { encryptSecretUpdateBlob, decryptSecretUpdateBlob } from "./secret-encryption";
+import {
+  encryptSecretUpdateBlob,
+  decryptSecretUpdateBlob,
+} from "./secret-encryption";
 import type { SecretBlobData } from "./secret-encryption";
 import {
   getVaultSyncState,
@@ -60,34 +63,36 @@ export async function syncVault(
       }
 
       // Decrypt and prepare updates for local storage
-      const localUpdates = response.updates.map((serverUpdate: {
-        id: string;
-        secretId: string;
-        globalOrder: number;
-        localOrder: number;
-        encryptedBlob: string;
-        createdAt: Date;
-      }) => {
-        // Decrypt the blob to get the secret data
-        const blobData = decryptSecretUpdateBlob(
-          serverUpdate.encryptedBlob,
-          vaultKey,
-        );
+      const localUpdates = response.updates.map(
+        (serverUpdate: {
+          id: string;
+          secretId: string;
+          globalOrder: number;
+          localOrder: number;
+          encryptedBlob: string;
+          createdAt: Date;
+        }) => {
+          // Decrypt the blob to get the secret data
+          const blobData = decryptSecretUpdateBlob(
+            serverUpdate.encryptedBlob,
+            vaultKey,
+          );
 
-        // Return update with decrypted name for indexing, but keep encrypted blob
-        return {
-          id: serverUpdate.id,
-          vaultId,
-          secretId: serverUpdate.secretId,
-          globalOrder: serverUpdate.globalOrder,
-          localOrder: serverUpdate.localOrder,
-          name: blobData.name, // Decrypted for local indexing
-          type: blobData.type,
-          deleted: blobData.deleted,
-          encryptedBlob: serverUpdate.encryptedBlob, // Keep encrypted
-          createdAt: new Date(serverUpdate.createdAt).getTime(), // Convert to Unix ms
-        };
-      });
+          // Return update with decrypted name for indexing, but keep encrypted blob
+          return {
+            id: serverUpdate.id,
+            vaultId,
+            secretId: serverUpdate.secretId,
+            globalOrder: serverUpdate.globalOrder,
+            localOrder: serverUpdate.localOrder,
+            name: blobData.name, // Decrypted for local indexing
+            type: blobData.type,
+            deleted: blobData.deleted,
+            encryptedBlob: serverUpdate.encryptedBlob, // Keep encrypted
+            createdAt: new Date(serverUpdate.createdAt).getTime(), // Convert to Unix ms
+          };
+        },
+      );
 
       // Insert into local database
       await insertSecretUpdatesFromSync(localUpdates);
@@ -95,7 +100,9 @@ export async function syncVault(
       totalUpdatesReceived += localUpdates.length;
 
       // Update current order to the highest we've seen
-      const maxOrder = Math.max(...localUpdates.map((u: { globalOrder: number }) => u.globalOrder));
+      const maxOrder = Math.max(
+        ...localUpdates.map((u: { globalOrder: number }) => u.globalOrder),
+      );
       currentGlobalOrder = maxOrder;
 
       // Check if more updates exist
@@ -145,7 +152,12 @@ export async function pushSecretUpdate(
   secretData: SecretBlobData,
   vaultKey: FixedBuf<32>,
   apiClient: KeypearsClient,
-): Promise<{ id: string; globalOrder: number; localOrder: number; createdAt: Date }> {
+): Promise<{
+  id: string;
+  globalOrder: number;
+  localOrder: number;
+  createdAt: Date;
+}> {
   // Encrypt the blob
   const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
 

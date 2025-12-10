@@ -14,7 +14,11 @@ import {
   publicKeyCreate,
   WebBuf,
 } from "@keypears/lib";
-import { createVault, getVaultByNameAndDomain, updateVaultLastAccessed } from "~app/db/models/vault";
+import {
+  createVault,
+  getVaultByNameAndDomain,
+  updateVaultLastAccessed,
+} from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";

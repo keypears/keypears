@@ -20,13 +20,13 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
   const { posts } = loaderData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Header />
 
-        <div className="mb-12 mt-8">
+        <div className="mt-8 mb-12">
           <h2 className="text-4xl font-bold">Blog</h2>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground mt-2">
             Updates and insights from the KeyPears team
           </p>
         </div>

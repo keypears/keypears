@@ -78,7 +78,11 @@ export const sessionAuthedProcedure = base.use(async ({ context, next }) => {
   const hashedSessionToken = sha256Hash(sessionTokenBuf).buf.toHex();
 
   // Query device session by hashed token
-  const { getDeviceSessionByHashedToken, updateDeviceSessionActivity, deleteDeviceSessionByHashedToken } = await import("../db/models/device-session.js");
+  const {
+    getDeviceSessionByHashedToken,
+    updateDeviceSessionActivity,
+    deleteDeviceSessionByHashedToken,
+  } = await import("../db/models/device-session.js");
   const session = await getDeviceSessionByHashedToken(hashedSessionToken);
 
   if (!session) {
