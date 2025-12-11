@@ -192,7 +192,8 @@ vault private keys. Here's how:
 
 - Server never learns `bob_vault_priv`
 - Server only stores `random_priv`, which is useless without `bob_vault_priv`
-- Bob can verify correctness: `publicKeyCreate(engagement_priv) == engagement_pub`
+- Bob can verify correctness:
+  `publicKeyCreate(engagement_priv) == engagement_pub`
 
 ## Engagement Key Derivation
 
@@ -566,6 +567,7 @@ The public trusts server attestations about key ownership:
 - Users implicitly trust their chosen server provider
 
 **If you don't trust your server, switch providers.** This is analogous to email
+
 - if you don't trust your email provider, you use a different one.
 
 **What servers can do** (if malicious):
