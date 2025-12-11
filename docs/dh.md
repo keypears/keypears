@@ -195,6 +195,179 @@ vault private keys. Here's how:
 - Bob can verify correctness:
   `publicKeyCreate(engagement_priv) == engagement_pub`
 
+## Server-Side Key Management
+
+The server needs its own private keys for deriving engagement keys. These
+**derivation keys** must be carefully managed: rotated periodically, never
+deleted, and tracked so the correct key is used for re-derivation.
+
+### Derivation Key Storage
+
+Derivation keys are stored as environment variables using an incrementing index
+pattern:
+
+```
+DERIVATION_PRIVKEY_1=<hex-encoded 32-byte private key>
+DERIVATION_PRIVKEY_2=<hex-encoded 32-byte private key>
+DERIVATION_PRIVKEY_3=<hex-encoded 32-byte private key>
+```
+
+These are stored in `.env.*` files encrypted with `dotenvx`. Each key appears as
+a separate line, making diffs readable and auditable.
+
+**Why this pattern**:
+
+- **Human-readable diffs**: Easy to see when a new key was added
+- **Simple rotation**: Add `DERIVATION_PRIVKEY_N+1`, redeploy
+- **No parsing complexity**: Each key is a simple hex string
+- **Clear audit trail**: The index indicates key generation order
+- **Self-hosting friendly**: No external dependencies (KMS, HSM, etc.)
+
+### Key Selection on Server Boot
+
+When the server starts, it loads all derivation keys and identifies the current
+one:
+
+```typescript
+function loadDerivationKeys(): {
+  keys: Map<number, FixedBuf<32>>;
+  currentIndex: number;
+} {
+  const keys = new Map<number, FixedBuf<32>>();
+
+  for (let i = 1; ; i++) {
+    const keyHex = process.env[`DERIVATION_PRIVKEY_${i}`];
+    if (!keyHex) break;
+    keys.set(i, FixedBuf.fromHex(32, keyHex));
+  }
+
+  if (keys.size === 0) {
+    throw new Error("No derivation keys found. Set DERIVATION_PRIVKEY_1.");
+  }
+
+  const currentIndex = Math.max(...keys.keys());
+  return { keys, currentIndex };
+}
+```
+
+**Rules**:
+
+- Keys must be numbered sequentially starting from 1 (no gaps)
+- The highest-numbered key is the "current" key for new derivations
+- All keys are kept in memory for re-derivation of historical engagement keys
+
+### Tracking Derivation Key Usage
+
+When the server derives an engagement key, it records which derivation key was
+used:
+
+```typescript
+// Database schema for engagement keys
+engagement_keys: {
+  id: ulid(),
+  username: "bob",
+  engagement_public_key: "02abc...",
+  encrypted_random_private: "...",
+  derivation_key_index: 2,        // Used DERIVATION_PRIVKEY_2
+  vault_generation: 3,
+  initiator_address: "alice@1.com",
+  created_at: timestamp,
+}
+```
+
+When re-deriving (e.g., Bob retrieves his engagement private key), the server
+uses the same derivation key index that was originally used:
+
+```typescript
+function recomputeEngagementKey(engagementKeyRecord: EngagementKey): FixedBuf<33> {
+  const derivationKey = derivationKeys.get(engagementKeyRecord.derivation_key_index);
+  if (!derivationKey) {
+    throw new Error(`Missing derivation key ${engagementKeyRecord.derivation_key_index}`);
+  }
+  // Use derivationKey to recompute...
+}
+```
+
+### Key Rotation Schedule
+
+**Recommended rotation**: Every 90 days for server operators.
+
+This is longer than the 45-day vault rotation recommendation because:
+
+- Server keys protect many users, so rotation is more operationally complex
+- The derivation key is never exposed publicly (unlike engagement keys)
+- Old keys must be retained indefinitely anyway
+
+**Rotation process**:
+
+1. Generate new 32-byte random key
+2. Add to `.env.*` as `DERIVATION_PRIVKEY_N+1`
+3. Encrypt with `dotenvx`
+4. Deploy (server will automatically use the new key for new derivations)
+5. Old keys remain for historical re-derivation
+
+### Key Retirement (Optional)
+
+Old keys can never be deleted (needed for re-derivation), but operators can mark
+keys as retired to prevent accidental use:
+
+```
+DERIVATION_PRIVKEY_1=abc123...
+DERIVATION_PRIVKEY_1_RETIRED=true
+DERIVATION_PRIVKEY_2=def456...
+```
+
+The server can warn if the current key is marked retired (misconfiguration).
+
+### Startup Validation
+
+The server should validate derivation keys on boot:
+
+```typescript
+function validateDerivationKeys(keys: Map<number, FixedBuf<32>>): void {
+  // Check for gaps
+  const indices = [...keys.keys()].sort((a, b) => a - b);
+  for (let i = 0; i < indices.length; i++) {
+    if (indices[i] !== i + 1) {
+      throw new Error(`Gap in derivation keys: missing DERIVATION_PRIVKEY_${i + 1}`);
+    }
+  }
+
+  // Warn if only one key (rotation overdue)
+  if (keys.size === 1) {
+    console.warn("Only one derivation key configured. Consider adding a rotation.");
+  }
+}
+```
+
+### Environment Separation
+
+Development and production use separate `.env.*` files with different keys:
+
+- `.env.development`: `DERIVATION_PRIVKEY_1`, `DERIVATION_PRIVKEY_2`, ...
+- `.env.production`: `DERIVATION_PRIVKEY_1`, `DERIVATION_PRIVKEY_2`, ...
+
+The same index (e.g., `1`) refers to different actual keys in each environment.
+This is safe because:
+
+- Dev and production databases are completely separate
+- Engagement keys are never migrated between environments
+- The index is only meaningful within a single environment
+
+### Security Considerations
+
+**Never delete derivation keys**: Even after rotation, old keys are needed to
+re-derive historical engagement keys. Deleting a key would break all engagement
+keys that used it.
+
+**Protect `.env.*` files**: These contain the server's most sensitive secrets.
+Use `dotenvx` encryption and restrict access.
+
+**No key material in logs**: Never log derivation keys or derived values.
+
+**Backup strategy**: Ensure derivation keys are backed up securely. Loss of
+these keys would break all engagement key re-derivation.
+
 ## Engagement Key Derivation
 
 ### Deterministic Client-Side Generation
