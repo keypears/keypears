@@ -139,22 +139,37 @@ Exchange encrypted messages with other KeyPears users across organizational boun
 
 = Security Model
 
+== Vault Key Architecture
+
+Each vault has a single, immutable 32-byte secp256k1 private key called the *vault key*. This key serves as the foundation for all vault operations:
+
+- *Immutability*: Once generated, a vault key never changes
+- *secp256k1 Compatibility*: Enables elliptic curve Diffie-Hellman (ECDH) and cryptocurrency wallet functionality
+- *Public Identity*: The vault's public key hash (SHA-256 of the compressed public key) serves as its public identifier
+
+The vault key is encrypted with the user's encryption key and stored locally. Servers only store the encrypted vault key and public key hash—never the raw vault key.
+
 == Three-Tier Key Derivation
 
-KeyPears uses a three-tier key derivation system:
+KeyPears uses a three-tier key derivation system with SHA-256 PBKDF (100,000 rounds per tier):
 
-1. *Password Key*: Derived from user's master password using Blake3
-2. *Encryption Key*: Derived from password key, encrypts vault data
-3. *Login Key*: Derived from password key, authenticates to server
+1. *Password Key*: Derived from master password + vault ID using SHA-256 HMAC followed by 100,000 rounds of SHA-256 PBKDF
+2. *Encryption Key*: Derived from password key with 100,000 additional rounds, encrypts the vault key
+3. *Login Key*: Derived from password key with 100,000 additional rounds, authenticates to server
 
-This separation ensures the server receives only a login credential, never the encryption key.
+The server derives a fourth key (*Hashed Login Key*) from the login key using vault-specific salting and 100,000 rounds. This ensures:
+
+- The server never sees the password, password key, or encryption key
+- Database theft cannot be used directly for authentication
+- Same password across different vaults produces different hashed values (no password reuse detection)
 
 == Cryptographic Primitives
 
-- *Hashing/KDF*: Blake3 (fast, secure, modern)
-- *Encryption*: ACB3 (AES-256-CBC + Blake3-MAC)
-- *Key Exchange*: Diffie-Hellman (X25519)
-- *Signatures*: Ed25519 (for message authentication)
+- *Hashing/KDF*: SHA-256 PBKDF with 100,000 rounds per derivation tier
+- *Encryption*: ACS2 (AES-256-CBC + SHA-256-HMAC)
+- *Key Exchange*: secp256k1 ECDH (Elliptic Curve Diffie-Hellman)
+
+All cryptographic operations use WASM-compiled implementations for cross-platform consistency and performance.
 
 == Threat Model
 
@@ -171,16 +186,28 @@ KeyPears does *not* protect against:
 - *Weak master passwords*: Users must choose strong passwords
 - *Social engineering*: Users must verify recipient identities
 
+== Session-Based Authentication
+
+KeyPears uses session tokens for API authentication rather than sending credentials with every request:
+
+- *Login key* is used only once to obtain a session token
+- *Session tokens* are time-limited (24-hour expiration) and stored in memory only
+- *Per-vault device IDs* provide privacy-focused device tracking without cross-vault correlation
+- *Server stores hashed tokens* only—database breaches do not expose usable credentials
+
+This architecture enables device management, revocable access, and future multi-factor authentication while minimizing credential exposure.
+
 = Implementation
 
-KeyPears is implemented using:
+KeyPears uses a TypeScript-first architecture:
 
-- *Rust*: Core cryptography library and node server
-- *TypeScript*: Client applications and web interfaces
-- *SQLite*: Local vault storage with append-only logs
-- *PostgreSQL*: Server-side synchronization state
-- *Axum*: REST API framework for nodes
+- *TypeScript*: Core cryptography, API server, and client applications
+- *WASM Cryptography*: SHA-256, ACS2, and secp256k1 via `@webbuf/*` packages
+- *orpc*: Type-safe RPC framework for API server (similar to tRPC)
+- *SQLite*: Local vault storage with append-only logs (Drizzle ORM)
+- *PostgreSQL*: Server-side synchronization state (Drizzle ORM)
 - *Tauri*: Cross-platform native app framework
+- *Rust*: Minimal Tauri shell only (~33 lines)
 
 All code is licensed under Apache 2.0 and available at:
 
