@@ -5,7 +5,7 @@
 
 ## Overview
 
-**Decentralized Password Manager**
+**Federated Key Management**
 
 KeyPears is a decentralized Diffie-Hellman key exchange platform that enables
 secure communication between any two email addresses (e.g., `alice@example.com`

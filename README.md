@@ -1,6 +1,6 @@
 # KeyPears
 
-**Decentralized Password Manager**
+**Federated Key Management**
 
 ---
 

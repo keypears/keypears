@@ -1,7 +1,7 @@
 {
   "name": "@keypears/lib",
   "version": "1.0.0",
-  "description": "Core library for KeyPears - Decentralized Password Manager",
+  "description": "Core library for KeyPears - Federated Key Management",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [],

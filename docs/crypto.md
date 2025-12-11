@@ -1,6 +1,6 @@
 # Cryptography Patterns
 
-**Decentralized Password Manager**
+**Federated Key Management**
 
 KeyPears is built on a foundation of decentralized Diffie-Hellman (DH) key
 exchange, enabling secure communication between any two email addresses (e.g.,
