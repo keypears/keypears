@@ -349,9 +349,284 @@ If Bob's server is compromised:
 
 After initial key exchange, clients should pin engagement keys:
 
-- Store `(counterparty, engagement_public_key)` locally
+- Store `(counterparty, engagement_public_key, vault_generation)` locally
 - Warn user if key changes unexpectedly
 - Require explicit confirmation for key rotation
+- Handle vault rotation gracefully (see below)
+
+## Vault Rotation and Key Lifecycle
+
+A vault name (e.g., `alice@1.com`) is a persistent identity, but the underlying
+vault can change. Vault keys are immutable - if a key is lost, stolen, or simply
+due for rotation, the user must create a new vault and migrate secrets.
+
+### Why Vaults Must Rotate
+
+- **Key compromise**: If Alice suspects her vault key was exposed, she must
+  rotate
+- **Key loss**: If Alice loses access to her vault key, she must start fresh
+- **Regular hygiene**: Best practice is to rotate keys periodically to limit
+  exposure window
+- **Immutability**: Vault keys cannot be changed - rotation means creating a new
+  vault
+
+### Vault Generation
+
+Each vault at a name has a monotonically increasing **generation number**:
+
+- Generation 1: First vault created at `alice@1.com`
+- Generation 2: After first rotation
+- Generation N: After (N-1) rotations
+
+Engagement keys are tagged with their vault generation, enabling quick staleness
+detection.
+
+### Key Validity Model
+
+Engagement keys have no time-based expiration. Validity is determined solely by
+vault generation:
+
+- **Active**: Key was created for the current vault generation → valid for new
+  messages
+- **Expired**: Key was created for a previous vault generation → vault has
+  rotated since
+- **Unknown**: Server has no record of this key
+
+Old keys remain valid for decrypting historical messages (assuming the recipient
+still has access to the old vault's private key material). They simply cannot be
+used for new messages after rotation.
+
+### Public Key Verification API
+
+A public (unauthenticated) endpoint allows anyone to check key validity:
+
+```
+GET /api/vaults/{username}/verify-key?key={engagement_public_key}
+```
+
+**Response for active key**:
+
+```json
+{
+  "status": "active",
+  "vault_generation": 3,
+  "registered_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response for expired key** (vault has rotated):
+
+```json
+{
+  "status": "expired",
+  "vault_generation": 2,
+  "current_generation": 3,
+  "registered_at": "2024-01-15T10:30:00Z",
+  "expired_at": "2024-03-01T14:00:00Z"
+}
+```
+
+**Response for unknown key**:
+
+```json
+{
+  "status": "unknown"
+}
+```
+
+This API enables:
+
+- Senders to verify they have a current key before encrypting
+- Recipients to understand why decryption context changed
+- Third parties to audit key validity
+
+### Fresh Keys Per Message
+
+**Best practice**: Request a fresh engagement key for each message.
+
+When Alice sends a message to Bob:
+
+1. Alice requests a new engagement key from Bob's server
+2. Server generates fresh key tagged with Bob's current vault generation
+3. Alice encrypts message with the new shared secret
+4. Alice stores the key locally for potential future verification
+
+Benefits:
+
+- Forward secrecy: Compromise of one message key doesn't expose others
+- Automatic rotation detection: Fresh key request reveals if Bob has rotated
+- Reduced window of exposure per key
+
+Old engagement keys remain valid for decrypting their corresponding messages
+until the underlying vault rotates.
+
+### Recommended Rotation Schedule
+
+**45 days** is the recommended vault rotation period.
+
+This follows the industry trend toward shorter key lifetimes (Let's Encrypt
+reduced TLS certificate validity from 90 to 45 days). Regular rotation:
+
+- Limits exposure window if a key is compromised without detection
+- Encourages good security hygiene
+- Provides natural checkpoints for security review
+
+**Client UX**:
+
+- Display "Days since last rotation" in vault settings
+- Show warning at 45 days: "Consider rotating your vault key"
+- Show stronger warning at 90 days: "Your vault key is overdue for rotation"
+- Never force rotation - user controls timing
+
+### Rotation Protocol
+
+When Alice rotates her vault at `alice@1.com`:
+
+**Step 1: Create new vault**
+
+1. Alice generates new vault with new key (generation N+1)
+2. New vault has fresh secp256k1 keypair
+3. Server assigns generation N+1 to new vault
+
+**Step 2: Sign rotation attestation**
+
+Alice's client signs a rotation proof with the **old** vault key:
+
+```json
+{
+  "action": "vault_rotation",
+  "name": "alice@1.com",
+  "old_generation": 2,
+  "new_generation": 3,
+  "old_vault_pubkeyhash": "abc123...",
+  "new_vault_pubkeyhash": "def456...",
+  "timestamp": "2024-03-01T14:00:00Z",
+  "signature": "sign(old_vault_private_key, ...)"
+}
+```
+
+**Purpose**: This attestation is for Alice's own records. She can later verify
+that she (holder of old key) authorized the rotation. It's not publicly
+verifiable since the vault public key is never exposed.
+
+**Step 3: Server updates state**
+
+1. Server marks all generation-N engagement keys as expired
+2. Server records expiration timestamp
+3. Server begins issuing generation-(N+1) keys for new requests
+4. Server retains expired key records indefinitely (for verification API)
+
+**Step 4: Migrate secrets**
+
+1. Alice exports secrets from old vault (decrypted with old key)
+2. Alice imports secrets to new vault (encrypted with new key)
+3. After verification, old vault key can be securely deleted
+
+**Step 5: Counterparties discover rotation**
+
+Counterparties learn of rotation on next interaction (pull model):
+
+1. Carol tries to send message to Alice
+2. Carol requests fresh engagement key from `1.com`
+3. Server returns key tagged with generation 3
+4. Carol's client notices generation changed from cached value
+5. Carol's client warns: "Alice has rotated keys - establishing new secure
+   channel"
+
+### Counterparty Key Discovery Flow
+
+When Alice wants to send to Bob after some time has passed:
+
+**If Alice has cached Bob's engagement key**:
+
+1. Alice's client calls verify-key API: "Is this key still valid?"
+2. If `status: "active"` → proceed with cached key (or request fresh one)
+3. If `status: "expired"` → Bob has rotated, request new key
+
+**If Alice has no cached key**:
+
+1. Alice requests fresh engagement key from Bob's server
+2. Server returns key with current vault generation
+3. Alice proceeds with key exchange
+
+**Handling expired keys**:
+
+- Old messages encrypted to expired keys remain decryptable (if Bob kept old
+  vault access)
+- New messages must use keys from current vault generation
+- Client should prompt: "Bob rotated keys. Messages sent before [date] used old
+  key."
+
+### Trust Model
+
+The public trusts server attestations about key ownership:
+
+- Server is authoritative for "does this engagement key belong to alice@1.com?"
+- Server is authoritative for "what is alice's current vault generation?"
+- Users implicitly trust their chosen server provider
+
+**If you don't trust your server, switch providers.** This is analogous to email
+- if you don't trust your email provider, you use a different one.
+
+**What servers can do** (if malicious):
+
+- Lie about key ownership (claim a fake key belongs to Alice)
+- Withhold messages
+- Leak metadata about relationships
+
+**What servers cannot do**:
+
+- Read encrypted message contents
+- Learn vault private keys
+- Forge signatures from users
+
+**Mitigation**: Choose reputable providers, or self-host.
+
+### Self-Signed Rotation Proofs
+
+The rotation attestation signed by the old vault key serves the user's own
+verification needs:
+
+- Alice can prove to herself that she authorized the rotation
+- Useful for audit trails and dispute resolution
+- Stored locally by Alice's client
+
+This is **not** publicly verifiable because:
+
+- The vault public key is never exposed to the public
+- Only Alice and her server know the vault public key
+- The signature can only be verified by parties who know the public key
+
+For public verification of key ownership, rely on server attestations.
+
+### Security Considerations for Rotation
+
+**Servers must retain expired key history indefinitely**:
+
+- Cannot delete records of old engagement keys
+- Must be able to answer "was this key ever valid for this user?"
+- Enables historical message verification
+
+**Key pinning with generation awareness**:
+
+- Clients store `(counterparty, engagement_key, vault_generation)`
+- Generation change triggers rotation warning
+- Prevents silent key substitution attacks
+
+**Rotation during active conversation**:
+
+- If Bob rotates mid-conversation with Alice:
+- Alice's next message attempt discovers rotation
+- Alice must establish new shared secret
+- Old messages remain readable (if Alice cached old keys)
+
+**Lost vault key scenario**:
+
+- If Alice loses her vault key entirely, she cannot sign rotation attestation
+- Alice must contact server to manually initiate rotation (identity verification
+  required)
+- Server marks old keys as expired without cryptographic proof
+- This is a degraded security mode - server has more authority
 
 ## Message Format
 
@@ -387,22 +662,30 @@ Each KeyPears-compatible server must implement:
 
 ```
 POST   /api/vaults/{username}/engagement-keys
-       Register a new engagement key for a relationship
+       Register a new engagement key for a relationship (authenticated)
 
 GET    /api/vaults/{username}/engagement-keys/{relationship}
-       Get engagement public key for a specific relationship
+       Get engagement public key for a specific relationship (public)
+
+GET    /api/vaults/{username}/verify-key?key={engagement_public_key}
+       Check if an engagement key is active, expired, or unknown (public)
+       Returns: { status, vault_generation, registered_at, expired_at? }
 
 POST   /api/vaults/{username}/verify-engagement-key
-       Verify an engagement key belongs to a user
+       Cross-domain verification: confirm key belongs to user (public)
+       Used by remote servers during key exchange
 
 POST   /api/vaults/{username}/messages
-       Deliver an encrypted message to a user
+       Deliver an encrypted message to a user (public, but signed)
 
 GET    /api/vaults/{username}/messages
-       Retrieve pending encrypted messages
+       Retrieve pending encrypted messages (authenticated)
 
 DELETE /api/vaults/{username}/messages/{message_id}
-       Acknowledge receipt of a message
+       Acknowledge receipt of a message (authenticated)
+
+GET    /api/vaults/{username}/generation
+       Get current vault generation number (public)
 ```
 
 ### OpenAPI Compatibility
@@ -422,14 +705,6 @@ Extend the protocol for multi-party shared secrets:
 - Team vaults
 - Group messaging
 - Threshold cryptography (k-of-n required to decrypt)
-
-### Key Rotation
-
-Enable periodic key rotation while maintaining relationships:
-
-- Generate new engagement keys
-- Re-encrypt active relationships
-- Tombstone old keys with forward secrecy
 
 ### Message Acknowledgments
 
