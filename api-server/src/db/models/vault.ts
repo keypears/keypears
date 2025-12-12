@@ -11,6 +11,7 @@ export interface Vault {
   name: string;
   domain: string;
   vaultPubKeyHash: string;
+  vaultPubKey: string | null;
   hashedLoginKey: string;
   encryptedVaultKey: string;
   lastSyncTimestamp: number | null;
@@ -85,6 +86,7 @@ export async function createVault(params: {
   name: string;
   domain: string;
   vaultPubKeyHash: string;
+  vaultPubKey: string;
   hashedLoginKey: string;
   encryptedVaultKey: string;
 }): Promise<Vault> {
@@ -93,6 +95,7 @@ export async function createVault(params: {
     name,
     domain,
     vaultPubKeyHash,
+    vaultPubKey,
     hashedLoginKey,
     encryptedVaultKey,
   } = params;
@@ -102,6 +105,7 @@ export async function createVault(params: {
     name,
     domain,
     vaultPubKeyHash,
+    vaultPubKey,
     hashedLoginKey,
     encryptedVaultKey,
   });

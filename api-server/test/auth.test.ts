@@ -3,10 +3,14 @@ import { ulid } from "ulid";
 import { eq } from "drizzle-orm";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf } from "@webbuf/fixedbuf";
+import { FixedBuf, publicKeyCreate } from "@keypears/lib";
 import { createClient } from "../src/client.js";
 import { db } from "../src/db/index.js";
 import { TableVault, TableDeviceSession } from "../src/db/schema.js";
+
+// Generate a deterministic test private key and derive public key
+const testPrivKey = sha256Hash(WebBuf.fromUtf8("test-vault-privkey"));
+const testPubKey = publicKeyCreate(FixedBuf.fromBuf(32, testPrivKey.buf));
 
 // Create client pointing to test server
 // Note: Test server must be running on port 4275
@@ -43,6 +47,7 @@ describe("Authentication API", () => {
       name: "alice",
       domain: "keypears.com",
       vaultPubKeyHash: testPubKeyHash.buf.toHex(),
+      vaultPubKey: testPubKey.toHex(),
       loginKey: testLoginKey,
       encryptedVaultKey: encryptedVaultKey.buf.toHex(),
     });

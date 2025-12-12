@@ -32,6 +32,7 @@ export const registerVaultProcedure = base
       name,
       domain,
       vaultPubKeyHash,
+      vaultPubKey,
       loginKey,
       encryptedVaultKey,
     } = input;
@@ -63,6 +64,7 @@ export const registerVaultProcedure = base
       name,
       domain,
       vaultPubKeyHash,
+      vaultPubKey,
       hashedLoginKey: serverHashedLoginKey.buf.toHex(),
       encryptedVaultKey,
     });

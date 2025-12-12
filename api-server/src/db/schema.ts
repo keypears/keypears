@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   integer,
   pgTable,
@@ -26,6 +27,12 @@ export const TableVault = pgTable(
     // Used for vault lookup and future DH key exchange protocol
     // Primary public key is NEVER exposed - only relationship-specific derived keys
     vaultPubKeyHash: varchar("vault_pubkeyhash", { length: 64 }).notNull(), // Blake3 hex = 64 chars
+
+    // Vault public key - 33-byte compressed secp256k1 public key
+    // Used for server-side derived key generation (key derivation system)
+    // Server can generate derived public keys without knowing the private key
+    // Using elliptic curve addition: derivedPubKey = vaultPubKey + derivationPubKey
+    vaultPubKey: varchar("vault_pubkey", { length: 66 }), // 33 bytes hex = 66 chars (nullable for migration)
 
     // Hashed login key - server stores KDF of the login key for authentication
     // Client derives: password → password key (100k rounds) → login key (100k rounds)
@@ -155,3 +162,71 @@ export const TableDeviceSession = pgTable(
 
 export type SelectDeviceSession = typeof TableDeviceSession.$inferSelect;
 export type InsertDeviceSession = typeof TableDeviceSession.$inferInsert;
+
+// Derived keys table - stores server-generated derived public keys
+// Server can generate public keys for users while only the user can derive private keys
+// Uses elliptic curve addition: derivedPubKey = vaultPubKey + derivationPubKey
+export const TableDerivedKey = pgTable(
+  "derived_key",
+  {
+    // Primary key - ULID for time-ordered, collision-resistant IDs
+    id: varchar("id", { length: 26 }).primaryKey(),
+
+    // Foreign key to vault
+    vaultId: varchar("vault_id", { length: 26 })
+      .notNull()
+      .references(() => TableVault.id, { onDelete: "cascade" }),
+
+    // DB entropy - 32 bytes random, unique per derived key
+    // Combined with server entropy to derive the derivation private key
+    dbEntropy: varchar("db_entropy", { length: 64 }).notNull(), // 32 bytes hex = 64 chars
+
+    // Hash of DB entropy for efficient lookup without exposing raw entropy
+    dbEntropyHash: varchar("db_entropy_hash", { length: 64 }).notNull(), // SHA256 hex = 64 chars
+
+    // Server entropy index - which DERIVATION_ENTROPY_N was used
+    // Enables server entropy rotation while maintaining ability to re-derive historical keys
+    serverEntropyIndex: integer("server_entropy_index").notNull(),
+
+    // Derivation public key - the addend used in elliptic curve addition
+    // derivationPubKey = derivationPrivKey * G
+    derivationPubKey: varchar("derivation_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
+
+    // Final derived public key - the result of elliptic curve addition
+    // derivedPubKey = vaultPubKey + derivationPubKey
+    derivedPubKey: varchar("derived_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
+
+    // Hash of derived public key for efficient unique constraint
+    derivedPubKeyHash: varchar("derived_pubkey_hash", { length: 64 }).notNull(), // SHA256 hex = 64 chars
+
+    // Counterparty address - for future DH key exchange (e.g., "bob@keypears.com")
+    // Null for general-purpose derived keys
+    counterpartyAddress: varchar("counterparty_address", { length: 255 }),
+
+    // Vault generation - tracks key rotation (default 1 for initial vault)
+    vaultGeneration: integer("vault_generation").notNull().default(1),
+
+    // Whether this key has been used (e.g., in a transaction or DH exchange)
+    isUsed: boolean("is_used").notNull().default(false),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Unique constraint on derived public key hash (prevents duplicate keys)
+    unique().on(table.derivedPubKeyHash),
+
+    // Index for listing keys by vault in reverse chronological order
+    index("idx_derived_key_vault_created").on(table.vaultId, table.createdAt),
+
+    // Index for filtering unused keys by vault
+    index("idx_derived_key_vault_unused").on(
+      table.vaultId,
+      table.isUsed,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type SelectDerivedKey = typeof TableDerivedKey.$inferSelect;
+export type InsertDerivedKey = typeof TableDerivedKey.$inferInsert;
