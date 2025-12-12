@@ -171,29 +171,37 @@ Bob can:
 
 ## Server-Side Key Generation
 
-The server needs to generate engagement keys for users without knowing their
-vault private keys. Here's how:
+The server generates engagement keys for users without knowing their vault
+private keys. This is achieved through a three-entropy derivation system that
+combines:
 
-### When Bob's Server Generates Bob's Engagement Key
+1. **Server entropy** (from `DERIVATION_ENTROPY_N` env vars)
+2. **DB entropy** (random 32 bytes generated per key)
+3. **User's vault public key** (known to server)
 
-1. Server generates a random keypair: `(random_priv, random_pub)`
-2. Server adds `random_pub` to Bob's vault public key:
-   `engagement_pub = bob_vault_pub + random_pub`
-3. Server stores `random_priv` encrypted to Bob (for later retrieval)
-4. Server returns `engagement_pub` to the requester
+The derived public key is computed as:
 
-### When Bob Unlocks His Vault
+```
+derivation_privkey = HMAC-SHA256(server_entropy, db_entropy)
+derivation_pubkey = derivation_privkey * G
+derived_pubkey = vault_pubkey + derivation_pubkey
+```
 
-1. Bob's client retrieves `random_priv` from server
-2. Bob computes: `engagement_priv = bob_vault_priv + random_priv`
-3. Bob now has the private key corresponding to `engagement_pub`
+The server stores `db_entropy` and the `server_entropy_index`, enabling it to
+recompute `derivation_privkey` when the user needs it. The user then adds their
+vault private key to get the final derived private key:
+
+```
+derived_privkey = vault_privkey + derivation_privkey
+```
 
 **Security properties**:
 
-- Server never learns `bob_vault_priv`
-- Server only stores `random_priv`, which is useless without `bob_vault_priv`
-- Bob can verify correctness:
-  `publicKeyCreate(engagement_priv) == engagement_pub`
+- Server never learns `vault_privkey`
+- Server knows `derivation_privkey` but this is useless without `vault_privkey`
+- User can verify: `derived_privkey * G == derived_pubkey`
+
+See **Derived Key Generation System** below for the complete specification.
 
 ## Server-Side Entropy Management
 
@@ -356,54 +364,252 @@ Use `dotenvx` encryption and restrict access.
 **Backup strategy**: Ensure derivation entropy is backed up securely. Loss of
 this entropy would break all engagement key re-derivation.
 
-## Engagement Key Derivation
+## Derived Key Generation System
 
-### Deterministic Client-Side Generation
+This section describes the complete key derivation system that enables servers
+to generate engagement public keys while ensuring only the vault owner can
+derive the corresponding private keys.
 
-For the initiating party (Alice), engagement keys should be deterministically
-derived to ensure consistency:
+### The Core Problem
 
-```typescript
-function deriveEngagementKey(
-  vaultPrivateKey: FixedBuf<32>,
-  myAddress: string,
-  theirAddress: string
-): FixedBuf<32> {
-  // Canonical ordering to ensure Alice→Bob and Bob→Alice use same identifier
-  const [addr1, addr2] = [myAddress, theirAddress].sort();
-  const relationshipId = sha256Hash(`${addr1}:${addr2}`);
+When Alice wants to send an encrypted message to Bob, she needs Bob's public
+key. But Bob might be offline. The server needs to generate a fresh public key
+for Bob that:
 
-  // Derive engagement private key
-  return sha256Hmac(relationshipId, vaultPrivateKey);
+1. Only Bob can derive the corresponding private key
+2. The server never learns Bob's vault private key
+3. Each engagement gets a unique keypair (privacy isolation)
+
+### Three Entropy Sources
+
+KeyPears uses three sources of entropy to derive keys:
+
+**1. Server Entropy** (`DERIVATION_ENTROPY_N` from env vars)
+
+- Rotated every ~90 days
+- Known only to the server (in memory, never in database)
+- Index is stored with each derived key for re-derivation
+
+**2. DB Entropy** (random 32 bytes per derived key)
+
+- Generated fresh for each derived key
+- Stored in database
+- Unique per key, provides per-key randomness
+
+**3. User's Vault Key** (user's master private key)
+
+- Known only to the user
+- Never leaves the user's device
+- The "secret ingredient" that only the client has
+
+### Key Derivation Flow
+
+#### Server-Side: Generating a New Public Key for Bob
+
+When Alice requests an engagement key for Bob, Bob's server performs:
+
+```
+1. Generate random DB entropy:
+   db_entropy = random(32 bytes)
+
+2. Compute derivation private key using HMAC:
+   derivation_privkey = HMAC-SHA256(key: server_entropy, data: db_entropy)
+
+3. Compute derivation public key:
+   derivation_pubkey = derivation_privkey * G
+
+4. Compute derived public key (Bob's new engagement public key):
+   derived_pubkey = bob_vault_pubkey + derivation_pubkey
+
+5. Store in database:
+   - db_entropy (needed to re-derive later)
+   - db_entropy_hash = SHA256(db_entropy) (for integrity/lookup)
+   - server_entropy_index (which DERIVATION_ENTROPY_N was used)
+   - derivation_pubkey (the "addend" public key)
+   - bob_vault_pubkey (which vault this belongs to)
+   - derived_pubkey (the final engagement public key)
+   - derived_pubkey_hash = SHA256(derived_pubkey) (for quick lookups)
+
+6. Return derived_pubkey to Alice
+```
+
+#### Client-Side: Bob Derives the Private Key
+
+When Bob needs to use the engagement private key (e.g., to decrypt a message):
+
+```
+1. Bob requests derived key info from server
+
+2. Server recomputes and returns:
+   derivation_privkey = HMAC-SHA256(key: server_entropy, data: db_entropy)
+   (Server looks up db_entropy and server_entropy_index from database)
+
+3. Bob computes:
+   derived_privkey = bob_vault_privkey + derivation_privkey
+
+4. Bob verifies:
+   derived_privkey * G == derived_pubkey (should match)
+
+5. Bob can now use derived_privkey for ECDH
+```
+
+### What Each Party Knows
+
+**Server knows:**
+
+- Server entropy (from env vars, in memory only)
+- DB entropy (stored per key in database)
+- Derivation private key (can recompute from HMAC)
+- Derivation public key
+- Bob's vault public key
+- Derived public key
+
+**Server CANNOT know:**
+
+- Bob's vault private key
+- Derived private key (would need vault private key to compute)
+
+**Client knows:**
+
+- Vault private key (user's master key)
+- Derivation private key (received from server when needed)
+- Derived private key (vault_privkey + derivation_privkey)
+
+### Hash Function Usage
+
+**HMAC-SHA256** derives the derivation private key:
+
+```
+derivation_privkey = HMAC-SHA256(key: server_entropy, data: db_entropy)
+```
+
+This provides:
+
+- Domain separation between different entropy values
+- Unpredictable output without both inputs
+- Deterministic re-derivation when both inputs are known
+
+**SHA256** hashes public values for integrity and lookups:
+
+- `db_entropy_hash = SHA256(db_entropy)` - integrity verification
+- `derived_pubkey_hash = SHA256(derived_pubkey)` - efficient database lookups
+
+### Database Schema (Server - PostgreSQL)
+
+The `derived_keys` table stores all information needed to re-derive keys:
+
+| Field                  | Type      | Purpose                                   |
+| ---------------------- | --------- | ----------------------------------------- |
+| `id`                   | ULID      | Primary key                               |
+| `vault_id`             | FK        | Which vault this key belongs to           |
+| `db_entropy`           | 32 bytes  | Random entropy for this key               |
+| `db_entropy_hash`      | 32 bytes  | SHA256(db_entropy) for integrity          |
+| `server_entropy_index` | int       | Which DERIVATION_ENTROPY_N was used       |
+| `derivation_pubkey`    | 33 bytes  | The "addend" public key                   |
+| `derived_pubkey`       | 33 bytes  | Final engagement public key               |
+| `derived_pubkey_hash`  | 32 bytes  | SHA256(derived_pubkey) for lookups        |
+| `counterparty_address` | string    | Who this key is for (e.g., "alice@1.com") |
+| `vault_generation`     | int       | Which generation of the vault             |
+| `created_at`           | timestamp | When generated                            |
+| `is_used`              | boolean   | Has this key been used in a message?      |
+
+**Indexes:**
+
+- `derived_pubkey_hash` (unique) - fast lookup by public key
+- `vault_id, is_used, created_at` - find unused keys for a vault
+- `vault_id, counterparty_address` - find keys for a relationship
+
+### Client Storage (SQLite)
+
+The client may cache derived key info locally to avoid server round-trips:
+
+| Field                       | Type      | Purpose                          |
+| --------------------------- | --------- | -------------------------------- |
+| `id`                        | ULID      | Matches server ID                |
+| `derived_pubkey`            | 33 bytes  | The engagement public key        |
+| `derived_privkey_encrypted` | bytes     | Cached, encrypted with vault key |
+| `counterparty_address`      | string    | Who this key is for              |
+| `created_at`                | timestamp | When generated                   |
+
+The derived private key is cached (encrypted with the vault key) so the user
+doesn't need to contact the server every time they want to decrypt a message.
+
+### Security Properties
+
+**Forward Secrecy per Key:**
+
+- Each engagement key is derived from fresh DB entropy
+- Compromising one derived key doesn't help derive others
+- Even if server entropy is compromised, attacker still needs DB entropy for
+  each key
+
+**Server Cannot Impersonate User:**
+
+- Server can generate public keys but not the corresponding private keys
+- Only the vault private key holder can complete the derivation
+- Server knows derivation_privkey but not vault_privkey
+
+**Offline Key Generation:**
+
+- Server can pre-generate keys for Bob while Bob is offline
+- Alice can encrypt to Bob immediately using derived_pubkey
+- Bob derives private key when he comes online
+
+**Entropy Rotation Limits Blast Radius:**
+
+- Server entropy rotates every 90 days
+- Old keys remain derivable (server_entropy_index is stored)
+- If entropy N is compromised, only keys using index N are affected
+
+### Example Flow: Alice Sends Secret to Bob
+
+**Step 1: Alice requests Bob's engagement key**
+
+Alice's client calls Bob's server:
+
+```
+POST https://2.com/api/vaults/bob/derived-keys
+{
+  "counterparty": "alice@1.com"
 }
 ```
 
-### Server-Side Generation for Recipient
+**Step 2: Bob's server generates derived key**
 
-When the server generates an engagement key for the recipient:
+Server generates new key using the derivation flow above and returns:
 
-```typescript
-function generateEngagementKeyForRecipient(
-  recipientVaultPublicKey: FixedBuf<33>,
-  initiatorAddress: string,
-  recipientAddress: string
-): {
-  engagementPublicKey: FixedBuf<33>;
-  encryptedRandomPrivate: WebBuf;
-} {
-  // Generate random component
-  const randomPrivate = secureRandom(32);
-  const randomPublic = publicKeyCreate(randomPrivate);
-
-  // Add to recipient's vault public key
-  const engagementPublicKey = publicKeyAdd(recipientVaultPublicKey, randomPublic);
-
-  // Encrypt random component for recipient to retrieve later
-  // (encrypted with a key only the recipient can derive)
-  const encryptedRandomPrivate = encryptForRecipient(randomPrivate, ...);
-
-  return { engagementPublicKey, encryptedRandomPrivate };
+```json
+{
+  "derived_pubkey": "02abc123...",
+  "vault_generation": 3
 }
+```
+
+**Step 3: Alice encrypts and sends**
+
+```
+shared_secret = ECDH(alice_privkey, bob_derived_pubkey)
+encrypted_message = AES256(shared_secret, plaintext)
+```
+
+Alice sends encrypted message to Bob's server.
+
+**Step 4: Bob comes online and decrypts**
+
+Bob's client requests derivation info:
+
+```
+GET https://2.com/api/vaults/bob/derived-keys/{key_id}/derivation-privkey
+```
+
+Server returns `derivation_privkey`.
+
+Bob computes:
+
+```
+derived_privkey = bob_vault_privkey + derivation_privkey
+shared_secret = ECDH(derived_privkey, alice_pubkey)
+plaintext = AES256_decrypt(shared_secret, encrypted_message)
 ```
 
 ## Verification Protocol
