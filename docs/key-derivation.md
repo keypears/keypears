@@ -124,7 +124,7 @@ The system combines three entropy sources:
 #### Step 3.4: Final Checks
 
 - [x] Run `pnpm run lint && pnpm run typecheck && pnpm run build`
-- [ ] Test with `pnpm run test:server`
+- [x] Test with `pnpm run test:server`
 
 ### Step 4: @keypears/tauri-ts - Vault Creation Update
 
@@ -190,9 +190,9 @@ The system combines three entropy sources:
 
 ### Step 7: Database Migration
 
-- [ ] Run `pnpm db:dev:clear` in webapp directory
-- [ ] Run `pnpm db:dev:push` in webapp directory
-- [ ] Verify schema is correct in database
+- [x] Run `pnpm db:dev:clear` in webapp directory
+- [x] Run `pnpm db:dev:push` in webapp directory
+- [x] Verify schema is correct in database
 
 ### Step 8: Integration Testing
 
