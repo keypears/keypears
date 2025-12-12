@@ -61,3 +61,42 @@ export const GetSecretUpdatesResponseSchema = z.object({
   hasMore: z.boolean(), // True if more updates exist beyond the limit
   latestGlobalOrder: z.number().int().nonnegative(), // Highest order in the vault
 });
+
+// Create derived key
+export const CreateDerivedKeyRequestSchema = z.object({
+  vaultId: z.string().length(26), // ULID
+});
+
+export const CreateDerivedKeyResponseSchema = z.object({
+  id: z.string().length(26), // ULID of the derived key record
+  derivedPubKey: z.string().length(66), // 33 bytes hex = 66 chars
+  createdAt: z.date(),
+});
+
+// Get derived keys (paginated)
+export const GetDerivedKeysRequestSchema = z.object({
+  vaultId: z.string().length(26), // ULID
+  limit: z.number().int().positive().max(100).default(20),
+  beforeCreatedAt: z.date().optional(), // Cursor for pagination
+});
+
+export const GetDerivedKeysResponseSchema = z.object({
+  keys: z.array(
+    z.object({
+      id: z.string().length(26),
+      derivedPubKey: z.string().length(66),
+      createdAt: z.date(),
+      isUsed: z.boolean(),
+    }),
+  ),
+  hasMore: z.boolean(),
+});
+
+// Get derivation private key (for client to derive full private key)
+export const GetDerivationPrivKeyRequestSchema = z.object({
+  derivedKeyId: z.string().length(26), // ULID of the derived key record
+});
+
+export const GetDerivationPrivKeyResponseSchema = z.object({
+  derivationPrivKey: z.string().length(64), // 32 bytes hex = 64 chars
+});

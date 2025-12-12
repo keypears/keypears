@@ -9,6 +9,9 @@ import { createSecretUpdateProcedure } from "./procedures/create-secret-update.j
 import { getSecretUpdatesProcedure } from "./procedures/get-secret-updates.js";
 import { getVaultInfoProcedure } from "./procedures/get-vault-info.js";
 import { getVaultInfoPublicProcedure } from "./procedures/get-vault-info-public.js";
+import { createDerivedKeyProcedure } from "./procedures/create-derived-key.js";
+import { getDerivedKeysProcedure } from "./procedures/get-derived-keys.js";
+import { getDerivationPrivKeyProcedure } from "./procedures/get-derivation-privkey.js";
 
 /**
  * KeyPears Node API Router
@@ -23,6 +26,9 @@ export const router = {
   getSecretUpdates: getSecretUpdatesProcedure,
   getVaultInfo: getVaultInfoProcedure,
   getVaultInfoPublic: getVaultInfoPublicProcedure,
+  createDerivedKey: createDerivedKeyProcedure,
+  getDerivedKeys: getDerivedKeysProcedure,
+  getDerivationPrivKey: getDerivationPrivKeyProcedure,
 };
 
 // Export the router type for client usage
