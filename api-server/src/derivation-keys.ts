@@ -1,15 +1,15 @@
 import { FixedBuf } from "@webbuf/fixedbuf";
 
 /**
- * Server-side derivation key management for engagement key generation.
+ * Server-side derivation entropy management for engagement key generation.
  *
- * Derivation keys are stored as environment variables using an incrementing index pattern:
- * - DERIVATION_PRIVKEY_1, DERIVATION_PRIVKEY_2, etc.
+ * Derivation entropy is stored as environment variables using an incrementing index pattern:
+ * - DERIVATION_ENTROPY_1, DERIVATION_ENTROPY_2, etc.
  *
- * The highest-numbered key is the "current" key for new derivations.
- * All keys are retained for re-derivation of historical engagement keys.
+ * The highest-numbered entropy is the "current" one for new derivations.
+ * All entropy values are retained for re-derivation of historical engagement keys.
  *
- * Keys are loaded automatically when this module is imported.
+ * Entropy is loaded automatically when this module is imported.
  */
 
 interface DerivationKeyState {
@@ -18,23 +18,23 @@ interface DerivationKeyState {
 }
 
 /**
- * Load and validate all derivation keys from environment variables.
+ * Load and validate all derivation entropy from environment variables.
  * Called automatically at module load time.
  *
- * @throws Error if no keys found, keys have gaps, or keys are invalid format
+ * @throws Error if no entropy found, entropy has gaps, or entropy is invalid format
  */
 function loadDerivationKeys(): DerivationKeyState {
   const keys = new Map<number, FixedBuf<32>>();
 
-  // Load all DERIVATION_PRIVKEY_N variables
+  // Load all DERIVATION_ENTROPY_N variables
   for (let i = 1; ; i++) {
-    const keyHex = process.env[`DERIVATION_PRIVKEY_${i}`];
+    const keyHex = process.env[`DERIVATION_ENTROPY_${i}`];
     if (!keyHex) break;
 
     // Validate hex format (64 hex chars = 32 bytes)
     if (!/^[0-9a-fA-F]{64}$/.test(keyHex)) {
       throw new Error(
-        `DERIVATION_PRIVKEY_${i} must be exactly 64 hex characters (32 bytes). ` +
+        `DERIVATION_ENTROPY_${i} must be exactly 64 hex characters (32 bytes). ` +
           `Got ${keyHex.length} characters.`,
       );
     }
@@ -44,15 +44,15 @@ function loadDerivationKeys(): DerivationKeyState {
       keys.set(i, keyBuf);
     } catch (error) {
       throw new Error(
-        `DERIVATION_PRIVKEY_${i} is not valid hex: ${error instanceof Error ? error.message : String(error)}`,
+        `DERIVATION_ENTROPY_${i} is not valid hex: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 
-  // Validate at least one key exists
+  // Validate at least one entropy exists
   if (keys.size === 0) {
     throw new Error(
-      "No derivation keys found. Set DERIVATION_PRIVKEY_1 environment variable.",
+      "No derivation entropy found. Set DERIVATION_ENTROPY_1 environment variable.",
     );
   }
 
@@ -63,23 +63,23 @@ function loadDerivationKeys(): DerivationKeyState {
     const actual = indices[i];
     if (actual !== expected) {
       throw new Error(
-        `Gap in derivation keys: expected DERIVATION_PRIVKEY_${expected}, ` +
-          `but found DERIVATION_PRIVKEY_${actual}. Keys must be sequential starting from 1.`,
+        `Gap in derivation entropy: expected DERIVATION_ENTROPY_${expected}, ` +
+          `but found DERIVATION_ENTROPY_${actual}. Entropy must be sequential starting from 1.`,
       );
     }
   }
 
   const currentIndex = Math.max(...keys.keys());
 
-  // Warn if only one key (rotation may be overdue)
+  // Warn if only one entropy (rotation may be overdue)
   if (keys.size === 1) {
     console.warn(
-      "Only one derivation key configured. Consider adding a rotation key.",
+      "Only one derivation entropy configured. Consider adding a rotation.",
     );
   }
 
   console.log(
-    `Loaded ${keys.size} derivation key(s), current index: ${currentIndex}`,
+    `Loaded ${keys.size} derivation entropy value(s), current index: ${currentIndex}`,
   );
 
   return { keys, currentIndex };
