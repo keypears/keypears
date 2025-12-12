@@ -306,19 +306,6 @@ This is longer than the 45-day vault rotation recommendation because:
 4. Deploy (server will automatically use the new key for new derivations)
 5. Old keys remain for historical re-derivation
 
-### Key Retirement (Optional)
-
-Old keys can never be deleted (needed for re-derivation), but operators can mark
-keys as retired to prevent accidental use:
-
-```
-DERIVATION_PRIVKEY_1=abc123...
-DERIVATION_PRIVKEY_1_RETIRED=true
-DERIVATION_PRIVKEY_2=def456...
-```
-
-The server can warn if the current key is marked retired (misconfiguration).
-
 ### Startup Validation
 
 The server should validate derivation keys on boot:

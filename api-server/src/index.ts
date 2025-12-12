@@ -31,3 +31,13 @@ export * from "./zod-schemas.js";
 // Re-export validation utilities for server use
 export { validateKeypearsServer } from "./validation.js";
 export type { ServerValidationResult } from "./validation.js";
+
+// Re-export derivation key management
+export {
+  initDerivationKeys,
+  getCurrentDerivationKey,
+  getCurrentDerivationKeyIndex,
+  getDerivationKey,
+  getDerivationKeyCount,
+  isDerivationKeysInitialized,
+} from "./derivation-keys.js";

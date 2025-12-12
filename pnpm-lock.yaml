@@ -10,6 +10,9 @@ importers:
 
   api-server:
     dependencies:
+      '@dotenvx/dotenvx':
+        specifier: ^1.51.1
+        version: 1.51.1
       '@keypears/lib':
         specifier: workspace:*
         version: link:../lib

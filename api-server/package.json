@@ -29,8 +29,8 @@
     "typecheck:test": "tsc -b tsconfig.test.json --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:server": "tsx test/server.ts",
-    "test:manual": "tsx test/manual-test.ts"
+    "test:server": "dotenvx run -f .env.development -- tsx test/server.ts",
+    "test:server:prod": "dotenvx run -f .env.production -- tsx test/server.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
@@ -55,6 +55,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.1",
     "@keypears/lib": "workspace:*",
     "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",

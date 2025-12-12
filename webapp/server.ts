@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import type { Request, Response, NextFunction } from "express";
-import { router } from "@keypears/api-server";
+import { router, initDerivationKeys } from "@keypears/api-server";
 import { RPCHandler } from "@orpc/server/node";
 import { onError } from "@orpc/server";
 
@@ -11,6 +11,15 @@ import { onError } from "@orpc/server";
 const BUILD_PATH = "./build/server/index.js";
 const DEVELOPMENT = process.env.NODE_ENV === "development";
 const PORT = Number.parseInt(process.env.PORT || "4273");
+
+// Initialize derivation keys from environment variables
+// This must be called before the server starts handling requests
+try {
+  initDerivationKeys();
+} catch (error) {
+  console.error("Failed to initialize derivation keys:", error);
+  process.exit(1);
+}
 
 const app = express();
 

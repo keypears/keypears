@@ -2,9 +2,18 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
-import { router } from "../src/index.js";
+import { router, initDerivationKeys } from "../src/index.js";
 
 const PORT = 4275; // Different port to avoid conflict with webapp
+
+// Initialize derivation keys from environment variables
+// This must be called before the server starts handling requests
+try {
+  initDerivationKeys();
+} catch (error) {
+  console.error("Failed to initialize derivation keys:", error);
+  process.exit(1);
+}
 
 const app = express();
 
