@@ -298,7 +298,7 @@ For each file, verify:
 
 ## Phase 3: Key Derivation System
 
-**Status**: ⏳ **PLANNED** - Not started
+**Status**: 🚧 **IN PROGRESS** - Code complete, awaiting database migration and testing
 
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
@@ -318,13 +318,13 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 
 ### Implementation Summary
 
-- [ ] **@keypears/lib**: Export `privateKeyAdd`, `publicKeyAdd` from secp256k1
-- [ ] **@keypears/api-server schema**: Add `vaultPubKey` to vault table, create
+- [x] **@keypears/lib**: Export `privateKeyAdd`, `publicKeyAdd` from secp256k1
+- [x] **@keypears/api-server schema**: Add `vaultPubKey` to vault table, create
       `derived_keys` table
-- [ ] **@keypears/api-server procedures**: `createDerivedKey`, `getDerivedKeys`,
+- [x] **@keypears/api-server procedures**: `createDerivedKey`, `getDerivedKeys`,
       `getDerivationPrivKey`
-- [ ] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
-- [ ] **@keypears/tauri-ts**: Create Keys page route with key list and private
+- [x] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
+- [x] **@keypears/tauri-ts**: Create Keys page route with key list and private
       key derivation UI
 - [ ] **Database migration**: Push schema changes
 

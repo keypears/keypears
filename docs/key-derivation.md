@@ -43,23 +43,23 @@ The system combines three entropy sources:
 
 ### Step 1: @keypears/lib - Crypto Utilities
 
-- [ ] Export `privateKeyAdd` from `@webbuf/secp256k1`
-- [ ] Export `publicKeyAdd` from `@webbuf/secp256k1`
-- [ ] Add `deriveDerivationPrivKey(serverEntropy, dbEntropy)` function
-- [ ] Run `pnpm run lint && pnpm run typecheck && pnpm run test`
+- [x] Export `privateKeyAdd` from `@webbuf/secp256k1`
+- [x] Export `publicKeyAdd` from `@webbuf/secp256k1`
+- [x] Add `deriveDerivationPrivKey(serverEntropy, dbEntropy)` function
+- [x] Run `pnpm run lint && pnpm run typecheck && pnpm run test`
 
 ### Step 2: @keypears/api-server - Schema Updates
 
 #### Step 2.1: Vault Table Update
 
-- [ ] Add `vaultPubKey` column to `TableVault` (varchar 66, 33 bytes hex)
-- [ ] Update `registerVault` procedure to accept `vaultPubKey` parameter
-- [ ] Update `registerVault` procedure to store `vaultPubKey`
-- [ ] Update Zod schemas for vault registration
+- [x] Add `vaultPubKey` column to `TableVault` (varchar 66, 33 bytes hex)
+- [x] Update `registerVault` procedure to accept `vaultPubKey` parameter
+- [x] Update `registerVault` procedure to store `vaultPubKey`
+- [x] Update Zod schemas for vault registration
 
 #### Step 2.2: Derived Keys Table
 
-- [ ] Create `TableDerivedKey` in `api-server/src/db/schema.ts`:
+- [x] Create `TableDerivedKey` in `api-server/src/db/schema.ts`:
 
 | Column                 | Type         | Description                      |
 | ---------------------- | ------------ | -------------------------------- |
@@ -76,117 +76,117 @@ The system combines three entropy sources:
 | `created_at`           | timestamp    | when generated                   |
 | `is_used`              | boolean      | default false                    |
 
-- [ ] Add unique index on `derived_pubkey_hash`
-- [ ] Add index on `(vault_id, created_at DESC)`
-- [ ] Add index on `(vault_id, is_used, created_at)`
-- [ ] Run `pnpm run lint && pnpm run typecheck`
+- [x] Add unique index on `derived_pubkey_hash`
+- [x] Add index on `(vault_id, created_at DESC)`
+- [x] Add index on `(vault_id, is_used, created_at)`
+- [x] Run `pnpm run lint && pnpm run typecheck`
 
 ### Step 3: @keypears/api-server - New Procedures
 
 #### Step 3.1: createDerivedKey Procedure
 
-- [ ] Create `api-server/src/procedures/create-derived-key.ts`
-- [ ] Authenticate via session token (same pattern as other procedures)
-- [ ] Generate `db_entropy = FixedBuf.fromRandom(32)`
-- [ ] Get current server entropy index via `getCurrentDerivationKeyIndex()`
-- [ ] Get current server entropy via `getCurrentDerivationKey()`
-- [ ] Compute `derivation_privkey = sha256Hmac(server_entropy, db_entropy)`
-- [ ] Compute `derivation_pubkey = publicKeyCreate(derivation_privkey)`
-- [ ] Look up vault's `vaultPubKey` from database
-- [ ] Compute `derived_pubkey = publicKeyAdd(vault_pubkey, derivation_pubkey)`
-- [ ] Compute hashes for storage
-- [ ] Insert record into `derived_keys` table
-- [ ] Return `{ id, derivedPubKey, createdAt }`
-- [ ] Add to router in `api-server/src/index.ts`
+- [x] Create `api-server/src/procedures/create-derived-key.ts`
+- [x] Authenticate via session token (same pattern as other procedures)
+- [x] Generate `db_entropy = FixedBuf.fromRandom(32)`
+- [x] Get current server entropy index via `getCurrentDerivationKeyIndex()`
+- [x] Get current server entropy via `getCurrentDerivationKey()`
+- [x] Compute `derivation_privkey = sha256Hmac(server_entropy, db_entropy)`
+- [x] Compute `derivation_pubkey = publicKeyCreate(derivation_privkey)`
+- [x] Look up vault's `vaultPubKey` from database
+- [x] Compute `derived_pubkey = publicKeyAdd(vault_pubkey, derivation_pubkey)`
+- [x] Compute hashes for storage
+- [x] Insert record into `derived_keys` table
+- [x] Return `{ id, derivedPubKey, createdAt }`
+- [x] Add to router in `api-server/src/index.ts`
 
 #### Step 3.2: getDerivedKeys Procedure
 
-- [ ] Create `api-server/src/procedures/get-derived-keys.ts`
-- [ ] Authenticate via session token
-- [ ] Accept `limit` (default 20, max 100) and `beforeCreatedAt` (optional
+- [x] Create `api-server/src/procedures/get-derived-keys.ts`
+- [x] Authenticate via session token
+- [x] Accept `limit` (default 20, max 100) and `beforeCreatedAt` (optional
       cursor)
-- [ ] Query `derived_keys` table for vault, ordered by `created_at DESC`
-- [ ] Return `{ keys: [{ id, derivedPubKey, createdAt, isUsed }], hasMore }`
-- [ ] Add to router in `api-server/src/index.ts`
+- [x] Query `derived_keys` table for vault, ordered by `created_at DESC`
+- [x] Return `{ keys: [{ id, derivedPubKey, createdAt, isUsed }], hasMore }`
+- [x] Add to router in `api-server/src/index.ts`
 
 #### Step 3.3: getDerivationPrivKey Procedure
 
-- [ ] Create `api-server/src/procedures/get-derivation-privkey.ts`
-- [ ] Authenticate via session token
-- [ ] Accept `derivedKeyId`
-- [ ] Look up record, verify it belongs to authenticated vault
-- [ ] Retrieve `db_entropy` and `server_entropy_index` from record
-- [ ] Get server entropy for that index via `getDerivationKey(index)`
-- [ ] Compute `derivation_privkey = sha256Hmac(server_entropy, db_entropy)`
-- [ ] Return `{ derivationPrivKey }` (hex string)
-- [ ] Add to router in `api-server/src/index.ts`
+- [x] Create `api-server/src/procedures/get-derivation-privkey.ts`
+- [x] Authenticate via session token
+- [x] Accept `derivedKeyId`
+- [x] Look up record, verify it belongs to authenticated vault
+- [x] Retrieve `db_entropy` and `server_entropy_index` from record
+- [x] Get server entropy for that index via `getDerivationKey(index)`
+- [x] Compute `derivation_privkey = sha256Hmac(server_entropy, db_entropy)`
+- [x] Return `{ derivationPrivKey }` (hex string)
+- [x] Add to router in `api-server/src/index.ts`
 
 #### Step 3.4: Final Checks
 
-- [ ] Run `pnpm run lint && pnpm run typecheck && pnpm run build`
+- [x] Run `pnpm run lint && pnpm run typecheck && pnpm run build`
 - [ ] Test with `pnpm run test:server`
 
 ### Step 4: @keypears/tauri-ts - Vault Creation Update
 
-- [ ] Update vault creation to compute
+- [x] Update vault creation to compute
       `vaultPubKey = publicKeyCreate(vaultPrivKey)`
-- [ ] Update `registerVault` call to include `vaultPubKey`
+- [x] Update `registerVault` call to include `vaultPubKey`
 - [ ] Test vault creation still works
 
 ### Step 5: @keypears/tauri-ts - Keys Page
 
 #### Step 5.1: Route Setup
 
-- [ ] Create `tauri-ts/app/routes/vault.$vaultId.keys.tsx`
-- [ ] Add `clientLoader` for initial data fetch
-- [ ] Implement basic page structure with header
+- [x] Create `tauri-ts/app/routes/vault.$vaultId.keys.tsx`
+- [x] Add `clientLoader` for initial data fetch
+- [x] Implement basic page structure with header
 
 #### Step 5.2: Key List Component
 
-- [ ] Create key card component showing:
+- [x] Create key card component showing:
   - Derived public key (truncated, copy button)
   - Created timestamp (relative format)
   - "Show Private Key" button
-- [ ] Implement key list with map over keys array
-- [ ] Style with existing UI patterns (shadcn, Catppuccin)
+- [x] Implement key list with map over keys array
+- [x] Style with existing UI patterns (shadcn, Catppuccin)
 
 #### Step 5.3: Generate New Key
 
-- [ ] Add "Generate New Key" button at top of page
-- [ ] Call `createDerivedKey` API on click
-- [ ] Refresh key list after generation
-- [ ] Show loading state during generation
+- [x] Add "Generate New Key" button at top of page
+- [x] Call `createDerivedKey` API on click
+- [x] Refresh key list after generation
+- [x] Show loading state during generation
 
 #### Step 5.4: Load More Pagination
 
-- [ ] Add "Load More" button at bottom when `hasMore` is true
-- [ ] Use `useFetcher` for pagination requests
-- [ ] Pass `beforeCreatedAt` cursor for next page
-- [ ] Append new keys to existing list
+- [x] Add "Load More" button at bottom when `hasMore` is true
+- [x] Use `useFetcher` for pagination requests
+- [x] Pass `beforeCreatedAt` cursor for next page
+- [x] Append new keys to existing list
 
 #### Step 5.5: Show Private Key
 
-- [ ] Add state to track which key's private key is shown
-- [ ] On "Show Private Key" click:
+- [x] Add state to track which key's private key is shown
+- [x] On "Show Private Key" click:
   - Call `getDerivationPrivKey` API
   - Get vault private key from unlocked vault store
   - Compute `derivedPrivKey = privateKeyAdd(vaultPrivKey, derivationPrivKey)`
   - Verify `publicKeyCreate(derivedPrivKey) == derivedPubKey`
   - Display derived private key
-- [ ] Add "Hide Private Key" toggle
-- [ ] Add copy button for private key
+- [x] Add "Hide Private Key" toggle
+- [x] Add copy button for private key
 
 #### Step 5.6: Final Polish
 
-- [ ] Add loading states for all async operations
-- [ ] Add error handling with user-friendly messages
-- [ ] Run `pnpm run lint && pnpm run typecheck`
+- [x] Add loading states for all async operations
+- [x] Add error handling with user-friendly messages
+- [x] Run `pnpm run lint && pnpm run typecheck`
 
 ### Step 6: @keypears/tauri-ts - User Menu Update
 
-- [ ] Import `Key` icon from `lucide-react`
-- [ ] Add "Keys" menu item to `user-menu.tsx`
-- [ ] Link to `/vault/:vaultId/keys` using `href()`
+- [x] Import `Key` icon from `lucide-react`
+- [x] Add "Keys" menu item to `user-menu.tsx`
+- [x] Link to `/vault/:vaultId/keys` using `href()`
 
 ### Step 7: Database Migration
 
