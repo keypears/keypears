@@ -39,25 +39,25 @@ The system combines three entropy sources:
 3. Verify: derived_privkey * G == derived_pubkey
 ```
 
-## Implementation Checklist
+## Implementation Steps
 
-### 1. @keypears/lib - Crypto Utilities
+### Step 1: @keypears/lib - Crypto Utilities
 
 - [ ] Export `privateKeyAdd` from `@webbuf/secp256k1`
 - [ ] Export `publicKeyAdd` from `@webbuf/secp256k1`
 - [ ] Add `deriveDerivationPrivKey(serverEntropy, dbEntropy)` function
 - [ ] Run `pnpm run lint && pnpm run typecheck && pnpm run test`
 
-### 2. @keypears/api-server - Schema Updates
+### Step 2: @keypears/api-server - Schema Updates
 
-#### 2.1 Vault Table Update
+#### Step 2.1: Vault Table Update
 
 - [ ] Add `vaultPubKey` column to `TableVault` (varchar 66, 33 bytes hex)
 - [ ] Update `registerVault` procedure to accept `vaultPubKey` parameter
 - [ ] Update `registerVault` procedure to store `vaultPubKey`
 - [ ] Update Zod schemas for vault registration
 
-#### 2.2 Derived Keys Table
+#### Step 2.2: Derived Keys Table
 
 - [ ] Create `TableDerivedKey` in `api-server/src/db/schema.ts`:
 
@@ -81,9 +81,9 @@ The system combines three entropy sources:
 - [ ] Add index on `(vault_id, is_used, created_at)`
 - [ ] Run `pnpm run lint && pnpm run typecheck`
 
-### 3. @keypears/api-server - New Procedures
+### Step 3: @keypears/api-server - New Procedures
 
-#### 3.1 createDerivedKey Procedure
+#### Step 3.1: createDerivedKey Procedure
 
 - [ ] Create `api-server/src/procedures/create-derived-key.ts`
 - [ ] Authenticate via session token (same pattern as other procedures)
@@ -99,7 +99,7 @@ The system combines three entropy sources:
 - [ ] Return `{ id, derivedPubKey, createdAt }`
 - [ ] Add to router in `api-server/src/index.ts`
 
-#### 3.2 getDerivedKeys Procedure
+#### Step 3.2: getDerivedKeys Procedure
 
 - [ ] Create `api-server/src/procedures/get-derived-keys.ts`
 - [ ] Authenticate via session token
@@ -109,7 +109,7 @@ The system combines three entropy sources:
 - [ ] Return `{ keys: [{ id, derivedPubKey, createdAt, isUsed }], hasMore }`
 - [ ] Add to router in `api-server/src/index.ts`
 
-#### 3.3 getDerivationPrivKey Procedure
+#### Step 3.3: getDerivationPrivKey Procedure
 
 - [ ] Create `api-server/src/procedures/get-derivation-privkey.ts`
 - [ ] Authenticate via session token
@@ -121,27 +121,27 @@ The system combines three entropy sources:
 - [ ] Return `{ derivationPrivKey }` (hex string)
 - [ ] Add to router in `api-server/src/index.ts`
 
-#### 3.4 Final Checks
+#### Step 3.4: Final Checks
 
 - [ ] Run `pnpm run lint && pnpm run typecheck && pnpm run build`
 - [ ] Test with `pnpm run test:server`
 
-### 4. @keypears/tauri-ts - Vault Creation Update
+### Step 4: @keypears/tauri-ts - Vault Creation Update
 
 - [ ] Update vault creation to compute
       `vaultPubKey = publicKeyCreate(vaultPrivKey)`
 - [ ] Update `registerVault` call to include `vaultPubKey`
 - [ ] Test vault creation still works
 
-### 5. @keypears/tauri-ts - Keys Page
+### Step 5: @keypears/tauri-ts - Keys Page
 
-#### 5.1 Route Setup
+#### Step 5.1: Route Setup
 
 - [ ] Create `tauri-ts/app/routes/vault.$vaultId.keys.tsx`
 - [ ] Add `clientLoader` for initial data fetch
 - [ ] Implement basic page structure with header
 
-#### 5.2 Key List Component
+#### Step 5.2: Key List Component
 
 - [ ] Create key card component showing:
   - Derived public key (truncated, copy button)
@@ -150,21 +150,21 @@ The system combines three entropy sources:
 - [ ] Implement key list with map over keys array
 - [ ] Style with existing UI patterns (shadcn, Catppuccin)
 
-#### 5.3 Generate New Key
+#### Step 5.3: Generate New Key
 
 - [ ] Add "Generate New Key" button at top of page
 - [ ] Call `createDerivedKey` API on click
 - [ ] Refresh key list after generation
 - [ ] Show loading state during generation
 
-#### 5.4 Load More Pagination
+#### Step 5.4: Load More Pagination
 
 - [ ] Add "Load More" button at bottom when `hasMore` is true
 - [ ] Use `useFetcher` for pagination requests
 - [ ] Pass `beforeCreatedAt` cursor for next page
 - [ ] Append new keys to existing list
 
-#### 5.5 Show Private Key
+#### Step 5.5: Show Private Key
 
 - [ ] Add state to track which key's private key is shown
 - [ ] On "Show Private Key" click:
@@ -176,25 +176,25 @@ The system combines three entropy sources:
 - [ ] Add "Hide Private Key" toggle
 - [ ] Add copy button for private key
 
-#### 5.6 Final Polish
+#### Step 5.6: Final Polish
 
 - [ ] Add loading states for all async operations
 - [ ] Add error handling with user-friendly messages
 - [ ] Run `pnpm run lint && pnpm run typecheck`
 
-### 6. @keypears/tauri-ts - User Menu Update
+### Step 6: @keypears/tauri-ts - User Menu Update
 
 - [ ] Import `Key` icon from `lucide-react`
 - [ ] Add "Keys" menu item to `user-menu.tsx`
 - [ ] Link to `/vault/:vaultId/keys` using `href()`
 
-### 7. Database Migration
+### Step 7: Database Migration
 
 - [ ] Run `pnpm db:dev:clear` in webapp directory
 - [ ] Run `pnpm db:dev:push` in webapp directory
 - [ ] Verify schema is correct in database
 
-### 8. Integration Testing
+### Step 8: Integration Testing
 
 - [ ] Start webapp with `pnpm run dev`
 - [ ] Create a new vault (verify public key is stored)
