@@ -8,6 +8,8 @@ import { FixedBuf } from "@webbuf/fixedbuf";
  *
  * The highest-numbered key is the "current" key for new derivations.
  * All keys are retained for re-derivation of historical engagement keys.
+ *
+ * Keys are loaded automatically when this module is imported.
  */
 
 interface DerivationKeyState {
@@ -15,15 +17,13 @@ interface DerivationKeyState {
   currentIndex: number;
 }
 
-let state: DerivationKeyState | null = null;
-
 /**
  * Load and validate all derivation keys from environment variables.
- * Must be called once on server startup before any key operations.
+ * Called automatically at module load time.
  *
  * @throws Error if no keys found, keys have gaps, or keys are invalid format
  */
-export function initDerivationKeys(): void {
+function loadDerivationKeys(): DerivationKeyState {
   const keys = new Map<number, FixedBuf<32>>();
 
   // Load all DERIVATION_PRIVKEY_N variables
@@ -78,39 +78,28 @@ export function initDerivationKeys(): void {
     );
   }
 
-  state = { keys, currentIndex };
-
   console.log(
     `Loaded ${keys.size} derivation key(s), current index: ${currentIndex}`,
   );
+
+  return { keys, currentIndex };
 }
+
+// Load keys immediately at module load time
+const state: DerivationKeyState = loadDerivationKeys();
 
 /**
  * Get the current derivation key index (highest numbered key).
  * Use this index when storing new engagement keys.
- *
- * @throws Error if initDerivationKeys() has not been called
  */
 export function getCurrentDerivationKeyIndex(): number {
-  if (!state) {
-    throw new Error(
-      "Derivation keys not initialized. Call initDerivationKeys() first.",
-    );
-  }
   return state.currentIndex;
 }
 
 /**
  * Get the current derivation key for new engagement key generation.
- *
- * @throws Error if initDerivationKeys() has not been called
  */
 export function getCurrentDerivationKey(): FixedBuf<32> {
-  if (!state) {
-    throw new Error(
-      "Derivation keys not initialized. Call initDerivationKeys() first.",
-    );
-  }
   const key = state.keys.get(state.currentIndex);
   if (!key) {
     // This should never happen if initialization succeeded
@@ -124,14 +113,9 @@ export function getCurrentDerivationKey(): FixedBuf<32> {
  * Use this for re-deriving historical engagement keys.
  *
  * @param index - The derivation key index (from engagement key record)
- * @throws Error if initDerivationKeys() has not been called or index not found
+ * @throws Error if index not found
  */
 export function getDerivationKey(index: number): FixedBuf<32> {
-  if (!state) {
-    throw new Error(
-      "Derivation keys not initialized. Call initDerivationKeys() first.",
-    );
-  }
   const key = state.keys.get(index);
   if (!key) {
     throw new Error(
@@ -144,21 +128,7 @@ export function getDerivationKey(index: number): FixedBuf<32> {
 
 /**
  * Get the total number of derivation keys loaded.
- *
- * @throws Error if initDerivationKeys() has not been called
  */
 export function getDerivationKeyCount(): number {
-  if (!state) {
-    throw new Error(
-      "Derivation keys not initialized. Call initDerivationKeys() first.",
-    );
-  }
   return state.keys.size;
-}
-
-/**
- * Check if derivation keys have been initialized.
- */
-export function isDerivationKeysInitialized(): boolean {
-  return state !== null;
 }

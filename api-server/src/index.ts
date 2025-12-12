@@ -1,3 +1,6 @@
+// Side-effect import: loads derivation keys from environment variables at module load time
+import "./derivation-keys.js";
+
 import { checkNameAvailabilityProcedure } from "./procedures/check-name-availability.js";
 import { registerVaultProcedure } from "./procedures/register-vault.js";
 import { loginProcedure } from "./procedures/login.js";
@@ -32,12 +35,10 @@ export * from "./zod-schemas.js";
 export { validateKeypearsServer } from "./validation.js";
 export type { ServerValidationResult } from "./validation.js";
 
-// Re-export derivation key management
+// Re-export derivation key management (keys are loaded automatically on import)
 export {
-  initDerivationKeys,
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
   getDerivationKey,
   getDerivationKeyCount,
-  isDerivationKeysInitialized,
 } from "./derivation-keys.js";
