@@ -99,6 +99,7 @@ export default function NewVaultStep3() {
 
         // 8. Register vault with server
         const vaultPubKeyHashHex = vaultPubKeyHash.buf.toHex();
+        const vaultPubKeyHex = vaultPublicKey.toHex();
         const loginKeyHex = loginKey.buf.toHex();
         const encryptedVaultKeyHex = encryptedVaultKey.toHex();
 
@@ -109,6 +110,7 @@ export default function NewVaultStep3() {
           name: vaultName,
           domain: vaultDomain,
           vaultPubKeyHash: vaultPubKeyHashHex,
+          vaultPubKey: vaultPubKeyHex,
           loginKey: loginKeyHex,
           encryptedVaultKey: encryptedVaultKeyHex,
         });
