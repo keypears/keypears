@@ -131,7 +131,7 @@ The system combines three entropy sources:
 - [x] Update vault creation to compute
       `vaultPubKey = publicKeyCreate(vaultPrivKey)`
 - [x] Update `registerVault` call to include `vaultPubKey`
-- [ ] Test vault creation still works
+- [x] Test vault creation still works
 
 ### Step 5: @keypears/tauri-ts - Keys Page
 
