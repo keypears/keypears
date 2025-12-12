@@ -122,66 +122,42 @@ function KeyCard({
 
   return (
     <div className="border-border bg-card rounded-lg border p-4">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Key size={16} className="text-muted-foreground flex-shrink-0" />
-            <span className="font-mono text-sm truncate">
-              {truncateKey(derivedKey.derivedPubKey, 12)}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 flex-shrink-0"
-              onClick={() => copyToClipboard(derivedKey.derivedPubKey, "pub")}
-              title="Copy public key"
-            >
-              {copiedPubKey ? <Check size={14} /> : <Copy size={14} />}
-            </Button>
-          </div>
-          <div className="text-muted-foreground mt-1 text-sm">
-            Created {formatRelativeTime(derivedKey.createdAt)}
-            {derivedKey.isUsed && (
-              <span className="ml-2 text-yellow-600 dark:text-yellow-400">
-                (used)
-              </span>
-            )}
-          </div>
-        </div>
+      {/* Top: Public key + copy button */}
+      <div className="flex items-center gap-2">
+        <Key size={16} className="text-muted-foreground flex-shrink-0" />
+        <span className="font-mono text-sm truncate">
+          {truncateKey(derivedKey.derivedPubKey, 12)}
+        </span>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          onClick={handleShowPrivateKey}
-          disabled={isLoading}
+          className="h-6 w-6 p-0 flex-shrink-0"
+          onClick={() => copyToClipboard(derivedKey.derivedPubKey, "pub")}
+          title="Copy public key"
         >
-          {isLoading ? (
-            "Loading..."
-          ) : showPrivateKey ? (
-            <>
-              <EyeOff size={14} className="mr-1" />
-              Hide
-            </>
-          ) : (
-            <>
-              <Eye size={14} className="mr-1" />
-              Show Private Key
-            </>
-          )}
+          {copiedPubKey ? <Check size={14} /> : <Copy size={14} />}
         </Button>
       </div>
 
-      {error && (
-        <div className="mt-3 text-sm text-destructive">{error}</div>
-      )}
+      {/* Middle: Created timestamp + used badge */}
+      <div className="text-muted-foreground mt-1 text-sm">
+        Created {formatRelativeTime(derivedKey.createdAt)}
+        {derivedKey.isUsed && (
+          <span className="ml-2 text-yellow-600 dark:text-yellow-400">
+            (used)
+          </span>
+        )}
+      </div>
 
-      {showPrivateKey && privateKey && (
-        <div className="mt-3 border-t border-border pt-3">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Private Key:</span>
+      {/* Bottom: Private Key label + [Copy?] + Show/Hide */}
+      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <span className="text-muted-foreground text-sm">Private Key</span>
+        <div className="flex items-center gap-2">
+          {showPrivateKey && privateKey && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2"
+              className="h-8 w-20"
               onClick={() => copyToClipboard(privateKey, "priv")}
             >
               {copiedPrivKey ? (
@@ -196,11 +172,41 @@ function KeyCard({
                 </>
               )}
             </Button>
-          </div>
-          <div className="mt-1 font-mono text-xs break-all bg-muted p-2 rounded">
-            {privateKey}
-          </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-20"
+            onClick={handleShowPrivateKey}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              "..."
+            ) : showPrivateKey ? (
+              <>
+                <EyeOff size={14} className="mr-1" />
+                Hide
+              </>
+            ) : (
+              <>
+                <Eye size={14} className="mr-1" />
+                Show
+              </>
+            )}
+          </Button>
         </div>
+      </div>
+
+      {/* Conditional: actual private key in mono box */}
+      {showPrivateKey && privateKey && (
+        <div className="mt-2 font-mono text-xs break-all bg-muted p-2 rounded">
+          {privateKey}
+        </div>
+      )}
+
+      {/* Conditional: error message */}
+      {error && (
+        <div className="mt-3 text-sm text-destructive">{error}</div>
       )}
     </div>
   );
