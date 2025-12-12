@@ -1,7 +1,11 @@
 import { acs2Decrypt, acs2Encrypt } from "@webbuf/acs2";
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { publicKeyCreate } from "@webbuf/secp256k1";
+import {
+  publicKeyCreate,
+  privateKeyAdd,
+  publicKeyAdd,
+} from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
 
@@ -13,9 +17,11 @@ const SERVER_KDF_ROUNDS = 100_000;
 
 export { sha256Hash, sha256Hmac, acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf };
 
-// Re-export publicKeyCreate for deriving public keys from private keys
-// This is used to derive vault public keys from vault private keys
-export { publicKeyCreate };
+// Re-export secp256k1 functions for key operations
+// - publicKeyCreate: derive public key from private key
+// - privateKeyAdd: add two private keys (mod curve order)
+// - publicKeyAdd: add two public keys (elliptic curve point addition)
+export { publicKeyCreate, privateKeyAdd, publicKeyAdd };
 
 // Export domain configuration
 export {
@@ -451,4 +457,26 @@ export function calculatePasswordEntropy(
 
   // Entropy = length * log2(charset_size)
   return length * Math.log2(charsetSize);
+}
+
+/**
+ * Derives a derivation private key from server entropy and DB entropy.
+ *
+ * This function is used in the key derivation system where the server generates
+ * public keys for users while only the user can derive the corresponding private keys.
+ *
+ * The derivation private key is computed as: HMAC-SHA256(serverEntropy, dbEntropy)
+ *
+ * This key is then added to the vault private key to produce the final derived private key:
+ *   derivedPrivKey = vaultPrivKey + derivationPrivKey (mod curve order)
+ *
+ * @param serverEntropy - 32-byte server-side entropy (from DERIVATION_ENTROPY_N env var)
+ * @param dbEntropy - 32-byte random entropy stored in database per derived key
+ * @returns 32-byte derivation private key
+ */
+export function deriveDerivationPrivKey(
+  serverEntropy: FixedBuf<32>,
+  dbEntropy: FixedBuf<32>,
+): FixedBuf<32> {
+  return sha256Hmac(serverEntropy.buf, dbEntropy.buf);
 }
