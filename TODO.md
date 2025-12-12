@@ -296,7 +296,41 @@ For each file, verify:
 
 ---
 
-## Phase 3: Diffie-Hellman Key Exchange
+## Phase 3: Key Derivation System
+
+**Status**: ⏳ **PLANNED** - Not started
+
+**Goal**: Enable server-side public key generation for offline users while
+maintaining zero-knowledge of private keys.
+
+**Details**: See [docs/key-derivation.md](docs/key-derivation.md) for full
+implementation plan.
+
+### Overview
+
+The key derivation system enables:
+
+1. **Offline key generation**: Server generates public keys while user is offline
+2. **User-only private keys**: Only the vault owner can derive private keys
+3. **Per-key isolation**: Each derived key uses fresh entropy
+
+Uses elliptic curve addition property: `(a + b) * G = A + B`
+
+### Implementation Summary
+
+- [ ] **@keypears/lib**: Export `privateKeyAdd`, `publicKeyAdd` from secp256k1
+- [ ] **@keypears/api-server schema**: Add `vaultPubKey` to vault table, create
+      `derived_keys` table
+- [ ] **@keypears/api-server procedures**: `createDerivedKey`, `getDerivedKeys`,
+      `getDerivationPrivKey`
+- [ ] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
+- [ ] **@keypears/tauri-ts**: Create Keys page route with key list and private
+      key derivation UI
+- [ ] **Database migration**: Push schema changes
+
+---
+
+## Phase 4: Diffie-Hellman Key Exchange
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -344,7 +378,7 @@ For each file, verify:
 
 ---
 
-## Phase 4: Multi-Domain Support
+## Phase 5: Multi-Domain Support
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -380,7 +414,7 @@ For each file, verify:
 
 ---
 
-## Phase 5: Payment & Business Model
+## Phase 6: Payment & Business Model
 
 **Status**: ⏳ **PLANNED** - Not started
 
@@ -513,4 +547,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-12
