@@ -57,6 +57,7 @@
   "dependencies": {
     "@dotenvx/dotenvx": "^1.51.1",
     "@keypears/lib": "workspace:*",
+    "@keypears/pow5": "workspace:*",
     "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",
     "@webbuf/fixedbuf": "^3.5.0",

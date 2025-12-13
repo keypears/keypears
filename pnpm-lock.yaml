@@ -16,6 +16,9 @@ importers:
       '@keypears/lib':
         specifier: workspace:*
         version: link:../lib
+      '@keypears/pow5':
+        specifier: workspace:*
+        version: link:../pow5-ts
       '@orpc/client':
         specifier: ^1.9.2
         version: 1.10.2
@@ -253,6 +256,9 @@ importers:
       '@keypears/lib':
         specifier: workspace:^
         version: link:../lib
+      '@keypears/pow5':
+        specifier: workspace:^
+        version: link:../pow5-ts
       '@orpc/client':
         specifier: ^1.12.2
         version: 1.12.2
@@ -301,6 +307,9 @@ importers:
       '@tauri-apps/plugin-sql':
         specifier: ^2.3.0
         version: 2.3.0
+      '@webbuf/fixedbuf':
+        specifier: ^3.5.0
+        version: 3.5.0(@webbuf/webbuf@3.5.0)
       '@webbuf/secp256k1':
         specifier: ^3.5.0
         version: 3.5.0(@webbuf/fixedbuf@3.5.0(@webbuf/webbuf@3.5.0))(@webbuf/webbuf@3.5.0)

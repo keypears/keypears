@@ -298,8 +298,7 @@ For each file, verify:
 
 ## Phase 3: Key Derivation System
 
-**Status**: 🚧 **IN PROGRESS** - Code complete, awaiting database migration and
-testing
+**Status**: ✅ **COMPLETED**
 
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
@@ -336,15 +335,16 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 
 **Status**: 🚧 **IN PROGRESS** - Algorithm complete, API integration pending
 
-**Goal**: Require proof-of-work for new vault registrations to prevent spam/sybil
-attacks.
+**Goal**: Require proof-of-work for new vault registrations to prevent
+spam/sybil attacks.
 
 **Details**: See [docs/pow5.md](docs/pow5.md) for full algorithm documentation.
 
 ### PoW Algorithm Foundation ✅ COMPLETED
 
 - [x] Migrate pow5 algorithm from earthbucks to keypears
-- [x] Create pow5-64b variant (64-byte format: 32-byte nonce + 32-byte challenge)
+- [x] Create pow5-64b variant (64-byte format: 32-byte nonce + 32-byte
+      challenge)
 - [x] Preserve pow5-217a variant for reference (original earthbucks format)
 - [x] WGSL shader for GPU mining (`pow5-ts/src/pow5-64b.wgsl`)
 - [x] TypeScript WGSL wrapper (`pow5-ts/src/pow5-64b-wgsl.ts`)

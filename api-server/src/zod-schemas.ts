@@ -100,3 +100,24 @@ export const GetDerivationPrivKeyRequestSchema = z.object({
 export const GetDerivationPrivKeyResponseSchema = z.object({
   derivationPrivKey: z.string().length(64), // 32 bytes hex = 64 chars
 });
+
+// PoW Challenge (for testing - not secure, no database storage)
+export const GetPowChallengeRequestSchema = z.object({});
+
+export const GetPowChallengeResponseSchema = z.object({
+  header: z.string().length(128), // 64 bytes hex = 128 chars
+  target: z.string().length(64), // 32 bytes hex = 64 chars
+  difficulty: z.string(), // bigint as string
+});
+
+// PoW Proof verification (for testing - not secure)
+export const VerifyPowProofRequestSchema = z.object({
+  originalHeader: z.string().length(128), // 64 bytes hex
+  solvedHeader: z.string().length(128), // 64 bytes hex (with nonce filled in)
+  hash: z.string().length(64), // 32 bytes hex
+});
+
+export const VerifyPowProofResponseSchema = z.object({
+  valid: z.boolean(),
+  message: z.string(),
+});

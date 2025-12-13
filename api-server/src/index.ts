@@ -12,6 +12,8 @@ import { getVaultInfoPublicProcedure } from "./procedures/get-vault-info-public.
 import { createDerivedKeyProcedure } from "./procedures/create-derived-key.js";
 import { getDerivedKeysProcedure } from "./procedures/get-derived-keys.js";
 import { getDerivationPrivKeyProcedure } from "./procedures/get-derivation-privkey.js";
+import { getPowChallengeProcedure } from "./procedures/get-pow-challenge.js";
+import { verifyPowProofProcedure } from "./procedures/verify-pow-proof.js";
 
 /**
  * KeyPears Node API Router
@@ -29,6 +31,9 @@ export const router = {
   createDerivedKey: createDerivedKeyProcedure,
   getDerivedKeys: getDerivedKeysProcedure,
   getDerivationPrivKey: getDerivationPrivKeyProcedure,
+  // PoW testing procedures (NOT SECURE - for testing only)
+  getPowChallenge: getPowChallengeProcedure,
+  verifyPowProof: verifyPowProofProcedure,
 };
 
 // Export the router type for client usage
