@@ -1,4 +1,4 @@
-import wgslCode from "./pow5.wgsl?raw";
+import wgslCode from "./pow5-217a.wgsl?raw";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 
@@ -24,7 +24,7 @@ interface Pow5State {
 
 type GridSize = 32768 | 2048 | 128;
 
-export class Pow5 {
+export class Pow5_217a {
   private header: FixedBuf<217>;
   private target: FixedBuf<32>;
   private gridSize: GridSize;

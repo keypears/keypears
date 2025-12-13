@@ -1,12 +1,12 @@
 import { describe, test, expect } from "vitest";
-import { Pow5 } from "../src/pow5-wgsl.js";
+import { Pow5_217a } from "../src/pow5-217a-wgsl.js";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { blake3Hash } from "@webbuf/blake3";
 
 const MAX_GRID_SIZE = 32768;
 
-describe("Pow5 tests", async () => {
+describe("Pow5_217a tests", async () => {
   test("placeholder test", async () => {});
 
   test("debug: hash header", async () => {
@@ -19,7 +19,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -41,7 +41,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -65,7 +65,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugDoubleHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -89,7 +89,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugDoubleHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -115,7 +115,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader128();
       expect(result.hash.toHex()).toBe(
@@ -139,7 +139,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader128();
       expect(result.hash.toHex()).toBe(
@@ -163,7 +163,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader32();
       expect(result.hash.toHex()).toBe(
@@ -185,7 +185,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugHashHeader32();
       expect(result.hash.toHex()).toBe(
@@ -209,7 +209,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugGetWorkPar();
       expect(result.hash.toHex()).toBe(
@@ -227,7 +227,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugGetWorkPar();
       expect(result.hash.toHex()).toBe(
@@ -247,7 +247,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugElementaryIteration();
       expect(result.hash.toHex()).toBe(
@@ -265,7 +265,7 @@ describe("Pow5 tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, targetAllZeroes, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.debugElementaryIteration();
       expect(result.hash.toHex()).toBe(
@@ -288,7 +288,7 @@ describe("Pow5 tests", async () => {
           //"ff".repeat(32),
         ),
       );
-      const pow5 = new Pow5(headerAllZeroes, target, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllZeroes, target, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.work();
       console.log("nonce", result.nonce);
@@ -309,7 +309,7 @@ describe("Pow5 tests", async () => {
           "0000004bd2d60b7b67702281a87b14e45c65d40465dc41fa2639ef84f05016ff",
         ),
       );
-      const pow5 = new Pow5(headerAllOnes, target, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(headerAllOnes, target, MAX_GRID_SIZE);
       await pow5.init(true);
       const result = await pow5.work();
       expect(result.hash.toHex()).toBe(
