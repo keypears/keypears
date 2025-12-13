@@ -37,10 +37,6 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
-function truncateKey(key: string, chars: number = 8): string {
-  if (key.length <= chars * 2 + 3) return key;
-  return `${key.slice(0, chars)}...${key.slice(-chars)}`;
-}
 
 function KeyCard({
   derivedKey,
@@ -123,19 +119,30 @@ function KeyCard({
   return (
     <div className="border-border bg-card rounded-lg border p-4">
       {/* Top: Public key + copy button */}
-      <div className="flex items-center gap-2">
-        <Key size={16} className="text-muted-foreground flex-shrink-0" />
-        <span className="font-mono text-sm truncate">
-          {truncateKey(derivedKey.derivedPubKey, 12)}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Key size={16} className="text-muted-foreground flex-shrink-0" />
+          <div className="overflow-x-auto whitespace-nowrap font-mono text-sm">
+            {derivedKey.derivedPubKey}
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 flex-shrink-0"
+          className="h-8 w-20 flex-shrink-0"
           onClick={() => copyToClipboard(derivedKey.derivedPubKey, "pub")}
-          title="Copy public key"
         >
-          {copiedPubKey ? <Check size={14} /> : <Copy size={14} />}
+          {copiedPubKey ? (
+            <>
+              <Check size={14} className="mr-1" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy size={14} className="mr-1" />
+              Copy
+            </>
+          )}
         </Button>
       </div>
 
@@ -149,57 +156,53 @@ function KeyCard({
         )}
       </div>
 
-      {/* Bottom: Private Key label + [Copy?] + Show/Hide */}
+      {/* Bottom: Show/Hide button (left) + Copy (right) */}
       <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-        <span className="text-muted-foreground text-sm">Private Key</span>
-        <div className="flex items-center gap-2">
-          {showPrivateKey && privateKey && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-20"
-              onClick={() => copyToClipboard(privateKey, "priv")}
-            >
-              {copiedPrivKey ? (
-                <>
-                  <Check size={14} className="mr-1" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={14} className="mr-1" />
-                  Copy
-                </>
-              )}
-            </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleShowPrivateKey}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            "..."
+          ) : showPrivateKey ? (
+            <>
+              <EyeOff size={14} className="mr-1" />
+              Hide Private Key
+            </>
+          ) : (
+            <>
+              <Eye size={14} className="mr-1" />
+              Show Private Key
+            </>
           )}
+        </Button>
+        {showPrivateKey && privateKey && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-20"
-            onClick={handleShowPrivateKey}
-            disabled={isLoading}
+            className="h-8 w-20"
+            onClick={() => copyToClipboard(privateKey, "priv")}
           >
-            {isLoading ? (
-              "..."
-            ) : showPrivateKey ? (
+            {copiedPrivKey ? (
               <>
-                <EyeOff size={14} className="mr-1" />
-                Hide
+                <Check size={14} className="mr-1" />
+                Copied
               </>
             ) : (
               <>
-                <Eye size={14} className="mr-1" />
-                Show
+                <Copy size={14} className="mr-1" />
+                Copy
               </>
             )}
           </Button>
-        </div>
+        )}
       </div>
 
       {/* Conditional: actual private key in mono box */}
       {showPrivateKey && privateKey && (
-        <div className="mt-2 font-mono text-xs break-all bg-muted p-2 rounded">
+        <div className="mt-2 overflow-x-auto whitespace-nowrap font-mono text-xs bg-muted p-2 rounded">
           {privateKey}
         </div>
       )}
