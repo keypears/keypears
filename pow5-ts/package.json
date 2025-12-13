@@ -1,0 +1,58 @@
+{
+  "name": "@earthbucks/pow5",
+  "version": "1.0.181",
+  "description": "EarthBucks Proof-of-Work (PoW) Algorithm (5)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/earthbucks/earthbucks"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "vitest": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --fix",
+    "format": "prettier --write .",
+    "fix": "pnpm run typecheck && pnpm run lint && pnpm run format",
+    "sync:from-rust": "cp -r ../pow5-rs/build/bundler/* src/rs-earthbucks_pow5-bundler/",
+    "build": "pnpm run build:wasm && pnpm run build:cp-wgsl && pnpm run build:typescript",
+    "build:cp-wgsl": "mkdir -p dist && cp src/*.wgsl dist/",
+    "build:bundler-to-inline-base64": "cp -r src/rs-earthbucks_pow5-bundler/* src/rs-earthbucks_pow5-inline-base64/",
+    "build:inline-wasm": "tsx build-inline-wasm.ts",
+    "build:wasm": "pnpm run build:bundler-to-inline-base64 && pnpm run build:inline-wasm",
+    "build:typescript": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "engines": {
+    "node": ">=20.8.0"
+  },
+  "packageManager": "pnpm@9.12.3+sha256.24235772cc4ac82a62627cd47f834c72667a2ce87799a846ec4e8e555e2d4b8b",
+  "keywords": [
+    "pow"
+  ],
+  "author": "Ryan X. Charles <ryan@ryanxcharles.com> (https://ryanxcharles.com)",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/browser-chromium": "^1.57.0",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^24.10.1",
+    "@vitest/browser": "^4.0.15",
+    "@vitest/browser-playwright": "^4.0.15",
+    "@webgpu/types": "^0.1.67",
+    "buffer": "^6.0.3",
+    "rimraf": "^6.1.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vite-string-plugin": "^1.4.9",
+    "vitest": "^4.0.15"
+  },
+  "dependencies": {
+    "@webbuf/blake3": "^3.5.0",
+    "@webbuf/fixedbuf": "^3.5.0",
+    "@webbuf/webbuf": "^3.5.0"
+  }
+}

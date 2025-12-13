@@ -83,7 +83,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4",
+    "vitest": "^4.0.15",
     "wait-on": "^9.0.1"
   }
 }
