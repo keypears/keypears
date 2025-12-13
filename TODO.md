@@ -298,7 +298,8 @@ For each file, verify:
 
 ## Phase 3: Key Derivation System
 
-**Status**: 🚧 **IN PROGRESS** - Code complete, awaiting database migration and testing
+**Status**: 🚧 **IN PROGRESS** - Code complete, awaiting database migration and
+testing
 
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
@@ -310,7 +311,8 @@ implementation plan.
 
 The key derivation system enables:
 
-1. **Offline key generation**: Server generates public keys while user is offline
+1. **Offline key generation**: Server generates public keys while user is
+   offline
 2. **User-only private keys**: Only the vault owner can derive private keys
 3. **Per-key isolation**: Each derived key uses fresh entropy
 
