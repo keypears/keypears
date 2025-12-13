@@ -39,6 +39,7 @@ export default function ImportVault() {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [importedVaultId, setImportedVaultId] = useState<string | null>(null);
 
   // Set default domain on mount
   useEffect(() => {
@@ -156,6 +157,8 @@ export default function ImportVault() {
       // 16. Update last accessed timestamp
       await updateVaultLastAccessed(vault.id);
 
+      // 17. Store vault ID for navigation
+      setImportedVaultId(vault.id);
       setSuccess(true);
     } catch (err) {
       console.error("Error importing vault:", err);
@@ -195,9 +198,19 @@ export default function ImportVault() {
                 <Button
                   className="w-full"
                   size="lg"
-                  onClick={() => navigate(href("/"))}
+                  onClick={() => {
+                    if (importedVaultId) {
+                      navigate(
+                        href("/vault/:vaultId/secrets", {
+                          vaultId: importedVaultId,
+                        }),
+                      );
+                    } else {
+                      navigate(href("/"));
+                    }
+                  }}
                 >
-                  OK
+                  Continue to Vault
                 </Button>
               </>
             ) : error ? (
