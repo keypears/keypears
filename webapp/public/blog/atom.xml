@@ -2,13 +2,222 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-12-09T13:12:03.131Z</updated>
+    <updated>2025-12-13T11:22:10.132Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
     <subtitle>Updates and insights from the KeyPears team</subtitle>
     <icon>https://keypears.com/favicon.ico</icon>
     <rights>Copyright 2025 Identellica LLC</rights>
+    <entry>
+        <title type="html"><![CDATA[Server-Generated Public Keys: How KeyPears Keeps Private Keys Client-Side]]></title>
+        <id>https://keypears.com/blog/2025-12-13-server-generated-public-keys</id>
+        <link href="https://keypears.com/blog/2025-12-13-server-generated-public-keys"/>
+        <updated>2025-12-13T12:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve b...]]></summary>
+        <content type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve before our official release.</p>
+<p>This week we shipped the key derivation system that powers KeyPears' upcoming
+Diffie-Hellman key exchange. It solves a fundamental problem: how can a server
+generate public keys for users while ensuring only the user can derive the
+corresponding private keys?</p>
+<p>This post explains the mathematics, the implementation, and why this matters for
+federated secret sharing.</p>
+<h2>The Problem: Offline Key Generation</h2>
+<p>Imagine Alice wants to send an encrypted secret to Bob. She needs Bob's public
+key to establish a shared secret via Diffie-Hellman. But Bob is offline—maybe
+he's on a plane, or his phone is dead, or he simply hasn't opened the app in
+days.</p>
+<p>In a centralized system, this is easy: the server stores Bob's public key and
+hands it to Alice. But KeyPears is designed so that servers never learn users'
+private keys. The server knows Bob's vault public key, but we don't want to
+expose that directly—doing so would enable correlation across all of Bob's
+relationships and create a single point of failure if that key were ever
+compromised.</p>
+<p>We need the server to generate a fresh, unique public key for each relationship
+(Alice↔Bob, Carol↔Bob, etc.) while ensuring:</p>
+<ol>
+<li>Only Bob can derive the corresponding private key</li>
+<li>The server never learns Bob's vault private key</li>
+<li>Each derived key is cryptographically isolated</li>
+</ol>
+<p>How do we square this circle?</p>
+<h2>The Key Mathematical Property</h2>
+<p>The answer lies in a beautiful property of elliptic curve cryptography. On the
+secp256k1 curve (the same one Bitcoin uses), there's a generator point <code>G</code>. Any
+private key <code>a</code> has a corresponding public key <code>A = a * G</code> (scalar
+multiplication).</p>
+<p>Here's the critical insight:</p>
+<p><strong>If you add two private keys together, the result corresponds to adding their
+public keys together.</strong></p>
+<pre><code>Given:
+  Private key a → Public key A (where A = a * G)
+  Private key b → Public key B (where B = b * G)
+
+Then:
+  (a + b) * G = A + B
+</code></pre>
+<p>This means we can construct a derived keypair by addition:</p>
+<ul>
+<li><strong>Derived public key</strong> = Vault public key + Derivation public key</li>
+<li><strong>Derived private key</strong> = Vault private key + Derivation private key</li>
+</ul>
+<p>The server knows the vault public key and can generate the derivation keypair.
+So the server can compute the derived public key. But only Bob knows his vault
+private key, so only Bob can compute the derived private key.</p>
+<h2>Three Entropy Sources</h2>
+<p>KeyPears combines three sources of entropy to generate derived keys:</p>
+<p><strong>1. Server Entropy</strong> (from <code>DERIVATION_ENTROPY_N</code> environment variables)</p>
+<p>The server maintains one or more 32-byte entropy values, numbered sequentially.
+The highest-numbered entropy is used for new keys; older entropy is retained for
+re-derivation. This enables rotation: add <code>DERIVATION_ENTROPY_2</code>, and new keys
+use it while old keys remain derivable.</p>
+<p><strong>2. DB Entropy</strong> (random 32 bytes per derived key)</p>
+<p>Each derived key gets fresh random entropy, stored in the database. This ensures
+every key is unique, even for the same user. Compromise of one key's entropy
+doesn't help attack others.</p>
+<p><strong>3. Vault Key</strong> (user's master private key)</p>
+<p>The user's 32-byte secp256k1 private key never leaves their device. It's the
+"secret ingredient" that only the client possesses. The server knows the
+corresponding public key but can't reverse it.</p>
+<h2>The Cryptographic Flow</h2>
+<h3>Server-Side: Generate Derived Public Key</h3>
+<p>When Alice requests a key for Bob, Bob's server performs:</p>
+<pre><code>1. db_entropy = random(32 bytes)
+2. derivation_privkey = HMAC-SHA256(key: server_entropy, data: db_entropy)
+3. derivation_pubkey = derivation_privkey * G
+4. derived_pubkey = vault_pubkey + derivation_pubkey
+</code></pre>
+<p>The server stores <code>db_entropy</code> and <code>server_entropy_index</code> in the database, then
+returns <code>derived_pubkey</code> to Alice. Alice can now encrypt to Bob using this
+public key.</p>
+<h3>Client-Side: Derive Private Key</h3>
+<p>When Bob comes online and needs to decrypt Alice's message:</p>
+<pre><code>1. Bob requests derivation_privkey from server
+2. Server recomputes: derivation_privkey = HMAC-SHA256(server_entropy, db_entropy)
+3. Server returns derivation_privkey to Bob
+4. Bob computes: derived_privkey = vault_privkey + derivation_privkey
+5. Bob verifies: derived_privkey * G == derived_pubkey
+</code></pre>
+<p>The verification step ensures nothing went wrong. If the derived public key
+matches, Bob knows he has the correct private key and can proceed with
+decryption.</p>
+<h2>Code Examples with @webbuf Packages</h2>
+<p>KeyPears uses the <code>@webbuf</code> family of packages for cryptographic operations.
+These are Rust implementations compiled to WebAssembly, providing both memory
+safety and cross-platform consistency.</p>
+<h3>Deriving the Derivation Private Key</h3>
+<p>The server computes the derivation private key using HMAC-SHA256:</p>
+<pre><code class="language-typescript">import { sha256Hmac } from "@webbuf/sha256";
+import { FixedBuf } from "@webbuf/fixedbuf";
+
+function deriveDerivationPrivKey(
+  serverEntropy: FixedBuf&#x3C;32>,
+  dbEntropy: FixedBuf&#x3C;32>,
+): FixedBuf&#x3C;32> {
+  return sha256Hmac(serverEntropy.buf, dbEntropy.buf);
+}
+</code></pre>
+<p>HMAC provides domain separation: even if an attacker knew <code>db_entropy</code>, they
+couldn't compute <code>derivation_privkey</code> without <code>server_entropy</code>.</p>
+<h3>Computing Public Keys</h3>
+<p>The server derives the derivation public key and adds it to the vault public
+key:</p>
+<pre><code class="language-typescript">import { publicKeyCreate, publicKeyAdd } from "@webbuf/secp256k1";
+
+// derivation_pubkey = derivation_privkey * G
+const derivationPubKey = publicKeyCreate(derivationPrivKey);
+
+// derived_pubkey = vault_pubkey + derivation_pubkey
+const derivedPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
+</code></pre>
+<h3>Client-Side Private Key Addition</h3>
+<p>When the user needs the derived private key:</p>
+<pre><code class="language-typescript">import { privateKeyAdd, publicKeyCreate } from "@webbuf/secp256k1";
+
+// derived_privkey = vault_privkey + derivation_privkey
+const derivedPrivKey = privateKeyAdd(vaultPrivKey, derivationPrivKey);
+
+// Verify: derived_privkey * G should equal derived_pubkey
+const verifyPubKey = publicKeyCreate(derivedPrivKey);
+if (verifyPubKey.toHex() !== derivedPubKey.toHex()) {
+  throw new Error("Derived key verification failed");
+}
+</code></pre>
+<p>The verification step is crucial. It confirms that the addition was performed
+correctly and that all parties agree on the final keypair.</p>
+<h2>Connection to Diffie-Hellman Key Exchange</h2>
+<p>This key derivation system is the foundation for KeyPears' federated
+Diffie-Hellman key exchange. Here's how the pieces fit together:</p>
+<p><strong>Per-Relationship Keys:</strong> When Alice wants to communicate with Bob, Bob's
+server generates a derived key specifically for the Alice↔Bob relationship. This
+key is mathematically linked to Bob's vault key but reveals nothing about it.</p>
+<p><strong>Privacy Isolation:</strong> If an attacker compromises the Alice↔Bob derived key,
+they learn nothing about Bob's vault key or his keys for other relationships.
+Each relationship is cryptographically isolated.</p>
+<p><strong>Offline Operation:</strong> Alice can initiate contact with Bob even when Bob is
+offline. The server provides Bob's derived public key immediately. Bob derives
+the matching private key whenever he comes online.</p>
+<p><strong>Quantum Resistance:</strong> By never exposing the primary vault public key, we limit
+the attack surface. A quantum computer would need to target each derived key
+individually rather than compromising all relationships at once.</p>
+<p>The full Diffie-Hellman protocol builds on this: Alice and Bob each get derived
+keys for their relationship, compute a shared secret via ECDH, and use that
+secret to encrypt communications. The servers coordinate but never see plaintext.</p>
+<h2>Security Properties</h2>
+<p><strong>Server Never Learns Vault Private Key</strong></p>
+<p>The server knows <code>vault_pubkey</code>, <code>derivation_privkey</code>, and <code>derived_pubkey</code>. But
+computing <code>vault_privkey</code> would require solving the discrete logarithm
+problem—computationally infeasible on secp256k1.</p>
+<p><strong>Per-Key Entropy Isolation</strong></p>
+<p>Each derived key uses fresh <code>db_entropy</code>. Even if an attacker compromised the
+database and obtained all <code>db_entropy</code> values, they'd still need <code>server_entropy</code>
+to compute any <code>derivation_privkey</code>. And even with both, they'd need
+<code>vault_privkey</code> to compute <code>derived_privkey</code>.</p>
+<p><strong>Entropy Rotation Limits Blast Radius</strong></p>
+<p>Server entropy rotates periodically (we recommend every 90 days). Each derived
+key records which entropy index was used. If entropy N is somehow compromised,
+only keys using index N are affected—and the attacker still needs per-key
+<code>db_entropy</code> and user <code>vault_privkey</code>.</p>
+<p><strong>Verification Prevents Subtle Attacks</strong></p>
+<p>The client always verifies that <code>derived_privkey * G == derived_pubkey</code>. This
+catches any corruption, miscalculation, or tampering. If verification fails, the
+client rejects the key.</p>
+<h2>What We Built</h2>
+<p>This week we implemented the complete key derivation system:</p>
+<ul>
+<li><strong><code>@keypears/lib</code></strong>: Exported <code>privateKeyAdd</code>, <code>publicKeyAdd</code>, and
+<code>deriveDerivationPrivKey</code> functions</li>
+<li><strong><code>@keypears/api-server</code></strong>: Created <code>createDerivedKey</code>, <code>getDerivedKeys</code>, and
+<code>getDerivationPrivKey</code> procedures</li>
+<li><strong><code>@keypears/tauri-ts</code></strong>: Built a "Keys" page where users can generate derived
+keys and reveal private keys on demand</li>
+</ul>
+<p>The infrastructure is in place. Next, we'll build the full Diffie-Hellman key
+exchange protocol on top of it, enabling <code>alice@example.com</code> to securely share
+secrets with <code>bob@company.com</code> across different domains and hosting providers.</p>
+<h2>Conclusion</h2>
+<p>The key derivation system demonstrates a pattern we use throughout KeyPears:
+servers coordinate without learning secrets. By exploiting the additive property
+of elliptic curve keys, we enable server-side public key generation while
+keeping private keys strictly client-side.</p>
+<p>This isn't just a clever trick—it's the foundation for federated secret sharing.
+When you share a password with a colleague at a different company, both servers
+help coordinate the key exchange, but neither server can read the shared secret.
+That's the promise of KeyPears: the convenience of cloud sync with the security
+of self-custody.</p>
+<p>The math is elegant. The implementation is straightforward. And the security
+properties are exactly what we need for a federated Diffie-Hellman key exchange
+system.</p>
+<p><em>Next up: the full DH key exchange protocol for cross-user secret sharing. Stay
+tuned!</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Why We Switched from Blake3 to SHA-256]]></title>
         <id>https://keypears.com/blog/2025-12-09-switching-to-sha256</id>
@@ -68,9 +277,8 @@ function sha256Pbkdf(
   salt: FixedBuf&#x3C;32>,
   rounds: number = 100_000,
 ): FixedBuf&#x3C;32> {
-  const passwordBuf = typeof password === "string"
-    ? WebBuf.fromUtf8(password)
-    : password;
+  const passwordBuf =
+    typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
   let result = sha256Hmac(salt, passwordBuf);
   for (let i = 1; i &#x3C; rounds; i++) {
@@ -577,13 +785,13 @@ const { sessionToken, expiresAt } = await client.login({
   vaultId,
   loginKey,
   deviceId,
-  deviceDescription: "macOS 14.1 (aarch64)"
+  deviceDescription: "macOS 14.1 (aarch64)",
 });
 
 // Use session token for all subsequent requests
 const secrets = await client.getSecretUpdates({
   vaultId,
-  lastUpdatedAt: lastSync
+  lastUpdatedAt: lastSync,
 });
 </code></pre>
 <p>But here's the security innovation: we store session tokens as Blake3 hashes in
@@ -653,7 +861,9 @@ startBackgroundSync(vaultId, domain, key, () => session?.token);
 
 // FIX: Use ref to get current value
 const sessionRef = useRef(session);
-useEffect(() => { sessionRef.current = session; }, [session]);
+useEffect(() => {
+  sessionRef.current = session;
+}, [session]);
 startBackgroundSync(vaultId, domain, key, () => sessionRef.current?.token);
 </code></pre>
 <h3>Tauri Plugin Integration</h3>
@@ -933,9 +1143,8 @@ export function blake3Pbkdf(
   salt: FixedBuf&#x3C;32>,
   rounds: number = 100_000,
 ): FixedBuf&#x3C;32> {
-  const passwordBuf = typeof password === "string"
-    ? WebBuf.fromUtf8(password)
-    : password;
+  const passwordBuf =
+    typeof password === "string" ? WebBuf.fromUtf8(password) : password;
 
   let result = blake3Mac(salt, passwordBuf);
   for (let i = 1; i &#x3C; rounds; i++) {
@@ -1376,9 +1585,9 @@ small and conflict resolution simple.</p>
 support, dual hierarchy mechanisms, and JSON-based storage.</p>
 <h3>1. Multi-Type Support</h3>
 <p>First, we made the schema generic enough to handle any small secret:</p>
-<pre><code class="language-typescript">type: "password" | "envvar" | "apikey" | "walletkey" | "passkey"
-encryptedData: string  // Previously: encryptedPassword
-encryptedNotes: string // Previously: notes
+<pre><code class="language-typescript">type: "password" | "envvar" | "apikey" | "walletkey" | "passkey";
+encryptedData: string; // Previously: encryptedPassword
+encryptedNotes: string; // Previously: notes
 </code></pre>
 <p>The <code>type</code> field distinguishes what kind of secret this is. The generic
 <code>encryptedData</code> field holds the actual secret value (password, API key, private
@@ -1404,15 +1613,15 @@ parentId: string       // ULID of parent secret (max depth 1)
 </code></pre>
 <p><strong>Folders</strong> provide unlimited-depth organizational hierarchy. They're just an
 array of strings representing the path:</p>
-<pre><code class="language-typescript">folders: ["Work", "AWS", "Production"]
-folders: ["Personal", "Banking"]
-folders: []  // Root level
+<pre><code class="language-typescript">folders: ["Work", "AWS", "Production"];
+folders: ["Personal", "Banking"];
+folders: []; // Root level
 </code></pre>
 <p>This maps perfectly to KeePass Groups and lets users organize thousands of
 secrets into a familiar folder structure.</p>
 <p><strong>Tags</strong> provide orthogonal categorization. A secret can have multiple tags for
 cross-cutting concerns:</p>
-<pre><code class="language-typescript">tags: ["production-env", "requires-rotation", "shared-with-team"]
+<pre><code class="language-typescript">tags: ["production-env", "requires-rotation", "shared-with-team"];
 </code></pre>
 <p><strong>ParentId</strong> creates actual parent-child relationships between secrets. This is
 where it gets interesting.</p>
@@ -1936,7 +2145,7 @@ export const db = drizzle&#x3C;typeof schema>(
     await sqlite.close();
     return { rows: results };
   },
-  { schema: schema, logger: true }
+  { schema: schema, logger: true },
 );
 </code></pre>
 <p>The proxy adapter translates Drizzle queries into calls to the Tauri SQL plugin.</p>
@@ -1986,9 +2195,9 @@ async function ensureMigrationsTable() {
 async function getAppliedMigrations(): Promise&#x3C;string[]> {
   const sqlite = await getDb();
   const rows = await sqlite
-    .select&#x3C;Array&#x3C;{ hash: string }>>(
-      "SELECT hash FROM __drizzle_migrations ORDER BY id"
-    )
+    .select&#x3C;
+      Array&#x3C;{ hash: string }>
+    >("SELECT hash FROM __drizzle_migrations ORDER BY id")
     .catch(() => []);
   await sqlite.close();
   return rows.map((row) => row.hash);
@@ -2000,7 +2209,7 @@ async function recordMigration(hash: string) {
   const timestamp = Date.now();
   await sqlite.execute(
     "INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)",
-    [hash, timestamp]
+    [hash, timestamp],
   );
   await sqlite.close();
 }
@@ -2052,7 +2261,9 @@ export async function runMigrations() {
       console.log(`✓ Applied: ${filename}`);
     }
 
-    console.log(`Successfully completed ${pendingMigrations.length} migration(s)`);
+    console.log(
+      `Successfully completed ${pendingMigrations.length} migration(s)`,
+    );
   } catch (error) {
     console.error("Migration failed:", error);
     throw error;
