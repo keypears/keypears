@@ -36,11 +36,12 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@webbuf/acs2": "^3.3.0",
-    "@webbuf/sha256": "^3.3.0",
-    "@webbuf/fixedbuf": "^3.3.0",
-    "@webbuf/secp256k1": "^3.3.0",
-    "@webbuf/webbuf": "^3.3.0",
+    "@webbuf/acs2": "^3.5.0",
+    "@webbuf/aescbc": "^3.5.0",
+    "@webbuf/fixedbuf": "^3.5.0",
+    "@webbuf/secp256k1": "^3.5.0",
+    "@webbuf/sha256": "^3.5.0",
+    "@webbuf/webbuf": "^3.5.0",
     "zod": "^4.1.11"
   }
 }
