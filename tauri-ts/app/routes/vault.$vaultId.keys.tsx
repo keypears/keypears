@@ -36,7 +36,6 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
-
 function KeyCard({
   derivedKey,
   vaultId,
@@ -70,7 +69,9 @@ function KeyCard({
         throw new Error("No session token available");
       }
 
-      const client = await createClientFromDomain(vaultDomain, { sessionToken });
+      const client = await createClientFromDomain(vaultDomain, {
+        sessionToken,
+      });
 
       // Get derivation private key from server
       const response = await client.api.getDerivationPrivKey({
@@ -81,7 +82,10 @@ function KeyCard({
       const vaultPrivKey = getVaultKey(vaultId);
 
       // Derive full private key: derivedPrivKey = vaultPrivKey + derivationPrivKey
-      const derivationPrivKey = FixedBuf.fromHex(32, response.derivationPrivKey);
+      const derivationPrivKey = FixedBuf.fromHex(
+        32,
+        response.derivationPrivKey,
+      );
       const derivedPrivKey = privateKeyAdd(vaultPrivKey, derivationPrivKey);
 
       // Verify the derived public key matches
@@ -94,7 +98,9 @@ function KeyCard({
       setShowPrivateKey(true);
     } catch (err) {
       console.error("Error deriving private key:", err);
-      setError(err instanceof Error ? err.message : "Failed to derive private key");
+      setError(
+        err instanceof Error ? err.message : "Failed to derive private key",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -119,9 +125,9 @@ function KeyCard({
     <div className="border-border bg-card rounded-lg border p-4">
       {/* Top: Public key + copy button */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <Key size={16} className="text-muted-foreground flex-shrink-0" />
-          <div className="overflow-x-auto whitespace-nowrap font-mono text-sm">
+          <div className="overflow-x-auto font-mono text-sm whitespace-nowrap">
             {derivedKey.derivedPubKey}
           </div>
         </div>
@@ -156,7 +162,7 @@ function KeyCard({
       </div>
 
       {/* Bottom: Show/Hide button (left) + Copy (right) */}
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+      <div className="border-border mt-3 flex items-center justify-between border-t pt-3">
         <Button
           variant="outline"
           size="sm"
@@ -201,15 +207,13 @@ function KeyCard({
 
       {/* Conditional: actual private key in mono box */}
       {showPrivateKey && privateKey && (
-        <div className="mt-2 overflow-x-auto whitespace-nowrap font-mono text-xs bg-muted p-2 rounded">
+        <div className="bg-muted mt-2 overflow-x-auto rounded p-2 font-mono text-xs whitespace-nowrap">
           {privateKey}
         </div>
       )}
 
       {/* Conditional: error message */}
-      {error && (
-        <div className="mt-3 text-sm text-destructive">{error}</div>
-      )}
+      {error && <div className="text-destructive mt-3 text-sm">{error}</div>}
     </div>
   );
 }
@@ -227,7 +231,9 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     throw new Response("No session", { status: 401 });
   }
 
-  const client = await createClientFromDomain(vault.vaultDomain, { sessionToken });
+  const client = await createClientFromDomain(vault.vaultDomain, {
+    sessionToken,
+  });
 
   const response = await client.api.getDerivedKeys({
     vaultId,
@@ -243,7 +249,12 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 }
 
 export default function VaultKeys({ loaderData }: Route.ComponentProps) {
-  const { vaultId, vaultDomain, keys: initialKeys, hasMore: initialHasMore } = loaderData;
+  const {
+    vaultId,
+    vaultDomain,
+    keys: initialKeys,
+    hasMore: initialHasMore,
+  } = loaderData;
 
   const [keys, setKeys] = useState<DerivedKey[]>(initialKeys);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -261,7 +272,9 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
         throw new Error("No session token available");
       }
 
-      const client = await createClientFromDomain(vaultDomain, { sessionToken });
+      const client = await createClientFromDomain(vaultDomain, {
+        sessionToken,
+      });
 
       const response = await client.api.createDerivedKey({
         vaultId,
@@ -296,7 +309,9 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
         throw new Error("No session token available");
       }
 
-      const client = await createClientFromDomain(vaultDomain, { sessionToken });
+      const client = await createClientFromDomain(vaultDomain, {
+        sessionToken,
+      });
 
       const lastKey = keys[keys.length - 1];
       const response = await client.api.getDerivedKeys({
@@ -334,13 +349,13 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
           <p className="text-muted-foreground mt-2 text-sm">
-            Derived keys are unique keypairs generated from your vault. Only you can
-            derive the private keys.
+            Derived keys are unique keypairs generated from your vault. Only you
+            can derive the private keys.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <div className="border-destructive/50 bg-destructive/10 mb-4 rounded-lg border p-4">
             <p className="text-destructive text-sm">{error}</p>
           </div>
         )}
