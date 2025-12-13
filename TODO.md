@@ -328,7 +328,7 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 - [x] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
 - [x] **@keypears/tauri-ts**: Create Keys page route with key list and private
       key derivation UI
-- [ ] **Database migration**: Push schema changes
+- [x] **Database migration**: Push schema changes
 
 ---
 
