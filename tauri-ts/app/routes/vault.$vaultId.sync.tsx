@@ -1,9 +1,8 @@
 import type { Route } from "./+types/vault.$vaultId.sync";
 import { useState, useEffect, useRef } from "react";
-import { Link, href, useRevalidator } from "react-router";
+import { Link, useRevalidator } from "react-router";
 import { useUnreadCount, refreshSyncState } from "~app/contexts/sync-context";
 import {
-  ChevronLeft,
   CheckCircle,
   AlertCircle,
   RefreshCw,
@@ -229,15 +228,7 @@ export default function VaultSyncActivity({
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        {/* Header with back button */}
         <div className="mb-6">
-          <Link
-            to={href("/vault/:vaultId/secrets", { vaultId })}
-            className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
-          >
-            <ChevronLeft size={16} />
-            Back to Passwords
-          </Link>
           <h1 className="text-2xl font-bold">Sync Activity</h1>
         </div>
 

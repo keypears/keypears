@@ -1,7 +1,6 @@
 import type { Route } from "./+types/vault.$vaultId.keys";
 import { useState } from "react";
-import { Link, href } from "react-router";
-import { ChevronLeft, Key, Plus, Copy, Eye, EyeOff, Check } from "lucide-react";
+import { Key, Plus, Copy, Eye, EyeOff, Check } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
@@ -320,15 +319,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        {/* Header with back button */}
         <div className="mb-6">
-          <Link
-            to={href("/vault/:vaultId/secrets", { vaultId })}
-            className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
-          >
-            <ChevronLeft size={16} />
-            Back to Passwords
-          </Link>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Derived Keys</h1>
             <Button onClick={handleGenerateKey} disabled={isGenerating}>
