@@ -1,9 +1,9 @@
 import { ORPCError } from "@orpc/server";
-import { ulid } from "ulid";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { sha256Hash } from "@webbuf/sha256";
 import {
   deriveDerivationPrivKey,
+  generateId,
   publicKeyCreate,
   publicKeyAdd,
 } from "@keypears/lib";
@@ -86,7 +86,7 @@ export const createDerivedKeyProcedure = sessionAuthedProcedure
     const derivedPubKeyHash = sha256Hash(derivedPubKey.buf);
 
     // 6. Generate ID and insert record
-    const id = ulid();
+    const id = generateId();
 
     await db.insert(TableDerivedKey).values({
       id,

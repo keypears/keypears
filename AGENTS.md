@@ -241,9 +241,9 @@ KeyPears has comprehensive design pattern documentation:
 - **[Code Patterns](docs/code.md)**: File structure, naming conventions, import
   ordering, component structure, state management with React Router, multi-step
   wizards
-- **[Data Patterns](docs/data.md)**: Validation (Zod), database (ULID primary
-  keys, Drizzle ORM), performance (debouncing, optimistic updates), error
-  handling
+- **[Data Patterns](docs/data.md)**: Validation (Zod), database (UUIDv7 primary
+  keys in Crockford Base32 format, Drizzle ORM), performance (debouncing,
+  optimistic updates), error handling
 - **[Cryptography Patterns](docs/crypto.md)**: Three-tier key derivation system,
   algorithms (SHA-256, ACS2, AES-256), password policy, cross-platform WASM
   crypto stack
@@ -369,7 +369,7 @@ See [`docs/crypto.md`](docs/crypto.md) for complete details.
 
 - **Clients**: SQLite with Drizzle ORM
 - **Servers**: PostgreSQL with Drizzle ORM
-- **Primary keys**: ULID (time-ordered, collision-resistant)
+- **Primary keys**: UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant) via `generateId()` from `@keypears/lib`
 - **Important**: Tauri SQLite doesn't support `.returning()` - always insert
   then fetch
 
@@ -428,4 +428,4 @@ When working on KeyPears:
 3. Use shadcn components and Catppuccin colors
 4. Reference existing components (`PasswordGenerator`, `NewVaultName`,
    `_index.tsx`) for patterns
-5. Always validate with Zod, use ULID for IDs, follow mobile-first design
+5. Always validate with Zod, use `generateId()` from `@keypears/lib` for IDs, follow mobile-first design

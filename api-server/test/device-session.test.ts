@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { ulid } from "ulid";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
+import { generateId } from "@keypears/lib";
 import {
   createOrUpdateDeviceSession,
   getDeviceSessionByHashedToken,
@@ -19,9 +19,9 @@ describe("Device Session Model", () => {
 
   beforeEach(async () => {
     // Generate fresh IDs for each test
-    testVaultId = ulid();
-    testDeviceId1 = ulid();
-    testDeviceId2 = ulid();
+    testVaultId = generateId();
+    testDeviceId1 = generateId();
+    testDeviceId2 = generateId();
 
     // Clean up tables
     await db.delete(TableDeviceSession);
@@ -269,7 +269,7 @@ describe("Device Session Model", () => {
     });
 
     it("should return empty array for vault with no sessions", async () => {
-      const emptyVaultId = ulid();
+      const emptyVaultId = generateId();
       const now = new Date();
 
       // Create another vault without sessions

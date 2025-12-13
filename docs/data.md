@@ -55,21 +55,23 @@ const entropy = calculatePasswordEntropy(password.length, {
 
 ## Database Patterns
 
-### ULID Primary Keys
+### Primary Keys (UUIDv7 in Base32)
 
-All tables use ULID primary keys:
+All tables use UUIDv7 primary keys encoded in Crockford Base32 format (26 characters, same format as ULID):
 
 ```tsx
 import { text } from "drizzle-orm/sqlite-core"; // or postgres-core
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 
 export const tableName = sqliteTable("table_name", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => ulid()),
+    .$defaultFn(() => generateId()),
   // other fields...
 });
 ```
+
+The `generateId()` function generates UUIDv7 (time-ordered, collision-resistant) and encodes it in Crockford Base32. Helper functions `idToUuid()` and `uuidToId()` allow conversion between the 26-char Base32 format and standard UUID format when needed for interoperability.
 
 ### Model Functions
 
@@ -168,7 +170,7 @@ KeyPears data patterns emphasize:
 
 - **Type safety**: Zod validation ensures data integrity
 - **Performance**: Debouncing and optimistic updates for better UX
-- **Consistency**: ULID primary keys across all tables
+- **Consistency**: UUIDv7 in Base32 primary keys across all tables via `generateId()`
 - **Error handling**: Technical logs + user-friendly messages
 
 When in doubt, look at existing models like `vault.ts` or components like

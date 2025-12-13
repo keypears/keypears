@@ -5,7 +5,7 @@
  */
 
 import { platform, version, arch } from "@tauri-apps/plugin-os";
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 
 /**
  * Auto-detect device description from OS information
@@ -43,8 +43,8 @@ export async function detectDeviceDescription(): Promise<string> {
  * Device IDs are per-vault (privacy-focused):
  * - Same physical device gets different IDs for different vaults
  * - Prevents cross-vault device tracking by servers
- * - Format: ULID (26 characters, time-ordered)
+ * - Format: 26 characters, time-ordered (UUIDv7 in Crockford Base32)
  */
 export function generateDeviceId(): string {
-  return ulid();
+  return generateId();
 }

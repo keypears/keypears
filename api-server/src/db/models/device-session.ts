@@ -1,4 +1,4 @@
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 import { eq, and } from "drizzle-orm";
 import { db } from "../index.js";
 import { TableDeviceSession } from "../schema.js";
@@ -52,7 +52,7 @@ export async function createOrUpdateDeviceSession(
     return { ...updated[0]!, isNewDevice: false };
   } else {
     // Create new session
-    const id = ulid();
+    const id = generateId();
     const now = new Date();
     await db.insert(TableDeviceSession).values({
       id,

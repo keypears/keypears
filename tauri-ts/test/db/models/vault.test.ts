@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 import { initTestDb, resetTestDb, closeTestDb } from "../test-init";
 import {
   createVault,
@@ -12,7 +12,7 @@ import {
 
 // Helper function to generate test device ID
 function testDeviceId(): string {
-  return ulid();
+  return generateId();
 }
 
 // Test device description
@@ -33,7 +33,7 @@ describe("Vault Model", () => {
   describe("createVault", () => {
     it("should create a vault with a name and domain", async () => {
       const vault = await createVault(
-        ulid(),
+        generateId(),
         "testvault",
         "keypears.localhost",
         "0".repeat(64),
@@ -50,7 +50,7 @@ describe("Vault Model", () => {
 
     it("should enforce unique name+domain combination", async () => {
       await createVault(
-        ulid(),
+        generateId(),
         "uniquevault",
         "keypears.localhost",
         "0".repeat(64),
@@ -61,7 +61,7 @@ describe("Vault Model", () => {
 
       await expect(
         createVault(
-          ulid(),
+          generateId(),
           "uniquevault",
           "keypears.localhost",
           "0".repeat(64),
@@ -74,7 +74,7 @@ describe("Vault Model", () => {
 
     it("should allow same name on different domains", async () => {
       await createVault(
-        ulid(),
+        generateId(),
         "samename",
         "keypears.localhost",
         "0".repeat(64),
@@ -83,7 +83,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       const vault2 = await createVault(
-        ulid(),
+        generateId(),
         "samename",
         "hevybags.localhost",
         "0".repeat(64),
@@ -99,7 +99,7 @@ describe("Vault Model", () => {
     it("should reject names that are too short", async () => {
       await expect(
         createVault(
-          ulid(),
+          generateId(),
           "",
           "keypears.localhost",
           "0".repeat(64),
@@ -113,7 +113,7 @@ describe("Vault Model", () => {
     it("should reject names that are too long", async () => {
       await expect(
         createVault(
-          ulid(),
+          generateId(),
           "a".repeat(31),
           "keypears.localhost",
           "0".repeat(64),
@@ -127,7 +127,7 @@ describe("Vault Model", () => {
     it("should reject names that start with a number", async () => {
       await expect(
         createVault(
-          ulid(),
+          generateId(),
           "1vault",
           "keypears.localhost",
           "0".repeat(64),
@@ -141,7 +141,7 @@ describe("Vault Model", () => {
     it("should reject names with special characters", async () => {
       await expect(
         createVault(
-          ulid(),
+          generateId(),
           "vault-name",
           "keypears.localhost",
           "0".repeat(64),
@@ -154,7 +154,7 @@ describe("Vault Model", () => {
 
     it("should accept valid alphanumeric names", async () => {
       const vault = await createVault(
-        ulid(),
+        generateId(),
         "vault123",
         "keypears.localhost",
         "0".repeat(64),
@@ -171,7 +171,7 @@ describe("Vault Model", () => {
   describe("getVault", () => {
     it("should retrieve a vault by ID", async () => {
       const created = await createVault(
-        ulid(),
+        generateId(),
         "findme",
         "keypears.localhost",
         "0".repeat(64),
@@ -197,7 +197,7 @@ describe("Vault Model", () => {
   describe("getVaultByNameAndDomain", () => {
     it("should retrieve a vault by name and domain", async () => {
       const created = await createVault(
-        ulid(),
+        generateId(),
         "myvault",
         "keypears.localhost",
         "0".repeat(64),
@@ -228,7 +228,7 @@ describe("Vault Model", () => {
 
     it("should distinguish between domains", async () => {
       const vault1 = await createVault(
-        ulid(),
+        generateId(),
         "samename",
         "keypears.localhost",
         "0".repeat(64),
@@ -237,7 +237,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       await createVault(
-        ulid(),
+        generateId(),
         "samename",
         "hevybags.localhost",
         "0".repeat(64),
@@ -259,7 +259,7 @@ describe("Vault Model", () => {
   describe("getVaults", () => {
     it("should return all vaults", async () => {
       await createVault(
-        ulid(),
+        generateId(),
         "vault1",
         "keypears.localhost",
         "0".repeat(64),
@@ -268,7 +268,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       await createVault(
-        ulid(),
+        generateId(),
         "vault2",
         "keypears.localhost",
         "0".repeat(64),
@@ -277,7 +277,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       await createVault(
-        ulid(),
+        generateId(),
         "vault3",
         "keypears.localhost",
         "0".repeat(64),
@@ -304,7 +304,7 @@ describe("Vault Model", () => {
   describe("countVaults", () => {
     it("should return correct count", async () => {
       await createVault(
-        ulid(),
+        generateId(),
         "vault1",
         "0".repeat(64),
         "0".repeat(64),
@@ -313,7 +313,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       await createVault(
-        ulid(),
+        generateId(),
         "vault2",
         "0".repeat(64),
         "0".repeat(64),
@@ -337,7 +337,7 @@ describe("Vault Model", () => {
   describe("deleteVault", () => {
     it("should delete a vault by ID", async () => {
       const vault = await createVault(
-        ulid(),
+        generateId(),
         "testdelete",
         "keypears.localhost",
         "0".repeat(64),
@@ -354,7 +354,7 @@ describe("Vault Model", () => {
 
     it("should decrease vault count after deletion", async () => {
       await createVault(
-        ulid(),
+        generateId(),
         "vault1",
         "keypears.localhost",
         "0".repeat(64),
@@ -363,7 +363,7 @@ describe("Vault Model", () => {
         TEST_DEVICE_DESCRIPTION,
       );
       const vault2 = await createVault(
-        ulid(),
+        generateId(),
         "vault2",
         "keypears.localhost",
         "0".repeat(64),

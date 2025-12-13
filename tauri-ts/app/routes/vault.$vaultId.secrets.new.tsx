@@ -19,7 +19,7 @@ import { pushSecretUpdate } from "~app/lib/sync";
 import { insertSecretUpdatesFromSync } from "~app/db/models/password";
 import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { triggerManualSync } from "~app/lib/sync-service";
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 
 interface LoaderData {
   vaultId: string;
@@ -77,7 +77,7 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
     setError("");
 
     try {
-      const secretId = ulid();
+      const secretId = generateId();
 
       // Encrypt password and notes if provided
       const encryptedData = password

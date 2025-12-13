@@ -298,9 +298,10 @@ master vault key               for authentication
 
 **Primary Keys**:
 
-- ULID (time-ordered, collision-resistant)
+- UUIDv7 in Crockford Base32 format (26 characters, time-ordered, collision-resistant)
 - Sortable by creation time
 - No coordination needed for ID generation
+- Use `generateId()` from `@keypears/lib`
 
 ## Out of Scope for MVP
 

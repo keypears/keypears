@@ -8,6 +8,7 @@ import {
 } from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
+import { v7 as uuidv7 } from "uuid";
 
 // KDF round constants
 // Client-side derivation uses 100k rounds for computational cost against brute force
@@ -55,8 +56,8 @@ export const vaultNameSchema = z
  */
 export const SecretUpdateSchema = z.object({
   // Required fields
-  id: z.string(), // ULID of this update
-  secretId: z.string(), // ULID of the secret being updated
+  id: z.string(), // ID of this update (26-char Base32)
+  secretId: z.string(), // ID of the secret being updated (26-char Base32)
   name: z.string().min(1).max(255), // Display name (e.g., "GitHub Account")
 
   // Secret type
@@ -183,7 +184,7 @@ export function deriveLoginSalt(): FixedBuf<32> {
  * - Complements server-side vault ID salting
  *
  * @param password - The user's master password
- * @param vaultId - The vault ID (ULID) to derive keys for
+ * @param vaultId - The vault ID (26-char Base32) to derive keys for
  * @returns A 32-byte password key unique to this vault
  */
 export function derivePasswordKey(
@@ -258,7 +259,7 @@ export function deriveServerHashedLoginKeySalt(): FixedBuf<32> {
  * - Attacker needs to reverse 100k + 100k rounds total to get password key
  *
  * @param loginKey - The 32-byte login key received from the client (unhashed)
- * @param vaultId - The vault ID (ULID) to salt the login key for
+ * @param vaultId - The vault ID (26-char Base32) to salt the login key for
  * @returns A 32-byte hashed login key for database storage
  */
 export function deriveHashedLoginKey(
@@ -479,4 +480,113 @@ export function deriveDerivationPrivKey(
   dbEntropy: FixedBuf<32>,
 ): FixedBuf<32> {
   return sha256Hmac(serverEntropy.buf, dbEntropy.buf);
+}
+
+// ============================================================================
+// ID Generation (UUIDv7 with Crockford Base32 encoding)
+// ============================================================================
+
+// Crockford Base32 alphabet (excludes I, L, O, U to avoid confusion)
+const CROCKFORD_BASE32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+// Lookup table for Base32 decoding (built once)
+const CROCKFORD_DECODE: Record<string, number> = {};
+for (let i = 0; i < CROCKFORD_BASE32.length; i++) {
+  const char = CROCKFORD_BASE32[i] as string;
+  CROCKFORD_DECODE[char] = i;
+  CROCKFORD_DECODE[char.toLowerCase()] = i;
+}
+// Handle common substitutions per Crockford spec
+CROCKFORD_DECODE["I"] = 1;
+CROCKFORD_DECODE["i"] = 1;
+CROCKFORD_DECODE["L"] = 1;
+CROCKFORD_DECODE["l"] = 1;
+CROCKFORD_DECODE["O"] = 0;
+CROCKFORD_DECODE["o"] = 0;
+
+/**
+ * Generates a new UUIDv7 and returns it as a 26-character Crockford Base32 string.
+ *
+ * UUIDv7 provides time-ordered, collision-resistant IDs similar to ULID.
+ * The Base32 encoding produces the same 26-character format as ULID for compatibility.
+ *
+ * @returns 26-character Crockford Base32 encoded ID
+ */
+export function generateId(): string {
+  const uuid = uuidv7();
+  return uuidToId(uuid);
+}
+
+/**
+ * Converts a standard UUID string to a 26-character Crockford Base32 ID.
+ *
+ * @param uuid - Standard UUID format (e.g., "01234567-89ab-cdef-0123-456789abcdef")
+ * @returns 26-character Crockford Base32 encoded string
+ */
+export function uuidToId(uuid: string): string {
+  // Remove hyphens and convert to bytes
+  const hex = uuid.replace(/-/g, "");
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+
+  // Encode 128 bits (16 bytes) to Base32 (26 chars)
+  // Process 5 bits at a time
+  let result = "";
+  let buffer = 0;
+  let bitsInBuffer = 0;
+
+  for (const byte of bytes) {
+    buffer = (buffer << 8) | byte;
+    bitsInBuffer += 8;
+
+    while (bitsInBuffer >= 5) {
+      bitsInBuffer -= 5;
+      const index = (buffer >> bitsInBuffer) & 0x1f;
+      result += CROCKFORD_BASE32[index];
+    }
+  }
+
+  // Handle remaining bits (128 % 5 = 3, so we have 3 bits left, padded to 5)
+  if (bitsInBuffer > 0) {
+    const index = (buffer << (5 - bitsInBuffer)) & 0x1f;
+    result += CROCKFORD_BASE32[index];
+  }
+
+  return result;
+}
+
+/**
+ * Converts a 26-character Crockford Base32 ID to standard UUID format.
+ *
+ * @param base32Id - 26-character Crockford Base32 encoded string
+ * @returns Standard UUID format (e.g., "01234567-89ab-cdef-0123-456789abcdef")
+ */
+export function idToUuid(base32Id: string): string {
+  // Decode Base32 to bytes
+  let buffer = 0;
+  let bitsInBuffer = 0;
+  const bytes: number[] = [];
+
+  for (const char of base32Id) {
+    const value = CROCKFORD_DECODE[char];
+    if (value === undefined) {
+      throw new Error(`Invalid Base32 character: ${char}`);
+    }
+
+    buffer = (buffer << 5) | value;
+    bitsInBuffer += 5;
+
+    while (bitsInBuffer >= 8) {
+      bitsInBuffer -= 8;
+      bytes.push((buffer >> bitsInBuffer) & 0xff);
+    }
+  }
+
+  // Convert bytes to hex
+  const hex = bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  // Format as UUID: 8-4-4-4-12
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }

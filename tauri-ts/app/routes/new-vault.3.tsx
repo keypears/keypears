@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate, href } from "react-router";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { ulid } from "ulid";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
   deriveEncryptionKey,
   deriveLoginKey,
   encryptKey,
+  generateId,
   sha256Hash,
   publicKeyCreate,
   FixedBuf,
@@ -63,7 +63,7 @@ export default function NewVaultStep3() {
         await initDb();
 
         // Generate vaultId client-side
-        const vaultId = ulid();
+        const vaultId = generateId();
 
         // 1. Derive password key from password with vaultId
         const passwordKey = derivePasswordKey(password, vaultId);

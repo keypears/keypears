@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { ulid } from "ulid";
 import { eq } from "drizzle-orm";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf, publicKeyCreate } from "@keypears/lib";
+import { FixedBuf, generateId, publicKeyCreate } from "@keypears/lib";
 import { createClient } from "../src/client.js";
 import { db } from "../src/db/index.js";
 import { TableVault, TableDeviceSession } from "../src/db/schema.js";
@@ -26,8 +25,8 @@ describe("Authentication API", () => {
   // Clean up database and create a test vault before each test
   beforeEach(async () => {
     // Generate fresh IDs
-    testVaultId = ulid();
-    testDeviceId = ulid();
+    testVaultId = generateId();
+    testDeviceId = generateId();
 
     // Clean up tables
     await db.delete(TableDeviceSession);
@@ -89,7 +88,7 @@ describe("Authentication API", () => {
     });
 
     it("should reject non-existent vault", async () => {
-      const fakeVaultId = ulid();
+      const fakeVaultId = generateId();
 
       await expect(
         client.api.login({
@@ -124,7 +123,7 @@ describe("Authentication API", () => {
     });
 
     it("should support multiple devices for same vault", async () => {
-      const deviceId2 = ulid();
+      const deviceId2 = generateId();
 
       // Login from device 1
       const result1 = await client.api.login({
@@ -209,7 +208,7 @@ describe("Authentication API", () => {
     });
 
     it("should not affect other device sessions", async () => {
-      const deviceId2 = ulid();
+      const deviceId2 = generateId();
 
       // Login from two devices
       const session1 = await client.api.login({

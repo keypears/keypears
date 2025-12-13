@@ -1,5 +1,5 @@
 import { eq, and, gt, max } from "drizzle-orm";
-import { ulid } from "ulid";
+import { generateId } from "@keypears/lib";
 import { db } from "../index.js";
 import { TableSecretUpdate, type SelectSecretUpdate } from "../schema.js";
 
@@ -64,7 +64,7 @@ export async function createSecretUpdate(
   secretId: string,
   encryptedBlob: string,
 ): Promise<SecretUpdate> {
-  const updateId = ulid();
+  const updateId = generateId();
 
   // Use transaction to atomically get order numbers and insert
   const result = await db.transaction(async (tx) => {

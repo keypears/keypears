@@ -13,8 +13,11 @@ import {
   derivePasswordKey,
   encryptKey,
   encryptPassword,
+  generateId,
   generateKey,
   generateSecurePassword,
+  idToUuid,
+  uuidToId,
 } from "~src/index";
 
 describe("Index", () => {
@@ -387,6 +390,65 @@ describe("Index", () => {
       expect(passwordKey1.buf.toHex()).toBe(passwordKey2.buf.toHex());
       expect(encryptionKey1.buf.toHex()).toBe(encryptionKey2.buf.toHex());
       expect(loginKey1.buf.toHex()).toBe(loginKey2.buf.toHex());
+    });
+  });
+
+  describe("ID generation (UUIDv7 + Crockford Base32)", () => {
+    it("should generate 26-character IDs", () => {
+      const id = generateId();
+      expect(id.length).toBe(26);
+    });
+
+    it("should generate unique IDs", () => {
+      const ids = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        ids.add(generateId());
+      }
+      expect(ids.size).toBe(100);
+    });
+
+    it("should generate time-ordered IDs", () => {
+      const id1 = generateId();
+      const id2 = generateId();
+      // IDs should be monotonically increasing (lexicographically)
+      expect(id2 > id1).toBe(true);
+    });
+
+    it("should convert UUID to Base32 and back", () => {
+      const uuid = "0193d9a3-3c5e-7f21-8b22-0123456789ab";
+      const base32Id = uuidToId(uuid);
+      expect(base32Id.length).toBe(26);
+      const convertedUuid = idToUuid(base32Id);
+      expect(convertedUuid).toBe(uuid);
+    });
+
+    it("should handle case-insensitive Base32 decoding", () => {
+      const uuid = "0193d9a3-3c5e-7f21-8b22-0123456789ab";
+      const base32Id = uuidToId(uuid);
+      const lowercaseId = base32Id.toLowerCase();
+      const convertedFromLower = idToUuid(lowercaseId);
+      expect(convertedFromLower).toBe(uuid);
+    });
+
+    it("should use only valid Crockford Base32 characters", () => {
+      const validChars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+      for (let i = 0; i < 100; i++) {
+        const id = generateId();
+        for (const char of id) {
+          expect(validChars.includes(char)).toBe(true);
+        }
+      }
+    });
+
+    it("should convert generated ID to UUID and back", () => {
+      const originalId = generateId();
+      const uuid = idToUuid(originalId);
+      // UUID format: 8-4-4-4-12
+      expect(uuid).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      const backToId = uuidToId(uuid);
+      expect(backToId).toBe(originalId);
     });
   });
 });

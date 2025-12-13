@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf, deriveHashedLoginKey, publicKeyCreate } from "@keypears/lib";
-import { ulid } from "ulid";
+import {
+  FixedBuf,
+  deriveHashedLoginKey,
+  generateId,
+  publicKeyCreate,
+} from "@keypears/lib";
 import { createClient } from "../src/client.js";
 import { db } from "../src/db/index.js";
 import { TableVault } from "../src/db/schema.js";
@@ -42,7 +46,7 @@ describe("Vault API", () => {
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
       await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -68,7 +72,7 @@ describe("Vault API", () => {
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
       await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -102,7 +106,7 @@ describe("Vault API", () => {
       ); // Dummy value for testing
 
       const result = await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -129,7 +133,7 @@ describe("Vault API", () => {
 
       // Register first vault
       await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
@@ -141,7 +145,7 @@ describe("Vault API", () => {
       // Try to register duplicate
       await expect(
         client.api.registerVault({
-          vaultId: ulid(),
+          vaultId: generateId(),
           name: "alice",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
@@ -166,7 +170,7 @@ describe("Vault API", () => {
 
       // Register alice@keypears.com
       const result1 = await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "keypears.com",
         vaultPubKeyHash: testPubKeyHash1.buf.toHex(),
@@ -177,7 +181,7 @@ describe("Vault API", () => {
 
       // Register alice@hevybags.com (should succeed)
       const result2 = await client.api.registerVault({
-        vaultId: ulid(),
+        vaultId: generateId(),
         name: "alice",
         domain: "hevybags.com",
         vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
@@ -200,7 +204,7 @@ describe("Vault API", () => {
 
       await expect(
         client.api.registerVault({
-          vaultId: ulid(),
+          vaultId: generateId(),
           name: "alice",
           domain: "evil.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -220,7 +224,7 @@ describe("Vault API", () => {
 
       await expect(
         client.api.registerVault({
-          vaultId: ulid(),
+          vaultId: generateId(),
           name: "1alice",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -240,7 +244,7 @@ describe("Vault API", () => {
 
       await expect(
         client.api.registerVault({
-          vaultId: ulid(),
+          vaultId: generateId(),
           name: "alice_smith",
           domain: "keypears.com",
           vaultPubKeyHash: testPubKeyHash.buf.toHex(),
@@ -253,7 +257,7 @@ describe("Vault API", () => {
 
     it("should KDF the login key on server (100k rounds)", async () => {
       const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
-      const vaultId = ulid();
+      const vaultId = generateId();
       const expectedServerHashedLoginKey = deriveHashedLoginKey(
         FixedBuf.fromBuf(32, loginKey.buf),
         vaultId,
