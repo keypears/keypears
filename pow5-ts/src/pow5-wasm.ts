@@ -2,7 +2,7 @@ import {
   insert_nonce,
   get_work_par,
   elementary_iteration,
-} from "./rs-earthbucks_pow5-inline-base64/earthbucks_pow5.js";
+} from "./rs-keypears_pow5-inline-base64/keypears_pow5.js";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 

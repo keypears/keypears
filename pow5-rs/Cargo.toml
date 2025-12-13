@@ -1,11 +1,10 @@
 [package]
-name = "earthbucks_pow5"
-description = "EarthBucks Proof-of-Work (PoW) Algorithm (5)"
-version = "1.0.0"
-edition = "2021"
-license = "MIT"
-authors = ["Ryan X. Charles <ryan@ryanxcharles.com>"]
-repository = "https://github.com/earthbucks/earthbucks"
+name = "keypears_pow5"
+description = "KeyPears Proof-of-Work (PoW) Algorithm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -4,7 +4,7 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 
 // Define constants for filenames
-const NAME = "earthbucks_pow5";
+const NAME = "keypears_pow5";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
