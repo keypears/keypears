@@ -7,7 +7,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(name = "KeyPears")]
 #[command(version = "0.1.0")]
-#[command(about = "KeyPears - Federated Key Management", long_about = None)]
+#[command(about = "KeyPears - Federated Diffie-Hellman Key Exchange System", long_about = None)]
 struct CliArgs {
     /// Custom database file path
     #[arg(long, value_name = "PATH")]
