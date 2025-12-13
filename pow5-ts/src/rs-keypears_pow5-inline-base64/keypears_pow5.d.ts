@@ -1,9 +1,20 @@
 /* tslint:disable */
 /* eslint-disable */
 export function blake3_reference_hash(input: Uint8Array): Uint8Array;
-export function get_work_par(header: Uint8Array): Uint8Array;
-export function elementary_iteration(header: Uint8Array): Uint8Array;
-export function insert_nonce(header: Uint8Array, nonce: number): Uint8Array;
+/**
+ * Compute work_par for 217-byte input (earthbucks format).
+ * This is the ASIC-resistant matmul computation.
+ */
+export function get_work_par_217a(header: Uint8Array): Uint8Array;
+/**
+ * Elementary iteration for 217-byte input (earthbucks format).
+ * Computes work_par, inserts it into the header, then double-hashes.
+ */
+export function elementary_iteration_217a(header: Uint8Array): Uint8Array;
+/**
+ * Insert 4-byte nonce into 217-byte header at bytes 117-121.
+ */
+export function insert_nonce_217a(header: Uint8Array, nonce: number): Uint8Array;
 /**
  * Matmul work computation for 64-byte input.
  * Same ASIC-resistant algorithm as 217a, just with different input size.

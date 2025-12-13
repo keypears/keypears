@@ -2,28 +2,27 @@ pub mod blake3_reference;
 use blake3_reference::blake3_reference_hash;
 use wasm_bindgen::prelude::*;
 
-const HEADER_SIZE: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2 + 32; // 217
-const NONCE_START: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32; // 117
-const NONCE_END: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 4; // 221
-const HASH_SIZE: usize = 32;
-const WORK_PAR_START: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2;
-const WORK_PAR_END: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2 + 32;
+// =============================================================================
+// pow5-217a: 217-byte input (earthbucks header format)
+// =============================================================================
 
-// what we need to do is something like the wgsl code above, with a bit of modifications because we
-// are in rust instead of wgsl. in wgsl, there is no such thing as a u8. thus, the final hash has
-// to be compressed. in rust, we have u8, and deal with u8 arrays. thus, there is no reason to
-// "compress" the final hash. other than that, the basic logic is the same, which is as follows:
-//
-// - hash the heaer to get matrix_A_row_1
-// - begin a loop, where we multiply and add matrix_A_row_1 against a working column, where a
-//   working column is the hash of the previous working column, starting with the hash of the first
-//   hash
-// - after 32 iterations, we have a matrix_C_row_1, which we hash to get the final hash. this is
-//   the "parallel work" or "work_par"
+const HEADER_SIZE_217A: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2 + 32; // 217
+const NONCE_START_217A: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32; // 117
+const NONCE_END_217A: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 4; // 121
+const HASH_SIZE: usize = 32;
+const WORK_PAR_START_217A: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2;
+const WORK_PAR_END_217A: usize = 1 + 32 + 32 + 8 + 8 + 4 + 32 + 32 + 2 + 32 + 2 + 32;
+
+/// Compute work_par for 217-byte input (earthbucks format).
+/// This is the ASIC-resistant matmul computation.
 #[wasm_bindgen]
-pub fn get_work_par(header: Vec<u8>) -> Result<Vec<u8>, String> {
-    if header.len() != HEADER_SIZE {
-        return Err("header is not the correct size".to_string());
+pub fn get_work_par_217a(header: Vec<u8>) -> Result<Vec<u8>, String> {
+    if header.len() != HEADER_SIZE_217A {
+        return Err(format!(
+            "header is not the correct size: expected {}, got {}",
+            HEADER_SIZE_217A,
+            header.len()
+        ));
     }
     // first, hash the header with blake3
     let matrix_a_row_1 = blake3_reference_hash(header.clone());
@@ -66,19 +65,25 @@ pub fn get_work_par(header: Vec<u8>) -> Result<Vec<u8>, String> {
     Ok(work_par.to_vec())
 }
 
+/// Elementary iteration for 217-byte input (earthbucks format).
+/// Computes work_par, inserts it into the header, then double-hashes.
 #[wasm_bindgen]
-pub fn elementary_iteration(header: Vec<u8>) -> Result<Vec<u8>, String> {
-    if header.len() != HEADER_SIZE {
-        return Err("header is not the correct size".to_string());
+pub fn elementary_iteration_217a(header: Vec<u8>) -> Result<Vec<u8>, String> {
+    if header.len() != HEADER_SIZE_217A {
+        return Err(format!(
+            "header is not the correct size: expected {}, got {}",
+            HEADER_SIZE_217A,
+            header.len()
+        ));
     }
 
-    let work_par = get_work_par(header.clone())?;
+    let work_par = get_work_par_217a(header.clone())?;
 
     // now we need to insert to the work_par into the header
     let mut working_header = header.clone();
     #[allow(clippy::manual_memcpy)]
-    for i in WORK_PAR_START..WORK_PAR_END {
-        working_header[i] = work_par[i - WORK_PAR_START];
+    for i in WORK_PAR_START_217A..WORK_PAR_END_217A {
+        working_header[i] = work_par[i - WORK_PAR_START_217A];
     }
 
     // now we need to hash the header
@@ -90,13 +95,18 @@ pub fn elementary_iteration(header: Vec<u8>) -> Result<Vec<u8>, String> {
     Ok(hash_2)
 }
 
+/// Insert 4-byte nonce into 217-byte header at bytes 117-121.
 #[wasm_bindgen]
-pub fn insert_nonce(header: Vec<u8>, nonce: u32) -> Result<Vec<u8>, String> {
-    if header.len() != HEADER_SIZE {
-        return Err("header is not the correct size".to_string());
+pub fn insert_nonce_217a(header: Vec<u8>, nonce: u32) -> Result<Vec<u8>, String> {
+    if header.len() != HEADER_SIZE_217A {
+        return Err(format!(
+            "header is not the correct size: expected {}, got {}",
+            HEADER_SIZE_217A,
+            header.len()
+        ));
     }
     let mut header = header.clone();
-    header[NONCE_START..NONCE_END].copy_from_slice(&nonce.to_be_bytes());
+    header[NONCE_START_217A..NONCE_END_217A].copy_from_slice(&nonce.to_be_bytes());
     Ok(header)
 }
 
@@ -222,44 +232,49 @@ pub fn set_nonce_64b(header: Vec<u8>, nonce: Vec<u8>) -> Result<Vec<u8>, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // =========================================================================
+    // pow5-217a tests
+    // =========================================================================
+
     #[test]
-    fn test_debug_get_work_par() {
+    fn test_get_work_par_217a() {
         let expect_hex = "6fe9eddc39bb4183c44853c41876801be94a138ea9adea89f40a08442d2f79b8";
-        let header_all_zeroes = vec![0; HEADER_SIZE];
-        let result = get_work_par(header_all_zeroes).unwrap();
+        let header_all_zeroes = vec![0; HEADER_SIZE_217A];
+        let result = get_work_par_217a(header_all_zeroes).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
 
         let expect_hex = "09d125453a1a5e9f75c770e3580e8b8035069b39816036b38207e8e152fa6871";
-        let header_all_ones = vec![0x11; HEADER_SIZE];
-        let result = get_work_par(header_all_ones).unwrap();
+        let header_all_ones = vec![0x11; HEADER_SIZE_217A];
+        let result = get_work_par_217a(header_all_ones).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
     }
 
     #[test]
-    fn test_debug_elementary_iteration() {
+    fn test_elementary_iteration_217a() {
         let expect_hex = "c88f591bfa80126e9a14d76d473ca8ae7ac578ed1eac0150fcbc06742f4f7d6f";
-        let header_all_zeroes = vec![0; HEADER_SIZE];
-        let result = elementary_iteration(header_all_zeroes).unwrap();
+        let header_all_zeroes = vec![0; HEADER_SIZE_217A];
+        let result = elementary_iteration_217a(header_all_zeroes).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
 
         let expect_hex = "a0c84664c6489150ffdd9755c5fad8fe08339d923ad2a3fda6369e1e74be9184";
-        let header_all_ones = vec![0x11; HEADER_SIZE];
-        let result = elementary_iteration(header_all_ones).unwrap();
+        let header_all_ones = vec![0x11; HEADER_SIZE_217A];
+        let result = elementary_iteration_217a(header_all_ones).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
     }
 
     #[test]
-    fn test_work() {
+    fn test_work_217a() {
         let expect_hex = "00000004f0ac89d75f135f184abbf0a82fad1e07fb4a29adb159648d70adf474";
-        let header_all_zeroes = vec![0; HEADER_SIZE];
-        let header = insert_nonce(header_all_zeroes.clone(), 376413).unwrap();
-        let result = elementary_iteration(header).unwrap();
+        let header_all_zeroes = vec![0; HEADER_SIZE_217A];
+        let header = insert_nonce_217a(header_all_zeroes.clone(), 376413).unwrap();
+        let result = elementary_iteration_217a(header).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
 
         let expect_hex = "0000004bd2d60b7b67702281a87b14e45c65d40465dc41fa2639ef84f050164a";
-        let header_all_ones = vec![0x11; HEADER_SIZE];
-        let header = insert_nonce(header_all_ones.clone(), 424378).unwrap();
-        let result = elementary_iteration(header).unwrap();
+        let header_all_ones = vec![0x11; HEADER_SIZE_217A];
+        let header = insert_nonce_217a(header_all_ones.clone(), 424378).unwrap();
+        let result = elementary_iteration_217a(header).unwrap();
         assert_eq!(hex::encode(result), expect_hex);
     }
 

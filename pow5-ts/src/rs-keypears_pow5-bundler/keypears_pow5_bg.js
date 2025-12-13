@@ -66,13 +66,15 @@ function takeFromExternrefTable0(idx) {
     return value;
 }
 /**
+ * Compute work_par for 217-byte input (earthbucks format).
+ * This is the ASIC-resistant matmul computation.
  * @param {Uint8Array} header
  * @returns {Uint8Array}
  */
-export function get_work_par(header) {
+export function get_work_par_217a(header) {
     const ptr0 = passArray8ToWasm0(header, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.get_work_par(ptr0, len0);
+    const ret = wasm.get_work_par_217a(ptr0, len0);
     if (ret[3]) {
         throw takeFromExternrefTable0(ret[2]);
     }
@@ -82,13 +84,15 @@ export function get_work_par(header) {
 }
 
 /**
+ * Elementary iteration for 217-byte input (earthbucks format).
+ * Computes work_par, inserts it into the header, then double-hashes.
  * @param {Uint8Array} header
  * @returns {Uint8Array}
  */
-export function elementary_iteration(header) {
+export function elementary_iteration_217a(header) {
     const ptr0 = passArray8ToWasm0(header, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.elementary_iteration(ptr0, len0);
+    const ret = wasm.elementary_iteration_217a(ptr0, len0);
     if (ret[3]) {
         throw takeFromExternrefTable0(ret[2]);
     }
@@ -98,14 +102,15 @@ export function elementary_iteration(header) {
 }
 
 /**
+ * Insert 4-byte nonce into 217-byte header at bytes 117-121.
  * @param {Uint8Array} header
  * @param {number} nonce
  * @returns {Uint8Array}
  */
-export function insert_nonce(header, nonce) {
+export function insert_nonce_217a(header, nonce) {
     const ptr0 = passArray8ToWasm0(header, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.insert_nonce(ptr0, len0, nonce);
+    const ret = wasm.insert_nonce_217a(ptr0, len0, nonce);
     if (ret[3]) {
         throw takeFromExternrefTable0(ret[2]);
     }
