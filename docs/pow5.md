@@ -8,8 +8,9 @@ registrations and messages from unknown users.
 
 ## Origin
 
-pow5 was originally developed for [EarthBucks](https://github.com/earthbucks/earthbucks),
-a cryptocurrency project. The algorithm was designed to be:
+pow5 was originally developed for
+[EarthBucks](https://github.com/earthbucks/earthbucks), a cryptocurrency
+project. The algorithm was designed to be:
 
 - **ASIC-resistant**: Uses matrix multiplication (matmul) operations that are
   difficult to optimize in custom hardware
@@ -52,6 +53,7 @@ The original EarthBucks version uses a 217-byte header format:
 This variant is preserved in the codebase for reference and comparison.
 
 **Files**:
+
 - `pow5-ts/src/pow5-217a.wgsl` - WebGPU shader
 - `pow5-ts/src/pow5-217a-wgsl.ts` - TypeScript WGSL wrapper
 - `pow5-ts/src/pow5-217a-wasm.ts` - TypeScript WASM wrapper
@@ -64,13 +66,15 @@ The KeyPears version uses a simplified 64-byte format:
 - **Input size**: 64 bytes (32-byte nonce + 32-byte challenge)
 - **Nonce position**: bytes 0-31 (32-byte nonce, GPU iterates bytes 28-31)
 - **No work_par slot**: The matmul result is directly double-hashed
-- **Algorithm**: Computes matmul result, then double-hashes it (no insertion step)
+- **Algorithm**: Computes matmul result, then double-hashes it (no insertion
+  step)
 
 The 64-byte format is sufficient for KeyPears because we don't need the full
 earthbucks header structure. The 32-byte nonce provides 2^256 possible values,
 far more than needed.
 
 **Files**:
+
 - `pow5-ts/src/pow5-64b.wgsl` - WebGPU shader
 - `pow5-ts/src/pow5-64b-wgsl.ts` - TypeScript WGSL wrapper
 - `pow5-ts/src/pow5-64b-wasm.ts` - TypeScript WASM wrapper
@@ -78,14 +82,14 @@ far more than needed.
 
 ## Key Differences Between Variants
 
-| Aspect | pow5-217a | pow5-64b |
-|--------|-----------|----------|
-| Input size | 217 bytes | 64 bytes |
-| Nonce size | 4 bytes | 32 bytes (GPU uses last 4) |
-| Nonce position | bytes 117-121 | bytes 0-31 |
-| Work_par insertion | Yes (bytes 185-217) | No |
-| Final hash | Double-hash of header with work_par | Double-hash of matmul result |
-| Core matmul | Identical | Identical |
+| Aspect             | pow5-217a                           | pow5-64b                     |
+| ------------------ | ----------------------------------- | ---------------------------- |
+| Input size         | 217 bytes                           | 64 bytes                     |
+| Nonce size         | 4 bytes                             | 32 bytes (GPU uses last 4)   |
+| Nonce position     | bytes 117-121                       | bytes 0-31                   |
+| Work_par insertion | Yes (bytes 185-217)                 | No                           |
+| Final hash         | Double-hash of header with work_par | Double-hash of matmul result |
+| Core matmul        | Identical                           | Identical                    |
 
 The core ASIC-resistant matmul computation is **identical** between variants.
 The only differences are input size and whether the matmul result is inserted
@@ -107,6 +111,7 @@ Client GPU:
 ### WASM (Rust) - Server-side verification
 
 The Rust/WASM implementation provides:
+
 - Server-side verification of submitted proofs
 - Fallback for clients without WebGPU support
 - Reference implementation for testing
@@ -133,6 +138,7 @@ mass account creation (spam/sybil attacks):
 ```
 
 **Difficulty adjustment**: The server adjusts difficulty based on:
+
 - Current registration rate
 - Time of day
 - IP reputation
@@ -153,11 +159,13 @@ sender), the sender must include proof-of-work:
 ```
 
 This prevents:
+
 - Mass spam messaging
 - Harassment campaigns
 - Automated message flooding
 
 **Difficulty considerations**:
+
 - First message to a user: Higher difficulty
 - Subsequent messages: Lower or no difficulty once relationship established
 - Messages to contacts: No proof-of-work required
@@ -185,6 +193,7 @@ hash(nonce || challenge) < target
 Lower target = higher difficulty = more work required.
 
 **Utility functions needed**:
+
 - `targetFromDifficulty(difficulty: number)` - Convert human-readable difficulty
   to 256-bit target
 - `difficultyFromTarget(target: FixedBuf<32>)` - Convert target back to

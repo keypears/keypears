@@ -332,7 +332,67 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 
 ---
 
-## Phase 4: Diffie-Hellman Key Exchange
+## Phase 4: Proof-of-Work for New User Registrations
+
+**Status**: 🚧 **IN PROGRESS** - Algorithm complete, API integration pending
+
+**Goal**: Require proof-of-work for new vault registrations to prevent spam/sybil
+attacks.
+
+**Details**: See [docs/pow5.md](docs/pow5.md) for full algorithm documentation.
+
+### PoW Algorithm Foundation ✅ COMPLETED
+
+- [x] Migrate pow5 algorithm from earthbucks to keypears
+- [x] Create pow5-64b variant (64-byte format: 32-byte nonce + 32-byte challenge)
+- [x] Preserve pow5-217a variant for reference (original earthbucks format)
+- [x] WGSL shader for GPU mining (`pow5-ts/src/pow5-64b.wgsl`)
+- [x] TypeScript WGSL wrapper (`pow5-ts/src/pow5-64b-wgsl.ts`)
+- [x] Rust WASM implementation (`pow5-rs/src/lib.rs` with `_64b` functions)
+- [x] TypeScript WASM wrapper (`pow5-ts/src/pow5-64b-wasm.ts`)
+- [x] Cross-implementation tests (WGSL and WASM produce identical results)
+- [x] Documentation (`docs/pow5.md`)
+
+### PoW Test Integration
+
+- [ ] Create `createChallenge` procedure (server)
+  - [ ] Generate random 32-byte challenge
+  - [ ] Set difficulty target based on server load
+  - [ ] Store challenge with expiration (e.g., 5 minutes)
+  - [ ] Return challenge + target + expiration
+- [ ] Create `verifyProof` procedure (server)
+  - [ ] Accept nonce + challenge + hash
+  - [ ] Verify challenge exists and not expired
+  - [ ] Verify pow5-64b(nonce || challenge) == hash
+  - [ ] Verify hash < target
+  - [ ] Mark challenge as consumed
+- [ ] Create test page in tauri-ts
+  - [ ] UI to request challenge
+  - [ ] GPU mining using Pow5_64b class
+  - [ ] Submit proof and verify result
+
+### New User Registration Integration
+
+- [ ] Update `registerVault` procedure to require proof-of-work
+  - [ ] Accept additional fields: `nonce`, `challenge`, `proofHash`
+  - [ ] Verify proof before creating vault
+  - [ ] Rate limit challenge generation per IP
+- [ ] Update tauri-ts vault creation wizard
+  - [ ] Add PoW step after name/password
+  - [ ] Show mining progress UI
+  - [ ] Handle WebGPU fallback to WASM
+
+### Future: Message Spam Prevention
+
+(Placeholder - to be implemented after DH key exchange in Phase 5)
+
+- [ ] PoW for first message to unknown recipient
+- [ ] Challenge negotiation between servers
+- [ ] Difficulty adjustment based on relationship
+
+---
+
+## Phase 5: Diffie-Hellman Key Exchange
 
 **Status**: ⏳ **PLANNED** - Not started
 
