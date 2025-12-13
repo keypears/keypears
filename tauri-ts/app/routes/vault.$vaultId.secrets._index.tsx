@@ -1,17 +1,13 @@
 import type { Route } from "./+types/vault.$vaultId.secrets._index";
-import { redirect, href } from "react-router";
-import { isVaultUnlocked } from "~app/lib/vault-store";
 import { Navbar } from "~app/components/navbar";
 import { PasswordList } from "~app/components/password-list";
 
+// Note: Parent layout (vault.$vaultId.secrets.tsx) handles vault unlock validation
+// and redirects to unlock page if needed. No need to duplicate that check here.
+
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
-
-  if (!vaultId || !isVaultUnlocked(vaultId)) {
-    throw redirect(href("/"));
-  }
-
-  return { vaultId };
+  return { vaultId: vaultId! };
 }
 
 export default function VaultPasswordsIndex({
