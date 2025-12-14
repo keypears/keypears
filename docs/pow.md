@@ -38,9 +38,22 @@ ASIC resistance.
 - **Header size**: 64 bytes
 - **Nonce region**: Bytes 0-31 (32-byte space)
 - **GPU optimization**: Thread ID written to bytes 28-31
-- **Hash function**: SHA-256 with matrix multiplication operations
+- **Hash function**: BLAKE3 with matrix multiplication operations
 
-The algorithm is efficient on GPUs while resistant to simple ASIC optimization.
+The algorithm combines BLAKE3 hashing with matrix multiplication to create an
+ASIC-resistant proof-of-work function:
+
+1. **Hash the input** with BLAKE3 to get a 32-byte `matrix_A_row_1`
+2. **Iterate 32 times**:
+   - Hash the working column with BLAKE3 to get a new column
+   - Multiply-and-add each byte of `matrix_A_row_1` against each byte of the new
+     column (matmul-style operation)
+3. **Expand** the 32 u32 result to 128 bytes (big-endian)
+4. **Hash** the 128-byte result with BLAKE3 to get the final 32-byte output
+
+The matmul step makes pow5 ASIC-resistant: matrix multiplication requires
+significant memory bandwidth and is difficult to optimize beyond what GPUs
+already provide.
 
 ### Future Algorithm Support
 
@@ -73,16 +86,16 @@ For names with 10 or more characters, the base difficulty applies.
 
 ### Difficulty Table
 
-| Name Length | Difficulty | GPU Time  | CPU Time  |
-| ----------- | ---------- | --------- | --------- |
-| 3 chars     | 512M       | ~8 min    | ~85 min   |
-| 4 chars     | 256M       | ~4 min    | ~43 min   |
-| 5 chars     | 128M       | ~2 min    | ~21 min   |
-| 6 chars     | 64M        | ~1 min    | ~11 min   |
-| 7 chars     | 32M        | ~32 sec   | ~5 min    |
-| 8 chars     | 16M        | ~16 sec   | ~3 min    |
-| 9 chars     | 8M         | ~8 sec    | ~80 sec   |
-| 10+ chars   | 4M         | ~4 sec    | ~40 sec   |
+| Name Length | Difficulty | GPU Time | CPU Time |
+| ----------- | ---------- | -------- | -------- |
+| 3 chars     | 512M       | ~8 min   | ~85 min  |
+| 4 chars     | 256M       | ~4 min   | ~43 min  |
+| 5 chars     | 128M       | ~2 min   | ~21 min  |
+| 6 chars     | 64M        | ~1 min   | ~11 min  |
+| 7 chars     | 32M        | ~32 sec  | ~5 min   |
+| 8 chars     | 16M        | ~16 sec  | ~3 min   |
+| 9 chars     | 8M         | ~8 sec   | ~80 sec  |
+| 10+ chars   | 4M         | ~4 sec   | ~40 sec  |
 
 This ensures that:
 
@@ -92,9 +105,10 @@ This ensures that:
 
 ### Test Environment
 
-In test environment (`NODE_ENV=test`), `difficultyForName()` uses `TEST_BASE_DIFFICULTY`
-(1) instead of `BASE_REGISTRATION_DIFFICULTY` (4,194,304). The 2x scaling per character
-still applies, but tests complete instantly:
+In test environment (`NODE_ENV=test`), `difficultyForName()` uses
+`TEST_BASE_DIFFICULTY` (1) instead of `BASE_REGISTRATION_DIFFICULTY`
+(4,194,304). The 2x scaling per character still applies, but tests complete
+instantly:
 
 | Name Length | Test Difficulty | Avg Hashes |
 | ----------- | --------------- | ---------- |
@@ -103,8 +117,8 @@ still applies, but tests complete instantly:
 | 5 chars     | 32              | ~32        |
 | 10+ chars   | 1               | ~1         |
 
-This allows the test suite to exercise the full PoW flow (challenge creation, mining,
-verification) without waiting for real mining times.
+This allows the test suite to exercise the full PoW flow (challenge creation,
+mining, verification) without waiting for real mining times.
 
 ## Implementation
 
@@ -275,22 +289,48 @@ KeyPears will use PoW to throttle cross-domain messaging:
 
 ### Key Files
 
-| Component               | Location                                       |
-| ----------------------- | ---------------------------------------------- |
-| Difficulty calculation  | `lib/src/index.ts` (`difficultyForName`)       |
-| Server constants        | `api-server/src/constants.ts`                  |
-| Challenge model         | `api-server/src/db/models/pow-challenge.ts`    |
-| Registration procedure  | `api-server/src/procedures/register-vault.ts`  |
-| Client mining hook      | `tauri-ts/app/lib/use-pow-miner.ts`            |
-| Registration UI         | `tauri-ts/app/routes/new-vault.3.tsx`          |
+| Component              | Location                                      |
+| ---------------------- | --------------------------------------------- |
+| Difficulty calculation | `lib/src/index.ts` (`difficultyForName`)      |
+| Server constants       | `api-server/src/constants.ts`                 |
+| Challenge model        | `api-server/src/db/models/pow-challenge.ts`   |
+| Registration procedure | `api-server/src/procedures/register-vault.ts` |
+| Client mining hook     | `tauri-ts/app/lib/use-pow-miner.ts`           |
+| Registration UI        | `tauri-ts/app/routes/new-vault.3.tsx`         |
 
 ### Constants
 
-| Constant                       | Value     | Location                           | Description                      |
-| ------------------------------ | --------- | ---------------------------------- | -------------------------------- |
-| `BASE_REGISTRATION_DIFFICULTY` | 4,194,304 | `lib/src/index.ts`                 | Base difficulty (2^22)           |
-| `TEST_BASE_DIFFICULTY`         | 1         | `lib/src/index.ts`                 | Test environment base difficulty |
-| `CHALLENGE_EXPIRATION_MS`      | 900,000   | `api-server/src/constants.ts`      | 15 minutes in milliseconds       |
-| `GPU_WORKGROUP_SIZE`           | 256       | `tauri-ts/app/lib/use-pow-miner.ts`| Threads per GPU workgroup        |
-| `GPU_GRID_SIZE`                | 128       | `tauri-ts/app/lib/use-pow-miner.ts`| Workgroups per GPU dispatch      |
-| `HASHES_PER_GPU_ITERATION`     | 32,768    | `tauri-ts/app/lib/use-pow-miner.ts`| Total hashes per GPU work() call |
+| Constant                       | Value     | Location                            | Description                      |
+| ------------------------------ | --------- | ----------------------------------- | -------------------------------- |
+| `BASE_REGISTRATION_DIFFICULTY` | 4,194,304 | `lib/src/index.ts`                  | Base difficulty (2^22)           |
+| `TEST_BASE_DIFFICULTY`         | 1         | `lib/src/index.ts`                  | Test environment base difficulty |
+| `CHALLENGE_EXPIRATION_MS`      | 900,000   | `api-server/src/constants.ts`       | 15 minutes in milliseconds       |
+| `GPU_WORKGROUP_SIZE`           | 256       | `tauri-ts/app/lib/use-pow-miner.ts` | Threads per GPU workgroup        |
+| `GPU_GRID_SIZE`                | 128       | `tauri-ts/app/lib/use-pow-miner.ts` | Workgroups per GPU dispatch      |
+| `HASHES_PER_GPU_ITERATION`     | 32,768    | `tauri-ts/app/lib/use-pow-miner.ts` | Total hashes per GPU work() call |
+
+### Build Process
+
+The pow5 algorithm is implemented in Rust and compiled to WASM for use in
+TypeScript:
+
+```bash
+# Build Rust to WASM
+cd pow5-rs && ./wasm-pack-bundler.zsh
+
+# Sync WASM artifacts to TypeScript package
+cd pow5-ts && pnpm run sync:from-rust
+
+# Build TypeScript package
+cd pow5-ts && pnpm run build:wasm
+```
+
+Testing:
+
+```bash
+# Rust tests
+cd pow5-rs && cargo test
+
+# TypeScript tests (runs in browser via Playwright)
+cd pow5-ts && pnpm test
+```
