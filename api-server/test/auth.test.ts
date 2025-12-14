@@ -5,16 +5,24 @@ import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf, generateId, publicKeyCreate } from "@keypears/lib";
 import { createClient } from "../src/client.js";
 import { db } from "../src/db/index.js";
-import { TableVault, TableDeviceSession } from "../src/db/schema.js";
+import {
+  TableVault,
+  TableDeviceSession,
+  TablePowChallenge,
+} from "../src/db/schema.js";
+import { solvePowChallenge } from "./helpers/solve-pow.js";
 
 // Generate a deterministic test private key and derive public key
 const testPrivKey = sha256Hash(WebBuf.fromUtf8("test-vault-privkey"));
 const testPubKey = publicKeyCreate(FixedBuf.fromBuf(32, testPrivKey.buf));
 
+// Test server URL
+const TEST_SERVER_URL = "http://localhost:4275/api";
+
 // Create client pointing to test server
 // Note: Test server must be running on port 4275
 const client = createClient({
-  url: "http://localhost:4275/api",
+  url: TEST_SERVER_URL,
 });
 
 describe("Authentication API", () => {
@@ -31,6 +39,7 @@ describe("Authentication API", () => {
     // Clean up tables
     await db.delete(TableDeviceSession);
     await db.delete(TableVault);
+    await db.delete(TablePowChallenge);
 
     // Create login key (in real app, this would be derived from password)
     const loginKeyBuf = sha256Hash(WebBuf.fromUtf8("test-password-key"));
@@ -41,6 +50,7 @@ describe("Authentication API", () => {
     const encryptedVaultKey = sha256Hash(
       WebBuf.fromUtf8("test-encrypted-vault-key"),
     );
+    const pow = await solvePowChallenge(TEST_SERVER_URL);
     await client.api.registerVault({
       vaultId: testVaultId,
       name: "alice",
@@ -49,6 +59,7 @@ describe("Authentication API", () => {
       vaultPubKey: testPubKey.toHex(),
       loginKey: testLoginKey,
       encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+      ...pow,
     });
   });
 

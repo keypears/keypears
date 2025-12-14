@@ -9,6 +9,8 @@ export const CheckNameAvailabilityRequestSchema = z.object({
 
 export const CheckNameAvailabilityResponseSchema = z.object({
   available: z.boolean(),
+  // Difficulty requirement for registration (only present when available is true)
+  difficulty: z.string().optional(),
 });
 
 // Register vault
@@ -20,6 +22,10 @@ export const RegisterVaultRequestSchema = z.object({
   vaultPubKey: z.string().length(66), // Compressed secp256k1 public key hex = 66 chars (33 bytes)
   loginKey: z.string().length(64), // Unhashed login key (hex)
   encryptedVaultKey: z.string(), // Encrypted vault key (hex, variable length due to ACB3)
+  // PoW proof fields (required for registration)
+  challengeId: z.string().length(26), // UUIDv7 of the PoW challenge
+  solvedHeader: z.string(), // Solved header with nonce (length depends on algorithm)
+  hash: z.string().length(64), // 32 bytes hex = 64 chars
 });
 
 export const RegisterVaultResponseSchema = z.object({

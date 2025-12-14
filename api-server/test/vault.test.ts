@@ -10,22 +10,27 @@ import {
 } from "@keypears/lib";
 import { createClient } from "../src/client.js";
 import { db } from "../src/db/index.js";
-import { TableVault } from "../src/db/schema.js";
+import { TableVault, TablePowChallenge } from "../src/db/schema.js";
+import { solvePowChallenge } from "./helpers/solve-pow.js";
 
 // Generate a deterministic test private key and derive public key
 const testPrivKey = sha256Hash(WebBuf.fromUtf8("test-vault-privkey"));
 const testPubKey = publicKeyCreate(FixedBuf.fromBuf(32, testPrivKey.buf));
 
+// Test server URL
+const TEST_SERVER_URL = "http://localhost:4275/api";
+
 // Create client pointing to test server
 // Note: Test server must be running on port 4275
 const client = createClient({
-  url: "http://localhost:4275/api",
+  url: TEST_SERVER_URL,
 });
 
 describe("Vault API", () => {
   // Clean up database before each test
   beforeEach(async () => {
     await db.delete(TableVault);
+    await db.delete(TablePowChallenge);
   });
 
   describe("checkNameAvailability", () => {
@@ -45,6 +50,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
       await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
@@ -53,6 +59,7 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow,
       });
 
       // Then check if name is available
@@ -71,6 +78,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
       await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
@@ -79,6 +87,7 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow,
       });
 
       // Check availability for alice@keypears.com (should be taken)
@@ -104,6 +113,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
 
       const result = await client.api.registerVault({
         vaultId: generateId(),
@@ -113,6 +123,7 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow,
       });
 
       expect(result.vaultId).toBeDefined();
@@ -132,6 +143,7 @@ describe("Vault API", () => {
       ); // Dummy value for testing
 
       // Register first vault
+      const pow1 = await solvePowChallenge(TEST_SERVER_URL);
       await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
@@ -140,9 +152,11 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow1,
       });
 
       // Try to register duplicate
+      const pow2 = await solvePowChallenge(TEST_SERVER_URL);
       await expect(
         client.api.registerVault({
           vaultId: generateId(),
@@ -152,6 +166,7 @@ describe("Vault API", () => {
           vaultPubKey: testPubKey.toHex(),
           loginKey: loginKey.buf.toHex(),
           encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+          ...pow2,
         }),
       ).rejects.toThrow();
     });
@@ -169,6 +184,7 @@ describe("Vault API", () => {
       ); // Dummy value for testing
 
       // Register alice@keypears.com
+      const pow1 = await solvePowChallenge(TEST_SERVER_URL);
       const result1 = await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
@@ -177,9 +193,11 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow1,
       });
 
       // Register alice@hevybags.com (should succeed)
+      const pow2 = await solvePowChallenge(TEST_SERVER_URL);
       const result2 = await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
@@ -188,6 +206,7 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow2,
       });
 
       expect(result1.vaultId).toBeDefined();
@@ -201,6 +220,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
 
       await expect(
         client.api.registerVault({
@@ -211,6 +231,7 @@ describe("Vault API", () => {
           vaultPubKey: testPubKey.toHex(),
           loginKey: loginKey.buf.toHex(),
           encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+          ...pow,
         }),
       ).rejects.toThrow();
     });
@@ -221,6 +242,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
 
       await expect(
         client.api.registerVault({
@@ -231,6 +253,7 @@ describe("Vault API", () => {
           vaultPubKey: testPubKey.toHex(),
           loginKey: loginKey.buf.toHex(),
           encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+          ...pow,
         }),
       ).rejects.toThrow();
     });
@@ -241,6 +264,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
 
       await expect(
         client.api.registerVault({
@@ -251,6 +275,7 @@ describe("Vault API", () => {
           vaultPubKey: testPubKey.toHex(),
           loginKey: loginKey.buf.toHex(),
           encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+          ...pow,
         }),
       ).rejects.toThrow();
     });
@@ -266,6 +291,7 @@ describe("Vault API", () => {
       const encryptedVaultKey = sha256Hash(
         WebBuf.fromUtf8("test-encrypted-vault-key"),
       ); // Dummy value for testing
+      const pow = await solvePowChallenge(TEST_SERVER_URL);
 
       const result = await client.api.registerVault({
         vaultId,
@@ -275,6 +301,7 @@ describe("Vault API", () => {
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),
         encryptedVaultKey: encryptedVaultKey.buf.toHex(),
+        ...pow,
       });
 
       // Query database to verify server KDF'd it (100k rounds)

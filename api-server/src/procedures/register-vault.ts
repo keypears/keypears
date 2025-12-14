@@ -7,10 +7,16 @@ import {
 } from "../zod-schemas.js";
 import { checkNameAvailability, createVault } from "../db/models/vault.js";
 import { base } from "./base.js";
+import { verifyPowProof } from "../lib/verify-pow.js";
 
 /**
  * Register vault procedure
- * Registers a new vault with the server
+ * Registers a new vault with the server after verifying proof-of-work
+ *
+ * PoW Verification:
+ * - Client must complete a proof-of-work challenge before registering
+ * - Prevents spam/abuse by requiring computational work
+ * - Challenge is single-use and expires after 5 minutes
  *
  * Security: Server KDFs the login key with vault ID salting (100k rounds)
  * - Client sends: vaultId (ULID), loginKey (unhashed, already underwent 100k rounds)
@@ -35,16 +41,27 @@ export const registerVaultProcedure = base
       vaultPubKey,
       loginKey,
       encryptedVaultKey,
+      challengeId,
+      solvedHeader,
+      hash,
     } = input;
 
-    // 1. Validate domain is official
+    // 1. Verify PoW proof first (prevents spam/abuse)
+    const powResult = await verifyPowProof(challengeId, solvedHeader, hash);
+    if (!powResult.valid) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Invalid proof of work: ${powResult.message}`,
+      });
+    }
+
+    // 2. Validate domain is official
     if (!isOfficialDomain(domain)) {
       throw new ORPCError("BAD_REQUEST", {
         message: `Invalid domain: ${domain}. Must be an official KeyPears domain.`,
       });
     }
 
-    // 2. Check name availability
+    // 3. Check name availability
     const available = await checkNameAvailability(name, domain);
 
     if (!available) {
@@ -53,12 +70,12 @@ export const registerVaultProcedure = base
       });
     }
 
-    // 3. KDF the login key on server with vault ID salting (100k rounds for maximum security)
+    // 4. KDF the login key on server with vault ID salting (100k rounds for maximum security)
     // Client already did 100k rounds, we do MAC with vault ID + 100k rounds more
     const loginKeyBuf = FixedBuf.fromHex(32, loginKey);
     const serverHashedLoginKey = deriveHashedLoginKey(loginKeyBuf, vaultId);
 
-    // 4. Create vault using model (with client-provided vault ID)
+    // 5. Create vault using model (with client-provided vault ID)
     await createVault({
       id: vaultId,
       name,
@@ -69,7 +86,7 @@ export const registerVaultProcedure = base
       encryptedVaultKey,
     });
 
-    // 5. Return vault ID (confirmation of client-provided ID)
+    // 6. Return vault ID (confirmation of client-provided ID)
     return {
       vaultId,
     };

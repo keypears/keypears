@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate, href } from "react-router";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, Zap, Cpu } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import {
@@ -22,6 +22,13 @@ import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { unlockVault, setSession } from "~app/lib/vault-store";
 import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
+import { usePowMiner } from "~app/lib/use-pow-miner";
+
+// Default difficulty for vault registration: 4,194,304 (2^22)
+// This matches the server-side REGISTRATION_DIFFICULTY constant
+const REGISTRATION_DIFFICULTY = "4194304";
+
+type CreationPhase = "mining" | "registering" | "success" | "error";
 
 export default function NewVaultStep3() {
   const location = useLocation();
@@ -33,11 +40,20 @@ export default function NewVaultStep3() {
       password?: string;
     }) || {};
 
-  const [isCreating, setIsCreating] = useState(false);
+  const [phase, setPhase] = useState<CreationPhase>("mining");
   const [error, setError] = useState("");
   const [passwordEntropy, setPasswordEntropy] = useState(0);
   const [createdVaultId, setCreatedVaultId] = useState<string | null>(null);
-  const hasRun = useRef(false);
+  const hasStartedMining = useRef(false);
+  const hasStartedRegistration = useRef(false);
+
+  // Initialize PoW miner
+  const miner = usePowMiner({
+    domain: vaultDomain ?? "",
+    difficulty: REGISTRATION_DIFFICULTY,
+    preferWgsl: true,
+    verifyWithServer: false, // We'll use the proof in registration, not standalone verify
+  });
 
   // Redirect to step 1 if missing previous state
   useEffect(() => {
@@ -46,18 +62,30 @@ export default function NewVaultStep3() {
     }
   }, [vaultName, vaultDomain, password, navigate]);
 
-  // Generate all keys and save to database (runs only once)
+  // Start mining when page loads (only once)
   useEffect(() => {
-    if (!vaultName || !vaultDomain || !password || hasRun.current) {
+    if (!vaultName || !vaultDomain || !password || hasStartedMining.current) {
       return;
     }
 
-    hasRun.current = true;
+    hasStartedMining.current = true;
+    miner.start();
+  }, [vaultName, vaultDomain, password, miner]);
 
-    const createVaultWithKeys = async () => {
-      setIsCreating(true);
-      setError("");
+  // When mining succeeds, proceed with vault registration
+  useEffect(() => {
+    if (
+      miner.status !== "success" ||
+      !miner.result ||
+      hasStartedRegistration.current
+    ) {
+      return;
+    }
 
+    hasStartedRegistration.current = true;
+    setPhase("registering");
+
+    const registerVault = async () => {
       try {
         // Initialize database
         await initDb();
@@ -66,7 +94,7 @@ export default function NewVaultStep3() {
         const vaultId = generateId();
 
         // 1. Derive password key from password with vaultId
-        const passwordKey = derivePasswordKey(password, vaultId);
+        const passwordKey = derivePasswordKey(password!, vaultId);
 
         // 2. Derive encryption key from password key
         const encryptionKey = deriveEncryptionKey(passwordKey);
@@ -88,31 +116,35 @@ export default function NewVaultStep3() {
         const loginKey = deriveLoginKey(passwordKey);
 
         // Calculate entropy for display
-        const pwdEntropy = calculatePasswordEntropy(password.length, {
-          lowercase: /[a-z]/.test(password),
-          uppercase: /[A-Z]/.test(password),
-          numbers: /[0-9]/.test(password),
-          symbols: /[^a-zA-Z0-9]/.test(password),
+        const pwdEntropy = calculatePasswordEntropy(password!.length, {
+          lowercase: /[a-z]/.test(password!),
+          uppercase: /[A-Z]/.test(password!),
+          numbers: /[0-9]/.test(password!),
+          symbols: /[^a-zA-Z0-9]/.test(password!),
         });
 
         setPasswordEntropy(pwdEntropy);
 
-        // 8. Register vault with server
+        // 8. Register vault with server (including PoW proof)
         const vaultPubKeyHashHex = vaultPubKeyHash.buf.toHex();
         const vaultPubKeyHex = vaultPublicKey.toHex();
         const loginKeyHex = loginKey.buf.toHex();
         const encryptedVaultKeyHex = encryptedVaultKey.toHex();
 
-        const client = await createClientFromDomain(vaultDomain);
+        const client = await createClientFromDomain(vaultDomain!);
 
         const registrationResult = await client.api.registerVault({
           vaultId,
-          name: vaultName,
-          domain: vaultDomain,
+          name: vaultName!,
+          domain: vaultDomain!,
           vaultPubKeyHash: vaultPubKeyHashHex,
           vaultPubKey: vaultPubKeyHex,
           loginKey: loginKeyHex,
           encryptedVaultKey: encryptedVaultKeyHex,
+          // Include PoW proof from mining result
+          challengeId: miner.result!.challengeId,
+          solvedHeader: miner.result!.solvedHeader,
+          hash: miner.result!.hash,
         });
 
         // 9. Generate device ID and description
@@ -122,8 +154,8 @@ export default function NewVaultStep3() {
         // 10. Save vault to local database with server-generated ID
         const vault = await createVault(
           registrationResult.vaultId,
-          vaultName,
-          vaultDomain,
+          vaultName!,
+          vaultDomain!,
           encryptedVaultKey.toHex(),
           vaultPubKeyHash.buf.toHex(),
           deviceId,
@@ -148,8 +180,8 @@ export default function NewVaultStep3() {
         // 13. Unlock vault with all derived keys
         unlockVault({
           vaultId: vault.id,
-          vaultName,
-          vaultDomain,
+          vaultName: vaultName!,
+          vaultDomain: vaultDomain!,
           passwordKey,
           encryptionKey,
           loginKey,
@@ -165,15 +197,16 @@ export default function NewVaultStep3() {
         await refreshSyncState(vault.id);
 
         // 15. Start background sync for this vault
-        startBackgroundSync(vault.id, vaultDomain, vaultKey, () => {
+        startBackgroundSync(vault.id, vaultDomain!, vaultKey, () => {
           refreshSyncState(vault.id);
         });
 
         // 16. Update last accessed timestamp
         await updateVaultLastAccessed(vault.id);
 
-        // Store created vault ID for navigation
+        // Store created vault ID and show success
         setCreatedVaultId(vault.id);
+        setPhase("success");
       } catch (err) {
         console.error("Error creating vault:", err);
 
@@ -183,13 +216,20 @@ export default function NewVaultStep3() {
         }
 
         setError(errorMessage);
-      } finally {
-        setIsCreating(false);
+        setPhase("error");
       }
     };
 
-    createVaultWithKeys();
-  }, [vaultName, vaultDomain, password]);
+    registerVault();
+  }, [miner.status, miner.result, vaultName, vaultDomain, password]);
+
+  // Handle mining errors
+  useEffect(() => {
+    if (miner.status === "error" && miner.error) {
+      setError(miner.error);
+      setPhase("error");
+    }
+  }, [miner.status, miner.error]);
 
   if (!vaultName || !vaultDomain || !password) {
     return null;
@@ -203,13 +243,26 @@ export default function NewVaultStep3() {
     }
   };
 
+  const isInProgress = phase === "mining" || phase === "registering";
+
+  // Get mining status text
+  const getMiningStatusText = () => {
+    if (miner.status === "fetching") return "Preparing challenge...";
+    if (miner.status === "mining") {
+      return miner.implementation === "WGSL"
+        ? "Mining (GPU)..."
+        : "Mining (CPU)...";
+    }
+    return "";
+  };
+
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
       <div className="flex flex-1 flex-col items-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="border-border bg-card rounded-lg border p-8">
-            {error ? (
+            {phase === "error" ? (
               /* Error State */
               <>
                 <div className="mb-6 flex flex-col items-center text-center">
@@ -241,66 +294,106 @@ export default function NewVaultStep3() {
                   </div>
                 </div>
               </>
-            ) : (
+            ) : phase === "success" ? (
+              /* Success State */
               <>
                 <div className="mb-6 flex flex-col items-center text-center">
                   <div className="bg-primary/10 mb-4 rounded-full p-4">
                     <CheckCircle className="text-primary h-12 w-12" />
                   </div>
                   <h1 className="text-2xl font-bold">
-                    {isCreating
-                      ? "Creating Vault..."
-                      : "Vault Created Successfully"}
+                    Vault Created Successfully
                   </h1>
                 </div>
 
-                {isCreating ? (
-                  <div className="text-muted-foreground mb-6 text-center">
-                    <p>Generating keys and registering vault...</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="mb-6 space-y-3">
-                      <div className="border-border rounded-lg border p-4">
-                        <h3 className="mb-2 font-semibold">Vault Details</h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Name:</span>
-                            <span className="font-mono">
-                              {vaultName}@{vaultDomain}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              Password Strength:
-                            </span>
-                            <span
-                              className={cn(
-                                "font-medium",
-                                passwordEntropy >= 75 && "text-green-500",
-                                passwordEntropy >= 50 &&
-                                  passwordEntropy < 75 &&
-                                  "text-yellow-500",
-                                passwordEntropy < 50 && "text-destructive",
-                              )}
-                            >
-                              {passwordEntropy.toFixed(1)} bits
-                            </span>
-                          </div>
-                        </div>
+                <div className="mb-6 space-y-3">
+                  <div className="border-border rounded-lg border p-4">
+                    <h3 className="mb-2 font-semibold">Vault Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Name:</span>
+                        <span className="font-mono">
+                          {vaultName}@{vaultDomain}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Password Strength:
+                        </span>
+                        <span
+                          className={cn(
+                            "font-medium",
+                            passwordEntropy >= 75 && "text-green-500",
+                            passwordEntropy >= 50 &&
+                              passwordEntropy < 75 &&
+                              "text-yellow-500",
+                            passwordEntropy < 50 && "text-destructive",
+                          )}
+                        >
+                          {passwordEntropy.toFixed(1)} bits
+                        </span>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={handleContinue}
-                      disabled={isCreating}
-                    >
-                      Continue to Vault
-                    </Button>
-                  </>
-                )}
+                <Button className="w-full" size="lg" onClick={handleContinue}>
+                  Continue to Vault
+                </Button>
+              </>
+            ) : (
+              /* In Progress State (mining or registering) */
+              <>
+                <div className="mb-6 flex flex-col items-center text-center">
+                  <div className="bg-primary/10 mb-4 rounded-full p-4">
+                    <Loader2 className="text-primary h-12 w-12 animate-spin" />
+                  </div>
+                  <h1 className="text-2xl font-bold">
+                    {phase === "mining"
+                      ? "Preparing Vault..."
+                      : "Registering Vault..."}
+                  </h1>
+                </div>
+
+                <div className="text-muted-foreground mb-6 space-y-3 text-center">
+                  {phase === "mining" && (
+                    <>
+                      <p>{getMiningStatusText()}</p>
+                      {miner.webGpuAvailable !== null && (
+                        <p className="flex items-center justify-center gap-1 text-sm">
+                          {miner.webGpuAvailable ? (
+                            <>
+                              <Zap className="h-3 w-3" /> Using WebGPU
+                            </>
+                          ) : (
+                            <>
+                              <Cpu className="h-3 w-3" /> Using CPU
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {miner.iterations > 0 && (
+                        <p className="font-mono text-xs">
+                          {miner.iterations.toLocaleString()} iterations (
+                          {(miner.elapsedMs / 1000).toFixed(1)}s)
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {phase === "registering" && (
+                    <p>Generating keys and registering vault...</p>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                  onClick={() => navigate(href("/new-vault/1"))}
+                  disabled={isInProgress}
+                >
+                  Cancel
+                </Button>
               </>
             )}
           </div>
