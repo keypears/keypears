@@ -9,6 +9,12 @@ import {
   hashMeetsTarget,
 } from "@keypears/pow5";
 
+// Constants for GPU hash computation
+// GPU dispatches WORKGROUP_SIZE threads × gridSize workgroups per work() call
+const GPU_WORKGROUP_SIZE = 256;
+const GPU_GRID_SIZE = 128;
+const HASHES_PER_GPU_ITERATION = GPU_WORKGROUP_SIZE * GPU_GRID_SIZE; // 32,768
+
 // Helper to create a header with randomized nonce region (bytes 0-31)
 // The GPU will overwrite bytes 28-31 with thread ID, but bytes 0-27 remain random
 // This ensures each batch searches a different nonce space
@@ -71,6 +77,7 @@ export interface UsePowMinerReturn {
   implementation: PowImplementation | null;
   webGpuAvailable: boolean | null;
   iterations: number;
+  hashesComputed: number;
   elapsedMs: number;
   result: PowMinerResult | null;
   error: string | null;
@@ -89,6 +96,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
   const [implementation, setImplementation] = useState<PowImplementation | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [iterations, setIterations] = useState(0);
+  const [hashesComputed, setHashesComputed] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<PowMinerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +110,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     setStatus("idle");
     setImplementation(null);
     setIterations(0);
+    setHashesComputed(0);
     setElapsedMs(0);
     setResult(null);
     setError(null);
@@ -124,6 +133,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     setResult(null);
     setChallengeInfo(null);
     setIterations(0);
+    setHashesComputed(0);
     setElapsedMs(0);
 
     try {
@@ -181,6 +191,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
             const workResult = await pow5.work();
             iterationsRef.current++;
             setIterations(iterationsRef.current);
+            setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
             setElapsedMs(Date.now() - startTimeRef.current);
 
             const isZeroHash = workResult.hash.buf.every((b) => b === 0);
@@ -222,6 +233,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
             // Yield to UI every 10000 iterations for WASM
             if (iterationsRef.current % 10000 === 0) {
               setIterations(iterationsRef.current);
+              setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
               setElapsedMs(Date.now() - startTimeRef.current);
               await new Promise((resolve) => setTimeout(resolve, 0));
             }
@@ -243,6 +255,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
             const workResult = await pow5.work();
             iterationsRef.current++;
             setIterations(iterationsRef.current);
+            setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
             setElapsedMs(Date.now() - startTimeRef.current);
 
             const isZeroHash = workResult.hash.buf.every((b) => b === 0);
@@ -284,6 +297,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
             // Yield to UI every 10000 iterations for WASM
             if (iterationsRef.current % 10000 === 0) {
               setIterations(iterationsRef.current);
+              setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
               setElapsedMs(Date.now() - startTimeRef.current);
               await new Promise((resolve) => setTimeout(resolve, 0));
             }
@@ -343,6 +357,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     implementation,
     webGpuAvailable,
     iterations,
+    hashesComputed,
     elapsedMs,
     result,
     error,

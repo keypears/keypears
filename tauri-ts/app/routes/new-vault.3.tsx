@@ -385,9 +385,9 @@ export default function NewVaultStep3() {
                           )}
                         </p>
                       )}
-                      {miner.iterations > 0 && (
+                      {miner.hashesComputed > 0 && (
                         <p className="font-mono text-xs">
-                          {miner.iterations.toLocaleString()} iterations (
+                          {miner.hashesComputed.toLocaleString()} hashes (
                           {(miner.elapsedMs / 1000).toFixed(1)}s)
                         </p>
                       )}
