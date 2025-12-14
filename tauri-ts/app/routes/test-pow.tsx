@@ -8,7 +8,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "~app/components/ui/toggle-group";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { FixedBuf, WebBuf } from "@keypears/lib";
 import {
@@ -88,8 +88,16 @@ export default function TestPow() {
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
   const [difficultyInput, setDifficultyInput] = useState<string>("4194304");
+  const cancelledRef = useRef<boolean>(false);
+
+  function cancelMining() {
+    cancelledRef.current = true;
+    setStatus("idle");
+    setError("Mining cancelled");
+  }
 
   async function runPowTest() {
+    cancelledRef.current = false;
     setStatus("fetching");
     setError(null);
     setResult(null);
@@ -137,7 +145,7 @@ export default function TestPow() {
           let found = false;
           let currentHeader = headerBuf;
 
-          while (!found) {
+          while (!found && !cancelledRef.current) {
             const workResult = await pow5.work();
             iterations++;
 
@@ -159,6 +167,8 @@ export default function TestPow() {
               await pow5.setInput(currentHeader, targetBuf, 128);
             }
           }
+
+          if (cancelledRef.current) return;
         } else {
           setStatus("mining-wasm");
           implementation = "WASM";
@@ -166,7 +176,7 @@ export default function TestPow() {
           let found = false;
           nonce = 0;
 
-          while (!found) {
+          while (!found && !cancelledRef.current) {
             const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
             const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
             iterations++;
@@ -181,7 +191,14 @@ export default function TestPow() {
                 throw new Error("Mining took too long (>100M iterations)");
               }
             }
+
+            // Yield to UI every 10000 iterations for WASM
+            if (iterations % 10000 === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
           }
+
+          if (cancelledRef.current) return;
         }
       } else {
         // pow5-217a algorithm
@@ -197,7 +214,7 @@ export default function TestPow() {
           let found = false;
           let currentHeader = headerBuf;
 
-          while (!found) {
+          while (!found && !cancelledRef.current) {
             const workResult = await pow5.work();
             iterations++;
 
@@ -219,6 +236,8 @@ export default function TestPow() {
               await pow5.setInput(currentHeader, targetBuf, 128);
             }
           }
+
+          if (cancelledRef.current) return;
         } else {
           setStatus("mining-wasm");
           implementation = "WASM";
@@ -226,7 +245,7 @@ export default function TestPow() {
           let found = false;
           nonce = 0;
 
-          while (!found) {
+          while (!found && !cancelledRef.current) {
             const testHeader = Pow5_217a_Wasm.insertNonce(headerBuf, nonce);
             const testHash = Pow5_217a_Wasm.elementaryIteration(testHeader);
             iterations++;
@@ -241,7 +260,14 @@ export default function TestPow() {
                 throw new Error("Mining took too long (>100M iterations)");
               }
             }
+
+            // Yield to UI every 10000 iterations for WASM
+            if (iterations % 10000 === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
           }
+
+          if (cancelledRef.current) return;
         }
       }
 
@@ -406,12 +432,12 @@ export default function TestPow() {
               {/* Difficulty Input */}
               <div className="border-border border-t pt-4">
                 <Label htmlFor="difficulty" className="mb-2 block text-sm font-medium">
-                  Difficulty (min: 1,000,000)
+                  Difficulty (min: 256)
                 </Label>
                 <Input
                   id="difficulty"
                   type="number"
-                  min={1000000}
+                  min={256}
                   value={difficultyInput}
                   onChange={(e) => setDifficultyInput(e.target.value)}
                   className="w-full font-mono"
@@ -423,7 +449,7 @@ export default function TestPow() {
                   }
                 />
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Higher = more hashes required. 2^20 ≈ 1M, 2^22 ≈ 4M, 2^24 ≈ 16M
+                  Higher = more hashes required. 2^8 = 256, 2^20 ≈ 1M, 2^22 ≈ 4M
                 </p>
               </div>
 
@@ -449,25 +475,35 @@ export default function TestPow() {
                 </ToggleGroup>
               </div>
 
-              {/* Action Button */}
-              <Button
-                onClick={runPowTest}
-                disabled={
-                  status === "fetching" ||
-                  status === "mining-wgsl" ||
-                  status === "mining-wasm" ||
-                  status === "verifying"
-                }
-                className="w-full"
-              >
-                {status === "idle" && "Start PoW Test"}
-                {status === "fetching" && "Fetching..."}
-                {(status === "mining-wgsl" || status === "mining-wasm") &&
-                  "Mining..."}
-                {status === "verifying" && "Verifying..."}
-                {status === "success" && "Run Again"}
-                {status === "error" && "Try Again"}
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={runPowTest}
+                  disabled={
+                    status === "fetching" ||
+                    status === "mining-wgsl" ||
+                    status === "mining-wasm" ||
+                    status === "verifying"
+                  }
+                  className="flex-1"
+                >
+                  {status === "idle" && "Start PoW Test"}
+                  {status === "fetching" && "Fetching..."}
+                  {(status === "mining-wgsl" || status === "mining-wasm") &&
+                    "Mining..."}
+                  {status === "verifying" && "Verifying..."}
+                  {status === "success" && "Run Again"}
+                  {status === "error" && "Try Again"}
+                </Button>
+                {(status === "mining-wgsl" || status === "mining-wasm") && (
+                  <Button
+                    onClick={cancelMining}
+                    variant="destructive"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
