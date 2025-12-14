@@ -8,7 +8,7 @@ import {
 } from "~app/components/ui/toggle-group";
 import { useState } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import { FixedBuf } from "@webbuf/fixedbuf";
+import { FixedBuf, WebBuf } from "@keypears/lib";
 import {
   Pow5_64b_Wgsl,
   Pow5_64b_Wasm,
@@ -17,6 +17,36 @@ import {
   hashMeetsTarget,
 } from "@keypears/pow5";
 import { Cpu, Zap, CheckCircle, XCircle, Loader2 } from "lucide-react";
+
+// Helper to create a header with randomized nonce region (bytes 0-31)
+// The GPU will overwrite bytes 28-31 with thread ID, but bytes 0-27 remain random
+// This ensures each batch searches a different nonce space
+function randomizeHeader64(header: FixedBuf<64>): FixedBuf<64> {
+  const bytes = new Uint8Array(64);
+  for (let i = 0; i < 64; i++) {
+    bytes[i] = header.buf[i] as number;
+  }
+  // Randomize nonce region (bytes 0-31)
+  const randomNonce = crypto.getRandomValues(new Uint8Array(32));
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = randomNonce[i] as number;
+  }
+  return FixedBuf.fromBuf(64, WebBuf.fromUint8Array(bytes));
+}
+
+// Helper to create a header with randomized nonce region (bytes 117-148)
+function randomizeHeader217(header: FixedBuf<217>): FixedBuf<217> {
+  const bytes = new Uint8Array(217);
+  for (let i = 0; i < 217; i++) {
+    bytes[i] = header.buf[i] as number;
+  }
+  // Randomize nonce region (bytes 117-148)
+  const randomNonce = crypto.getRandomValues(new Uint8Array(32));
+  for (let i = 0; i < 32; i++) {
+    bytes[117 + i] = randomNonce[i] as number;
+  }
+  return FixedBuf.fromBuf(217, WebBuf.fromUint8Array(bytes));
+}
 
 type MiningMode = "prefer-wgsl" | "wasm-only";
 
@@ -97,7 +127,6 @@ export default function TestPow() {
 
           let found = false;
           let currentHeader = headerBuf;
-          let baseNonce = 0;
 
           while (!found) {
             const workResult = await pow5.work();
@@ -114,8 +143,10 @@ export default function TestPow() {
               ).buf.toHex();
               found = true;
             } else {
-              baseNonce += 128 * 256;
-              currentHeader = Pow5_64b_Wasm.insertNonce(headerBuf, baseNonce);
+              // Randomize the nonce region for the next batch
+              // GPU will overwrite bytes 28-31 with thread ID, but bytes 0-27 remain random
+              // This ensures each batch searches a different nonce space
+              currentHeader = randomizeHeader64(headerBuf);
               await pow5.setInput(currentHeader, targetBuf, 128);
             }
           }
@@ -156,7 +187,6 @@ export default function TestPow() {
 
           let found = false;
           let currentHeader = headerBuf;
-          let baseNonce = 0;
 
           while (!found) {
             const workResult = await pow5.work();
@@ -173,8 +203,10 @@ export default function TestPow() {
               ).buf.toHex();
               found = true;
             } else {
-              baseNonce += 128 * 256;
-              currentHeader = Pow5_217a_Wasm.insertNonce(headerBuf, baseNonce);
+              // Randomize the nonce region for the next batch
+              // GPU will overwrite bytes 145-148 with thread ID, but bytes 117-144 remain random
+              // This ensures each batch searches a different nonce space
+              currentHeader = randomizeHeader217(headerBuf);
               await pow5.setInput(currentHeader, targetBuf, 128);
             }
           }
