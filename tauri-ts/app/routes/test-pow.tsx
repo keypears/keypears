@@ -2,6 +2,10 @@ import type { Route } from "./+types/test-pow";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "~app/components/ui/toggle-group";
 import { useState } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -13,6 +17,8 @@ import {
   hashMeetsTarget,
 } from "@keypears/pow5";
 import { Cpu, Zap, CheckCircle, XCircle, Loader2 } from "lucide-react";
+
+type MiningMode = "prefer-wgsl" | "wasm-only";
 
 type Status =
   | "idle"
@@ -47,6 +53,7 @@ export default function TestPow() {
   const [algorithm, setAlgorithm] = useState<PowAlgorithm | null>(null);
   const [result, setResult] = useState<MiningResult | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
+  const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
 
   async function runPowTest() {
     setStatus("fetching");
@@ -55,9 +62,11 @@ export default function TestPow() {
     setAlgorithm(null);
 
     try {
-      // Check WebGPU availability
-      const hasWebGpu = typeof navigator !== "undefined" && "gpu" in navigator;
-      setWebGpuAvailable(hasWebGpu);
+      // Check WebGPU availability (respecting mining mode toggle)
+      const browserHasWebGpu =
+        typeof navigator !== "undefined" && "gpu" in navigator;
+      setWebGpuAvailable(browserHasWebGpu);
+      const hasWebGpu = miningMode === "prefer-wgsl" && browserHasWebGpu;
 
       // Fetch challenge from server (hardcoded to dev domain for testing)
       const client = await createClientFromDomain("keypears.localhost");
@@ -345,6 +354,28 @@ export default function TestPow() {
                   </div>
                 </div>
               )}
+
+              {/* Mining Mode Toggle */}
+              <div className="border-border border-t pt-4">
+                <h3 className="mb-2 text-sm font-medium">Mining Mode</h3>
+                <ToggleGroup
+                  type="single"
+                  value={miningMode}
+                  onValueChange={(value) => {
+                    if (value) setMiningMode(value as MiningMode);
+                  }}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="prefer-wgsl" aria-label="Prefer WGSL">
+                    <Zap className="mr-1 h-4 w-4" />
+                    Prefer WGSL
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="wasm-only" aria-label="WASM Only">
+                    <Cpu className="mr-1 h-4 w-4" />
+                    WASM Only
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
 
               {/* Action Button */}
               <Button
