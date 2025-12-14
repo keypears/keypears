@@ -5,9 +5,9 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "~app/components/ui/toggle-group";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import { FixedBuf } from "@keypears/lib";
+import { FixedBuf, getOfficialDomains } from "@keypears/lib";
 import {
   Pow5_64b_Wgsl,
   Pow5_64b_Wasm,
@@ -15,7 +15,7 @@ import {
   Pow5_217a_Wasm,
   hashMeetsTarget,
 } from "@keypears/pow5";
-import { Cpu, Zap, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Cpu, Zap, CheckCircle, XCircle, Loader2, ChevronDown } from "lucide-react";
 
 // Helper to create a header with randomized nonce region (bytes 0-31)
 // The GPU will overwrite bytes 28-31 with thread ID, but bytes 0-27 remain random
@@ -73,7 +73,31 @@ export default function TestPow() {
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
   const [difficultyInput, setDifficultyInput] = useState<string>("4194304");
+  const [domain, setDomain] = useState<string>(() => getOfficialDomains()[0] ?? "keypears.com");
+  const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
   const cancelledRef = useRef<boolean>(false);
+  const domainContainerRef = useRef<HTMLDivElement>(null);
+
+  const officialDomains = getOfficialDomains();
+
+  // Handle click outside to close domain dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        domainContainerRef.current &&
+        !domainContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsDomainDropdownOpen(false);
+      }
+    };
+
+    if (isDomainDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isDomainDropdownOpen]);
 
   function cancelMining() {
     cancelledRef.current = true;
@@ -95,8 +119,8 @@ export default function TestPow() {
       setWebGpuAvailable(browserHasWebGpu);
       const hasWebGpu = miningMode === "prefer-wgsl" && browserHasWebGpu;
 
-      // Fetch challenge from server (hardcoded to dev domain for testing)
-      const client = await createClientFromDomain("keypears.localhost");
+      // Fetch challenge from server
+      const client = await createClientFromDomain(domain);
       const challenge = await client.api.getPowChallenge({
         difficulty: difficultyInput,
       });
@@ -414,6 +438,70 @@ export default function TestPow() {
                   </div>
                 </div>
               )}
+
+              {/* Server Domain */}
+              <div className="border-border border-t pt-4">
+                <Label
+                  htmlFor="domain"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Server Domain
+                </Label>
+                <div className="relative" ref={domainContainerRef}>
+                  <Input
+                    id="domain"
+                    type="text"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    onFocus={() => setIsDomainDropdownOpen(true)}
+                    className="w-full pr-10 font-mono"
+                    disabled={
+                      status === "fetching" ||
+                      status === "mining-wgsl" ||
+                      status === "mining-wasm" ||
+                      status === "verifying"
+                    }
+                  />
+                  <div className="absolute top-1/2 right-1 -translate-y-1/2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      tabIndex={-1}
+                      onClick={() => setIsDomainDropdownOpen(!isDomainDropdownOpen)}
+                      disabled={
+                        status === "fetching" ||
+                        status === "mining-wgsl" ||
+                        status === "mining-wasm" ||
+                        status === "verifying"
+                      }
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Domain Dropdown */}
+                  {isDomainDropdownOpen && (
+                    <div className="bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 w-full rounded-md border shadow-md">
+                      <div className="p-1">
+                        {officialDomains.map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => {
+                              setDomain(d);
+                              setIsDomainDropdownOpen(false);
+                            }}
+                            className="hover:bg-accent hover:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Difficulty Input */}
               <div className="border-border border-t pt-4">
