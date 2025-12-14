@@ -353,23 +353,27 @@ spam/sybil attacks.
 - [x] Cross-implementation tests (WGSL and WASM produce identical results)
 - [x] Documentation (`docs/pow5.md`)
 
-### PoW Test Integration
+### PoW Test Integration ✅ COMPLETED
 
-- [ ] Create `createChallenge` procedure (server)
-  - [ ] Generate random 32-byte challenge
-  - [ ] Set difficulty target based on server load
-  - [ ] Store challenge with expiration (e.g., 5 minutes)
-  - [ ] Return challenge + target + expiration
-- [ ] Create `verifyProof` procedure (server)
-  - [ ] Accept nonce + challenge + hash
-  - [ ] Verify challenge exists and not expired
-  - [ ] Verify pow5-64b(nonce || challenge) == hash
-  - [ ] Verify hash < target
-  - [ ] Mark challenge as consumed
-- [ ] Create test page in tauri-ts
-  - [ ] UI to request challenge
-  - [ ] GPU mining using Pow5_64b class
-  - [ ] Submit proof and verify result
+- [x] Create `getPowChallenge` procedure (server)
+  - [x] Generate random 32-byte challenge
+  - [x] Set difficulty target (hardcoded for testing)
+  - [x] Return header (64 bytes: nonce + challenge) + target + difficulty
+- [x] Create `verifyPowProof` procedure (server)
+  - [x] Accept originalHeader + solvedHeader + hash
+  - [x] Verify challenge bytes match (bytes 32-63)
+  - [x] Recompute hash using WASM and verify match
+  - [x] Verify hash < target
+- [x] Create test page in tauri-ts (`/test-pow5`)
+  - [x] UI to request challenge from server
+  - [x] GPU mining using WGSL with WASM fallback
+  - [x] Display implementation used (WGSL/WASM)
+  - [x] Submit proof and show verification result
+  - [x] Accessible from burger menu ("Test Pow5")
+
+**Note**: Test implementation is NOT production-secure (no database storage,
+no expiration, client sends back original header). This is intentional for
+proof-of-concept testing.
 
 ### New User Registration Integration
 
@@ -609,4 +613,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-12
+**Last Updated**: 2025-12-13
