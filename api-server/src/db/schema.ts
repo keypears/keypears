@@ -13,7 +13,7 @@ import {
 export const TableVault = pgTable(
   "vault",
   {
-    // Primary key - ULID for time-ordered, collision-resistant IDs
+    // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
     id: varchar("id", { length: 26 }).primaryKey(),
 
     // Vault name (1-30 characters, alphanumeric, starts with letter)
@@ -68,7 +68,7 @@ export type InsertVault = typeof TableVault.$inferInsert;
 export const TableSecretUpdate = pgTable(
   "secret_update",
   {
-    // Primary key - ULID for time-ordered, collision-resistant IDs
+    // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
     id: varchar("id", { length: 26 }).primaryKey(),
 
     // Foreign keys
@@ -112,7 +112,7 @@ export type InsertSecretUpdate = typeof TableSecretUpdate.$inferInsert;
 export const TableDeviceSession = pgTable(
   "device_session",
   {
-    // Primary key - ULID
+    // Primary key - UUIDv7 in Crockford Base32 (26-char)
     id: varchar("id", { length: 26 }).primaryKey(),
 
     // Foreign key to vault
@@ -120,7 +120,7 @@ export const TableDeviceSession = pgTable(
       .notNull()
       .references(() => TableVault.id, { onDelete: "cascade" }),
 
-    // Device identifier (client-generated ULID, unique per vault per device)
+    // Device identifier (client-generated UUIDv7, unique per vault per device)
     deviceId: varchar("device_id", { length: 26 }).notNull(),
 
     // Device metadata for user-facing identification
@@ -169,7 +169,7 @@ export type InsertDeviceSession = typeof TableDeviceSession.$inferInsert;
 export const TableDerivedKey = pgTable(
   "derived_key",
   {
-    // Primary key - ULID for time-ordered, collision-resistant IDs
+    // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
     id: varchar("id", { length: 26 }).primaryKey(),
 
     // Foreign key to vault

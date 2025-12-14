@@ -13,7 +13,7 @@ export const CheckNameAvailabilityResponseSchema = z.object({
 
 // Register vault
 export const RegisterVaultRequestSchema = z.object({
-  vaultId: z.string().length(26), // ULID generated client-side
+  vaultId: z.string().length(26), // UUIDv7 (26-char Crockford Base32) generated client-side
   name: vaultNameSchema,
   domain: z.string().min(1).max(255),
   vaultPubKeyHash: z.string().length(64), // Blake3 hash hex = 64 chars
@@ -28,13 +28,13 @@ export const RegisterVaultResponseSchema = z.object({
 
 // Create secret update
 export const CreateSecretUpdateRequestSchema = z.object({
-  vaultId: z.string().length(26), // ULID
-  secretId: z.string().length(26), // ULID (same for all updates to this secret)
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  secretId: z.string().length(26), // UUIDv7 (26-char, same for all updates to this secret)
   encryptedBlob: z.string().min(1), // Encrypted JSON containing all secret data
 });
 
 export const CreateSecretUpdateResponseSchema = z.object({
-  id: z.string().length(26), // ULID of the new update
+  id: z.string().length(26), // UUIDv7 (26-char) of the new update
   globalOrder: z.number().int().positive(),
   localOrder: z.number().int().positive(),
   createdAt: z.date(),
@@ -42,7 +42,7 @@ export const CreateSecretUpdateResponseSchema = z.object({
 
 // Get secret updates (for polling)
 export const GetSecretUpdatesRequestSchema = z.object({
-  vaultId: z.string().length(26), // ULID
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
   sinceGlobalOrder: z.number().int().nonnegative().default(0), // Get updates after this order
   limit: z.number().int().positive().max(1000).default(100), // Batch size
 });
@@ -64,18 +64,18 @@ export const GetSecretUpdatesResponseSchema = z.object({
 
 // Create derived key
 export const CreateDerivedKeyRequestSchema = z.object({
-  vaultId: z.string().length(26), // ULID
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
 });
 
 export const CreateDerivedKeyResponseSchema = z.object({
-  id: z.string().length(26), // ULID of the derived key record
+  id: z.string().length(26), // UUIDv7 (26-char) of the derived key record
   derivedPubKey: z.string().length(66), // 33 bytes hex = 66 chars
   createdAt: z.date(),
 });
 
 // Get derived keys (paginated)
 export const GetDerivedKeysRequestSchema = z.object({
-  vaultId: z.string().length(26), // ULID
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
   limit: z.number().int().positive().max(100).default(20),
   beforeCreatedAt: z.date().optional(), // Cursor for pagination
 });
@@ -94,7 +94,7 @@ export const GetDerivedKeysResponseSchema = z.object({
 
 // Get derivation private key (for client to derive full private key)
 export const GetDerivationPrivKeyRequestSchema = z.object({
-  derivedKeyId: z.string().length(26), // ULID of the derived key record
+  derivedKeyId: z.string().length(26), // UUIDv7 (26-char) of the derived key record
 });
 
 export const GetDerivationPrivKeyResponseSchema = z.object({

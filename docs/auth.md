@@ -133,7 +133,7 @@ await validateVaultAuth(context.loginKey, vaultId);
 
 - Unique identifier **per vault per device** (privacy-focused)
 - Generated once per vault, stored in client SQLite database
-- Format: ULID (26 characters, time-ordered)
+- Format: UUIDv7 in Crockford Base32 (26 characters, time-ordered)
 - Different device IDs for same physical device across different vaults/domains
 - Prevents cross-domain device tracking by servers
 - Used to track and manage device access
@@ -163,7 +163,7 @@ export const TableVault = sqliteTable(
     // ... existing fields (id, name, domain, encryptedVaultKey, etc.) ...
 
     // Device ID for this vault (generated once per vault, never changes)
-    deviceId: text("device_id").notNull(), // ULID, generated on vault creation/import
+    deviceId: text("device_id").notNull(), // UUIDv7, generated on vault creation/import
 
     // Auto-detected device description for UI display
     deviceDescription: text("device_description"), // e.g., "macOS 14.1" or "iPhone (iOS 17.2)"
@@ -177,7 +177,7 @@ export const TableVault = sqliteTable(
 - Device ID is **per-vault**, not global across all vaults
 - Same physical device gets different device IDs for different vaults/domains
 - Prevents cross-domain/cross-vault device correlation by servers
-- Generated using ULID on vault creation or import
+- Generated using UUIDv7 on vault creation or import
 - Stored locally in SQLite database
 - Never shared except with that specific vault's server
 
@@ -221,7 +221,7 @@ function detectDeviceDescription(): string {
 export const TableDeviceSession = pgTable(
   'device_session',
   {
-    // Primary key - ULID
+    // Primary key - UUIDv7
     id: varchar('id', { length: 26 }).primaryKey(),
 
     // Foreign key to vault
@@ -229,7 +229,7 @@ export const TableDeviceSession = pgTable(
       .notNull()
       .references(() => TableVault.id, { onDelete: 'cascade' }),
 
-    // Device identifier (client-generated ULID, unique per vault per device)
+    // Device identifier (client-generated UUIDv7, unique per vault per device)
     deviceId: varchar('device_id', { length: 26 }).notNull(),
 
     // Device metadata for user-facing identification
@@ -295,11 +295,11 @@ export const TableDeviceSession = pgTable(
 **When creating a new vault:**
 
 ```typescript
-import { ulid } from "ulid";
+import { uuidv7 } from "@keypears/lib";
 import { platform, version, arch } from '@tauri-apps/plugin-os';
 
 // Generate NEW device ID for this vault
-const deviceId = ulid(); // Fresh ULID for this specific vault
+const deviceId = uuidv7(); // Fresh UUIDv7 for this specific vault
 
 // Auto-detect device description
 const deviceDescription = detectDeviceDescription(); // e.g., "macOS 14.1 (aarch64)"
@@ -321,7 +321,7 @@ await db.insert(TableVault).values({
 
 ```typescript
 // Generate NEW device ID for this imported vault (privacy!)
-const deviceId = ulid(); // Different from vault's ID on other devices
+const deviceId = uuidv7(); // Different from vault's ID on other devices
 
 // Auto-detect device description for THIS device
 const deviceDescription = detectDeviceDescription();
@@ -357,14 +357,14 @@ await db.insert(TableVault).values({
 {
   vaultId: string,                    // Which vault to authenticate to (from client SQLite DB)
   loginKey: string,                   // 64-char hex (proves password + vaultId knowledge)
-  deviceId: string,                   // 26-char ULID (per-vault device identifier from client DB)
+  deviceId: string,                   // 26-char UUIDv7 (per-vault device identifier from client DB)
   clientDeviceDescription?: string,   // Optional: "macOS 14.1 (aarch64)" - auto-detected
 }
 ```
 
 **Important:** Client must have vaultId before calling login:
 
-- On vault creation: Generated client-side with `ulid()`
+- On vault creation: Generated client-side with `uuidv7()`
 - On vault import: Retrieved via `getVaultInfoPublic()` endpoint
 - On unlock: Read from local SQLite vault table
 
@@ -696,7 +696,7 @@ database only stores hashes
 **Implementation notes:**
 
 - Added `deviceId` and `deviceDescription` fields to client vault table
-- Device IDs are per-vault ULIDs (privacy-focused)
+- Device IDs are per-vault UUIDv7s (privacy-focused)
 - Session tokens stored in memory only (React state in VaultContext)
 - Background sync uses session token getter function
 - Login flow: verify password → generate/get device ID → call /api/login → store
@@ -884,7 +884,7 @@ KeyPears implements **per-vault device IDs** for maximum privacy:
 
 **What's shared vs private:**
 
-- ✅ Shared with specific vault's server: Per-vault device ID (random ULID)
+- ✅ Shared with specific vault's server: Per-vault device ID (random UUIDv7)
 - ✅ Shared with specific vault's server: Device description ("macOS 14.1")
 - ❌ NOT shared: Physical device identity
 - ❌ NOT shared: Device IDs from other vaults

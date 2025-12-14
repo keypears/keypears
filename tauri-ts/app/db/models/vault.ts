@@ -32,7 +32,7 @@ export async function createVault(
   const createdAt = Date.now();
 
   await db.insert(TableVault).values({
-    id: vaultId, // Server-generated ULID
+    id: vaultId, // Server-generated UUIDv7
     name,
     domain,
     encryptedVaultKey,

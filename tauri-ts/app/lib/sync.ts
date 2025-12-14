@@ -140,7 +140,7 @@ export async function syncVault(
  * Does NOT sync - sync will pick it up on next poll
  *
  * @param vaultId - The vault this secret belongs to
- * @param secretId - The secret ID (client-generated ULID for grouping updates)
+ * @param secretId - The secret ID (client-generated UUIDv7 for grouping updates)
  * @param secretData - The secret data to encrypt and send
  * @param vaultKey - The vault key for encryption
  * @param apiClient - The orpc API client

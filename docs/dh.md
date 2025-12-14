@@ -273,7 +273,7 @@ was used:
 ```typescript
 // Database schema for engagement keys
 engagement_keys: {
-  id: ulid(),
+  id: uuidv7(),
   username: "bob",
   engagement_public_key: "02abc...",
   encrypted_random_private: "...",
@@ -500,7 +500,7 @@ The `derived_keys` table stores all information needed to re-derive keys:
 
 | Field                  | Type      | Purpose                                   |
 | ---------------------- | --------- | ----------------------------------------- |
-| `id`                   | ULID      | Primary key                               |
+| `id`                   | UUIDv7    | Primary key                               |
 | `vault_id`             | FK        | Which vault this key belongs to           |
 | `db_entropy`           | 32 bytes  | Random entropy for this key               |
 | `db_entropy_hash`      | 32 bytes  | SHA256(db_entropy) for integrity          |
@@ -525,7 +525,7 @@ The client may cache derived key info locally to avoid server round-trips:
 
 | Field                       | Type      | Purpose                          |
 | --------------------------- | --------- | -------------------------------- |
-| `id`                        | ULID      | Matches server ID                |
+| `id`                        | UUIDv7    | Matches server ID                |
 | `derived_pubkey`            | 33 bytes  | The engagement public key        |
 | `derived_privkey_encrypted` | bytes     | Cached, encrypted with vault key |
 | `counterparty_address`      | string    | Who this key is for              |

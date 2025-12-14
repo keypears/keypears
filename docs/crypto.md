@@ -316,7 +316,7 @@ Hashed Login Key (stored in database)
 - **Defeats rainbow table attacks by malicious servers**:
   - Even with common password "password123", each vault has unique password key
   - Server cannot precompute `loginKey` without knowing specific `vaultId`
-  - Since `vaultId` is random ULID, no practical rainbow table possible
+  - Since `vaultId` is random UUIDv7, no practical rainbow table possible
 
 - **Defense in depth**:
   - Client-side: Vault ID prevents rainbow tables
@@ -325,7 +325,7 @@ Hashed Login Key (stored in database)
 
 - **Architectural requirement**:
   - Client must obtain `vaultId` before deriving keys
-  - For registration: Client generates `vaultId` (ULID), suggests to server
+  - For registration: Client generates `vaultId` (UUIDv7), suggests to server
   - For unlock: Client retrieves `vaultId` from local SQLite
   - For import: Server provides `vaultId` during import flow
 

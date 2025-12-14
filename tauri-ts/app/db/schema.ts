@@ -10,14 +10,14 @@ import {
 export const TableVault = sqliteTable(
   "vault",
   {
-    id: text("id").primaryKey(), // Server-generated ULID (no client-side default)
+    id: text("id").primaryKey(), // Server-generated UUIDv7 (no client-side default)
     name: text("name").notNull(), // e.g., "alice"
     domain: text("domain").notNull(), // e.g., "keypears.com"
     encryptedVaultKey: text("encrypted_vault_key").notNull(), // Encrypted 32-byte secp256k1 private key
     vaultPubKeyHash: text("vault_pubkeyhash").notNull(), // 32-byte Blake3 hash of public key
 
     // Device identity (for session management)
-    deviceId: text("device_id").notNull(), // Client-generated ULID, unique per vault per device
+    deviceId: text("device_id").notNull(), // Client-generated UUIDv7, unique per vault per device
     deviceDescription: text("device_description"), // Auto-detected OS info (e.g., "macOS 14.1 (aarch64)")
 
     lastSyncTimestamp: integer("last_sync_timestamp"),
@@ -40,7 +40,7 @@ export const TableSecretUpdate = sqliteTable(
   "secret_update",
   {
     // Server-generated fields (immutable once synced)
-    id: text("id").primaryKey(), // Server-generated ULID (no client-side default)
+    id: text("id").primaryKey(), // Server-generated UUIDv7 (no client-side default)
     vaultId: text("vault_id")
       .notNull()
       .references(() => TableVault.id, { onDelete: "cascade" }),

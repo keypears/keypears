@@ -63,7 +63,7 @@ The system combines three entropy sources:
 
 | Column                 | Type         | Description                      |
 | ---------------------- | ------------ | -------------------------------- |
-| `id`                   | varchar(26)  | ULID primary key                 |
+| `id`                   | varchar(26)  | UUIDv7 primary key               |
 | `vault_id`             | varchar(26)  | FK to vault                      |
 | `db_entropy`           | varchar(64)  | 32 bytes hex                     |
 | `db_entropy_hash`      | varchar(64)  | SHA256(db_entropy)               |
