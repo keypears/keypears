@@ -460,6 +460,57 @@ export function calculatePasswordEntropy(
   return length * Math.log2(charsetSize);
 }
 
+// ============================================================================
+// PoW Difficulty Calculation
+// ============================================================================
+
+/**
+ * Base difficulty for PoW registration: 4,194,304 (2^22)
+ * This is the difficulty for names with 10+ characters.
+ * Shorter names have exponentially higher difficulty.
+ */
+export const BASE_REGISTRATION_DIFFICULTY = 4194304n;
+
+/**
+ * Reference length for base difficulty.
+ * Names of this length or longer use BASE_REGISTRATION_DIFFICULTY.
+ */
+const DIFFICULTY_REFERENCE_LENGTH = 10;
+
+/**
+ * Calculates the PoW difficulty required to register a given vault name.
+ *
+ * Shorter names are more valuable and require more computational work to register.
+ * The difficulty doubles for each character shorter than the reference length (10).
+ *
+ * Formula: difficulty = BASE_DIFFICULTY * 2^(REFERENCE_LENGTH - name.length)
+ *
+ * Examples:
+ * - 3 chars:  512M difficulty (~8 minutes on GPU)
+ * - 4 chars:  256M difficulty (~4 minutes)
+ * - 5 chars:  128M difficulty (~2 minutes)
+ * - 6 chars:   64M difficulty (~1 minute)
+ * - 7 chars:   32M difficulty (~32 seconds)
+ * - 8 chars:   16M difficulty (~16 seconds)
+ * - 9 chars:    8M difficulty (~8 seconds)
+ * - 10+ chars:  4M difficulty (~4 seconds) - base/floor
+ *
+ * @param name - The vault name to calculate difficulty for
+ * @returns The difficulty as a bigint
+ */
+export function difficultyForName(name: string): bigint {
+  const length = name.length;
+
+  // Names at or above reference length get base difficulty
+  if (length >= DIFFICULTY_REFERENCE_LENGTH) {
+    return BASE_REGISTRATION_DIFFICULTY;
+  }
+
+  // For shorter names: double difficulty for each character less
+  const exponent = DIFFICULTY_REFERENCE_LENGTH - length;
+  return BASE_REGISTRATION_DIFFICULTY * (1n << BigInt(exponent));
+}
+
 /**
  * Derives a derivation private key from server entropy and DB entropy.
  *
