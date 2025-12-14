@@ -333,7 +333,7 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 
 ## Phase 4: Proof-of-Work for New User Registrations
 
-**Status**: 🚧 **IN PROGRESS** - Algorithm complete, API integration pending
+**Status**: ✅ **COMPLETED**
 
 **Goal**: Require proof-of-work for new vault registrations to prevent
 spam/sybil attacks.
@@ -345,7 +345,7 @@ spam/sybil attacks.
 - [x] Migrate pow5 algorithm from earthbucks to keypears
 - [x] Create pow5-64b variant (64-byte format: 32-byte nonce + 32-byte
       challenge)
-- [x] Preserve pow5-217a variant for reference (original earthbucks format)
+- [x] Remove pow5-217a variant (simplified to single algorithm)
 - [x] WGSL shader for GPU mining (`pow5-ts/src/pow5-64b.wgsl`)
 - [x] TypeScript WGSL wrapper (`pow5-ts/src/pow5-64b-wgsl.ts`)
 - [x] Rust WASM implementation (`pow5-rs/src/lib.rs` with `_64b` functions)
@@ -364,35 +364,23 @@ spam/sybil attacks.
   - [x] Verify challenge bytes match (bytes 32-63)
   - [x] Recompute hash using WASM and verify match
   - [x] Verify hash < target
-- [x] Create test page in tauri-ts (`/test-pow5`)
+- [x] Create test page in tauri-ts (`/test-pow`)
   - [x] UI to request challenge from server
   - [x] GPU mining using WGSL with WASM fallback
   - [x] Display implementation used (WGSL/WASM)
   - [x] Submit proof and show verification result
-  - [x] Accessible from burger menu ("Test Pow5")
-
-**Note**: Test implementation is NOT production-secure (no database storage,
-no expiration, client sends back original header). This is intentional for
-proof-of-concept testing.
+  - [x] Accessible from burger menu ("Test PoW")
 
 ### New User Registration Integration
 
-- [ ] Update `registerVault` procedure to require proof-of-work
-  - [ ] Accept additional fields: `nonce`, `challenge`, `proofHash`
-  - [ ] Verify proof before creating vault
-  - [ ] Rate limit challenge generation per IP
-- [ ] Update tauri-ts vault creation wizard
-  - [ ] Add PoW step after name/password
-  - [ ] Show mining progress UI
-  - [ ] Handle WebGPU fallback to WASM
-
-### Future: Message Spam Prevention
-
-(Placeholder - to be implemented after DH key exchange in Phase 5)
-
-- [ ] PoW for first message to unknown recipient
-- [ ] Challenge negotiation between servers
-- [ ] Difficulty adjustment based on relationship
+- [x] Update `registerVault` procedure to require proof-of-work
+  - [x] Accept additional fields: `challengeId`, `solvedHeader`, `hash`
+  - [x] Verify proof before creating vault
+  - [x] Atomic challenge consumption (prevents replay attacks)
+- [x] Update tauri-ts vault creation wizard
+  - [x] Add PoW step after name/password
+  - [x] Show mining progress UI
+  - [x] Handle WebGPU fallback to WASM
 
 ---
 
