@@ -12,20 +12,18 @@ const DEFAULT_DIFFICULTY = 4194304n;
 /**
  * Get PoW Challenge procedure
  *
- * Randomly selects pow5-64b or pow5-217a algorithm (50/50).
- * Returns a fully random header of the appropriate size and target for mining.
+ * Currently uses pow5-64b algorithm (more algorithms may be added in the future).
+ * Returns a fully random 64-byte header and target for mining.
  * The challenge is stored in the database and can only be used once.
  *
  * Note: This endpoint allows client-specified difficulty for testing purposes.
  * For registration, the server enforces a minimum difficulty during verification.
  *
- * Header sizes:
- * - pow5-64b: 64 bytes (nonce region: bytes 0-31)
- * - pow5-217a: 217 bytes (nonce region: bytes 117-148)
+ * pow5-64b: 64 bytes header, nonce region: bytes 0-31
  *
  * Security:
  * - Challenge stored in database with unique ID
- * - Challenge expires after 5 minutes
+ * - Challenge expires after 15 minutes
  * - Each challenge can only be verified once (marked as used)
  */
 export const getPowChallengeProcedure = base

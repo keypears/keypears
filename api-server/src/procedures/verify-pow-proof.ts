@@ -9,7 +9,7 @@ import { verifyAndConsume } from "../db/models/pow-challenge.js";
  * Verify PoW Proof procedure
  *
  * Verifies that the client computed a valid proof-of-work.
- * Supports both pow5-64b and pow5-217a algorithms.
+ * Currently supports pow5-64b algorithm.
  *
  * This is a standalone verification endpoint for testing purposes.
  * It does NOT enforce minimum difficulty - use registerVault for that.

@@ -29,7 +29,7 @@
     "typecheck:test": "tsc -b tsconfig.test.json --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:server": "TEST_REGISTRATION_DIFFICULTY=256 dotenvx run -f .env.development -- tsx test/server.ts",
+    "test:server": "NODE_ENV=test dotenvx run -f .env.development -- tsx test/server.ts",
     "test:server:prod": "dotenvx run -f .env.production -- tsx test/server.ts"
   },
   "devDependencies": {

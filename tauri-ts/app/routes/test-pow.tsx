@@ -73,7 +73,7 @@ export default function TestPow() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Test PoW</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Test the proof-of-work algorithm (pow5-64b or pow5-217a)
+              Test the proof-of-work algorithm (pow5-64b)
             </p>
           </div>
 

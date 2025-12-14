@@ -472,6 +472,12 @@ export function calculatePasswordEntropy(
 export const BASE_REGISTRATION_DIFFICULTY = 4194304n;
 
 /**
+ * Base difficulty for tests: 1 (trivial, for fast test execution)
+ * The 2x scaling per character still applies, but tests complete instantly.
+ */
+export const TEST_BASE_DIFFICULTY = 1n;
+
+/**
  * Reference length for base difficulty.
  * Names of this length or longer use BASE_REGISTRATION_DIFFICULTY.
  */
@@ -483,9 +489,11 @@ const DIFFICULTY_REFERENCE_LENGTH = 10;
  * Shorter names are more valuable and require more computational work to register.
  * The difficulty doubles for each character shorter than the reference length (10).
  *
+ * In test environment (NODE_ENV=test), uses TEST_BASE_DIFFICULTY (1) for fast tests.
+ *
  * Formula: difficulty = BASE_DIFFICULTY * 2^(REFERENCE_LENGTH - name.length)
  *
- * Examples:
+ * Production examples:
  * - 3 chars:  512M difficulty (~8 minutes on GPU)
  * - 4 chars:  256M difficulty (~4 minutes)
  * - 5 chars:  128M difficulty (~2 minutes)
@@ -499,16 +507,22 @@ const DIFFICULTY_REFERENCE_LENGTH = 10;
  * @returns The difficulty as a bigint
  */
 export function difficultyForName(name: string): bigint {
+  // Use test difficulty in test environment for fast test execution
+  const baseDifficulty =
+    process.env.NODE_ENV === "test"
+      ? TEST_BASE_DIFFICULTY
+      : BASE_REGISTRATION_DIFFICULTY;
+
   const length = name.length;
 
   // Names at or above reference length get base difficulty
   if (length >= DIFFICULTY_REFERENCE_LENGTH) {
-    return BASE_REGISTRATION_DIFFICULTY;
+    return baseDifficulty;
   }
 
   // For shorter names: double difficulty for each character less
   const exponent = DIFFICULTY_REFERENCE_LENGTH - length;
-  return BASE_REGISTRATION_DIFFICULTY * (1n << BigInt(exponent));
+  return baseDifficulty * (1n << BigInt(exponent));
 }
 
 /**

@@ -2,7 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import * as Pow5_64b_Wasm from "@keypears/pow5/dist/pow5-64b-wasm.js";
-import * as Pow5_217a_Wasm from "@keypears/pow5/dist/pow5-217a-wasm.js";
 import {
   hashMeetsTarget,
   targetFromDifficulty,
@@ -13,17 +12,14 @@ import { TablePowChallenge } from "../schema.js";
 import {
   CHALLENGE_EXPIRATION_MS,
   HEADER_SIZE_64B,
-  HEADER_SIZE_217A,
   NONCE_START_64B,
   NONCE_END_64B,
-  NONCE_START_217A,
-  NONCE_END_217A,
 } from "../../constants.js";
 
 /**
- * PoW algorithm type
+ * PoW algorithm type (currently only pow5-64b, more may be added in the future)
  */
-export type PowAlgorithm = "pow5-64b" | "pow5-217a";
+export type PowAlgorithm = "pow5-64b";
 
 /**
  * PoW Challenge model interface
@@ -127,18 +123,12 @@ export async function createChallenge(
 ): Promise<PowChallenge> {
   const { difficulty } = options;
 
-  // Select algorithm: use provided or randomly select (50/50)
-  let algorithm: PowAlgorithm;
-  if (options.algorithm) {
-    algorithm = options.algorithm;
-  } else {
-    const randomByte = FixedBuf.fromRandom(1).buf[0] ?? 0;
-    algorithm = (randomByte & 1) === 0 ? "pow5-64b" : "pow5-217a";
-  }
+  // Use specified algorithm or default to pow5-64b
+  // (currently only pow5-64b is supported, more may be added in the future)
+  const algorithm: PowAlgorithm = options.algorithm ?? "pow5-64b";
 
   // Generate fully random header of appropriate size
-  const headerSize = algorithm === "pow5-64b" ? HEADER_SIZE_64B : HEADER_SIZE_217A;
-  const header = FixedBuf.fromRandom(headerSize).buf;
+  const header = FixedBuf.fromRandom(HEADER_SIZE_64B).buf;
 
   // Calculate target from difficulty
   const target = targetFromDifficulty(difficulty);
@@ -230,12 +220,11 @@ export async function verifyAndConsume(
     const algorithm = challenge.algorithm;
     const originalHeader = challenge.header;
 
-    // Determine expected header size and nonce region based on algorithm
-    const expectedSize =
-      algorithm === "pow5-64b" ? HEADER_SIZE_64B : HEADER_SIZE_217A;
-    const nonceStart =
-      algorithm === "pow5-64b" ? NONCE_START_64B : NONCE_START_217A;
-    const nonceEnd = algorithm === "pow5-64b" ? NONCE_END_64B : NONCE_END_217A;
+    // Currently only pow5-64b is supported
+    // Header size and nonce region for pow5-64b
+    const expectedSize = HEADER_SIZE_64B;
+    const nonceStart = NONCE_START_64B;
+    const nonceEnd = NONCE_END_64B;
 
     // 4. Validate solved header length (hex string length = 2 * byte length)
     const expectedHexLength = expectedSize * 2;
@@ -268,15 +257,9 @@ export async function verifyAndConsume(
       };
     }
 
-    // 6. Recompute the hash and verify it matches
-    let computedHash: FixedBuf<32>;
-    if (algorithm === "pow5-64b") {
-      const solvedFixed = FixedBuf.fromBuf(64, solvedHeaderBuf);
-      computedHash = Pow5_64b_Wasm.elementaryIteration(solvedFixed);
-    } else {
-      const solvedFixed = FixedBuf.fromBuf(217, solvedHeaderBuf);
-      computedHash = Pow5_217a_Wasm.elementaryIteration(solvedFixed);
-    }
+    // 6. Recompute the hash and verify it matches (pow5-64b)
+    const solvedFixed = FixedBuf.fromBuf(64, solvedHeaderBuf);
+    const computedHash = Pow5_64b_Wasm.elementaryIteration(solvedFixed);
 
     if (computedHash.buf.toHex() !== hashBuf.buf.toHex()) {
       return {

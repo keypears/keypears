@@ -5,10 +5,9 @@ export default defineConfig({
     // Run test files sequentially (not in parallel)
     // This is necessary because tests share a database and need isolation
     fileParallelism: false,
-    // Set low registration difficulty for fast test execution
-    // This overrides REGISTRATION_DIFFICULTY in src/constants.ts
+    // Set NODE_ENV=test for low difficulty (see difficultyForName in lib)
     env: {
-      TEST_REGISTRATION_DIFFICULTY: "256",
+      NODE_ENV: "test",
     },
   },
 });

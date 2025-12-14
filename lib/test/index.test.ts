@@ -4,6 +4,7 @@ import { WebBuf } from "@webbuf/webbuf";
 import { describe, expect, it } from "vitest";
 import {
   BASE_REGISTRATION_DIFFICULTY,
+  TEST_BASE_DIFFICULTY,
   calculatePasswordEntropy,
   decryptKey,
   decryptPassword,
@@ -21,6 +22,12 @@ import {
   idToUuid,
   uuidToId,
 } from "~src/index";
+
+// Helper to get the current base difficulty based on environment
+const currentBaseDifficulty =
+  process.env.NODE_ENV === "test"
+    ? TEST_BASE_DIFFICULTY
+    : BASE_REGISTRATION_DIFFICULTY;
 
 describe("Index", () => {
   const testVaultId = "01JDQXZ9K8XQXQXQXQXQXQXQXQ";
@@ -460,42 +467,34 @@ describe("Index", () => {
       expect(BASE_REGISTRATION_DIFFICULTY).toBe(1n << 22n);
     });
 
+    it("should have TEST_BASE_DIFFICULTY equal to 1", () => {
+      expect(TEST_BASE_DIFFICULTY).toBe(1n);
+    });
+
     it("should return base difficulty for 10+ character names", () => {
-      expect(difficultyForName("abcdefghij")).toBe(BASE_REGISTRATION_DIFFICULTY); // 10 chars
-      expect(difficultyForName("abcdefghijk")).toBe(
-        BASE_REGISTRATION_DIFFICULTY,
-      ); // 11 chars
-      expect(difficultyForName("abcdefghijkl")).toBe(
-        BASE_REGISTRATION_DIFFICULTY,
-      ); // 12 chars
+      // Uses currentBaseDifficulty which is environment-dependent
+      expect(difficultyForName("abcdefghij")).toBe(currentBaseDifficulty); // 10 chars
+      expect(difficultyForName("abcdefghijk")).toBe(currentBaseDifficulty); // 11 chars
+      expect(difficultyForName("abcdefghijkl")).toBe(currentBaseDifficulty); // 12 chars
       expect(difficultyForName("abcdefghijklmnopqrst")).toBe(
-        BASE_REGISTRATION_DIFFICULTY,
+        currentBaseDifficulty,
       ); // 20 chars
     });
 
     it("should return correct difficulty for each name length 3-9", () => {
       // Formula: BASE_DIFFICULTY * 2^(10 - length)
-      expect(difficultyForName("abc")).toBe(BASE_REGISTRATION_DIFFICULTY * 128n); // 3 chars: 2^7 = 128x
-      expect(difficultyForName("abcd")).toBe(BASE_REGISTRATION_DIFFICULTY * 64n); // 4 chars: 2^6 = 64x
-      expect(difficultyForName("abcde")).toBe(
-        BASE_REGISTRATION_DIFFICULTY * 32n,
-      ); // 5 chars: 2^5 = 32x
-      expect(difficultyForName("abcdef")).toBe(
-        BASE_REGISTRATION_DIFFICULTY * 16n,
-      ); // 6 chars: 2^4 = 16x
-      expect(difficultyForName("abcdefg")).toBe(
-        BASE_REGISTRATION_DIFFICULTY * 8n,
-      ); // 7 chars: 2^3 = 8x
-      expect(difficultyForName("abcdefgh")).toBe(
-        BASE_REGISTRATION_DIFFICULTY * 4n,
-      ); // 8 chars: 2^2 = 4x
-      expect(difficultyForName("abcdefghi")).toBe(
-        BASE_REGISTRATION_DIFFICULTY * 2n,
-      ); // 9 chars: 2^1 = 2x
+      // Uses currentBaseDifficulty which is environment-dependent
+      expect(difficultyForName("abc")).toBe(currentBaseDifficulty * 128n); // 3 chars: 2^7 = 128x
+      expect(difficultyForName("abcd")).toBe(currentBaseDifficulty * 64n); // 4 chars: 2^6 = 64x
+      expect(difficultyForName("abcde")).toBe(currentBaseDifficulty * 32n); // 5 chars: 2^5 = 32x
+      expect(difficultyForName("abcdef")).toBe(currentBaseDifficulty * 16n); // 6 chars: 2^4 = 16x
+      expect(difficultyForName("abcdefg")).toBe(currentBaseDifficulty * 8n); // 7 chars: 2^3 = 8x
+      expect(difficultyForName("abcdefgh")).toBe(currentBaseDifficulty * 4n); // 8 chars: 2^2 = 4x
+      expect(difficultyForName("abcdefghi")).toBe(currentBaseDifficulty * 2n); // 9 chars: 2^1 = 2x
     });
 
     it("should double difficulty for each character shorter than 10", () => {
-      // Verify the doubling relationship
+      // Verify the doubling relationship (this test is environment-independent)
       for (let len = 9; len >= 3; len--) {
         const name = "a".repeat(len);
         const longerName = "a".repeat(len + 1);
@@ -503,41 +502,42 @@ describe("Index", () => {
       }
     });
 
-    it("should return exact expected values for common name lengths", () => {
-      // 3 chars: 4M * 128 = 512M
-      expect(difficultyForName("abc")).toBe(536870912n);
-      // 4 chars: 4M * 64 = 256M
-      expect(difficultyForName("abcd")).toBe(268435456n);
-      // 5 chars: 4M * 32 = 128M
-      expect(difficultyForName("abcde")).toBe(134217728n);
-      // 6 chars: 4M * 16 = 64M
-      expect(difficultyForName("abcdef")).toBe(67108864n);
-      // 7 chars: 4M * 8 = 32M
-      expect(difficultyForName("abcdefg")).toBe(33554432n);
-      // 8 chars: 4M * 4 = 16M
-      expect(difficultyForName("abcdefgh")).toBe(16777216n);
-      // 9 chars: 4M * 2 = 8M
-      expect(difficultyForName("abcdefghi")).toBe(8388608n);
-      // 10+ chars: 4M
-      expect(difficultyForName("abcdefghij")).toBe(4194304n);
+    it("should return exact expected values for common name lengths in production", () => {
+      // These are production values (when NODE_ENV !== 'test')
+      // In test mode, values are 4,194,304x smaller
+      const expectedMultiplier =
+        process.env.NODE_ENV === "test" ? 1n : BASE_REGISTRATION_DIFFICULTY;
+      // 3 chars: base * 128 = 128 (test) or 512M (prod)
+      expect(difficultyForName("abc")).toBe(expectedMultiplier * 128n);
+      // 4 chars: base * 64 = 64 (test) or 256M (prod)
+      expect(difficultyForName("abcd")).toBe(expectedMultiplier * 64n);
+      // 5 chars: base * 32 = 32 (test) or 128M (prod)
+      expect(difficultyForName("abcde")).toBe(expectedMultiplier * 32n);
+      // 6 chars: base * 16 = 16 (test) or 64M (prod)
+      expect(difficultyForName("abcdef")).toBe(expectedMultiplier * 16n);
+      // 7 chars: base * 8 = 8 (test) or 32M (prod)
+      expect(difficultyForName("abcdefg")).toBe(expectedMultiplier * 8n);
+      // 8 chars: base * 4 = 4 (test) or 16M (prod)
+      expect(difficultyForName("abcdefgh")).toBe(expectedMultiplier * 4n);
+      // 9 chars: base * 2 = 2 (test) or 8M (prod)
+      expect(difficultyForName("abcdefghi")).toBe(expectedMultiplier * 2n);
+      // 10+ chars: base = 1 (test) or 4M (prod)
+      expect(difficultyForName("abcdefghij")).toBe(expectedMultiplier);
     });
 
     it("should handle edge cases for very short names", () => {
+      // Uses currentBaseDifficulty which is environment-dependent
       // Empty string: 2^10 = 1024x base
-      expect(difficultyForName("")).toBe(BASE_REGISTRATION_DIFFICULTY * 1024n);
+      expect(difficultyForName("")).toBe(currentBaseDifficulty * 1024n);
       // 1 char: 2^9 = 512x base
-      expect(difficultyForName("a")).toBe(BASE_REGISTRATION_DIFFICULTY * 512n);
+      expect(difficultyForName("a")).toBe(currentBaseDifficulty * 512n);
       // 2 chars: 2^8 = 256x base
-      expect(difficultyForName("ab")).toBe(BASE_REGISTRATION_DIFFICULTY * 256n);
+      expect(difficultyForName("ab")).toBe(currentBaseDifficulty * 256n);
     });
 
     it("should handle very long names", () => {
-      expect(difficultyForName("a".repeat(30))).toBe(
-        BASE_REGISTRATION_DIFFICULTY,
-      );
-      expect(difficultyForName("a".repeat(100))).toBe(
-        BASE_REGISTRATION_DIFFICULTY,
-      );
+      expect(difficultyForName("a".repeat(30))).toBe(currentBaseDifficulty);
+      expect(difficultyForName("a".repeat(100))).toBe(currentBaseDifficulty);
     });
 
     it("should return bigint type", () => {

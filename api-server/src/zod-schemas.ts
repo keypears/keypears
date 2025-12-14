@@ -107,14 +107,15 @@ export const GetDerivationPrivKeyResponseSchema = z.object({
   derivationPrivKey: z.string().length(64), // 32 bytes hex = 64 chars
 });
 
-// PoW Algorithm enum
-export const PowAlgorithmSchema = z.enum(["pow5-64b", "pow5-217a"]);
+// PoW Algorithm enum (currently only pow5-64b, more may be added in the future)
+export const PowAlgorithmSchema = z.enum(["pow5-64b"]);
 export type PowAlgorithm = z.infer<typeof PowAlgorithmSchema>;
 
 // PoW Challenge - generates a challenge and stores it in the database
 // Each challenge can only be used once and expires after 5 minutes
-// Minimum difficulty: 256 (2^8)
+// Minimum difficulty: 1 (allows test mode with TEST_BASE_DIFFICULTY=1)
 // Default difficulty: 4,194,304 (2^22)
+// Note: Actual difficulty enforcement happens in registerVault via difficultyForName
 export const GetPowChallengeRequestSchema = z.object({
   difficulty: z
     .string()
@@ -123,15 +124,15 @@ export const GetPowChallengeRequestSchema = z.object({
       (val) => {
         if (val === undefined) return true;
         const num = BigInt(val);
-        return num >= 256n;
+        return num >= 1n;
       },
-      { message: "Difficulty must be at least 256" },
+      { message: "Difficulty must be at least 1" },
     ),
 });
 
 export const GetPowChallengeResponseSchema = z.object({
   id: z.string().length(26), // UUIDv7 (26-char) challenge ID for verification
-  header: z.string(), // 64 bytes (128 chars) for pow5-64b, 217 bytes (434 chars) for pow5-217a
+  header: z.string(), // 64 bytes (128 hex chars) for pow5-64b
   target: z.string().length(64), // 32 bytes hex = 64 chars
   difficulty: z.string(), // bigint as string
   algorithm: PowAlgorithmSchema,

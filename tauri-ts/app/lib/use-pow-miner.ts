@@ -4,8 +4,6 @@ import { FixedBuf } from "@keypears/lib";
 import {
   Pow5_64b_Wgsl,
   Pow5_64b_Wasm,
-  Pow5_217a_Wgsl,
-  Pow5_217a_Wasm,
   hashMeetsTarget,
 } from "@keypears/pow5";
 
@@ -25,15 +23,8 @@ function randomizeHeader64(header: FixedBuf<64>): FixedBuf<64> {
   return FixedBuf.fromBuf(64, buf);
 }
 
-// Helper to create a header with randomized nonce region (bytes 117-148)
-function randomizeHeader217(header: FixedBuf<217>): FixedBuf<217> {
-  const buf = header.buf.clone();
-  const randomNonce = FixedBuf.fromRandom(32);
-  buf.set(randomNonce.buf, 117);
-  return FixedBuf.fromBuf(217, buf);
-}
-
-export type PowAlgorithm = "pow5-64b" | "pow5-217a";
+// PoW algorithm type (currently only pow5-64b, more may be added in the future)
+export type PowAlgorithm = "pow5-64b";
 export type PowImplementation = "WGSL" | "WASM";
 
 export type PowMinerStatus =
@@ -176,131 +167,66 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
       setImplementation(impl);
       setStatus("mining");
 
-      if (challengeAlgorithm === "pow5-64b") {
-        const headerBuf = FixedBuf.fromHex(64, challenge.header);
+      // Currently only pow5-64b is supported (more algorithms may be added in the future)
+      const headerBuf = FixedBuf.fromHex(64, challenge.header);
 
-        if (useWgsl) {
-          // WGSL/GPU mining for pow5-64b
-          const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
-          await pow5.init();
+      if (useWgsl) {
+        // WGSL/GPU mining for pow5-64b
+        const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
+        await pow5.init();
 
-          let found = false;
-          let currentHeader = headerBuf;
+        let found = false;
+        let currentHeader = headerBuf;
 
-          while (!found && !cancelledRef.current) {
-            const workResult = await pow5.work();
-            iterationsRef.current++;
-            setIterations(iterationsRef.current);
-            setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
-            setElapsedMs(Date.now() - startTimeRef.current);
+        while (!found && !cancelledRef.current) {
+          const workResult = await pow5.work();
+          iterationsRef.current++;
+          setIterations(iterationsRef.current);
+          setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
+          setElapsedMs(Date.now() - startTimeRef.current);
 
-            const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+          const isZeroHash = workResult.hash.buf.every((b) => b === 0);
 
-            if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
-              nonce = workResult.nonce;
-              hashHex = workResult.hash.buf.toHex();
-              solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
-                currentHeader,
-                nonce
-              ).buf.toHex();
-              found = true;
-            } else {
-              currentHeader = randomizeHeader64(headerBuf);
-              await pow5.setInput(currentHeader, targetBuf, 128);
-            }
-          }
-        } else {
-          // WASM/CPU mining for pow5-64b
-          let found = false;
-          nonce = 0;
-
-          while (!found && !cancelledRef.current) {
-            const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
-            const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
-            iterationsRef.current++;
-
-            if (hashMeetsTarget(testHash, targetBuf)) {
-              solvedHeaderHex = testHeader.buf.toHex();
-              hashHex = testHash.buf.toHex();
-              found = true;
-            } else {
-              nonce++;
-              if (nonce > 100_000_000) {
-                throw new Error("Mining took too long (>100M iterations)");
-              }
-            }
-
-            // Yield to UI every 10000 iterations for WASM
-            if (iterationsRef.current % 10000 === 0) {
-              setIterations(iterationsRef.current);
-              setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
-              setElapsedMs(Date.now() - startTimeRef.current);
-              await new Promise((resolve) => setTimeout(resolve, 0));
-            }
+          if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
+            nonce = workResult.nonce;
+            hashHex = workResult.hash.buf.toHex();
+            solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
+              currentHeader,
+              nonce
+            ).buf.toHex();
+            found = true;
+          } else {
+            currentHeader = randomizeHeader64(headerBuf);
+            await pow5.setInput(currentHeader, targetBuf, 128);
           }
         }
       } else {
-        // pow5-217a algorithm
-        const headerBuf = FixedBuf.fromHex(217, challenge.header);
+        // WASM/CPU mining for pow5-64b
+        let found = false;
+        nonce = 0;
 
-        if (useWgsl) {
-          // WGSL/GPU mining for pow5-217a
-          const pow5 = new Pow5_217a_Wgsl(headerBuf, targetBuf, 128);
-          await pow5.init();
+        while (!found && !cancelledRef.current) {
+          const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
+          const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
+          iterationsRef.current++;
 
-          let found = false;
-          let currentHeader = headerBuf;
-
-          while (!found && !cancelledRef.current) {
-            const workResult = await pow5.work();
-            iterationsRef.current++;
-            setIterations(iterationsRef.current);
-            setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
-            setElapsedMs(Date.now() - startTimeRef.current);
-
-            const isZeroHash = workResult.hash.buf.every((b) => b === 0);
-
-            if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
-              nonce = workResult.nonce;
-              hashHex = workResult.hash.buf.toHex();
-              solvedHeaderHex = Pow5_217a_Wasm.insertNonce(
-                currentHeader,
-                nonce
-              ).buf.toHex();
-              found = true;
-            } else {
-              currentHeader = randomizeHeader217(headerBuf);
-              await pow5.setInput(currentHeader, targetBuf, 128);
+          if (hashMeetsTarget(testHash, targetBuf)) {
+            solvedHeaderHex = testHeader.buf.toHex();
+            hashHex = testHash.buf.toHex();
+            found = true;
+          } else {
+            nonce++;
+            if (nonce > 100_000_000) {
+              throw new Error("Mining took too long (>100M iterations)");
             }
           }
-        } else {
-          // WASM/CPU mining for pow5-217a
-          let found = false;
-          nonce = 0;
 
-          while (!found && !cancelledRef.current) {
-            const testHeader = Pow5_217a_Wasm.insertNonce(headerBuf, nonce);
-            const testHash = Pow5_217a_Wasm.elementaryIteration(testHeader);
-            iterationsRef.current++;
-
-            if (hashMeetsTarget(testHash, targetBuf)) {
-              solvedHeaderHex = testHeader.buf.toHex();
-              hashHex = testHash.buf.toHex();
-              found = true;
-            } else {
-              nonce++;
-              if (nonce > 100_000_000) {
-                throw new Error("Mining took too long (>100M iterations)");
-              }
-            }
-
-            // Yield to UI every 10000 iterations for WASM
-            if (iterationsRef.current % 10000 === 0) {
-              setIterations(iterationsRef.current);
-              setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
-              setElapsedMs(Date.now() - startTimeRef.current);
-              await new Promise((resolve) => setTimeout(resolve, 0));
-            }
+          // Yield to UI every 10000 iterations for WASM
+          if (iterationsRef.current % 10000 === 0) {
+            setIterations(iterationsRef.current);
+            setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
+            setElapsedMs(Date.now() - startTimeRef.current);
+            await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }
       }

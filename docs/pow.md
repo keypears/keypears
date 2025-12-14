@@ -27,34 +27,29 @@ The Pow5 algorithm was invented by [EarthBucks](https://earthbucks.com) and is
 used under open-source license. Pow5 is specifically designed to be
 ASIC-resistant while remaining efficient on consumer GPUs.
 
-## Algorithms
+## Algorithm
 
-KeyPears uses two Pow5 algorithm variants. The server randomly selects one for
-each challenge (50/50 probability), increasing resistance to specialized
-hardware.
+KeyPears currently uses **pow5-64b**, a single Pow5 algorithm variant. The
+architecture supports adding additional algorithms in the future for increased
+ASIC resistance.
 
 ### pow5-64b
 
 - **Header size**: 64 bytes
 - **Nonce region**: Bytes 0-31 (32-byte space)
 - **GPU optimization**: Thread ID written to bytes 28-31
+- **Hash function**: SHA-256 with matrix multiplication operations
 
-### pow5-217a
+The algorithm is efficient on GPUs while resistant to simple ASIC optimization.
 
-- **Header size**: 217 bytes
-- **Nonce region**: Bytes 117-149 (32-byte space)
-- **Structure**: Designed for block headers with additional metadata fields
+### Future Algorithm Support
 
-### Why Two Algorithms?
+The system is designed to support multiple algorithms. Future additions could
+provide:
 
-Using both algorithms provides several benefits:
-
-1. **ASIC resistance**: Specialized hardware must support both variants
+1. **ASIC resistance**: Specialized hardware would need to support all variants
 2. **Different compute profiles**: Varying memory and computation requirements
-3. **Future flexibility**: Can adjust selection probability or add new variants
-
-Both algorithms use SHA-256 and matrix multiplication operations, making them
-efficient on GPUs while resistant to simple ASIC optimization.
+3. **Flexibility**: Can add new variants or adjust selection probability
 
 ## Difficulty System
 
@@ -241,7 +236,7 @@ KeyPears will use PoW to throttle cross-domain messaging:
 
 ### Completed
 
-- [x] Pow5 algorithm integration (both pow5-64b and pow5-217a)
+- [x] Pow5 algorithm integration (pow5-64b)
 - [x] WebGPU/WGSL GPU mining implementation
 - [x] WASM/CPU fallback implementation
 - [x] Variable difficulty based on vault name length

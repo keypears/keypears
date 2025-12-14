@@ -239,12 +239,11 @@ export const TablePowChallenge = pgTable(
     // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
     id: varchar("id", { length: 26 }).primaryKey(),
 
-    // Algorithm used for this challenge ("pow5-64b" or "pow5-217a")
+    // Algorithm used for this challenge (currently only "pow5-64b")
     algorithm: varchar("algorithm", { length: 20 }).notNull(),
 
     // Challenge header (hex-encoded)
-    // pow5-64b: 64 bytes = 128 chars
-    // pow5-217a: 217 bytes = 434 chars
+    // pow5-64b: 64 bytes = 128 hex chars
     header: text("header").notNull(),
 
     // Target hash that the solution must be less than (32 bytes hex = 64 chars)
