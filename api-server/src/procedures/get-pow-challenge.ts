@@ -10,9 +10,9 @@ import { base } from "./base.js";
 import { db } from "../db/index.js";
 import { TablePowChallenge } from "../db/schema.js";
 
-// Hardcoded difficulty for testing: 1,048,576 (2^20) = ~1 million hashes average
-// Takes 1-3 seconds with WGSL, much longer with WASM
-const TEST_DIFFICULTY = 1048576n;
+// Hardcoded difficulty for testing: 4,194,304 (2^22) = ~4 million hashes average
+// Takes a few seconds with WGSL, much longer with WASM
+const TEST_DIFFICULTY = 4194304n;
 
 // Header sizes for each algorithm
 const HEADER_SIZE_64B = 64;
