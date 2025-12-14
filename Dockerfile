@@ -9,7 +9,7 @@ COPY api-server/package.json /app/api-server/
 COPY webapp/package.json /app/webapp/
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Install all workspace dependencies
 RUN pnpm install --frozen-lockfile
 
@@ -28,7 +28,7 @@ COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/pow5-ts/node_modules /app/pow5-ts/node_modules
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Build pow5 package
 RUN pnpm --filter @keypears/pow5 build
 
@@ -47,7 +47,7 @@ COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/lib/node_modules /app/lib/node_modules
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Build lib package
 RUN pnpm --filter @keypears/lib build
 
@@ -71,7 +71,7 @@ COPY --from=dependencies-env /app/pow5-ts/node_modules /app/pow5-ts/node_modules
 COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_modules
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Build api-server package
 RUN pnpm --filter @keypears/api-server build
 
@@ -97,7 +97,7 @@ COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_m
 COPY --from=dependencies-env /app/webapp/node_modules /app/webapp/node_modules
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Build webapp
 RUN pnpm --filter @keypears/webapp build
 
@@ -112,7 +112,7 @@ COPY api-server/package.json /app/api-server/
 COPY webapp/package.json /app/webapp/
 WORKDIR /app
 # Install pnpm globally
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Install production dependencies only
 RUN pnpm install --prod --frozen-lockfile
 
@@ -148,6 +148,6 @@ COPY --from=production-dependencies-env /app/webapp/node_modules /app/webapp/nod
 # Set working directory to webapp
 WORKDIR /app/webapp
 # Install pnpm globally for the start command
-RUN npm install -g pnpm@10.17.0
+RUN npm install -g pnpm@10.25.0
 # Start webapp with integrated API
 CMD ["pnpm", "start"]

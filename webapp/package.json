@@ -3,7 +3,7 @@
   "description": "KeyPears webapp - Federated Diffie-Hellman Key Exchange System",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.17.0",
+  "packageManager": "pnpm@10.25.0",
   "scripts": {
     "db:prod:clear": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle-clear.config.ts",
     "db:prod:push": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle.config.ts",
