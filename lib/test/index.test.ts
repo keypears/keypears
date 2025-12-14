@@ -3,6 +3,7 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { describe, expect, it } from "vitest";
 import {
+  BASE_REGISTRATION_DIFFICULTY,
   calculatePasswordEntropy,
   decryptKey,
   decryptPassword,
@@ -11,6 +12,7 @@ import {
   deriveLoginKey,
   deriveLoginSalt,
   derivePasswordKey,
+  difficultyForName,
   encryptKey,
   encryptPassword,
   generateId,
@@ -449,6 +451,97 @@ describe("Index", () => {
       );
       const backToId = uuidToId(uuid);
       expect(backToId).toBe(originalId);
+    });
+  });
+
+  describe("difficultyForName", () => {
+    it("should have BASE_REGISTRATION_DIFFICULTY equal to 4,194,304 (2^22)", () => {
+      expect(BASE_REGISTRATION_DIFFICULTY).toBe(4194304n);
+      expect(BASE_REGISTRATION_DIFFICULTY).toBe(1n << 22n);
+    });
+
+    it("should return base difficulty for 10+ character names", () => {
+      expect(difficultyForName("abcdefghij")).toBe(BASE_REGISTRATION_DIFFICULTY); // 10 chars
+      expect(difficultyForName("abcdefghijk")).toBe(
+        BASE_REGISTRATION_DIFFICULTY,
+      ); // 11 chars
+      expect(difficultyForName("abcdefghijkl")).toBe(
+        BASE_REGISTRATION_DIFFICULTY,
+      ); // 12 chars
+      expect(difficultyForName("abcdefghijklmnopqrst")).toBe(
+        BASE_REGISTRATION_DIFFICULTY,
+      ); // 20 chars
+    });
+
+    it("should return correct difficulty for each name length 3-9", () => {
+      // Formula: BASE_DIFFICULTY * 2^(10 - length)
+      expect(difficultyForName("abc")).toBe(BASE_REGISTRATION_DIFFICULTY * 128n); // 3 chars: 2^7 = 128x
+      expect(difficultyForName("abcd")).toBe(BASE_REGISTRATION_DIFFICULTY * 64n); // 4 chars: 2^6 = 64x
+      expect(difficultyForName("abcde")).toBe(
+        BASE_REGISTRATION_DIFFICULTY * 32n,
+      ); // 5 chars: 2^5 = 32x
+      expect(difficultyForName("abcdef")).toBe(
+        BASE_REGISTRATION_DIFFICULTY * 16n,
+      ); // 6 chars: 2^4 = 16x
+      expect(difficultyForName("abcdefg")).toBe(
+        BASE_REGISTRATION_DIFFICULTY * 8n,
+      ); // 7 chars: 2^3 = 8x
+      expect(difficultyForName("abcdefgh")).toBe(
+        BASE_REGISTRATION_DIFFICULTY * 4n,
+      ); // 8 chars: 2^2 = 4x
+      expect(difficultyForName("abcdefghi")).toBe(
+        BASE_REGISTRATION_DIFFICULTY * 2n,
+      ); // 9 chars: 2^1 = 2x
+    });
+
+    it("should double difficulty for each character shorter than 10", () => {
+      // Verify the doubling relationship
+      for (let len = 9; len >= 3; len--) {
+        const name = "a".repeat(len);
+        const longerName = "a".repeat(len + 1);
+        expect(difficultyForName(name)).toBe(difficultyForName(longerName) * 2n);
+      }
+    });
+
+    it("should return exact expected values for common name lengths", () => {
+      // 3 chars: 4M * 128 = 512M
+      expect(difficultyForName("abc")).toBe(536870912n);
+      // 4 chars: 4M * 64 = 256M
+      expect(difficultyForName("abcd")).toBe(268435456n);
+      // 5 chars: 4M * 32 = 128M
+      expect(difficultyForName("abcde")).toBe(134217728n);
+      // 6 chars: 4M * 16 = 64M
+      expect(difficultyForName("abcdef")).toBe(67108864n);
+      // 7 chars: 4M * 8 = 32M
+      expect(difficultyForName("abcdefg")).toBe(33554432n);
+      // 8 chars: 4M * 4 = 16M
+      expect(difficultyForName("abcdefgh")).toBe(16777216n);
+      // 9 chars: 4M * 2 = 8M
+      expect(difficultyForName("abcdefghi")).toBe(8388608n);
+      // 10+ chars: 4M
+      expect(difficultyForName("abcdefghij")).toBe(4194304n);
+    });
+
+    it("should handle edge cases for very short names", () => {
+      // Empty string: 2^10 = 1024x base
+      expect(difficultyForName("")).toBe(BASE_REGISTRATION_DIFFICULTY * 1024n);
+      // 1 char: 2^9 = 512x base
+      expect(difficultyForName("a")).toBe(BASE_REGISTRATION_DIFFICULTY * 512n);
+      // 2 chars: 2^8 = 256x base
+      expect(difficultyForName("ab")).toBe(BASE_REGISTRATION_DIFFICULTY * 256n);
+    });
+
+    it("should handle very long names", () => {
+      expect(difficultyForName("a".repeat(30))).toBe(
+        BASE_REGISTRATION_DIFFICULTY,
+      );
+      expect(difficultyForName("a".repeat(100))).toBe(
+        BASE_REGISTRATION_DIFFICULTY,
+      );
+    });
+
+    it("should return bigint type", () => {
+      expect(typeof difficultyForName("test")).toBe("bigint");
     });
   });
 });
