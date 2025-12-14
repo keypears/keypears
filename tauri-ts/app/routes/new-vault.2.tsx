@@ -10,8 +10,12 @@ import { cn } from "~app/lib/utils";
 export default function NewVaultStep2() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { vaultName, vaultDomain } =
-    (location.state as { vaultName?: string; vaultDomain?: string }) || {};
+  const { vaultName, vaultDomain, difficulty } =
+    (location.state as {
+      vaultName?: string;
+      vaultDomain?: string;
+      difficulty?: string;
+    }) || {};
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -53,6 +57,7 @@ export default function NewVaultStep2() {
         password,
         vaultName,
         vaultDomain,
+        difficulty,
       },
     });
   };

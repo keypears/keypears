@@ -16,6 +16,7 @@ export default function NewVaultStep1() {
   const [domainError, setDomainError] = useState("");
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [difficulty, setDifficulty] = useState<string | null>(null);
 
   // Set default domain on mount
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function NewVaultStep1() {
       const client = await createClientFromDomain(domain);
       const result = await client.api.checkNameAvailability({ name, domain });
       setNameAvailable(result.available);
+      setDifficulty(result.difficulty ?? null);
     } catch (error) {
       console.error("Error checking name availability:", error);
 
@@ -86,6 +88,7 @@ export default function NewVaultStep1() {
   const handleNameChange = (value: string) => {
     setName(value);
     setNameAvailable(null);
+    setDifficulty(null);
     validateNameFormat(value);
   };
 
@@ -93,6 +96,7 @@ export default function NewVaultStep1() {
   const handleDomainChange = (value: string) => {
     setDomain(value);
     setNameAvailable(null);
+    setDifficulty(null);
     setDomainError("");
   };
 
@@ -127,12 +131,32 @@ export default function NewVaultStep1() {
       state: {
         vaultName: name,
         vaultDomain: domain,
+        difficulty,
       },
     });
   };
 
   const isValid =
     name.length > 0 && domain.length > 0 && !nameError && !domainError;
+
+  // Format difficulty for display with estimated time
+  const formatDifficulty = (diff: string): { display: string; time: string } => {
+    const n = BigInt(diff);
+    const millions = Number(n / 1000000n);
+    // Rough estimate: ~1M hashes/sec on GPU, ~100k/sec on CPU
+    const secondsGpu = millions;
+    let time: string;
+    if (secondsGpu < 60) {
+      time = `~${secondsGpu} seconds`;
+    } else {
+      const minutes = Math.ceil(secondsGpu / 60);
+      time = `~${minutes} minute${minutes > 1 ? "s" : ""}`;
+    }
+    return {
+      display: millions >= 1 ? `${millions}M` : diff,
+      time,
+    };
+  };
 
   return (
     <div className="bg-background flex min-h-screen flex-col">
@@ -171,6 +195,24 @@ export default function NewVaultStep1() {
                   nameAvailable={nameAvailable}
                   autoFocus
                 />
+
+                {/* Show difficulty info when name is available */}
+                {nameAvailable && difficulty && (
+                  <div className="bg-primary/5 border-primary/20 rounded-lg border p-3">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Mining difficulty: </span>
+                      <span className="font-mono font-medium">
+                        {formatDifficulty(difficulty).display}
+                      </span>
+                      <span className="text-muted-foreground"> ({formatDifficulty(difficulty).time})</span>
+                    </p>
+                    {name.length < 10 && (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Shorter names require more work to prevent squatting.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="text-muted-foreground space-y-1 text-xs">
                   <p>• 1-30 characters</p>

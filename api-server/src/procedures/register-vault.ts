@@ -1,13 +1,16 @@
 import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { deriveHashedLoginKey, isOfficialDomain } from "@keypears/lib";
+import {
+  deriveHashedLoginKey,
+  difficultyForName,
+  isOfficialDomain,
+} from "@keypears/lib";
 import {
   RegisterVaultRequestSchema,
   RegisterVaultResponseSchema,
 } from "../zod-schemas.js";
 import { checkNameAvailability, createVault } from "../db/models/vault.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
-import { REGISTRATION_DIFFICULTY } from "../constants.js";
 import { base } from "./base.js";
 
 /**
@@ -48,9 +51,10 @@ export const registerVaultProcedure = base
     } = input;
 
     // 1. Verify PoW proof first (prevents spam/abuse)
-    // CRITICAL: Enforce minimum difficulty to prevent difficulty bypass attacks
+    // CRITICAL: Enforce minimum difficulty based on name length to prevent bypass attacks
+    // Shorter names require exponentially more work (2x per character shorter than 10)
     const powResult = await verifyAndConsume(challengeId, solvedHeader, hash, {
-      minDifficulty: REGISTRATION_DIFFICULTY,
+      minDifficulty: difficultyForName(name),
     });
     if (!powResult.valid) {
       throw new ORPCError("BAD_REQUEST", {

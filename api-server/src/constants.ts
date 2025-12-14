@@ -10,8 +10,9 @@ export const REGISTRATION_DIFFICULTY: bigint = process.env.TEST_REGISTRATION_DIF
   ? BigInt(process.env.TEST_REGISTRATION_DIFFICULTY)
   : DEFAULT_REGISTRATION_DIFFICULTY;
 
-// Challenge expiration time in milliseconds (5 minutes)
-export const CHALLENGE_EXPIRATION_MS = 5 * 60 * 1000;
+// Challenge expiration time in milliseconds (15 minutes)
+// Longer expiration needed because short names (3-4 chars) can take 8+ minutes to mine
+export const CHALLENGE_EXPIRATION_MS = 15 * 60 * 1000;
 
 // Header sizes for each PoW algorithm
 export const HEADER_SIZE_64B = 64;

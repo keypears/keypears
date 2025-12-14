@@ -24,20 +24,20 @@ import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 
-// Default difficulty for vault registration: 4,194,304 (2^22)
-// This matches the server-side REGISTRATION_DIFFICULTY constant
-const REGISTRATION_DIFFICULTY = "4194304";
+// Fallback difficulty if not provided (should not happen in normal flow)
+const FALLBACK_DIFFICULTY = "4194304";
 
 type CreationPhase = "mining" | "registering" | "success" | "error";
 
 export default function NewVaultStep3() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { vaultName, vaultDomain, password } =
+  const { vaultName, vaultDomain, password, difficulty } =
     (location.state as {
       vaultName?: string;
       vaultDomain?: string;
       password?: string;
+      difficulty?: string;
     }) || {};
 
   const [phase, setPhase] = useState<CreationPhase>("mining");
@@ -47,10 +47,10 @@ export default function NewVaultStep3() {
   const hasStartedMining = useRef(false);
   const hasStartedRegistration = useRef(false);
 
-  // Initialize PoW miner
+  // Initialize PoW miner with difficulty from name availability check
   const miner = usePowMiner({
     domain: vaultDomain ?? "",
-    difficulty: REGISTRATION_DIFFICULTY,
+    difficulty: difficulty ?? FALLBACK_DIFFICULTY,
     preferWgsl: true,
     verifyWithServer: false, // We'll use the proof in registration, not standalone verify
   });
@@ -245,6 +245,13 @@ export default function NewVaultStep3() {
 
   const isInProgress = phase === "mining" || phase === "registering";
 
+  // Format difficulty for display
+  const formatDifficulty = (diff: string): string => {
+    const n = BigInt(diff);
+    const millions = Number(n / 1000000n);
+    return millions >= 1 ? `${millions}M` : diff;
+  };
+
   // Get mining status text
   const getMiningStatusText = () => {
     if (miner.status === "fetching") return "Preparing challenge...";
@@ -359,6 +366,14 @@ export default function NewVaultStep3() {
                   {phase === "mining" && (
                     <>
                       <p>{getMiningStatusText()}</p>
+                      {difficulty && (
+                        <p className="text-sm">
+                          Difficulty:{" "}
+                          <span className="font-mono font-medium">
+                            {formatDifficulty(difficulty)}
+                          </span>
+                        </p>
+                      )}
                       {miner.webGpuAvailable !== null && (
                         <p className="flex items-center justify-center gap-1 text-sm">
                           {miner.webGpuAvailable ? (

@@ -1,9 +1,9 @@
+import { difficultyForName } from "@keypears/lib";
 import {
   CheckNameAvailabilityRequestSchema,
   CheckNameAvailabilityResponseSchema,
 } from "../zod-schemas.js";
 import { checkNameAvailability } from "../db/models/vault.js";
-import { REGISTRATION_DIFFICULTY } from "../constants.js";
 import { base } from "./base.js";
 
 /**
@@ -26,9 +26,10 @@ export const checkNameAvailabilityProcedure = base
       const available = await checkNameAvailability(name, domain);
 
       // Return difficulty only when name is available
+      // Difficulty varies by name length - shorter names require more work
       return {
         available,
-        ...(available ? { difficulty: REGISTRATION_DIFFICULTY.toString() } : {}),
+        ...(available ? { difficulty: difficultyForName(name).toString() } : {}),
       };
     },
   );
