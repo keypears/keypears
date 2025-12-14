@@ -257,11 +257,21 @@ export const TablePowChallenge = pgTable(
     // Once used, cannot be reused - prevents replay attacks
     isUsed: boolean("is_used").notNull().default(false),
 
+    // Solution data (populated when challenge is verified)
+    // Solved header with the winning nonce (hex-encoded)
+    solvedHeader: text("solved_header"),
+
+    // Hash of the solved header (32 bytes hex = 64 chars)
+    solvedHash: varchar("solved_hash", { length: 64 }),
+
     // Timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),
 
     // Expiration time - challenges expire after a set time (e.g., 5 minutes)
     expiresAt: timestamp("expires_at").notNull(),
+
+    // When the challenge was verified (null if not yet verified)
+    verifiedAt: timestamp("verified_at"),
   },
   (table) => [
     // Index for looking up unused challenges (cleanup job)

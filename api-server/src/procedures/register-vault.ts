@@ -6,8 +6,9 @@ import {
   RegisterVaultResponseSchema,
 } from "../zod-schemas.js";
 import { checkNameAvailability, createVault } from "../db/models/vault.js";
+import { verifyAndConsume } from "../db/models/pow-challenge.js";
+import { REGISTRATION_DIFFICULTY } from "../constants.js";
 import { base } from "./base.js";
-import { verifyPowProof } from "../lib/verify-pow.js";
 
 /**
  * Register vault procedure
@@ -47,7 +48,10 @@ export const registerVaultProcedure = base
     } = input;
 
     // 1. Verify PoW proof first (prevents spam/abuse)
-    const powResult = await verifyPowProof(challengeId, solvedHeader, hash);
+    // CRITICAL: Enforce minimum difficulty to prevent difficulty bypass attacks
+    const powResult = await verifyAndConsume(challengeId, solvedHeader, hash, {
+      minDifficulty: REGISTRATION_DIFFICULTY,
+    });
     if (!powResult.valid) {
       throw new ORPCError("BAD_REQUEST", {
         message: `Invalid proof of work: ${powResult.message}`,

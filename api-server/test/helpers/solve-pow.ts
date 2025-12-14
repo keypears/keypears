@@ -5,7 +5,11 @@ import { hashMeetsTarget } from "@keypears/pow5/dist/difficulty.js";
 import { createClient } from "../../src/client.js";
 
 // Low difficulty for fast test execution: 256 (2^8) = ~256 hashes average
-const TEST_DIFFICULTY = "256";
+export const TEST_DIFFICULTY_LOW = "256";
+
+// Medium difficulty for faster registration tests: 1024 (2^10)
+// Still below REGISTRATION_DIFFICULTY but faster than full difficulty
+export const TEST_DIFFICULTY_MEDIUM = "1024";
 
 export interface PowProof {
   challengeId: string;
@@ -13,16 +17,30 @@ export interface PowProof {
   hash: string;
 }
 
+export interface SolvePowOptions {
+  difficulty?: string;
+}
+
 /**
  * Fetches a PoW challenge from the test server and solves it.
- * Uses low difficulty (256) for fast test execution.
+ *
+ * @param serverUrl - The test server URL
+ * @param options - Optional settings
+ * @param options.difficulty - Difficulty to request (default: TEST_DIFFICULTY_LOW for speed)
+ *
+ * Note: For registration tests, difficulty doesn't matter at the API level
+ * since we use a test-specific low REGISTRATION_DIFFICULTY via test setup.
  */
-export async function solvePowChallenge(serverUrl: string): Promise<PowProof> {
+export async function solvePowChallenge(
+  serverUrl: string,
+  options?: SolvePowOptions,
+): Promise<PowProof> {
+  const difficulty = options?.difficulty ?? TEST_DIFFICULTY_LOW;
   const client = createClient({ url: serverUrl });
 
-  // Fetch challenge with low difficulty
+  // Fetch challenge with specified difficulty
   const challenge = await client.api.getPowChallenge({
-    difficulty: TEST_DIFFICULTY,
+    difficulty,
   });
 
   const targetBuf = FixedBuf.fromHex(32, challenge.target);

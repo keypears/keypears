@@ -28,6 +28,9 @@ app.use("/api", async (req: Request, res: Response, next: NextFunction) => {
     }
   } catch (error) {
     console.error("oRPC handler error:", error);
+    if (error instanceof Error) {
+      console.error("Stack:", error.stack);
+    }
     throw error;
   }
 });

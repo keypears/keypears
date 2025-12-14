@@ -1,26 +1,13 @@
-import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf } from "@webbuf/fixedbuf";
-import { targetFromDifficulty } from "@keypears/pow5/dist/difficulty.js";
-import { generateId } from "@keypears/lib";
 import {
   GetPowChallengeRequestSchema,
   GetPowChallengeResponseSchema,
-  type PowAlgorithm,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import { db } from "../db/index.js";
-import { TablePowChallenge } from "../db/schema.js";
+import { createChallenge } from "../db/models/pow-challenge.js";
 
 // Default difficulty: 4,194,304 (2^22) = ~4 million hashes average
 // Takes a few seconds with WGSL, much longer with WASM
 const DEFAULT_DIFFICULTY = 4194304n;
-
-// Header sizes for each algorithm
-const HEADER_SIZE_64B = 64;
-const HEADER_SIZE_217A = 217;
-
-// Challenge expiration time in milliseconds (5 minutes)
-const CHALLENGE_EXPIRATION_MS = 5 * 60 * 1000;
 
 /**
  * Get PoW Challenge procedure
@@ -28,6 +15,9 @@ const CHALLENGE_EXPIRATION_MS = 5 * 60 * 1000;
  * Randomly selects pow5-64b or pow5-217a algorithm (50/50).
  * Returns a fully random header of the appropriate size and target for mining.
  * The challenge is stored in the database and can only be used once.
+ *
+ * Note: This endpoint allows client-specified difficulty for testing purposes.
+ * For registration, the server enforces a minimum difficulty during verification.
  *
  * Header sizes:
  * - pow5-64b: 64 bytes (nonce region: bytes 0-31)
@@ -47,38 +37,14 @@ export const getPowChallengeProcedure = base
       ? BigInt(input.difficulty)
       : DEFAULT_DIFFICULTY;
 
-    // Randomly select algorithm: get 1 byte, mask to 1 bit for 50/50 selection
-    const randomByte = FixedBuf.fromRandom(1).buf[0] ?? 0;
-    const algorithm: PowAlgorithm =
-      (randomByte & 1) === 0 ? "pow5-64b" : "pow5-217a";
-
-    // Generate fully random header of appropriate size
-    const headerSize =
-      algorithm === "pow5-64b" ? HEADER_SIZE_64B : HEADER_SIZE_217A;
-    const header = FixedBuf.fromRandom(headerSize).buf;
-
-    // Calculate target from difficulty
-    const target = targetFromDifficulty(difficulty);
-
-    // Generate challenge ID and expiration
-    const id = generateId();
-    const expiresAt = new Date(Date.now() + CHALLENGE_EXPIRATION_MS);
-
-    // Store challenge in database
-    await db.insert(TablePowChallenge).values({
-      id,
-      algorithm,
-      header: header.toHex(),
-      target: target.buf.toHex(),
-      difficulty: difficulty.toString(),
-      expiresAt,
-    });
+    // Create challenge using model
+    const challenge = await createChallenge({ difficulty });
 
     return {
-      id,
-      header: header.toHex(),
-      target: target.buf.toHex(),
-      difficulty: difficulty.toString(),
-      algorithm,
+      id: challenge.id,
+      header: challenge.header,
+      target: challenge.target,
+      difficulty: challenge.difficulty,
+      algorithm: challenge.algorithm,
     };
   });

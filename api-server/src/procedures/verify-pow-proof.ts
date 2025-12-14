@@ -3,7 +3,7 @@ import {
   VerifyPowProofResponseSchema,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import { verifyPowProof } from "../lib/verify-pow.js";
+import { verifyAndConsume } from "../db/models/pow-challenge.js";
 
 /**
  * Verify PoW Proof procedure
@@ -12,12 +12,13 @@ import { verifyPowProof } from "../lib/verify-pow.js";
  * Supports both pow5-64b and pow5-217a algorithms.
  *
  * This is a standalone verification endpoint for testing purposes.
- * For production use, the verification is integrated into registerVaultProcedure.
+ * It does NOT enforce minimum difficulty - use registerVault for that.
+ * The challenge is consumed (marked as used) upon successful verification.
  */
 export const verifyPowProofProcedure = base
   .input(VerifyPowProofRequestSchema)
   .output(VerifyPowProofResponseSchema)
   .handler(async ({ input }) => {
     const { challengeId, solvedHeader, hash } = input;
-    return verifyPowProof(challengeId, solvedHeader, hash);
+    return verifyAndConsume(challengeId, solvedHeader, hash);
   });
