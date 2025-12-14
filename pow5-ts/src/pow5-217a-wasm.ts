@@ -15,7 +15,10 @@ export function insertNonce(
 }
 
 export function getWorkPar(header: FixedBuf<217>): FixedBuf<32> {
-  return FixedBuf.fromBuf(32, WebBuf.fromUint8Array(get_work_par_217a(header.buf)));
+  return FixedBuf.fromBuf(
+    32,
+    WebBuf.fromUint8Array(get_work_par_217a(header.buf)),
+  );
 }
 
 export function elementaryIteration(header: FixedBuf<217>): FixedBuf<32> {

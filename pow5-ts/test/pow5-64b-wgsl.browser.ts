@@ -30,7 +30,11 @@ describe("Pow5_64b tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_64b(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_64b(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugHashHeader();
 
@@ -68,7 +72,11 @@ describe("Pow5_64b tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_64b(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_64b(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugDoubleHashHeader();
 
@@ -106,7 +114,11 @@ describe("Pow5_64b tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_64b(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_64b(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugMatmulWork();
       expect(result.hash.toHex()).toBe(EXPECTED_MATMUL_WORK_ALL_ZEROES);
@@ -138,10 +150,16 @@ describe("Pow5_64b tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_64b(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_64b(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugElementaryIteration();
-      expect(result.hash.toHex()).toBe(EXPECTED_ELEMENTARY_ITERATION_ALL_ZEROES);
+      expect(result.hash.toHex()).toBe(
+        EXPECTED_ELEMENTARY_ITERATION_ALL_ZEROES,
+      );
     }
 
     {

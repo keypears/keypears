@@ -19,7 +19,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -65,7 +69,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugDoubleHashHeader();
       expect(result.hash.toHex()).toBe(
@@ -74,9 +82,7 @@ describe("Pow5_217a tests", async () => {
       expect(result.nonce).toBe(0);
 
       // now, generate the same hash with blake3Hash
-      const hashHex = blake3Hash(
-        blake3Hash(headerAllZeroes.buf).buf,
-      ).toHex();
+      const hashHex = blake3Hash(blake3Hash(headerAllZeroes.buf).buf).toHex();
       expect(result.hash.toHex()).toBe(hashHex);
     }
 
@@ -98,9 +104,7 @@ describe("Pow5_217a tests", async () => {
       expect(result.nonce).toBe(0);
 
       // now, generate the same hash with blake3Hash
-      const hashHex = blake3Hash(
-        blake3Hash(headerAllOnes.buf).buf,
-      ).toHex();
+      const hashHex = blake3Hash(blake3Hash(headerAllOnes.buf).buf).toHex();
       expect(result.hash.toHex()).toBe(hashHex);
     }
   });
@@ -115,7 +119,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugHashHeader128();
       expect(result.hash.toHex()).toBe(
@@ -124,9 +132,7 @@ describe("Pow5_217a tests", async () => {
       expect(result.nonce).toBe(0);
 
       // now, generate the same hash with blake3Hash
-      const hashHex = blake3Hash(
-        headerAllZeroes.buf.slice(0, 128),
-      ).toHex();
+      const hashHex = blake3Hash(headerAllZeroes.buf.slice(0, 128)).toHex();
       expect(result.hash.toHex()).toBe(hashHex);
     }
 
@@ -163,7 +169,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugHashHeader32();
       expect(result.hash.toHex()).toBe(
@@ -209,7 +219,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugGetWorkPar();
       expect(result.hash.toHex()).toBe(
@@ -247,7 +261,11 @@ describe("Pow5_217a tests", async () => {
         32,
         WebBuf.fromHex("00".repeat(32)),
       );
-      const pow5 = new Pow5_217a(headerAllZeroes, targetAllZeroes, MAX_GRID_SIZE);
+      const pow5 = new Pow5_217a(
+        headerAllZeroes,
+        targetAllZeroes,
+        MAX_GRID_SIZE,
+      );
       await pow5.init(true);
       const result = await pow5.debugElementaryIteration();
       expect(result.hash.toHex()).toBe(

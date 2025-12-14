@@ -12,7 +12,10 @@ import { WebBuf } from "@webbuf/webbuf";
  * This is the ASIC-resistant computation (same algorithm as 217a).
  */
 export function matmulWork(header: FixedBuf<64>): FixedBuf<32> {
-  return FixedBuf.fromBuf(32, WebBuf.fromUint8Array(matmul_work_64b(header.buf)));
+  return FixedBuf.fromBuf(
+    32,
+    WebBuf.fromUint8Array(matmul_work_64b(header.buf)),
+  );
 }
 
 /**
@@ -30,10 +33,7 @@ export function elementaryIteration(header: FixedBuf<64>): FixedBuf<32> {
  * Insert a 4-byte nonce into bytes 28-31 of the header.
  * This is used for GPU iteration where the GPU increments the last 4 bytes.
  */
-export function insertNonce(
-  header: FixedBuf<64>,
-  nonce: number,
-): FixedBuf<64> {
+export function insertNonce(header: FixedBuf<64>, nonce: number): FixedBuf<64> {
   const res = WebBuf.fromUint8Array(insert_nonce_64b(header.buf, nonce));
   return FixedBuf.fromBuf(64, res);
 }

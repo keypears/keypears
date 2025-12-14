@@ -105,7 +105,8 @@ export const verifyPowProofProcedure = base
       if (!originalZeroed.equals(solvedZeroed)) {
         return {
           valid: false,
-          message: "Non-nonce bytes do not match between original and solved headers",
+          message:
+            "Non-nonce bytes do not match between original and solved headers",
         };
       }
 
