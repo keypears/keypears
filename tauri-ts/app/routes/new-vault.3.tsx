@@ -243,8 +243,6 @@ export default function NewVaultStep3() {
     }
   };
 
-  const isInProgress = phase === "mining" || phase === "registering";
-
   // Format difficulty for display
   const formatDifficulty = (diff: string): string => {
     const n = BigInt(diff);
@@ -357,7 +355,7 @@ export default function NewVaultStep3() {
                   </div>
                   <h1 className="text-2xl font-bold">
                     {phase === "mining"
-                      ? "Preparing Vault..."
+                      ? "Mining Name..."
                       : "Registering Vault..."}
                   </h1>
                 </div>
@@ -404,8 +402,10 @@ export default function NewVaultStep3() {
                   className="w-full"
                   size="lg"
                   variant="outline"
-                  onClick={() => navigate(href("/new-vault/1"))}
-                  disabled={isInProgress}
+                  onClick={() => {
+                    miner.cancel();
+                    navigate(href("/new-vault/1"));
+                  }}
                 >
                   Cancel
                 </Button>
