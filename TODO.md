@@ -303,8 +303,8 @@ For each file, verify:
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
 
-**Details**: See [docs/key-derivation.md](docs/key-derivation.md) for full
-implementation plan.
+**Details**: See [docs/public-key-derivation.md](docs/public-key-derivation.md)
+for full implementation plan.
 
 ### Overview
 
@@ -338,7 +338,7 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 **Goal**: Require proof-of-work for new vault registrations to prevent
 spam/sybil attacks.
 
-**Details**: See [docs/pow5.md](docs/pow5.md) for full algorithm documentation.
+**Details**: See [docs/pow.md](docs/pow.md) for full algorithm documentation.
 
 ### PoW Algorithm Foundation ✅ COMPLETED
 
@@ -351,7 +351,7 @@ spam/sybil attacks.
 - [x] Rust WASM implementation (`pow5-rs/src/lib.rs` with `_64b` functions)
 - [x] TypeScript WASM wrapper (`pow5-ts/src/pow5-64b-wasm.ts`)
 - [x] Cross-implementation tests (WGSL and WASM produce identical results)
-- [x] Documentation (`docs/pow5.md`)
+- [x] Documentation (`docs/pow.md`)
 
 ### PoW Test Integration ✅ COMPLETED
 

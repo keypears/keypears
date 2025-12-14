@@ -137,8 +137,9 @@ contribution guidelines once the codebase is ready for public release.
   strategy
 - **[docs/deployment.md](docs/deployment.md)** — AWS deployment guide
 - **[docs/code.md](docs/code.md)** — Code patterns and conventions
-- **[docs/crypto.md](docs/crypto.md)** — Cryptography patterns and key
-  derivation
+- **[docs/kdf.md](docs/kdf.md)** — Key derivation functions (password → keys)
+- **[docs/vault-keys.md](docs/vault-keys.md)** — Vault key architecture
+  (secp256k1)
 - **[docs/data.md](docs/data.md)** — Database and data handling patterns
 - **[docs/uiux.md](docs/uiux.md)** — UI/UX design patterns
 

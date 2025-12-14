@@ -244,9 +244,11 @@ KeyPears has comprehensive design pattern documentation:
 - **[Data Patterns](docs/data.md)**: Validation (Zod), database (UUIDv7 primary
   keys in Crockford Base32 format, Drizzle ORM), performance (debouncing,
   optimistic updates), error handling
-- **[Cryptography Patterns](docs/crypto.md)**: Three-tier key derivation system,
+- **[Key Derivation Functions](docs/kdf.md)**: Three-tier key derivation system,
   algorithms (SHA-256, ACS2, AES-256), password policy, cross-platform WASM
   crypto stack
+- **[Vault Keys](docs/vault-keys.md)**: Vault key architecture, secp256k1 keys,
+  pubkeyhash, DH key exchange overview
 - **[Audit Guide](docs/audit.md)**: Codebase audit checklist, security
   assessment, lessons learned from past audits
 
@@ -363,7 +365,7 @@ refined for production data safety.
 - **Password policy**: Minimum 8 characters, default lowercase-only for mobile
   usability (~75 bits entropy)
 
-See [`docs/crypto.md`](docs/crypto.md) for complete details.
+See [`docs/kdf.md`](docs/kdf.md) for complete details.
 
 ### Database
 

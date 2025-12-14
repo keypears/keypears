@@ -1111,4 +1111,5 @@ Reduce metadata leakage through timing analysis:
   (similar key derivation concepts)
 - [Signal Protocol](https://signal.org/docs/) (inspiration for key exchange
   patterns)
-- [KeyPears Cryptography Patterns](./crypto.md)
+- [KeyPears Vault Keys](./vault-keys.md)
+- [KeyPears Key Derivation Functions](./kdf.md)
