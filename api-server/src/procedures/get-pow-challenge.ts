@@ -1,4 +1,5 @@
 import { WebBuf } from "@webbuf/webbuf";
+import { FixedBuf } from "@webbuf/fixedbuf";
 import { targetFromDifficulty } from "@keypears/pow5/dist/difficulty.js";
 import { generateId } from "@keypears/lib";
 import {
@@ -47,16 +48,14 @@ export const getPowChallengeProcedure = base
       : DEFAULT_DIFFICULTY;
 
     // Randomly select algorithm: get 1 byte, mask to 1 bit for 50/50 selection
-    const randomByte = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
+    const randomByte = FixedBuf.fromRandom(1).buf[0] ?? 0;
     const algorithm: PowAlgorithm =
       (randomByte & 1) === 0 ? "pow5-64b" : "pow5-217a";
 
     // Generate fully random header of appropriate size
     const headerSize =
       algorithm === "pow5-64b" ? HEADER_SIZE_64B : HEADER_SIZE_217A;
-    const header = WebBuf.fromUint8Array(
-      crypto.getRandomValues(new Uint8Array(headerSize)),
-    );
+    const header = FixedBuf.fromRandom(headerSize).buf;
 
     // Calculate target from difficulty
     const target = targetFromDifficulty(difficulty);

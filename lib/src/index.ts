@@ -526,10 +526,7 @@ export function generateId(): string {
 export function uuidToId(uuid: string): string {
   // Remove hyphens and convert to bytes
   const hex = uuid.replace(/-/g, "");
-  const bytes = new Uint8Array(16);
-  for (let i = 0; i < 16; i++) {
-    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-  }
+  const bytes = WebBuf.fromHex(hex);
 
   // Encode 128 bits (16 bytes) to Base32 (26 chars)
   // Process 5 bits at a time
