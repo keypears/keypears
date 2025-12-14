@@ -218,8 +218,7 @@ export default function TestPow() {
       setStatus("verifying");
 
       const verification = await client.api.verifyPowProof({
-        algorithm: challenge.algorithm,
-        originalHeader: challenge.header,
+        challengeId: challenge.id,
         solvedHeader: solvedHeaderHex!,
         hash: hashHex!,
       });

@@ -1,11 +1,14 @@
 import { WebBuf } from "@webbuf/webbuf";
 import { targetFromDifficulty } from "@keypears/pow5/dist/difficulty.js";
+import { generateId } from "@keypears/lib";
 import {
   GetPowChallengeRequestSchema,
   GetPowChallengeResponseSchema,
   type PowAlgorithm,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
+import { db } from "../db/index.js";
+import { TablePowChallenge } from "../db/schema.js";
 
 // Hardcoded difficulty for testing: 256 = ~256 hashes average
 // This should complete almost instantly for quick testing
@@ -15,21 +18,24 @@ const TEST_DIFFICULTY = 256n;
 const HEADER_SIZE_64B = 64;
 const HEADER_SIZE_217A = 217;
 
+// Challenge expiration time in milliseconds (5 minutes)
+const CHALLENGE_EXPIRATION_MS = 5 * 60 * 1000;
+
 /**
- * Get PoW Challenge procedure (FOR TESTING ONLY - NOT SECURE)
+ * Get PoW Challenge procedure
  *
  * Randomly selects pow5-64b or pow5-217a algorithm (50/50).
  * Returns a fully random header of the appropriate size and target for mining.
+ * The challenge is stored in the database and can only be used once.
  *
  * Header sizes:
  * - pow5-64b: 64 bytes (nonce region: bytes 0-31)
  * - pow5-217a: 217 bytes (nonce region: bytes 117-148)
  *
- * This is NOT secure because:
- * - No challenge storage in database
- * - No expiration
- * - No rate limiting
- * - Client sends back the original header for verification
+ * Security:
+ * - Challenge stored in database with unique ID
+ * - Challenge expires after 5 minutes
+ * - Each challenge can only be verified once (marked as used)
  */
 export const getPowChallengeProcedure = base
   .input(GetPowChallengeRequestSchema)
@@ -50,7 +56,22 @@ export const getPowChallengeProcedure = base
     // Calculate target from difficulty
     const target = targetFromDifficulty(TEST_DIFFICULTY);
 
+    // Generate challenge ID and expiration
+    const id = generateId();
+    const expiresAt = new Date(Date.now() + CHALLENGE_EXPIRATION_MS);
+
+    // Store challenge in database
+    await db.insert(TablePowChallenge).values({
+      id,
+      algorithm,
+      header: header.toHex(),
+      target: target.buf.toHex(),
+      difficulty: TEST_DIFFICULTY.toString(),
+      expiresAt,
+    });
+
     return {
+      id,
       header: header.toHex(),
       target: target.buf.toHex(),
       difficulty: TEST_DIFFICULTY.toString(),

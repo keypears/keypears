@@ -230,3 +230,44 @@ export const TableDerivedKey = pgTable(
 
 export type SelectDerivedKey = typeof TableDerivedKey.$inferSelect;
 export type InsertDerivedKey = typeof TableDerivedKey.$inferInsert;
+
+// PoW challenges table - stores proof-of-work challenges to prevent replay attacks
+// Each challenge can only be used once and expires after a set time
+export const TablePowChallenge = pgTable(
+  "pow_challenge",
+  {
+    // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
+    id: varchar("id", { length: 26 }).primaryKey(),
+
+    // Algorithm used for this challenge ("pow5-64b" or "pow5-217a")
+    algorithm: varchar("algorithm", { length: 20 }).notNull(),
+
+    // Challenge header (hex-encoded)
+    // pow5-64b: 64 bytes = 128 chars
+    // pow5-217a: 217 bytes = 434 chars
+    header: text("header").notNull(),
+
+    // Target hash that the solution must be less than (32 bytes hex = 64 chars)
+    target: varchar("target", { length: 64 }).notNull(),
+
+    // Difficulty as string (bigint representation)
+    difficulty: varchar("difficulty", { length: 30 }).notNull(),
+
+    // Whether this challenge has been used (verified)
+    // Once used, cannot be reused - prevents replay attacks
+    isUsed: boolean("is_used").notNull().default(false),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+
+    // Expiration time - challenges expire after a set time (e.g., 5 minutes)
+    expiresAt: timestamp("expires_at").notNull(),
+  },
+  (table) => [
+    // Index for looking up unused challenges (cleanup job)
+    index("idx_pow_challenge_expires").on(table.expiresAt),
+  ],
+);
+
+export type SelectPowChallenge = typeof TablePowChallenge.$inferSelect;
+export type InsertPowChallenge = typeof TablePowChallenge.$inferInsert;
