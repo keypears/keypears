@@ -42,7 +42,7 @@ export async function checkNameAvailability(
 /**
  * Get a vault by its ID
  *
- * @param id - The vault ID (ULID)
+ * @param id - The vault ID (UUIDv7 in Corckford Base32)
  * @returns The vault if found, null otherwise
  */
 export async function getVaultById(id: string): Promise<Vault | null> {

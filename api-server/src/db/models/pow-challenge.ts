@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import * as Pow5_64b_Wasm from "@keypears/pow5/dist/pow5-64b-wasm.js";
@@ -171,13 +171,15 @@ export async function createChallenge(
  * This is the core verification method that:
  * 1. Looks up the challenge by ID
  * 2. Checks the challenge is not expired
- * 3. Checks the challenge has not already been used
- * 4. Checks the challenge difficulty meets the minimum (if provided)
- * 5. Validates the header length matches the algorithm
- * 6. Verifies non-nonce bytes match the original header
- * 7. Recomputes the hash and verifies it matches the provided hash
- * 8. Verifies the hash meets the difficulty target
- * 9. Updates the database: marks as used, stores solution, sets verifiedAt
+ * 3. Checks the challenge difficulty meets the minimum (if provided)
+ * 4. Validates the header length matches the algorithm
+ * 5. Verifies non-nonce bytes match the original header
+ * 6. Recomputes the hash and verifies it matches the provided hash
+ * 7. Verifies the hash meets the difficulty target
+ * 8. ATOMICALLY claims the challenge (marks as used) - prevents race conditions
+ *
+ * SECURITY: The atomic claim in step 8 prevents TOCTOU race conditions.
+ * Multiple concurrent requests with the same challenge will only allow one to succeed.
  *
  * @param challengeId - The challenge ID to verify
  * @param solvedHeader - The solved header with the winning nonce (hex)
@@ -210,15 +212,10 @@ export async function verifyAndConsume(
       };
     }
 
-    // 3. Check if challenge has already been used
-    if (challenge.isUsed) {
-      return {
-        valid: false,
-        message: "Challenge has already been used",
-      };
-    }
+    // Note: We do NOT check isUsed here to avoid TOCTOU race conditions.
+    // The atomic claim at the end ensures only one request can consume the challenge.
 
-    // 4. Check minimum difficulty requirement (if specified)
+    // 3. Check minimum difficulty requirement (if specified)
     if (options?.minDifficulty !== undefined) {
       const challengeDifficulty = BigInt(challenge.difficulty);
       if (challengeDifficulty < options.minDifficulty) {
@@ -240,7 +237,7 @@ export async function verifyAndConsume(
       algorithm === "pow5-64b" ? NONCE_START_64B : NONCE_START_217A;
     const nonceEnd = algorithm === "pow5-64b" ? NONCE_END_64B : NONCE_END_217A;
 
-    // 5. Validate solved header length (hex string length = 2 * byte length)
+    // 4. Validate solved header length (hex string length = 2 * byte length)
     const expectedHexLength = expectedSize * 2;
     if (solvedHeader.length !== expectedHexLength) {
       return {
@@ -255,7 +252,7 @@ export async function verifyAndConsume(
     const hashBuf = FixedBuf.fromHex(32, hash);
     const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
-    // 6. Zero out nonce regions and compare (non-nonce bytes must match)
+    // 5. Zero out nonce regions and compare (non-nonce bytes must match)
     const originalZeroed = zeroNonceRegion(
       originalHeaderBuf,
       nonceStart,
@@ -271,7 +268,7 @@ export async function verifyAndConsume(
       };
     }
 
-    // 7. Recompute the hash and verify it matches
+    // 6. Recompute the hash and verify it matches
     let computedHash: FixedBuf<32>;
     if (algorithm === "pow5-64b") {
       const solvedFixed = FixedBuf.fromBuf(64, solvedHeaderBuf);
@@ -288,7 +285,7 @@ export async function verifyAndConsume(
       };
     }
 
-    // 8. Verify hash meets target
+    // 7. Verify hash meets target
     if (!hashMeetsTarget(hashBuf, targetBuf)) {
       return {
         valid: false,
@@ -296,8 +293,10 @@ export async function verifyAndConsume(
       };
     }
 
-    // 9. Mark challenge as used and store solution
-    await db
+    // 8. ATOMICALLY claim the challenge (mark as used and store solution)
+    // This prevents TOCTOU race conditions - only one request can succeed.
+    // The WHERE clause includes isUsed = false, so concurrent requests will fail.
+    const claimed = await db
       .update(TablePowChallenge)
       .set({
         isUsed: true,
@@ -305,7 +304,21 @@ export async function verifyAndConsume(
         solvedHash: hash,
         verifiedAt: new Date(),
       })
-      .where(eq(TablePowChallenge.id, challengeId));
+      .where(
+        and(
+          eq(TablePowChallenge.id, challengeId),
+          eq(TablePowChallenge.isUsed, false),
+        ),
+      )
+      .returning({ id: TablePowChallenge.id });
+
+    // If no rows were updated, another request already claimed this challenge
+    if (claimed.length === 0) {
+      return {
+        valid: false,
+        message: "Challenge has already been used",
+      };
+    }
 
     return {
       valid: true,
