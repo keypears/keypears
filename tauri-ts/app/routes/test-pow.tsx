@@ -284,8 +284,8 @@ export default function TestPow() {
                         </>
                       ) : (
                         <>
-                          <Cpu className="h-3 w-3" /> WebGPU not available, using
-                          WASM
+                          <Cpu className="h-3 w-3" /> WebGPU not available,
+                          using WASM
                         </>
                       )}
                     </p>
