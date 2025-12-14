@@ -1,4 +1,4 @@
-import type { Route } from "./+types/test-pow5";
+import type { Route } from "./+types/test-pow";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
@@ -23,11 +23,11 @@ type Status =
   | "success"
   | "error";
 
-type Pow5Algorithm = "pow5-64b" | "pow5-217a";
+type PowAlgorithm = "pow5-64b" | "pow5-217a";
 
 interface MiningResult {
   implementation: "WGSL" | "WASM";
-  algorithm: Pow5Algorithm;
+  algorithm: PowAlgorithm;
   headerHex: string;
   solvedHeaderHex: string;
   hashHex: string;
@@ -36,15 +36,15 @@ interface MiningResult {
 }
 
 export function meta(_args: Route.MetaArgs) {
-  return [{ title: "Test Pow5 - KeyPears" }];
+  return [{ title: "Test PoW - KeyPears" }];
 }
 
-export default function TestPow5() {
+export default function TestPow() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const [targetHex, setTargetHex] = useState<string | null>(null);
-  const [algorithm, setAlgorithm] = useState<Pow5Algorithm | null>(null);
+  const [algorithm, setAlgorithm] = useState<PowAlgorithm | null>(null);
   const [result, setResult] = useState<MiningResult | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
 
@@ -233,7 +233,7 @@ export default function TestPow5() {
       <div className="flex flex-1 flex-col px-4 py-8">
         <div className="mx-auto w-full max-w-2xl">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold">Test Pow5</h1>
+            <h1 className="text-2xl font-bold">Test PoW</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Test the proof-of-work algorithm (pow5-64b or pow5-217a)
             </p>

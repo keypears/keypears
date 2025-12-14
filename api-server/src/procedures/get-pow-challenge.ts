@@ -3,7 +3,7 @@ import { targetFromDifficulty } from "@keypears/pow5/dist/difficulty.js";
 import {
   GetPowChallengeRequestSchema,
   GetPowChallengeResponseSchema,
-  type Pow5Algorithm,
+  type PowAlgorithm,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
 
@@ -37,7 +37,7 @@ export const getPowChallengeProcedure = base
   .handler(async () => {
     // Randomly select algorithm: get 1 byte, mask to 1 bit for 50/50 selection
     const randomByte = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
-    const algorithm: Pow5Algorithm =
+    const algorithm: PowAlgorithm =
       (randomByte & 1) === 0 ? "pow5-64b" : "pow5-217a";
 
     // Generate fully random header of appropriate size

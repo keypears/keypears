@@ -102,8 +102,8 @@ export const GetDerivationPrivKeyResponseSchema = z.object({
 });
 
 // PoW Algorithm enum
-export const Pow5AlgorithmSchema = z.enum(["pow5-64b", "pow5-217a"]);
-export type Pow5Algorithm = z.infer<typeof Pow5AlgorithmSchema>;
+export const PowAlgorithmSchema = z.enum(["pow5-64b", "pow5-217a"]);
+export type PowAlgorithm = z.infer<typeof PowAlgorithmSchema>;
 
 // PoW Challenge (for testing - not secure, no database storage)
 export const GetPowChallengeRequestSchema = z.object({});
@@ -112,12 +112,12 @@ export const GetPowChallengeResponseSchema = z.object({
   header: z.string(), // 64 bytes (128 chars) for pow5-64b, 217 bytes (434 chars) for pow5-217a
   target: z.string().length(64), // 32 bytes hex = 64 chars
   difficulty: z.string(), // bigint as string
-  algorithm: Pow5AlgorithmSchema,
+  algorithm: PowAlgorithmSchema,
 });
 
 // PoW Proof verification (for testing - not secure)
 export const VerifyPowProofRequestSchema = z.object({
-  algorithm: Pow5AlgorithmSchema,
+  algorithm: PowAlgorithmSchema,
   originalHeader: z.string(), // Length depends on algorithm
   solvedHeader: z.string(), // Length depends on algorithm (with nonce filled in)
   hash: z.string().length(64), // 32 bytes hex

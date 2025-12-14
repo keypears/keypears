@@ -113,11 +113,11 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
               Test Tauri
             </Link>
             <Link
-              to={href("/test-pow5")}
+              to={href("/test-pow")}
               className="hover:bg-accent hover:text-accent-foreground block rounded-md px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => setOpen(false)}
             >
-              Test Pow5
+              Test PoW
             </Link>
             <Link
               to={href("/about")}
