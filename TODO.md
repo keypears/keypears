@@ -303,8 +303,8 @@ For each file, verify:
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
 
-**Details**: See [docs/public-key-derivation.md](docs/public-key-derivation.md)
-for full implementation plan.
+**Details**: See [docs/derived-keys.md](docs/derived-keys.md) for full
+implementation plan.
 
 ### Overview
 

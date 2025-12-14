@@ -88,11 +88,11 @@ export function UserMenu({ vaultId }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link
-            to={href("/vault/:vaultId/keys", { vaultId })}
+            to={href("/vault/:vaultId/derived-keys", { vaultId })}
             className="flex items-center"
           >
             <Key size={16} className="mr-2" />
-            Keys
+            Derived Keys
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

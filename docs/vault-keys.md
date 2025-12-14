@@ -272,5 +272,5 @@ for relationship-specific keys is under development.
 
 - [Key Derivation Functions](./kdf.md) - Password-based key derivation system
 - [Diffie-Hellman Protocol](./dh.md) - Federated DH key exchange protocol
-- [Public Key Derivation](./public-key-derivation.md) - Server-generated derived
+- [Derived Keys](./derived-keys.md) - Server-generated derived
   keys
