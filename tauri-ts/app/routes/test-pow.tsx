@@ -4,10 +4,7 @@ import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "~app/components/ui/toggle-group";
+import { ToggleGroup, ToggleGroupItem } from "~app/components/ui/toggle-group";
 import { useState, useRef } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { FixedBuf } from "@keypears/lib";
@@ -399,7 +396,8 @@ export default function TestPow() {
                     </p>
                     <p>
                       <span className="text-foreground">Time:</span>{" "}
-                      {(result.elapsedMs / 1000).toFixed(2)}s ({result.elapsedMs.toFixed(0)}ms)
+                      {(result.elapsedMs / 1000).toFixed(2)}s (
+                      {result.elapsedMs.toFixed(0)}ms)
                     </p>
                     <p>
                       <span className="text-foreground">Nonce:</span>{" "}
@@ -419,7 +417,10 @@ export default function TestPow() {
 
               {/* Difficulty Input */}
               <div className="border-border border-t pt-4">
-                <Label htmlFor="difficulty" className="mb-2 block text-sm font-medium">
+                <Label
+                  htmlFor="difficulty"
+                  className="mb-2 block text-sm font-medium"
+                >
                   Difficulty (min: 256)
                 </Label>
                 <Input
@@ -484,10 +485,7 @@ export default function TestPow() {
                   {status === "error" && "Try Again"}
                 </Button>
                 {(status === "mining-wgsl" || status === "mining-wasm") && (
-                  <Button
-                    onClick={cancelMining}
-                    variant="destructive"
-                  >
+                  <Button onClick={cancelMining} variant="destructive">
                     Cancel
                   </Button>
                 )}
