@@ -107,7 +107,21 @@ export type PowAlgorithm = z.infer<typeof PowAlgorithmSchema>;
 
 // PoW Challenge - generates a challenge and stores it in the database
 // Each challenge can only be used once and expires after 5 minutes
-export const GetPowChallengeRequestSchema = z.object({});
+// Minimum difficulty: 1,000,000 (approximately 2^20)
+// Default difficulty: 4,194,304 (2^22)
+export const GetPowChallengeRequestSchema = z.object({
+  difficulty: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        const num = BigInt(val);
+        return num >= 1_000_000n;
+      },
+      { message: "Difficulty must be at least 1,000,000" },
+    ),
+});
 
 export const GetPowChallengeResponseSchema = z.object({
   id: z.string().length(26), // UUIDv7 (26-char) challenge ID for verification

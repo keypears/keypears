@@ -10,9 +10,9 @@ import { base } from "./base.js";
 import { db } from "../db/index.js";
 import { TablePowChallenge } from "../db/schema.js";
 
-// Hardcoded difficulty for testing: 4,194,304 (2^22) = ~4 million hashes average
+// Default difficulty: 4,194,304 (2^22) = ~4 million hashes average
 // Takes a few seconds with WGSL, much longer with WASM
-const TEST_DIFFICULTY = 4194304n;
+const DEFAULT_DIFFICULTY = 4194304n;
 
 // Header sizes for each algorithm
 const HEADER_SIZE_64B = 64;
@@ -40,7 +40,12 @@ const CHALLENGE_EXPIRATION_MS = 5 * 60 * 1000;
 export const getPowChallengeProcedure = base
   .input(GetPowChallengeRequestSchema)
   .output(GetPowChallengeResponseSchema)
-  .handler(async () => {
+  .handler(async ({ input }) => {
+    // Use client-provided difficulty or default
+    const difficulty = input.difficulty
+      ? BigInt(input.difficulty)
+      : DEFAULT_DIFFICULTY;
+
     // Randomly select algorithm: get 1 byte, mask to 1 bit for 50/50 selection
     const randomByte = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
     const algorithm: PowAlgorithm =
@@ -54,7 +59,7 @@ export const getPowChallengeProcedure = base
     );
 
     // Calculate target from difficulty
-    const target = targetFromDifficulty(TEST_DIFFICULTY);
+    const target = targetFromDifficulty(difficulty);
 
     // Generate challenge ID and expiration
     const id = generateId();
@@ -66,7 +71,7 @@ export const getPowChallengeProcedure = base
       algorithm,
       header: header.toHex(),
       target: target.buf.toHex(),
-      difficulty: TEST_DIFFICULTY.toString(),
+      difficulty: difficulty.toString(),
       expiresAt,
     });
 
@@ -74,7 +79,7 @@ export const getPowChallengeProcedure = base
       id,
       header: header.toHex(),
       target: target.buf.toHex(),
-      difficulty: TEST_DIFFICULTY.toString(),
+      difficulty: difficulty.toString(),
       algorithm,
     };
   });

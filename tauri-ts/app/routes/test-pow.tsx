@@ -2,6 +2,8 @@ import type { Route } from "./+types/test-pow";
 import { Navbar } from "~app/components/navbar";
 import { Footer } from "~app/components/footer";
 import { Button } from "~app/components/ui/button";
+import { Input } from "~app/components/ui/input";
+import { Label } from "~app/components/ui/label";
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -69,6 +71,7 @@ interface MiningResult {
   hashHex: string;
   nonce: number;
   iterations: number;
+  elapsedMs: number;
 }
 
 export function meta(_args: Route.MetaArgs) {
@@ -84,6 +87,7 @@ export default function TestPow() {
   const [result, setResult] = useState<MiningResult | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
+  const [difficultyInput, setDifficultyInput] = useState<string>("4194304");
 
   async function runPowTest() {
     setStatus("fetching");
@@ -100,7 +104,12 @@ export default function TestPow() {
 
       // Fetch challenge from server (hardcoded to dev domain for testing)
       const client = await createClientFromDomain("keypears.localhost");
-      const challenge = await client.api.getPowChallenge({});
+      const challenge = await client.api.getPowChallenge({
+        difficulty: difficultyInput,
+      });
+
+      // Start timing
+      const startTime = Date.now();
 
       setDifficulty(challenge.difficulty);
       setTargetHex(challenge.target);
@@ -236,6 +245,9 @@ export default function TestPow() {
         }
       }
 
+      // Calculate elapsed time
+      const elapsedMs = Date.now() - startTime;
+
       setResult({
         implementation,
         algorithm: challenge.algorithm,
@@ -244,6 +256,7 @@ export default function TestPow() {
         hashHex: hashHex!,
         nonce,
         iterations,
+        elapsedMs,
       });
 
       // Verify with server
@@ -371,6 +384,10 @@ export default function TestPow() {
                       {result.implementation} / {result.algorithm}
                     </p>
                     <p>
+                      <span className="text-foreground">Time:</span>{" "}
+                      {(result.elapsedMs / 1000).toFixed(2)}s ({result.elapsedMs.toFixed(0)}ms)
+                    </p>
+                    <p>
                       <span className="text-foreground">Nonce:</span>{" "}
                       {result.nonce}
                     </p>
@@ -385,6 +402,30 @@ export default function TestPow() {
                   </div>
                 </div>
               )}
+
+              {/* Difficulty Input */}
+              <div className="border-border border-t pt-4">
+                <Label htmlFor="difficulty" className="mb-2 block text-sm font-medium">
+                  Difficulty (min: 1,000,000)
+                </Label>
+                <Input
+                  id="difficulty"
+                  type="number"
+                  min={1000000}
+                  value={difficultyInput}
+                  onChange={(e) => setDifficultyInput(e.target.value)}
+                  className="w-full font-mono"
+                  disabled={
+                    status === "fetching" ||
+                    status === "mining-wgsl" ||
+                    status === "mining-wasm" ||
+                    status === "verifying"
+                  }
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Higher = more hashes required. 2^20 ≈ 1M, 2^22 ≈ 4M, 2^24 ≈ 16M
+                </p>
+              </div>
 
               {/* Mining Mode Toggle */}
               <div className="border-border border-t pt-4">
