@@ -1,9 +1,9 @@
 import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf } from "@webbuf/fixedbuf";
 import { targetFromDifficulty } from "@keypears/pow5/dist/difficulty.js";
 import {
   GetPowChallengeRequestSchema,
   GetPowChallengeResponseSchema,
+  type Pow5Algorithm,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
 
@@ -11,11 +11,19 @@ import { base } from "./base.js";
 // This should complete almost instantly for quick testing
 const TEST_DIFFICULTY = 256n;
 
+// Header sizes for each algorithm
+const HEADER_SIZE_64B = 64;
+const HEADER_SIZE_217A = 217;
+
 /**
  * Get PoW Challenge procedure (FOR TESTING ONLY - NOT SECURE)
  *
- * Returns a 64-byte header and target for proof-of-work mining.
- * The header is: [32 zero bytes] + [32 random bytes]
+ * Randomly selects pow5-64b or pow5-217a algorithm (50/50).
+ * Returns a fully random header of the appropriate size and target for mining.
+ *
+ * Header sizes:
+ * - pow5-64b: 64 bytes (nonce region: bytes 0-31)
+ * - pow5-217a: 217 bytes (nonce region: bytes 117-148)
  *
  * This is NOT secure because:
  * - No challenge storage in database
@@ -27,14 +35,17 @@ export const getPowChallengeProcedure = base
   .input(GetPowChallengeRequestSchema)
   .output(GetPowChallengeResponseSchema)
   .handler(async () => {
-    // Generate 32 random bytes for the challenge
-    const challenge = WebBuf.fromUint8Array(crypto.getRandomValues(new Uint8Array(32)));
+    // Randomly select algorithm: get 1 byte, mask to 1 bit for 50/50 selection
+    const randomByte = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
+    const algorithm: Pow5Algorithm =
+      (randomByte & 1) === 0 ? "pow5-64b" : "pow5-217a";
 
-    // Create 64-byte header: [32 zero bytes (nonce)] + [32 random bytes (challenge)]
-    const header = WebBuf.alloc(64);
-    // First 32 bytes are zeros (nonce field, client will fill in)
-    // Next 32 bytes are the random challenge
-    header.set(challenge, 32);
+    // Generate fully random header of appropriate size
+    const headerSize =
+      algorithm === "pow5-64b" ? HEADER_SIZE_64B : HEADER_SIZE_217A;
+    const header = WebBuf.fromUint8Array(
+      crypto.getRandomValues(new Uint8Array(headerSize)),
+    );
 
     // Calculate target from difficulty
     const target = targetFromDifficulty(TEST_DIFFICULTY);
@@ -43,5 +54,6 @@ export const getPowChallengeProcedure = base
       header: header.toHex(),
       target: target.buf.toHex(),
       difficulty: TEST_DIFFICULTY.toString(),
+      algorithm,
     };
   });

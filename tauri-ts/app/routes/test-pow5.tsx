@@ -8,6 +8,8 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import {
   Pow5_64b_Wgsl,
   Pow5_64b_Wasm,
+  Pow5_217a_Wgsl,
+  Pow5_217a_Wasm,
   hashMeetsTarget,
 } from "@keypears/pow5";
 import { Cpu, Zap, CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -21,8 +23,11 @@ type Status =
   | "success"
   | "error";
 
+type Pow5Algorithm = "pow5-64b" | "pow5-217a";
+
 interface MiningResult {
   implementation: "WGSL" | "WASM";
+  algorithm: Pow5Algorithm;
   headerHex: string;
   solvedHeaderHex: string;
   hashHex: string;
@@ -39,6 +44,7 @@ export default function TestPow5() {
   const [error, setError] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const [targetHex, setTargetHex] = useState<string | null>(null);
+  const [algorithm, setAlgorithm] = useState<Pow5Algorithm | null>(null);
   const [result, setResult] = useState<MiningResult | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
 
@@ -46,6 +52,7 @@ export default function TestPow5() {
     setStatus("fetching");
     setError(null);
     setResult(null);
+    setAlgorithm(null);
 
     try {
       // Check WebGPU availability
@@ -58,72 +65,131 @@ export default function TestPow5() {
 
       setDifficulty(challenge.difficulty);
       setTargetHex(challenge.target);
+      setAlgorithm(challenge.algorithm);
 
-      const headerBuf = FixedBuf.fromHex(64, challenge.header);
       const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
-      let solvedHeaderBuf: FixedBuf<64>;
-      let hashBuf: FixedBuf<32>;
+      let solvedHeaderHex: string;
+      let hashHex: string;
       let nonce = 0;
       let iterations = 0;
       let implementation: "WGSL" | "WASM";
 
-      if (hasWebGpu) {
-        // Use WebGPU (WGSL)
-        setStatus("mining-wgsl");
-        implementation = "WGSL";
+      if (challenge.algorithm === "pow5-64b") {
+        // pow5-64b algorithm
+        const headerBuf = FixedBuf.fromHex(64, challenge.header);
 
-        const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
-        await pow5.init();
+        if (hasWebGpu) {
+          setStatus("mining-wgsl");
+          implementation = "WGSL";
 
-        // Run mining iterations until we find a valid hash
-        let found = false;
-        let currentHeader = headerBuf;
-        let baseNonce = 0;
+          const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
+          await pow5.init();
 
-        while (!found) {
-          const workResult = await pow5.work();
-          iterations++;
+          let found = false;
+          let currentHeader = headerBuf;
+          let baseNonce = 0;
 
-          // Check if we got a real result (not all zeros)
-          // All zeros means no valid hash was found in this batch
-          const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+          while (!found) {
+            const workResult = await pow5.work();
+            iterations++;
 
-          if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
-            nonce = workResult.nonce;
-            hashBuf = workResult.hash;
-            // Reconstruct the solved header with the winning nonce
-            solvedHeaderBuf = Pow5_64b_Wasm.insertNonce(currentHeader, nonce);
-            found = true;
-          } else {
-            // Update header with new base nonce for next iteration
-            baseNonce += 128 * 256; // gridSize * workgroupSize
-            currentHeader = Pow5_64b_Wasm.insertNonce(headerBuf, baseNonce);
-            await pow5.setInput(currentHeader, targetBuf, 128);
+            const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+
+            if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
+              nonce = workResult.nonce;
+              hashHex = workResult.hash.buf.toHex();
+              solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
+                currentHeader,
+                nonce,
+              ).buf.toHex();
+              found = true;
+            } else {
+              baseNonce += 128 * 256;
+              currentHeader = Pow5_64b_Wasm.insertNonce(headerBuf, baseNonce);
+              await pow5.setInput(currentHeader, targetBuf, 128);
+            }
+          }
+        } else {
+          setStatus("mining-wasm");
+          implementation = "WASM";
+
+          let found = false;
+          nonce = 0;
+
+          while (!found) {
+            const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
+            const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
+            iterations++;
+
+            if (hashMeetsTarget(testHash, targetBuf)) {
+              solvedHeaderHex = testHeader.buf.toHex();
+              hashHex = testHash.buf.toHex();
+              found = true;
+            } else {
+              nonce++;
+              if (nonce > 100_000_000) {
+                throw new Error("Mining took too long (>100M iterations)");
+              }
+            }
           }
         }
       } else {
-        // Use WASM fallback
-        setStatus("mining-wasm");
-        implementation = "WASM";
+        // pow5-217a algorithm
+        const headerBuf = FixedBuf.fromHex(217, challenge.header);
 
-        let found = false;
-        nonce = 0;
+        if (hasWebGpu) {
+          setStatus("mining-wgsl");
+          implementation = "WGSL";
 
-        while (!found) {
-          const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
-          const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
-          iterations++;
+          const pow5 = new Pow5_217a_Wgsl(headerBuf, targetBuf, 128);
+          await pow5.init();
 
-          if (hashMeetsTarget(testHash, targetBuf)) {
-            solvedHeaderBuf = testHeader;
-            hashBuf = testHash;
-            found = true;
-          } else {
-            nonce++;
-            // Safety check to prevent infinite loops in testing
-            if (nonce > 100_000_000) {
-              throw new Error("Mining took too long (>100M iterations)");
+          let found = false;
+          let currentHeader = headerBuf;
+          let baseNonce = 0;
+
+          while (!found) {
+            const workResult = await pow5.work();
+            iterations++;
+
+            const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+
+            if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
+              nonce = workResult.nonce;
+              hashHex = workResult.hash.buf.toHex();
+              solvedHeaderHex = Pow5_217a_Wasm.insertNonce(
+                currentHeader,
+                nonce,
+              ).buf.toHex();
+              found = true;
+            } else {
+              baseNonce += 128 * 256;
+              currentHeader = Pow5_217a_Wasm.insertNonce(headerBuf, baseNonce);
+              await pow5.setInput(currentHeader, targetBuf, 128);
+            }
+          }
+        } else {
+          setStatus("mining-wasm");
+          implementation = "WASM";
+
+          let found = false;
+          nonce = 0;
+
+          while (!found) {
+            const testHeader = Pow5_217a_Wasm.insertNonce(headerBuf, nonce);
+            const testHash = Pow5_217a_Wasm.elementaryIteration(testHeader);
+            iterations++;
+
+            if (hashMeetsTarget(testHash, targetBuf)) {
+              solvedHeaderHex = testHeader.buf.toHex();
+              hashHex = testHash.buf.toHex();
+              found = true;
+            } else {
+              nonce++;
+              if (nonce > 100_000_000) {
+                throw new Error("Mining took too long (>100M iterations)");
+              }
             }
           }
         }
@@ -131,9 +197,10 @@ export default function TestPow5() {
 
       setResult({
         implementation,
+        algorithm: challenge.algorithm,
         headerHex: challenge.header,
-        solvedHeaderHex: solvedHeaderBuf!.buf.toHex(),
-        hashHex: hashBuf!.buf.toHex(),
+        solvedHeaderHex: solvedHeaderHex!,
+        hashHex: hashHex!,
         nonce,
         iterations,
       });
@@ -142,9 +209,10 @@ export default function TestPow5() {
       setStatus("verifying");
 
       const verification = await client.api.verifyPowProof({
+        algorithm: challenge.algorithm,
         originalHeader: challenge.header,
-        solvedHeader: solvedHeaderBuf!.buf.toHex(),
-        hash: hashBuf!.buf.toHex(),
+        solvedHeader: solvedHeaderHex!,
+        hash: hashHex!,
       });
 
       if (verification.valid) {
@@ -167,7 +235,7 @@ export default function TestPow5() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Test Pow5</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Test the proof-of-work algorithm (pow5-64b)
+              Test the proof-of-work algorithm (pow5-64b or pow5-217a)
             </p>
           </div>
 
@@ -238,6 +306,10 @@ export default function TestPow5() {
                   <h3 className="mb-2 text-sm font-medium">Challenge Info</h3>
                   <div className="text-muted-foreground space-y-1 font-mono text-xs">
                     <p>
+                      <span className="text-foreground">Algorithm:</span>{" "}
+                      {algorithm}
+                    </p>
+                    <p>
                       <span className="text-foreground">Difficulty:</span>{" "}
                       {difficulty}
                     </p>
@@ -256,7 +328,7 @@ export default function TestPow5() {
                   <div className="text-muted-foreground space-y-1 font-mono text-xs">
                     <p>
                       <span className="text-foreground">Implementation:</span>{" "}
-                      {result.implementation}
+                      {result.implementation} / {result.algorithm}
                     </p>
                     <p>
                       <span className="text-foreground">Nonce:</span>{" "}
