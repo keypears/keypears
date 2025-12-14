@@ -90,6 +90,22 @@ This ensures that:
 - Premium short names require significant investment
 - Mass registration attacks are economically impractical
 
+### Test Environment
+
+In test environment (`NODE_ENV=test`), `difficultyForName()` uses `TEST_BASE_DIFFICULTY`
+(1) instead of `BASE_REGISTRATION_DIFFICULTY` (4,194,304). The 2x scaling per character
+still applies, but tests complete instantly:
+
+| Name Length | Test Difficulty | Avg Hashes |
+| ----------- | --------------- | ---------- |
+| 3 chars     | 128             | ~128       |
+| 4 chars     | 64              | ~64        |
+| 5 chars     | 32              | ~32        |
+| 10+ chars   | 1               | ~1         |
+
+This allows the test suite to exercise the full PoW flow (challenge creation, mining,
+verification) without waiting for real mining times.
+
 ## Implementation
 
 ### WebGPU Mining (GPU)
@@ -270,10 +286,11 @@ KeyPears will use PoW to throttle cross-domain messaging:
 
 ### Constants
 
-| Constant                    | Value     | Description                          |
-| --------------------------- | --------- | ------------------------------------ |
-| `BASE_REGISTRATION_DIFFICULTY` | 4,194,304 | Base difficulty (2^22)            |
-| `CHALLENGE_EXPIRATION_MS`   | 900,000   | 15 minutes in milliseconds           |
-| `GPU_WORKGROUP_SIZE`        | 256       | Threads per GPU workgroup            |
-| `GPU_GRID_SIZE`             | 128       | Workgroups per GPU dispatch          |
-| `HASHES_PER_GPU_ITERATION`  | 32,768    | Total hashes per GPU work() call     |
+| Constant                       | Value     | Location                           | Description                      |
+| ------------------------------ | --------- | ---------------------------------- | -------------------------------- |
+| `BASE_REGISTRATION_DIFFICULTY` | 4,194,304 | `lib/src/index.ts`                 | Base difficulty (2^22)           |
+| `TEST_BASE_DIFFICULTY`         | 1         | `lib/src/index.ts`                 | Test environment base difficulty |
+| `CHALLENGE_EXPIRATION_MS`      | 900,000   | `api-server/src/constants.ts`      | 15 minutes in milliseconds       |
+| `GPU_WORKGROUP_SIZE`           | 256       | `tauri-ts/app/lib/use-pow-miner.ts`| Threads per GPU workgroup        |
+| `GPU_GRID_SIZE`                | 128       | `tauri-ts/app/lib/use-pow-miner.ts`| Workgroups per GPU dispatch      |
+| `HASHES_PER_GPU_ITERATION`     | 32,768    | `tauri-ts/app/lib/use-pow-miner.ts`| Total hashes per GPU work() call |
