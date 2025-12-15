@@ -14,10 +14,10 @@ export function BottomTabBar({ vaultId }: BottomTabBarProps) {
           to={href("/vault/:vaultId/secrets", { vaultId })}
           className={({ isActive }) =>
             cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
+              "flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 transition-colors",
               isActive
                 ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )
           }
         >
@@ -28,10 +28,10 @@ export function BottomTabBar({ vaultId }: BottomTabBarProps) {
           to={href("/vault/:vaultId/messages", { vaultId })}
           className={({ isActive }) =>
             cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
+              "flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 transition-colors",
               isActive
                 ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )
           }
         >
