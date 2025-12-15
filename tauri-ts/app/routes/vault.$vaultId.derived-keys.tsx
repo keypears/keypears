@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.keys";
+import type { Route } from "./+types/vault.$vaultId.derived-keys";
 import { useState } from "react";
 import { Key, Plus, Copy, Eye, EyeOff, Check } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
