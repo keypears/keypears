@@ -3,7 +3,11 @@ import { Link, useNavigate, href } from "react-router";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { VaultAddressInput } from "~app/components/vault-address-input";
-import { vaultNameSchema, getOfficialDomains } from "@keypears/lib";
+import {
+  vaultNameSchema,
+  getOfficialDomains,
+  estimatePowTime,
+} from "@keypears/lib";
 import { ZodError } from "zod";
 import { createClientFromDomain } from "@keypears/api-server/client";
 
@@ -139,27 +143,6 @@ export default function NewVaultStep1() {
   const isValid =
     name.length > 0 && domain.length > 0 && !nameError && !domainError;
 
-  // Format difficulty for display with estimated time
-  const formatDifficulty = (
-    diff: string,
-  ): { display: string; time: string } => {
-    const n = BigInt(diff);
-    const millions = Number(n / 1000000n);
-    // Rough estimate: ~1M hashes/sec on GPU, ~100k/sec on CPU
-    const secondsGpu = millions;
-    let time: string;
-    if (secondsGpu < 60) {
-      time = `~${secondsGpu} seconds`;
-    } else {
-      const minutes = Math.ceil(secondsGpu / 60);
-      time = `~${minutes} minute${minutes > 1 ? "s" : ""}`;
-    }
-    return {
-      display: millions >= 1 ? `${millions}M` : diff,
-      time,
-    };
-  };
-
   return (
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
@@ -206,11 +189,11 @@ export default function NewVaultStep1() {
                         Mining difficulty:{" "}
                       </span>
                       <span className="font-mono font-medium">
-                        {formatDifficulty(difficulty).display}
+                        {estimatePowTime(difficulty).display}
                       </span>
                       <span className="text-muted-foreground">
                         {" "}
-                        ({formatDifficulty(difficulty).time})
+                        ({estimatePowTime(difficulty).timeGpu})
                       </span>
                     </p>
                     {name.length < 10 && (

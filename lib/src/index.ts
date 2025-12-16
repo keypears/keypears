@@ -484,6 +484,57 @@ export const TEST_BASE_DIFFICULTY = 1n;
 const DIFFICULTY_REFERENCE_LENGTH = 10;
 
 /**
+ * Format a time duration in seconds to a human-readable string
+ *
+ * @param seconds - Number of seconds
+ * @returns Human-readable time string (e.g., "~4 seconds" or "~2 minutes")
+ */
+function formatPowTime(seconds: number): string {
+  if (seconds < 60) {
+    const rounded = Math.max(1, Math.round(seconds));
+    return `~${rounded} second${rounded !== 1 ? "s" : ""}`;
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return `~${minutes} minute${minutes > 1 ? "s" : ""}`;
+}
+
+/**
+ * Estimate PoW mining time based on difficulty
+ *
+ * Provides time estimates for both GPU and CPU mining. These are rough estimates
+ * based on observed performance:
+ * - GPU: ~1M hashes/sec
+ * - CPU: ~100k hashes/sec (10x slower)
+ *
+ * @param difficulty - The PoW difficulty as bigint or string
+ * @returns Object with formatted difficulty display and estimated times
+ */
+export function estimatePowTime(difficulty: bigint | string): {
+  display: string; // e.g., "4M" or "128M"
+  secondsGpu: number; // Raw seconds on GPU
+  secondsCpu: number; // Raw seconds on CPU (~10x slower)
+  timeGpu: string; // e.g., "~4 seconds" or "~2 minutes"
+  timeCpu: string; // e.g., "~40 seconds" or "~20 minutes"
+} {
+  const n = typeof difficulty === "string" ? BigInt(difficulty) : difficulty;
+  const millions = Number(n / 1_000_000n);
+
+  // Rough estimates based on observed performance:
+  // GPU: ~1M hashes/sec
+  // CPU: ~100k hashes/sec (10x slower)
+  const secondsGpu = millions;
+  const secondsCpu = millions * 10;
+
+  return {
+    display: millions >= 1 ? `${millions}M` : n.toString(),
+    secondsGpu,
+    secondsCpu,
+    timeGpu: formatPowTime(secondsGpu),
+    timeCpu: formatPowTime(secondsCpu),
+  };
+}
+
+/**
  * Calculates the PoW difficulty required to register a given vault name.
  *
  * Shorter names are more valuable and require more computational work to register.

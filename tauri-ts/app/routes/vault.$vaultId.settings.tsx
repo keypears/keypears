@@ -6,6 +6,7 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
 import { createClientFromDomain } from "@keypears/api-server/client";
+import { estimatePowTime } from "@keypears/lib";
 import { getUnlockedVault, getSessionToken } from "~app/lib/vault-store";
 import type { VaultSettings } from "@keypears/api-server";
 
@@ -146,7 +147,7 @@ export default function VaultSettingsPage({
                 Higher values require senders to spend more computation time
                 before messaging you. This helps prevent spam.
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-stretch gap-3">
                 <Input
                   id="difficulty"
                   type="text"
@@ -155,11 +156,15 @@ export default function VaultSettingsPage({
                   className="font-mono"
                   placeholder={DEFAULT_DIFFICULTY}
                 />
-                <Button variant="outline" size="sm" onClick={handleReset}>
+                <Button variant="outline" className="h-9" onClick={handleReset}>
                   Reset
                 </Button>
               </div>
               <p className="text-muted-foreground mt-1 text-xs">
+                Estimated time: {estimatePowTime(displayDifficulty).timeGpu} on
+                GPU
+              </p>
+              <p className="text-muted-foreground text-xs">
                 Default: {formatNumber(DEFAULT_DIFFICULTY)} (~4 seconds on GPU)
               </p>
             </div>
