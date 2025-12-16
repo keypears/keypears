@@ -35,19 +35,14 @@ fn get_db_path(state: tauri::State<DbPathState>) -> String {
 
 #[tauri::command]
 fn get_db_file_info(state: tauri::State<DbPathState>) -> DbFileInfo {
-    let path = &state.path;
-    if path.is_empty() {
-        return DbFileInfo {
-            path: "keypears.db".to_string(),
-            size: None,
-        };
-    }
+    let path = if state.path.is_empty() {
+        "keypears.db".to_string()
+    } else {
+        state.path.clone()
+    };
 
-    let size = std::fs::metadata(path).ok().map(|m| m.len());
-    DbFileInfo {
-        path: path.clone(),
-        size,
-    }
+    let size = std::fs::metadata(&path).ok().map(|m| m.len());
+    DbFileInfo { path, size }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

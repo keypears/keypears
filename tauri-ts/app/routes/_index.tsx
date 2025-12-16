@@ -193,9 +193,11 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
               <p className="truncate font-mono" title={loaderData.dbInfo.path}>
                 {loaderData.dbInfo.path}
               </p>
-              {loaderData.dbInfo.size !== null && (
-                <p>{formatBytes(loaderData.dbInfo.size)}</p>
-              )}
+              <p>
+                {loaderData.dbInfo.size != null
+                  ? formatBytes(loaderData.dbInfo.size)
+                  : `(size: ${JSON.stringify(loaderData.dbInfo.size)})`}
+              </p>
             </div>
           </div>
         </div>
