@@ -703,3 +703,26 @@ export function idToUuid(base32Id: string): string {
   // Format as UUID: 8-4-4-4-12
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
+
+// ============================================================================
+// File Size Formatting
+// ============================================================================
+
+/**
+ * Format bytes as human-readable string (e.g., "1.5 MB")
+ *
+ * Uses binary units (1 KB = 1024 bytes) which matches how file systems
+ * typically report sizes.
+ *
+ * @param bytes - Number of bytes
+ * @returns Human-readable string like "1.5 MB" or "256 KB"
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const value = bytes / Math.pow(k, i);
+  // Show 1 decimal place for values < 10, no decimals for larger values
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${sizes[i]}`;
+}

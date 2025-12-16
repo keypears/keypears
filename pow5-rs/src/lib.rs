@@ -304,13 +304,19 @@ mod tests {
         let header_all_zeroes = vec![0; HEADER_SIZE_64B];
         let result = elementary_iteration_64b(header_all_zeroes).unwrap();
         assert_eq!(result.len(), 32);
-        println!("elementary_iteration_64b all zeroes: {}", hex::encode(&result));
+        println!(
+            "elementary_iteration_64b all zeroes: {}",
+            hex::encode(&result)
+        );
 
         // Test with all ones (0x11)
         let header_all_ones = vec![0x11; HEADER_SIZE_64B];
         let result = elementary_iteration_64b(header_all_ones).unwrap();
         assert_eq!(result.len(), 32);
-        println!("elementary_iteration_64b all ones: {}", hex::encode(&result));
+        println!(
+            "elementary_iteration_64b all ones: {}",
+            hex::encode(&result)
+        );
     }
 
     #[test]

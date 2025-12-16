@@ -10,6 +10,13 @@ struct DbPathState {
     path: String,
 }
 
+// Response for database file info
+#[derive(serde::Serialize)]
+struct DbFileInfo {
+    path: String,
+    size: Option<u64>,
+}
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -26,6 +33,23 @@ fn get_db_path(state: tauri::State<DbPathState>) -> String {
     state.path.clone()
 }
 
+#[tauri::command]
+fn get_db_file_info(state: tauri::State<DbPathState>) -> DbFileInfo {
+    let path = &state.path;
+    if path.is_empty() {
+        return DbFileInfo {
+            path: "keypears.db".to_string(),
+            size: None,
+        };
+    }
+
+    let size = std::fs::metadata(path).ok().map(|m| m.len());
+    DbFileInfo {
+        path: path.clone(),
+        size,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(db_path: String) {
     tauri::Builder::default()
@@ -36,7 +60,8 @@ pub fn run(db_path: String) {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_api_url_command,
-            get_db_path
+            get_db_path,
+            get_db_file_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

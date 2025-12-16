@@ -39,6 +39,22 @@ export function getResolvedDbPath(): string | null {
   return resolvedDbPath;
 }
 
+// Database file info returned by Tauri
+export interface DbFileInfo {
+  path: string;
+  size: number | null;
+}
+
+// Get database file info (path and size) from Tauri
+export async function getDbFileInfo(): Promise<DbFileInfo> {
+  try {
+    return await invoke<DbFileInfo>("get_db_file_info");
+  } catch {
+    // Fallback for non-Tauri environments or errors
+    return { path: resolvedDbPath ?? "keypears.db", size: null };
+  }
+}
+
 // Initialize database - accepts optional override for testing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function initDb(dbOverride?: any) {

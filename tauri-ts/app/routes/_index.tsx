@@ -16,7 +16,8 @@ import {
 } from "~app/components/ui/alert-dialog";
 import { getVaults, deleteVault, type Vault } from "~app/db/models/vault";
 import { formatRelativeTime } from "~app/lib/format";
-import { initDb } from "~app/db";
+import { initDb, getDbFileInfo } from "~app/db";
+import { formatBytes } from "@keypears/lib";
 import { useState, useEffect } from "react";
 import { getAllUnlockedVaultIds, lockVault } from "~app/lib/vault-store";
 import { useAllUnreadCounts, clearSyncState } from "~app/contexts/sync-context";
@@ -24,8 +25,8 @@ import { stopBackgroundSync } from "~app/lib/sync-service";
 
 export async function clientLoader(_args: Route.ClientLoaderArgs) {
   await initDb();
-  const vaults = await getVaults();
-  return { vaults };
+  const [vaults, dbInfo] = await Promise.all([getVaults(), getDbFileInfo()]);
+  return { vaults, dbInfo };
 }
 
 // Poll interval for checking vault state
@@ -184,6 +185,19 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
               })}
             </div>
           )}
+
+          {/* Database Info */}
+          <div className="border-border bg-card/50 mt-8 rounded-lg border p-4">
+            <div className="text-muted-foreground space-y-1 text-xs">
+              <p className="text-foreground/70 font-medium">Database</p>
+              <p className="truncate font-mono" title={loaderData.dbInfo.path}>
+                {loaderData.dbInfo.path}
+              </p>
+              {loaderData.dbInfo.size !== null && (
+                <p>{formatBytes(loaderData.dbInfo.size)}</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <Footer />

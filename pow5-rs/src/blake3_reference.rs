@@ -107,11 +107,7 @@ fn words_from_little_endian_bytes(bytes: &[u32], words: &mut [u32]) {
 }
 
 fn min(a: usize, b: usize) -> usize {
-    if a < b {
-        a
-    } else {
-        b
-    }
+    if a < b { a } else { b }
 }
 
 // Each chunk or parent node can produce either an 8-word chaining value or, by
