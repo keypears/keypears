@@ -199,12 +199,14 @@ The client mines the challenge using WebGPU (if available) or falls back to
 WebAssembly:
 
 **WebGPU (GPU mining)**:
+
 - 256 threads per workgroup
 - 128 workgroups per dispatch
 - 32,768 hashes per iteration
 - ~10x faster than CPU
 
 **WebAssembly (CPU mining)**:
+
 - Sequential execution
 - 1 hash per iteration
 - Yields to UI every 10,000 iterations

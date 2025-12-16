@@ -40,7 +40,9 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   };
 }
 
-export default function VaultSettingsPage({ loaderData }: Route.ComponentProps) {
+export default function VaultSettingsPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { vaultId, vaultDomain, settings: initialSettings } = loaderData;
 
   const [settings, setSettings] = useState<VaultSettings>(initialSettings);
@@ -49,7 +51,8 @@ export default function VaultSettingsPage({ loaderData }: Route.ComponentProps) 
   const [success, setSuccess] = useState(false);
 
   // Convert difficulty string to display value
-  const displayDifficulty = settings.messagingMinDifficulty || DEFAULT_DIFFICULTY;
+  const displayDifficulty =
+    settings.messagingMinDifficulty || DEFAULT_DIFFICULTY;
 
   const handleDifficultyChange = (value: string) => {
     // Only allow numeric input

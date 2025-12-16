@@ -140,7 +140,9 @@ export default function NewVaultStep1() {
     name.length > 0 && domain.length > 0 && !nameError && !domainError;
 
   // Format difficulty for display with estimated time
-  const formatDifficulty = (diff: string): { display: string; time: string } => {
+  const formatDifficulty = (
+    diff: string,
+  ): { display: string; time: string } => {
     const n = BigInt(diff);
     const millions = Number(n / 1000000n);
     // Rough estimate: ~1M hashes/sec on GPU, ~100k/sec on CPU
@@ -200,11 +202,16 @@ export default function NewVaultStep1() {
                 {nameAvailable && difficulty && (
                   <div className="bg-primary/5 border-primary/20 rounded-lg border p-3">
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Mining difficulty: </span>
+                      <span className="text-muted-foreground">
+                        Mining difficulty:{" "}
+                      </span>
                       <span className="font-mono font-medium">
                         {formatDifficulty(difficulty).display}
                       </span>
-                      <span className="text-muted-foreground"> ({formatDifficulty(difficulty).time})</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        ({formatDifficulty(difficulty).time})
+                      </span>
                     </p>
                     {name.length < 10 && (
                       <p className="text-muted-foreground mt-1 text-xs">

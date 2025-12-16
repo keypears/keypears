@@ -8,7 +8,7 @@ interface BottomTabBarProps {
 
 export function BottomTabBar({ vaultId }: BottomTabBarProps) {
   return (
-    <nav className="bg-card border-border fixed bottom-0 left-0 right-0 z-50 border-t">
+    <nav className="bg-card border-border fixed right-0 bottom-0 left-0 z-50 border-t">
       <div className="mx-auto flex h-16 max-w-2xl items-center justify-around">
         <NavLink
           to={href("/vault/:vaultId/secrets", { vaultId })}

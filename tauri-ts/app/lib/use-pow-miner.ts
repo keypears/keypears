@@ -1,11 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { FixedBuf } from "@keypears/lib";
-import {
-  Pow5_64b_Wgsl,
-  Pow5_64b_Wasm,
-  hashMeetsTarget,
-} from "@keypears/pow5";
+import { Pow5_64b_Wgsl, Pow5_64b_Wasm, hashMeetsTarget } from "@keypears/pow5";
 
 // Constants for GPU hash computation
 // GPU dispatches WORKGROUP_SIZE threads × gridSize workgroups per work() call
@@ -81,17 +77,26 @@ export interface UsePowMinerReturn {
 }
 
 export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
-  const { domain, difficulty, algorithm, preferWgsl = true, verifyWithServer = false } = options;
+  const {
+    domain,
+    difficulty,
+    algorithm,
+    preferWgsl = true,
+    verifyWithServer = false,
+  } = options;
 
   const [status, setStatus] = useState<PowMinerStatus>("idle");
-  const [implementation, setImplementation] = useState<PowImplementation | null>(null);
+  const [implementation, setImplementation] =
+    useState<PowImplementation | null>(null);
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [iterations, setIterations] = useState(0);
   const [hashesComputed, setHashesComputed] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<PowMinerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [challengeInfo, setChallengeInfo] = useState<PowChallengeInfo | null>(null);
+  const [challengeInfo, setChallengeInfo] = useState<PowChallengeInfo | null>(
+    null,
+  );
 
   const cancelledRef = useRef<boolean>(false);
   const startTimeRef = useRef<number>(0);
@@ -192,7 +197,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
             hashHex = workResult.hash.buf.toHex();
             solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
               currentHeader,
-              nonce
+              nonce,
             ).buf.toHex();
             found = true;
           } else {

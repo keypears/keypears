@@ -10,14 +10,9 @@ export function SearchBar({ placeholder = "Search..." }: SearchBarProps) {
     <div className="relative">
       <Search
         size={18}
-        className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+        className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
       />
-      <Input
-        type="text"
-        placeholder={placeholder}
-        className="pl-10"
-        disabled
-      />
+      <Input type="text" placeholder={placeholder} className="pl-10" disabled />
     </div>
   );
 }

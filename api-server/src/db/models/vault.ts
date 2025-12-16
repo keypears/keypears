@@ -126,7 +126,9 @@ export async function createVault(params: {
  * @param id - The vault ID
  * @returns The settings object, or null if vault not found
  */
-export async function getVaultSettings(id: string): Promise<VaultSettings | null> {
+export async function getVaultSettings(
+  id: string,
+): Promise<VaultSettings | null> {
   const result = await db
     .select({ settings: TableVault.settings })
     .from(TableVault)

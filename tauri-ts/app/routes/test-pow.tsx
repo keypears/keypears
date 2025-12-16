@@ -7,7 +7,14 @@ import { Label } from "~app/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "~app/components/ui/toggle-group";
 import { useState, useRef, useEffect } from "react";
 import { getOfficialDomains } from "@keypears/lib";
-import { Cpu, Zap, CheckCircle, XCircle, Loader2, ChevronDown } from "lucide-react";
+import {
+  Cpu,
+  Zap,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 
 type MiningMode = "prefer-wgsl" | "wasm-only";
@@ -20,7 +27,9 @@ export default function TestPow() {
   // UI-specific state
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
   const [difficultyInput, setDifficultyInput] = useState<string>("4194304");
-  const [domain, setDomain] = useState<string>(() => getOfficialDomains()[0] ?? "keypears.com");
+  const [domain, setDomain] = useState<string>(
+    () => getOfficialDomains()[0] ?? "keypears.com",
+  );
   const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState(false);
   const domainContainerRef = useRef<HTMLDivElement>(null);
 
@@ -54,13 +63,18 @@ export default function TestPow() {
   }, [isDomainDropdownOpen]);
 
   // Derive status text and whether we're busy
-  const isBusy = miner.status === "fetching" || miner.status === "mining" || miner.status === "verifying";
+  const isBusy =
+    miner.status === "fetching" ||
+    miner.status === "mining" ||
+    miner.status === "verifying";
   const isMining = miner.status === "mining";
 
   // Determine mining status text based on implementation
   const getMiningStatusText = () => {
     if (miner.status === "mining") {
-      return miner.implementation === "WGSL" ? "Mining (WGSL/WebGPU)..." : "Mining (WASM/CPU)...";
+      return miner.implementation === "WGSL"
+        ? "Mining (WGSL/WebGPU)..."
+        : "Mining (WASM/CPU)...";
     }
     return "";
   };
@@ -212,7 +226,9 @@ export default function TestPow() {
                       variant="ghost"
                       size="icon"
                       tabIndex={-1}
-                      onClick={() => setIsDomainDropdownOpen(!isDomainDropdownOpen)}
+                      onClick={() =>
+                        setIsDomainDropdownOpen(!isDomainDropdownOpen)
+                      }
                       disabled={isBusy}
                     >
                       <ChevronDown className="h-4 w-4" />

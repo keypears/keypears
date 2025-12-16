@@ -498,7 +498,9 @@ describe("Index", () => {
       for (let len = 9; len >= 3; len--) {
         const name = "a".repeat(len);
         const longerName = "a".repeat(len + 1);
-        expect(difficultyForName(name)).toBe(difficultyForName(longerName) * 2n);
+        expect(difficultyForName(name)).toBe(
+          difficultyForName(longerName) * 2n,
+        );
       }
     });
 
