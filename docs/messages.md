@@ -415,6 +415,21 @@ last_message_at     timestamp
 
 ## Implementation Status
 
+### Phase 0: Vault Settings (Prerequisite) - COMPLETE
+
+- [x] Add settings JSON column to vault table
+- [x] Create VaultSettings Zod schema
+- [x] Add getVaultSettings/updateVaultSettings to vault model
+- [x] Create getVaultSettings API procedure
+- [x] Create updateVaultSettings API procedure
+- [x] Add Settings menu item to user menu
+- [x] Create vault settings UI page
+
+Settings included in Phase 0:
+
+- `messagingMinDifficulty`: Minimum PoW difficulty for channel opening (default:
+  ~4M same as registration)
+
 ### Phase 1: Foundation
 
 - [ ] Well-known discovery (`/.well-known/keypears.json`)

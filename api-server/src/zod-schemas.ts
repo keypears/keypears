@@ -149,3 +149,32 @@ export const VerifyPowProofResponseSchema = z.object({
   valid: z.boolean(),
   message: z.string(),
 });
+
+// Vault Settings schema - stores user-configurable vault settings
+// Used for messaging difficulty, future preferences, etc.
+export const VaultSettingsSchema = z.object({
+  // Messaging settings
+  // Minimum PoW difficulty for channel opening (default: ~4M same as registration)
+  messagingMinDifficulty: z.string().optional(),
+});
+
+export type VaultSettings = z.infer<typeof VaultSettingsSchema>;
+
+// Get vault settings
+export const GetVaultSettingsRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+});
+
+export const GetVaultSettingsResponseSchema = z.object({
+  settings: VaultSettingsSchema,
+});
+
+// Update vault settings
+export const UpdateVaultSettingsRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  settings: VaultSettingsSchema,
+});
+
+export const UpdateVaultSettingsResponseSchema = z.object({
+  settings: VaultSettingsSchema,
+});

@@ -3,12 +3,14 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { VaultSettings } from "../zod-schemas.js";
 
 export const TableVault = pgTable(
   "vault",
@@ -54,6 +56,10 @@ export const TableVault = pgTable(
     // Timestamps for auditing
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+    // Vault settings - JSON blob for user-configurable settings
+    // Type inferred from VaultSettings Zod schema
+    settings: jsonb("settings").$type<VaultSettings>().default({}).notNull(),
   },
   (table) => [
     // Unique constraint on name + domain combination (like email addresses)

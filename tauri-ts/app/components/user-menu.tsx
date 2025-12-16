@@ -1,4 +1,4 @@
-import { User, Lock, Activity, Key } from "lucide-react";
+import { User, Lock, Activity, Key, Settings } from "lucide-react";
 import { useNavigate, Link, href } from "react-router";
 import { Button } from "~app/components/ui/button";
 import {
@@ -107,6 +107,15 @@ export function UserMenu({ vaultId }: UserMenuProps) {
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            to={href("/vault/:vaultId/settings", { vaultId })}
+            className="flex items-center"
+          >
+            <Settings size={16} className="mr-2" />
+            Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLockVault}>
