@@ -384,51 +384,108 @@ spam/sybil attacks.
 
 ---
 
-## Phase 5: Diffie-Hellman Key Exchange
+## Phase 5: DH-Based Messaging System
 
-**Status**: ⏳ **PLANNED** - Not started
+**Status**: ⏳ **IN PROGRESS**
 
-**Goal**: Users can securely share secrets with any other vault address.
+**Goal**: Enable end-to-end encrypted messaging between any two addresses using
+Diffie-Hellman key exchange.
 
-### DH Key Generation
+**Details**: See [docs/messages.md](docs/messages.md) for full protocol
+specification.
 
-- [ ] Generate DH keypair on vault creation (client-side)
-- [ ] Store DH private key encrypted with master vault key
-- [ ] Store DH public key in vault metadata
+### Server-Side Foundation
 
-### DH API
+#### Database Schema
 
-- [ ] Implement `registerPublicKey` procedure (server)
-- [ ] Implement `getPublicKey` procedure (server)
-- [ ] Implement `sendSecret` procedure (server)
-- [ ] Implement `receiveSecrets` procedure (server)
+- [ ] Add `channel` table to PostgreSQL
+  - [ ] `id`, `initiatorAddress`, `recipientAddress`
+  - [ ] `initiatorEngagementKeyId`, `recipientEngagementKeyId` (FK → derived_key)
+  - [ ] `status` (pending/accepted/ignored)
+  - [ ] `initiatorCredits`, `recipientCredits` (for credit system)
+  - [ ] `initiatorSavedToVault`, `recipientSavedToVault` (booleans)
+  - [ ] `powChallengeId`, `createdAt`, `updatedAt`
+- [ ] Add `inbox_message` table to PostgreSQL
+  - [ ] `id`, `channelId`, `senderAddress`, `orderInChannel`
+  - [ ] `encryptedContent`, `senderEngagementPubKey`
+  - [ ] `isRead`, `createdAt`, `expiresAt`
+- [ ] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
 
-### Cross-Domain Key Discovery
+#### API Procedures
 
-- [ ] Implement domain discovery (fetch public key from different domains)
-- [ ] Add error handling for unreachable domains
-- [ ] Cache public keys for performance
+- [ ] `getEngagementKey` - Get/create derived key for specific counterparty
+- [ ] `getCounterpartyEngagementKey` - Public endpoint for messaging
+- [ ] `openChannel` - Create channel with PoW proof + first message
+- [ ] `sendMessage` - Send message (costs 1 credit)
+- [ ] `getChannels` - List channels for an address (with pagination)
+- [ ] `getChannelMessages` - Get messages in a channel
+- [ ] `updateChannelStatus` - Accept/ignore channel
+- [ ] `saveChannelToVault` - Toggle vault sync for channel
 
-### Client DH Service
+#### Zod Schemas
 
-- [ ] Implement DH shared secret calculation
-- [ ] Encrypt secrets with shared DH key before sending
-- [ ] Decrypt received secrets with shared DH key
-- [ ] Validate sender identity
+- [ ] Add request/response schemas for all messaging procedures
 
-### Sharing UI
+### Client-Side Encryption
 
-- [ ] Add "Share Secret" button to password detail page
-- [ ] Create share modal with recipient input (`bob@domain.com`)
-- [ ] Implement inbox for received secrets
-- [ ] Add accept/reject flow for received secrets
+- [ ] Add ECDH shared secret computation to `@keypears/lib`
+- [ ] Create `message-encryption.ts` in tauri-ts
+  - [ ] `encryptMessage(content, sharedSecret)` → encrypted string
+  - [ ] `decryptMessage(encrypted, sharedSecret)` → MessageContent
+
+### Client UI Implementation
+
+#### Channel List (`vault.$vaultId.messages._index.tsx`)
+
+- [ ] Replace "Coming Soon" placeholder
+- [ ] List channels sorted by last activity
+- [ ] Show counterparty address, last message preview, timestamp
+- [ ] Badge for unread messages
+- [ ] "Saved to vault" indicator
+- [ ] "New Message" button
+
+#### Channel Detail (`vault.$vaultId.messages.$channelId.tsx`)
+
+- [ ] Message thread (chronological)
+- [ ] Compose box at bottom
+- [ ] Channel header with counterparty info
+- [ ] "Save to Vault" toggle
+- [ ] Status indicators (pending/accepted)
+
+#### New Message Flow
+
+- [ ] Input: counterparty address (e.g., `alice@example.com`)
+- [ ] Resolve address → fetch engagement key (cross-domain via well-known)
+- [ ] PoW mining step (reuse existing mining UI)
+- [ ] Compose first message
+- [ ] Send → creates channel
+
+### Vault Integration
+
+- [ ] Messages page queries server API for all channels
+- [ ] Passwords page filters out `type: "message"` from secrets
+- [ ] Auto-sync: when channel saved, new messages create secret_updates
+- [ ] Notifications work via existing unread count system
+
+### Credit System
+
+- [ ] PoW completion grants +1 credit to initiator
+- [ ] Sending message costs -1 credit
+- [ ] Receiving reply grants +1 credit
+- [ ] Block sends when credits = 0
+
+### Federation (Cross-Domain)
+
+- [ ] `getCounterpartyEngagementKey` calls counterparty's server
+- [ ] Use `.well-known/keypears.json` for API URL resolution
+- [ ] Handle network errors gracefully
 
 ### Testing
 
-- [ ] Test same-domain sharing (alice@keypears.com → bob@keypears.com)
-- [ ] Test cross-domain sharing (alice@keypears.com → bob@wokerium.com)
-- [ ] Test secret acceptance and rejection
-- [ ] Test encrypted transmission (verify zero-knowledge)
+- [ ] Unit tests: ECDH shared secret, message encryption/decryption
+- [ ] Integration tests: channel open, send/receive, save to vault
+- [ ] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
+- [ ] Manual: cross-domain messaging (alice@keypears.com → bob@wokerium.com)
 
 ---
 
@@ -601,4 +658,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-13
+**Last Updated**: 2025-12-17
