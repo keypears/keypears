@@ -300,17 +300,24 @@ Bob sends message to Alice:
 
 ### Server-Side (PostgreSQL)
 
+**Important**: Channels are keyed by **addresses** (e.g., `alice@example.com`), not
+vault IDs. Vault IDs are internal server identifiers. Addresses are the user-facing
+identity. A vault at an address can change over time (vault rotation), but the
+channel persists between the address pair.
+
 **New table: `channel`**
 
 ```sql
 id                            UUIDv7 primary key
-initiator_vault_id            FK → vault
-recipient_vault_id            FK → vault
-initiator_engagement_key_id   FK → derived_key
-recipient_engagement_key_id   FK → derived_key
+initiator_address             text (e.g., "alice@example.com")
+recipient_address             text (e.g., "bob@example2.com")
+initiator_engagement_key_id   FK → derived_key (current vault's key)
+recipient_engagement_key_id   FK → derived_key (nullable until accepted)
 status                        "pending" | "accepted" | "ignored"
 initiator_credits             integer (starts at 1 after PoW)
 recipient_credits             integer (starts at 0)
+initiator_saved_to_vault      boolean (for auto-sync)
+recipient_saved_to_vault      boolean
 pow_challenge_id              FK → pow_challenge
 created_at                    timestamp
 updated_at                    timestamp
@@ -319,29 +326,19 @@ updated_at                    timestamp
 **New table: `inbox_message`**
 
 ```sql
-id                  UUIDv7 primary key
-owner_vault_id      FK → vault (whose inbox this is)
-channel_id          FK → channel
-sender_address      text (e.g., "bob@example.com")
-order_in_channel    integer (1, 2, 3, ...)
-encrypted_content   text (ACS2 encrypted)
-signature           text (sender's signature)
-is_read             boolean
-created_at          timestamp
-expires_at          timestamp (30 days from created_at)
+id                       UUIDv7 primary key
+channel_id               FK → channel
+sender_address           text (e.g., "bob@example.com")
+order_in_channel         integer (1, 2, 3, ...)
+encrypted_content        text (ACS2 encrypted)
+sender_engagement_pubkey text (for decryption - vault's current key)
+is_read                  boolean
+created_at               timestamp
+expires_at               timestamp (30 days from created_at)
 ```
 
-**New table: `outbox_message`**
-
-```sql
-id                  UUIDv7 primary key
-owner_vault_id      FK → vault (whose outbox this is)
-channel_id          FK → channel
-recipient_address   text (e.g., "alice@example.com")
-order_in_channel    integer (1, 2, 3, ...)
-encrypted_content   text (ACS2 encrypted)
-created_at          timestamp
-```
+Note: We removed the separate `outbox_message` table for MVP simplicity.
+Each message is stored once in the channel, accessible to both participants.
 
 ### Client-Side (SQLite)
 
@@ -430,27 +427,43 @@ Settings included in Phase 0:
 - `messagingMinDifficulty`: Minimum PoW difficulty for channel opening (default:
   ~4M same as registration)
 
-### Phase 1: Foundation
+### Phase 0.5: Foundation Components - COMPLETE
 
-- [ ] Well-known discovery (`/.well-known/keypears.json`)
-- [ ] Channel database tables (server)
-- [ ] Channel open API with PoW
-- [ ] Basic message deposit/retrieve API
+- [x] Well-known discovery (`/.well-known/keypears.json`)
+- [x] Derived keys system with `counterpartyAddress` field
+- [x] Messages UI placeholder route (`/vault/:vaultId/messages`)
+
+### Phase 1: Server-Side Foundation - IN PROGRESS
+
+- [ ] Add `channel` table to PostgreSQL (addresses, not vault IDs)
+- [ ] Add `inbox_message` table to PostgreSQL
+- [ ] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
+- [ ] `getEngagementKey` - Get/create derived key for counterparty
+- [ ] `getCounterpartyEngagementKey` - Public endpoint (cross-domain)
+- [ ] `openChannel` - Create channel with PoW + first message
+- [ ] `sendMessage` - Send message (costs 1 credit)
+- [ ] `getChannels` - List channels for an address
+- [ ] `getChannelMessages` - Get messages in a channel
+- [ ] `updateChannelStatus` - Accept/ignore channel
+- [ ] `saveChannelToVault` - Toggle vault sync
 
 ### Phase 2: Client Integration
 
-- [ ] Contact management (client DB)
-- [ ] Messages UI tab (basic)
-- [ ] Channel acceptance flow
-- [ ] Message encryption/decryption
+- [ ] ECDH shared secret computation (`@keypears/lib`)
+- [ ] Message encryption/decryption (`message-encryption.ts`)
+- [ ] Channel list UI (replace placeholder)
+- [ ] New message flow with PoW
+- [ ] Channel detail/thread view
 
 ### Phase 3: Vault Integration
 
-- [ ] "Save to vault" functionality
-- [ ] Extend secret_update for messages
-- [ ] Cross-device message sync
+- [ ] Messages page queries server API for all channels
+- [ ] Passwords page filters `type !== "message"`
+- [ ] "Save to vault" toggle on channels
+- [ ] Auto-sync: saved channels create secret_updates
+- [ ] Notifications via existing unread count system
 
-### Phase 4: Attachments
+### Phase 4: Attachments (Future)
 
 - [ ] Password attachment type
 - [ ] Secret sharing via messages
