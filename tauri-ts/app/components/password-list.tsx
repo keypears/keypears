@@ -92,7 +92,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
                 })}
               >
                 <Plus size={20} className="mr-2" />
-                New Password
+                New
               </Link>
             </Button>
           )}
@@ -127,7 +127,7 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
                 })}
               >
                 <Plus size={20} className="mr-2" />
-                New Password
+                New
               </Link>
             </Button>
           </div>
