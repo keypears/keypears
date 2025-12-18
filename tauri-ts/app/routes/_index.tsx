@@ -138,7 +138,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                                 vaultId: vault.id,
                               })
                         }
-                        className="flex flex-1 items-center gap-3"
+                        className="flex min-w-0 flex-1 items-center gap-3"
                       >
                         <div className="bg-primary/10 relative rounded-full p-2">
                           {isUnlocked ? (
@@ -152,9 +152,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                             </span>
                           )}
                         </div>
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">
+                            <h3 className="truncate font-semibold">
                               {vault.name}@{vault.domain}
                             </h3>
                             {isUnlocked && (
