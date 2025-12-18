@@ -59,14 +59,14 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
           </div>
 
           {/* Right: Vault Info + User Menu (only if on a vault page with unlocked vault) */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {vault && vaultId && (
               <>
                 <Link
                   to={href("/vault/:vaultId/passwords", {
                     vaultId: vault.vaultId,
                   })}
-                  className="text-foreground hover:text-primary font-mono text-sm transition-colors"
+                  className="min-w-0 truncate text-foreground hover:text-primary font-mono text-sm transition-colors"
                 >
                   {vault.vaultName}@{vault.vaultDomain}
                 </Link>
