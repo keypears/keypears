@@ -311,8 +311,8 @@ channel persists between the address pair.
 id                            UUIDv7 primary key
 initiator_address             text (e.g., "alice@example.com")
 recipient_address             text (e.g., "bob@example2.com")
-initiator_engagement_key_id   FK → derived_key (current vault's key)
-recipient_engagement_key_id   FK → derived_key (nullable until accepted)
+initiator_engagement_pubkey   varchar(66) (actual 33-byte compressed secp256k1 public key)
+recipient_engagement_pubkey   varchar(66) (nullable until recipient responds)
 status                        "pending" | "accepted" | "ignored"
 initiator_credits             integer (starts at 1 after PoW)
 recipient_credits             integer (starts at 0)
@@ -322,6 +322,12 @@ pow_challenge_id              FK → pow_challenge
 created_at                    timestamp
 updated_at                    timestamp
 ```
+
+**Why actual public keys, not FK references?** This is a federated system. Alice's server
+(example.com) and Bob's server (example2.com) have completely separate databases with
+different internal IDs. Neither server knows the other's internal `derived_key` IDs.
+The only globally-meaningful identifier is the actual public key itself, which is what
+ECDH needs to compute the shared secret.
 
 **New table: `inbox_message`**
 

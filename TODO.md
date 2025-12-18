@@ -400,7 +400,7 @@ specification.
 
 - [ ] Add `channel` table to PostgreSQL
   - [ ] `id`, `initiatorAddress`, `recipientAddress`
-  - [ ] `initiatorEngagementKeyId`, `recipientEngagementKeyId` (FK → derived_key)
+  - [ ] `initiatorEngagementPubKey`, `recipientEngagementPubKey` (actual public keys, 66 hex chars)
   - [ ] `status` (pending/accepted/ignored)
   - [ ] `initiatorCredits`, `recipientCredits` (for credit system)
   - [ ] `initiatorSavedToVault`, `recipientSavedToVault` (booleans)
