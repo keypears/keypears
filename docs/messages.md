@@ -300,34 +300,59 @@ Bob sends message to Alice:
 
 ### Server-Side (PostgreSQL)
 
-**Important**: Channels are keyed by **addresses** (e.g., `alice@example.com`), not
-vault IDs. Vault IDs are internal server identifiers. Addresses are the user-facing
-identity. A vault at an address can change over time (vault rotation), but the
-channel persists between the address pair.
+**Important design principle**: The abstract "channel" between Alice and Bob doesn't
+exist as a single database record anywhere. What exists is each participant's **view**
+of the channel, stored on their own server. This is essential for a federated system.
 
-**New table: `channel`**
+**Why channel views, not shared channels?**
+
+- Alice's server (example.com) and Bob's server (example2.com) have separate databases
+- Alice cannot know or store whether Bob synced to his vault - that's Bob's private state
+- Even if Alice and Bob share the same server, they each have their own channel_view row
+- Each view stores only the owner's state (their credits, their sync preference)
+
+**New table: `channel_view`** (each participant's view of a channel)
 
 ```sql
-id                            UUIDv7 primary key
-initiator_address             text (e.g., "alice@example.com")
-recipient_address             text (e.g., "bob@example2.com")
-initiator_engagement_pubkey   varchar(66) (actual 33-byte compressed secp256k1 public key)
-recipient_engagement_pubkey   varchar(66) (nullable until recipient responds)
-status                        "pending" | "accepted" | "ignored"
-initiator_credits             integer (starts at 1 after PoW)
-recipient_credits             integer (starts at 0)
-initiator_saved_to_vault      boolean (for auto-sync)
-recipient_saved_to_vault      boolean
-pow_challenge_id              FK → pow_challenge
-created_at                    timestamp
-updated_at                    timestamp
+id                      UUIDv7 primary key
+owner_address           text (e.g., "alice@example.com") -- who owns this view
+counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
+my_engagement_pubkey    varchar(66) (owner's 33-byte compressed secp256k1 public key)
+their_engagement_pubkey varchar(66) (counterparty's public key, nullable until known)
+role                    "initiator" | "recipient" (who opened the channel)
+status                  "pending" | "accepted" | "ignored"
+credits                 integer (owner's message credits)
+saved_to_vault          boolean (owner's sync preference)
+pow_challenge_id        FK → pow_challenge (only set for initiator)
+created_at              timestamp
+updated_at              timestamp
 ```
 
-**Why actual public keys, not FK references?** This is a federated system. Alice's server
-(example.com) and Bob's server (example2.com) have completely separate databases with
-different internal IDs. Neither server knows the other's internal `derived_key` IDs.
-The only globally-meaningful identifier is the actual public key itself, which is what
-ECDH needs to compute the shared secret.
+**Example**: When Bob opens a channel to Alice:
+
+```
+Bob's server creates:
+┌─────────────────────────────────────────────┐
+│ channel_view (owner: bob@example2.com)      │
+│ counterparty: alice@example.com             │
+│ role: "initiator"                           │
+│ credits: 1 (from PoW)                       │
+│ saved_to_vault: false                       │
+└─────────────────────────────────────────────┘
+
+Alice's server creates:
+┌─────────────────────────────────────────────┐
+│ channel_view (owner: alice@example.com)     │
+│ counterparty: bob@example2.com              │
+│ role: "recipient"                           │
+│ credits: 0                                  │
+│ saved_to_vault: false                       │
+└─────────────────────────────────────────────┘
+```
+
+**Why actual public keys, not FK references?** Neither server knows the other's internal
+`derived_key` IDs. The only globally-meaningful identifier is the actual public key,
+which is what ECDH needs to compute the shared secret.
 
 **New table: `inbox_message`**
 

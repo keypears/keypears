@@ -398,12 +398,13 @@ specification.
 
 #### Database Schema
 
-- [ ] Add `channel` table to PostgreSQL
-  - [ ] `id`, `initiatorAddress`, `recipientAddress`
-  - [ ] `initiatorEngagementPubKey`, `recipientEngagementPubKey` (actual public keys, 66 hex chars)
+- [ ] Add `channel_view` table to PostgreSQL (each participant's view of a channel)
+  - [ ] `id`, `ownerAddress`, `counterpartyAddress`
+  - [ ] `myEngagementPubKey`, `theirEngagementPubKey` (actual public keys, 66 hex chars)
+  - [ ] `role` ("initiator" or "recipient" - who opened the channel)
   - [ ] `status` (pending/accepted/ignored)
-  - [ ] `initiatorCredits`, `recipientCredits` (for credit system)
-  - [ ] `initiatorSavedToVault`, `recipientSavedToVault` (booleans)
+  - [ ] `credits` (owner's message credits)
+  - [ ] `savedToVault` (owner's sync preference)
   - [ ] `powChallengeId`, `createdAt`, `updatedAt`
 - [ ] Add `inbox_message` table to PostgreSQL
   - [ ] `id`, `channelId`, `senderAddress`, `orderInChannel`
