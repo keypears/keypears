@@ -411,10 +411,7 @@ specification.
   - [ ] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for decryption)
   - [ ] `powChallengeId` (proves sender did work for this message)
   - [ ] `isRead`, `createdAt`, `expiresAt`
-- [ ] Add `outbox_message` table (messages I sent)
-  - [ ] `id`, `channelViewId`, `recipientAddress`, `orderInChannel`
-  - [ ] `encryptedContent`, `myEngagementPubKey`, `theirEngagementPubKey`
-  - [ ] `createdAt`
+  - [ ] Note: NO outbox table - sent messages saved to sender's vault via secret_update
 - [ ] Update `engagement_key` table
   - [ ] Add `purpose` field ("send" | "receive")
   - [ ] Add `counterpartyPubKey` field (other party's pubkey, for validation)

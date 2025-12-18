@@ -286,58 +286,76 @@ interface MessageContent {
 
 ## Storage Model
 
-### Per-Participant Inbox
+### Direct-to-Recipient Architecture
 
-**Critical insight**: Each participant stores their OWN copy of messages.
+Unlike email (where your server relays messages), KeyPears clients send directly to
+the recipient's server. There is no server-side outbox.
 
 ```
 Bob sends message to Alice:
 
-1. Message goes to Alice's inbox (on Alice's server)
-2. Message ALSO goes to Bob's outbox (on Bob's server)
-3. Even if Alice and Bob are on SAME server → stored twice
+1. Bob's client connects directly to Alice's server (2.com)
+2. Message stored in Alice's inbox (on Alice's server)
+3. Bob saves his sent message to his own vault (as secret_update)
+4. Bob's server only sees the message if Bob syncs his vault
 ```
 
-**Why store twice?**
+**Why no server-side outbox?**
 
-- Logical simplicity: each person owns their messages independently
-- Alice can delete without affecting Bob's copy
-- Bob can delete without affecting Alice's copy
-- No complex coordination between participants
-- Messages are small text, duplication is cheap
+- **Simpler**: No relay needed - client sends directly with PoW authentication
+- **Privacy**: Bob's server doesn't know who Bob is messaging
+- **Reuse**: Sent messages use existing vault sync infrastructure
+- **Independence**: Each participant manages their own copies
 
-### Saving to Vault
+### Inbox (Server-Side)
 
-**Inbox vs Vault:**
+The server-side inbox stores messages you've received:
 
-| Inbox (Layer 1)        | Vault (Layer 2)           |
-| ---------------------- | ------------------------- |
-| Server-side only       | Client-side + sync        |
-| Ephemeral (30 days)    | Persistent                |
-| All incoming messages  | Only saved messages       |
-| No offline access      | Full offline access       |
-| Not encrypted at rest  | Encrypted with vault key  |
+| Property               | Description                     |
+| ---------------------- | ------------------------------- |
+| Server-side only       | Stored on recipient's server    |
+| Ephemeral (30 days)    | Expires if not saved to vault   |
+| Incoming messages only | No outbox on server             |
+| No offline access      | Must fetch from server          |
+
+### Sent Messages (Vault)
+
+Sent messages are saved directly to your vault:
+
+| Property               | Description                     |
+| ---------------------- | ------------------------------- |
+| Client-side + sync     | Stored in vault, synced to server |
+| Persistent             | Never expires                   |
+| Full offline access    | Available without network       |
+| Encrypted with vault key | Server can't read content     |
 
 **User flows:**
 
-**Viewing messages:**
+**Sending a message:**
+
+1. Client sends directly to recipient's server with PoW
+2. Client saves sent message to local vault
+3. Vault syncs to your server via existing secret_update mechanism
+4. Sent messages available on all your devices
+
+**Receiving messages:**
 
 - User opens Messages tab
-- Sees list of channels (contacts who have messaged them)
+- Fetches channels/messages from their server's inbox
 - Channels marked as "pending" until accepted
-- Can view messages in a channel without saving
+- Can save received messages to vault for offline access
 
-**Saving messages:**
+**Saving received messages:**
 
-- User can "Save Channel" → all messages copied to vault
+- User can "Save Channel" → received messages copied to vault
 - User can "Save Message" → single message copied to vault
 - Saved = synced across devices, offline access
 
 **Implementation:**
 
-- Saved messages become `secret_update` records with `type: "message"`
-- Channel ID becomes the `secretId` (all messages in a channel share it)
-- Each message gets its own `localOrder` within the channel
+- Both sent and received messages become `secret_update` records with `type: "message"`
+- Encrypted blob includes `direction: "sent" | "received"` to distinguish
+- Channel ID becomes the `secretId`
 - Uses existing sync infrastructure
 
 ## Data Model
@@ -423,28 +441,20 @@ To decrypt an inbox message:
 4. Decrypt: content = ACS2_decrypt(encrypted_content, sharedSecret)
 ```
 
-**New table: `outbox_message`** (messages I sent)
+**No server-side outbox table**
 
-```sql
-id                       UUIDv7 primary key
-channel_view_id          FK → channel_view
-recipient_address        text (e.g., "alice@example.com")
-order_in_channel         integer (1, 2, 3, ...)
-encrypted_content        text (ACS2 encrypted with ECDH shared secret)
-my_engagement_pubkey     varchar(66) (which of my keys I used)
-their_engagement_pubkey  varchar(66) (which of their keys I used)
-created_at               timestamp
+Sent messages are NOT stored on the server. Instead, the sender saves them directly
+to their vault as `secret_update` records. This is simpler and more private - the
+sender's server doesn't need to know who they're messaging.
+
+To decrypt a sent message from vault:
+
 ```
-
-To decrypt my own outbox message: `sharedSecret = ECDH(myPrivKey, theirEngagementPubKey)`
-(I need both pubkeys stored so I can re-derive the shared secret later)
-
-**Why both inbox and outbox?**
-
-- Inbox stores messages I received (with sender's pubkey for ECDH)
-- Outbox stores messages I sent (with both pubkeys so I can decrypt my own messages later)
-- Each participant maintains their own view of the conversation
-- Alice's outbox message = Bob's inbox message (same content, different metadata)
+1. Look up my engagement key by myEngagementPubKey (stored in vault entry)
+2. Derive my private key from engagement key material
+3. Compute: sharedSecret = ECDH(myPrivKey, theirEngagementPubKey)
+4. Decrypt: content = ACS2_decrypt(encrypted_content, sharedSecret)
+```
 
 **Updated table: `engagement_key`** (add fields for messaging validation)
 
@@ -480,21 +490,39 @@ counterparty_pubkey      varchar(66) (other party's pubkey, for validation)
 
 ### Client-Side (SQLite)
 
-**Extend existing `secret_update` table:**
+**Messages stored in vault via `secret_update` table:**
 
-- Add `type: "message"` support
-- `secretId` = channel identifier
+Both sent and received messages use `type: "message"` in the existing `secret_update` table.
+
+```typescript
+// Encrypted blob structure for messages
+interface MessageSecretBlob {
+  type: "message";
+  direction: "sent" | "received";
+  counterpartyAddress: string;  // e.g., "bob@example.com"
+
+  // For decryption
+  myEngagementPubKey: string;     // My pubkey used in this exchange
+  theirEngagementPubKey: string;  // Their pubkey used in this exchange
+
+  // Message content
+  content: MessageContent;  // The actual message (text, etc.)
+  timestamp: number;        // When sent/received
+}
+```
+
+**Storage details:**
+
+- `secretId` = channel identifier (deterministic from sorted addresses)
 - `localOrder` = message order within channel
-- `encryptedBlob` = message content
+- `encryptedBlob` = MessageSecretBlob encrypted with vault key
 
-**New table: `contact`**
+**New table: `contact`** (optional, for UI convenience)
 
 ```sql
 id                  UUIDv7 primary key
 vault_id            FK → vault (my vault)
 address             text (e.g., "bob@example.com")
-engagement_key_id   text (derived key ID)
-shared_secret       blob (cached, encrypted with vault key)
 display_name        text (optional alias)
 status              "active" | "blocked"
 created_at          timestamp
@@ -576,8 +604,8 @@ Settings included in Phase 0:
 - [ ] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
 - [ ] Add `channel_view` table to PostgreSQL
 - [ ] Add `inbox_message` table to PostgreSQL
-- [ ] Add `outbox_message` table to PostgreSQL
 - [ ] Create Drizzle models (`channel.ts`, `message.ts`)
+- [ ] Note: NO outbox table - sent messages saved to sender's vault via secret_update
 - [ ] `getEngagementKeyForSending` - Create engagement key with purpose "send"
 - [ ] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
       creates key with purpose "receive", stores sender's pubkey for validation
