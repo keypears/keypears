@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.secrets.$secretId";
+import type { Route } from "./+types/vault.$vaultId.passwords.$secretId";
 import { useState } from "react";
 import { Link, href, redirect, useRevalidator } from "react-router";
 import {
@@ -65,7 +65,7 @@ export async function clientLoader({
   // Load the password from the database
   const latest = await getLatestSecret(secretId);
   if (!latest) {
-    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
+    throw redirect(href("/vault/:vaultId/passwords", { vaultId }));
   }
 
   // Decrypt the blob
@@ -121,7 +121,7 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
 
     // Check server status
     if (!status.isOnline) {
-      alert("Server is offline. Cannot delete secrets while offline.");
+      alert("Server is offline. Cannot delete passwords while offline.");
       setShowDeleteDialog(false);
       return;
     }
@@ -189,7 +189,7 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
                 disabled={!status.isOnline}
               >
                 <Link
-                  to={href("/vault/:vaultId/secrets/:secretId/edit", {
+                  to={href("/vault/:vaultId/passwords/:secretId/edit", {
                     vaultId,
                     secretId,
                   })}

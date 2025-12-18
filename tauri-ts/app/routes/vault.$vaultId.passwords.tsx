@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.secrets";
+import type { Route } from "./+types/vault.$vaultId.passwords";
 import { Outlet } from "react-router";
 import { getUnlockedVault } from "~app/lib/vault-store";
 import { ServerStatusProvider } from "~app/contexts/ServerStatusContext";
@@ -17,7 +17,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   };
 }
 
-export default function VaultSecretsLayout({
+export default function VaultPasswordsLayout({
   loaderData,
 }: Route.ComponentProps) {
   const { vaultDomain } = loaderData;

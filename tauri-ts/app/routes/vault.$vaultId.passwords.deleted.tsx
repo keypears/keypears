@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.secrets.deleted";
+import type { Route } from "./+types/vault.$vaultId.passwords.deleted";
 import { redirect, href } from "react-router";
 import { isVaultUnlocked } from "~app/lib/vault-store";
 import { Navbar } from "~app/components/navbar";

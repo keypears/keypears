@@ -30,7 +30,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   // Check if vault is already unlocked
   if (isVaultUnlocked(vaultId)) {
     // Redirect to vault's password page
-    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
+    throw redirect(href("/vault/:vaultId/passwords", { vaultId }));
   }
 
   // Initialize database
@@ -153,8 +153,8 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
       // Step 8: Update last accessed timestamp
       await updateVaultLastAccessed(vault.id);
 
-      // Step 9: Navigate to vault secrets page
-      navigate(href("/vault/:vaultId/secrets", { vaultId: vault.id }));
+      // Step 9: Navigate to vault passwords page
+      navigate(href("/vault/:vaultId/passwords", { vaultId: vault.id }));
     } catch (err) {
       console.error("Error unlocking vault:", err);
       if (err instanceof Error) {

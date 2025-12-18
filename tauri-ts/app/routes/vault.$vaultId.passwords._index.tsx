@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.secrets._index";
+import type { Route } from "./+types/vault.$vaultId.passwords._index";
 import { Navbar } from "~app/components/navbar";
 import { PasswordList } from "~app/components/password-list";
 import { SearchBar } from "~app/components/search-bar";

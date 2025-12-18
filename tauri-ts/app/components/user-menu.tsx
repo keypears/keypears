@@ -81,7 +81,7 @@ export function UserMenu({ vaultId }: UserMenuProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem asChild>
-          <Link to={href("/vault/:vaultId/secrets", { vaultId })}>
+          <Link to={href("/vault/:vaultId/passwords", { vaultId })}>
             {vault.vaultName}@{vault.vaultDomain}
           </Link>
         </DropdownMenuItem>

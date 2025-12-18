@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.secrets.$secretId_.edit";
+import type { Route } from "./+types/vault.$vaultId.passwords.new";
 import { useState } from "react";
 import { useNavigate, Link, href, redirect } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
@@ -10,39 +10,28 @@ import {
   getUnlockedVault,
   isVaultUnlocked,
   encryptPassword as encryptPasswordFromStore,
-  decryptPassword as decryptPasswordFromStore,
   getVaultKey,
   getSessionToken,
 } from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import {
-  getLatestSecret,
-  insertSecretUpdatesFromSync,
-} from "~app/db/models/password";
-import {
-  decryptSecretUpdateBlob,
-  encryptSecretUpdateBlob,
-} from "~app/lib/secret-encryption";
-import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
+import { insertSecretUpdatesFromSync } from "~app/db/models/password";
+import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { triggerManualSync } from "~app/lib/sync-service";
+import { generateId } from "@keypears/lib";
 
 interface LoaderData {
   vaultId: string;
   vaultDomain: string;
-  secretId: string;
-  passwordName: string;
-  existingBlob: SecretBlobData;
-  decryptedNotes: string;
 }
 
 export async function clientLoader({
   params,
 }: Route.ClientLoaderArgs): Promise<LoaderData | Response> {
-  const { vaultId, secretId } = params;
+  const { vaultId } = params;
 
-  if (!vaultId || !secretId || !isVaultUnlocked(vaultId)) {
+  if (!vaultId || !isVaultUnlocked(vaultId)) {
     throw redirect(href("/"));
   }
 
@@ -51,49 +40,23 @@ export async function clientLoader({
     throw redirect(href("/"));
   }
 
-  // Load the password from the database
-  const latest = await getLatestSecret(secretId);
-  if (!latest) {
-    throw redirect(href("/vault/:vaultId/secrets", { vaultId }));
-  }
-
-  // Decrypt the blob
-  const vaultKey = getVaultKey(vaultId);
-  const existingBlob = decryptSecretUpdateBlob(latest.encryptedBlob, vaultKey);
-
-  // Decrypt notes if present
-  const decryptedNotes = existingBlob.encryptedNotes
-    ? decryptPasswordFromStore(vaultId, existingBlob.encryptedNotes)
-    : "";
-
   return {
     vaultId: vault.vaultId,
     vaultDomain: vault.vaultDomain,
-    secretId: latest.secretId,
-    passwordName: latest.name,
-    existingBlob,
-    decryptedNotes,
   };
 }
 
-export default function EditPassword({ loaderData }: Route.ComponentProps) {
-  const {
-    vaultId,
-    vaultDomain,
-    secretId,
-    passwordName,
-    existingBlob,
-    decryptedNotes: initialNotes,
-  } = loaderData;
+export default function NewPassword({ loaderData }: Route.ComponentProps) {
+  const { vaultId, vaultDomain } = loaderData;
 
   const navigate = useNavigate();
   const { status } = useServerStatus();
 
-  const [name, setName] = useState(existingBlob.name);
-  const [domain, setDomain] = useState(existingBlob.domain || "");
-  const [username, setUsername] = useState(existingBlob.username || "");
-  const [email, setEmail] = useState(existingBlob.email || "");
-  const [notes, setNotes] = useState(initialNotes);
+  const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,7 +69,7 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
 
     // Check server status
     if (!status.isOnline) {
-      setError("Server is offline. Cannot update secrets while offline.");
+      setError("Server is offline. Cannot create passwords while offline.");
       return;
     }
 
@@ -114,21 +77,20 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
     setError("");
 
     try {
-      // If password field is filled, encrypt new password
-      // Otherwise, keep existing encrypted password
+      const secretId = generateId();
+
+      // Encrypt password and notes if provided
       const encryptedData = password
         ? encryptPasswordFromStore(vaultId, password)
-        : existingBlob.encryptedData;
-
-      // Encrypt notes if provided
+        : undefined;
       const encryptedNotes = notes.trim()
         ? encryptPasswordFromStore(vaultId, notes.trim())
         : undefined;
 
-      // Create updated secret blob data
-      const secretData: SecretBlobData = {
+      // Create secret blob data
+      const secretData = {
         name: name.trim(),
-        type: existingBlob.type,
+        type: "password" as const,
         domain: domain.trim() || undefined,
         username: username.trim() || undefined,
         email: email.trim() || undefined,
@@ -146,17 +108,17 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       // Get vault key for encryption
       const vaultKey = getVaultKey(vaultId);
 
-      // Push update to server (creates new version with higher localOrder)
+      // Push to server (server generates ID, order numbers, timestamp)
       const serverResponse = await pushSecretUpdate(
         vaultId,
-        secretId, // Same secretId for versioning
+        secretId,
         secretData,
         vaultKey,
         authedClient,
       );
 
       // Immediately store locally with server-generated data
-      // Pass isRead=true since this is a locally-created update
+      // Pass isRead=true since this is a locally-created secret
       const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
       await insertSecretUpdatesFromSync(
         [
@@ -179,17 +141,12 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       // Still trigger sync to fetch any other updates
       await triggerManualSync(vaultId);
 
-      // Navigate back to password detail
-      navigate(
-        href("/vault/:vaultId/secrets/:secretId", {
-          vaultId,
-          secretId,
-        }),
-      );
+      // Navigate back to passwords list
+      navigate(href("/vault/:vaultId/passwords", { vaultId }));
     } catch (err) {
-      console.error("Failed to update password:", err);
+      console.error("Failed to create password:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to update password",
+        err instanceof Error ? err.message : "Failed to create password",
       );
     } finally {
       setIsSubmitting(false);
@@ -200,17 +157,12 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <Navbar vaultId={vaultId} />
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Breadcrumbs
-          vaultId={vaultId}
-          secretName={passwordName}
-          secretId={secretId}
-          currentPage="Edit"
-        />
+        <Breadcrumbs vaultId={vaultId} currentPage="New Password" />
         <div className="border-border bg-card rounded-lg border p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold">Edit Password</h1>
+            <h1 className="text-2xl font-bold">New Password</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Update password information
+              Add a new password to your vault
             </p>
           </div>
 
@@ -283,7 +235,7 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Leave empty to keep current password"
+                  placeholder="Enter password"
                   className="pr-10"
                 />
                 <div className="absolute top-1/2 right-2 -translate-y-1/2">
@@ -301,9 +253,6 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
                   </Button>
                 </div>
               </div>
-              <p className="text-muted-foreground text-xs">
-                Leave empty to keep the current password unchanged
-              </p>
             </div>
 
             {/* Notes field */}
@@ -331,16 +280,15 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
               disabled={!isValid || isSubmitting || !status.isOnline}
             >
               {isSubmitting
-                ? "Saving..."
+                ? "Creating..."
                 : !status.isOnline
                   ? "Server Offline"
-                  : "Save Changes"}
+                  : "Create Password"}
             </Button>
             <Button asChild variant="outline" className="w-full" size="lg">
               <Link
-                to={href("/vault/:vaultId/secrets/:secretId", {
+                to={href("/vault/:vaultId/passwords", {
                   vaultId,
-                  secretId,
                 })}
               >
                 Cancel

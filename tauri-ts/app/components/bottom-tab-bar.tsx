@@ -11,7 +11,7 @@ export function BottomTabBar({ vaultId }: BottomTabBarProps) {
     <nav className="bg-card border-border fixed right-0 bottom-0 left-0 z-50 border-t">
       <div className="mx-auto flex h-16 max-w-2xl items-center justify-around">
         <NavLink
-          to={href("/vault/:vaultId/secrets", { vaultId })}
+          to={href("/vault/:vaultId/passwords", { vaultId })}
           className={({ isActive }) =>
             cn(
               "flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-2 transition-colors",

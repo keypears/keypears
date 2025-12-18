@@ -237,7 +237,7 @@ export default function NewVaultStep3() {
 
   const handleContinue = () => {
     if (createdVaultId) {
-      navigate(href("/vault/:vaultId/secrets", { vaultId: createdVaultId }));
+      navigate(href("/vault/:vaultId/passwords", { vaultId: createdVaultId }));
     } else {
       navigate(href("/"));
     }

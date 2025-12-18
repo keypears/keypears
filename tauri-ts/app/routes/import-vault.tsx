@@ -201,7 +201,7 @@ export default function ImportVault() {
                   onClick={() => {
                     if (importedVaultId) {
                       navigate(
-                        href("/vault/:vaultId/secrets", {
+                        href("/vault/:vaultId/passwords", {
                           vaultId: importedVaultId,
                         }),
                       );

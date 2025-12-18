@@ -33,7 +33,7 @@ export function Breadcrumbs({
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link
-                      to={href("/vault/:vaultId/secrets/:secretId", {
+                      to={href("/vault/:vaultId/passwords/:secretId", {
                         vaultId,
                         secretId,
                       })}

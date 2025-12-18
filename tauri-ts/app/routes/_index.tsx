@@ -131,7 +131,7 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                       <Link
                         to={
                           isUnlocked
-                            ? href("/vault/:vaultId/secrets", {
+                            ? href("/vault/:vaultId/passwords", {
                                 vaultId: vault.id,
                               })
                             : href("/unlock-vault/:vaultId", {

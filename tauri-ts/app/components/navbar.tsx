@@ -15,7 +15,7 @@ interface NavbarProps {
   showBackButton?: boolean;
   /**
    * If provided, shows the vault info and user menu in the navbar.
-   * Only pass this when on a vault sub-page (e.g., /vault/:vaultId/secrets).
+   * Only pass this when on a vault sub-page (e.g., /vault/:vaultId/passwords).
    */
   vaultId?: string;
 }
@@ -63,7 +63,7 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
             {vault && vaultId && (
               <>
                 <Link
-                  to={href("/vault/:vaultId/secrets", {
+                  to={href("/vault/:vaultId/passwords", {
                     vaultId: vault.vaultId,
                   })}
                   className="text-foreground hover:text-primary font-mono text-sm transition-colors"
