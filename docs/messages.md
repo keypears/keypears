@@ -47,9 +47,9 @@ Messaging requires **two separate systems**:
 
 ## Protocol Flow
 
-### Opening a Channel
+### Sending a Message
 
-When Bob wants to message Alice for the first time:
+When Bob wants to message Alice:
 
 ```
 1. RESOLVE: Bob resolves alice@example.com
@@ -57,32 +57,36 @@ When Bob wants to message Alice for the first time:
    → Confirm alice exists via API
 
 2. GET KEYS: Bob establishes DH relationship
-   → Get/create Bob's engagement key for Alice (from Bob's server)
-   → Get Alice's engagement key for Bob (from Alice's server)
+   → Get/create Bob's engagement key for Alice (from Bob's server, purpose: "send")
+   → Get Alice's engagement key for Bob (from Alice's server, purpose: "receive")
+   → Alice's server stores Bob's pubkey for later validation
    → Compute shared secret via ECDH
 
 3. GET CHALLENGE: Bob requests PoW challenge from Alice's server
-   → Alice's server returns challenge with Alice's configured difficulty
+   → Alice's server returns challenge with difficulty based on:
+     - Per-channel setting for Bob (if exists)
+     - Otherwise Alice's global messagingMinDifficulty
    → Default difficulty: ~4 million (same as registration)
 
 4. SOLVE PoW: Bob's client mines the solution
    → WebGPU or WASM, same as registration
-   → Grants 1 message credit
 
-5. OPEN CHANNEL: Bob submits channel open request
-   → Includes: PoW proof, Bob's engagement pubkey, encrypted "hello" message
-   → Alice's server creates channel record with 1 credit
+5. SEND MESSAGE: Bob submits message to Alice's server
+   → Includes: PoW proof, both engagement pubkeys, encrypted message
+   → Alice's server validates engagement key metadata
+   → Alice's server marks engagement key as used
 
-6. DEPOSIT MESSAGE: Bob's message is now in Alice's inbox
+6. STORE MESSAGE: Message is now in Alice's inbox
    → Encrypted with shared secret
    → Alice's server cannot read content
+   → Channel created if first message between Bob and Alice
 ```
 
 ### Channel Lifecycle
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  BOB (initiator)                 ALICE (recipient)          │
+│  BOB (sender)                    ALICE (recipient)          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. Resolve alice@example.com                               │
@@ -93,24 +97,26 @@ When Bob wants to message Alice for the first time:
 │     ↓                                                       │
 │  4. Get PoW challenge from Alice's server                   │
 │     ↓                                                       │
-│  5. Solve PoW (~4 seconds GPU)                              │
+│  5. Solve PoW (difficulty set by Alice)                     │
 │     ↓                                                       │
-│  6. Open channel + send first message                       │
+│  6. Send message with PoW proof                             │
 │     ────────────────────────────────────→                   │
 │                                  7. Channel appears in      │
 │                                     Alice's "Pending"       │
 │                                     ↓                       │
 │                                  8. Alice accepts/ignores   │
 │                                     ↓                       │
-│                                  9. If accepts, can reply   │
+│                                  9. If accepts, Alice can   │
+│                                     set low difficulty for  │
+│                                     Bob to make replies easy│
 │     ←────────────────────────────────                       │
-│  10. Bob gets +1 credit (can reply free)                    │
+│  10. Alice replies (with PoW for Bob's difficulty)          │
 │      ↓                                                      │
-│  [Normal conversation continues...]                         │
+│  [Each message requires PoW at recipient's difficulty]      │
 │                                                             │
 │  If Alice ignores:                                          │
 │  - Bob's messages still delivered to inbox                  │
-│  - Alice doesn't see them                                   │
+│  - Alice doesn't see them in main view                      │
 │  - Bob doesn't know he's ignored                            │
 │  - Bob must pay PoW for each additional message             │
 │                                                             │
@@ -213,32 +219,38 @@ Bob sends message to Alice:
 
 ## Spam Prevention
 
-### PoW + Message Credits
+### Per-Message Proof-of-Work
 
-| Action                       | Credit Change |
-| ---------------------------- | ------------- |
-| Send message with PoW        | +1            |
-| Send message                 | -1            |
-| Receive reply from recipient | +1            |
+Every message requires proof-of-work. The difficulty is determined by the recipient's
+settings:
 
-**Rules:**
+1. **Global setting**: Each user has a default `messagingMinDifficulty` (default ~4M)
+2. **Per-channel override**: Can set different difficulty for specific counterparties
 
-- Cannot send with 0 credits
-- To send another message without reply, must solve another PoW
-- Normal back-and-forth conversation: free (credits balance)
-- Spam attempt (10 messages in a row): costs 10 PoW solutions
+**How it works:**
+
+1. Sender requests PoW challenge from recipient's server
+2. Server returns challenge with difficulty based on recipient's settings
+3. Sender solves PoW and submits message with proof
+4. Server verifies PoW before accepting message
+
+**Enabling easy replies:**
+
+When you accept a channel from someone you trust, you can lower your per-channel
+difficulty for them. Setting difficulty to a trivial value (e.g., 256) makes their
+messages effectively free while still requiring the PoW handshake.
 
 **Recipient's controls:**
 
-- Configurable PoW difficulty (default ~4M, can increase)
+- Global PoW difficulty (default ~4M, can increase for more protection)
+- Per-channel difficulty override (lower for trusted contacts)
 - "Ignore" channel: Sender never knows, but recipient doesn't see messages
 - "Block" channel: Future enhancement, rejects at server level
 
 **Server-side enforcement:**
 
-- Credit tracking in database
-- Reject messages when credits ≤ 0
-- PoW verification before crediting
+- PoW verification before accepting any message
+- Difficulty lookup: per-channel override → global setting → system default
 
 ## Message Format
 
@@ -341,7 +353,7 @@ of the channel, stored on their own server. This is essential for a federated sy
 - Alice's server (example.com) and Bob's server (example2.com) have separate databases
 - Alice cannot know or store whether Bob synced to his vault - that's Bob's private state
 - Even if Alice and Bob share the same server, they each have their own channel_view row
-- Each view stores only the owner's state (their credits, their sync preference)
+- Each view stores only the owner's state (their sync preference, their per-channel difficulty)
 
 **New table: `channel_view`** (each participant's view of a channel)
 
@@ -350,7 +362,6 @@ id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
 status                  "pending" | "accepted" | "ignored"
-credits                 integer (owner's message credits)
 saved_to_vault          boolean (owner's sync preference)
 min_difficulty          text (per-channel PoW override, null = use global setting)
 created_at              timestamp
@@ -363,7 +374,7 @@ public key(s) used at time of sending. The channel_view only stores the fixed re
 metadata.
 
 **Why no role field?** It doesn't matter who "initiated" the channel. What matters is
-the current state: status, credits, and sync preference. The channel is symmetric.
+the current state: status, sync preference, and per-channel difficulty. The channel is symmetric.
 
 **Example**: When Bob sends a message to Alice:
 
@@ -372,8 +383,9 @@ Bob's server creates:
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: bob@example2.com)      │
 │ counterparty: alice@example.com             │
-│ credits: 0 (spent on sending)               │
+│ status: "accepted" (Bob initiated)          │
 │ saved_to_vault: false                       │
+│ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
 
 Alice's server creates:
@@ -381,8 +393,8 @@ Alice's server creates:
 │ channel_view (owner: alice@example.com)     │
 │ counterparty: bob@example2.com              │
 │ status: "pending"                           │
-│ credits: 0                                  │
 │ saved_to_vault: false                       │
+│ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
 ```
 
@@ -533,7 +545,7 @@ last_message_at     timestamp
 | Message send API       | Send messages with validation  |
 | Message inbox API      | Retrieve messages              |
 | Channel status API     | Accept/ignore channels         |
-| Credit tracking        | Anti-spam enforcement          |
+| PoW challenge API      | Per-message spam prevention    |
 | Channel UI             | Messages tab interface         |
 
 ## Implementation Status

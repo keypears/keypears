@@ -401,7 +401,7 @@ specification.
 - [ ] Add `channel_view` table (each participant's view of a channel)
   - [ ] `id`, `ownerAddress`, `counterpartyAddress`
   - [ ] `status` ("pending" | "accepted" | "ignored")
-  - [ ] `credits`, `savedToVault`
+  - [ ] `savedToVault`
   - [ ] `minDifficulty` (per-channel PoW override, nullable = use global)
   - [ ] `createdAt`, `updatedAt`
   - [ ] Note: NO public keys or role - channels are between addresses, keys go in messages
@@ -476,13 +476,6 @@ specification.
 - [ ] Passwords page filters out `type: "message"` from secrets
 - [ ] Auto-sync: when channel saved, new messages create secret_updates
 - [ ] Notifications work via existing unread count system
-
-### Credit System
-
-- [ ] PoW completion grants +1 credit to sender
-- [ ] Sending message costs -1 credit
-- [ ] Receiving reply grants +1 credit to original sender
-- [ ] Block sends when credits = 0
 
 ### Federation (Cross-Domain)
 
