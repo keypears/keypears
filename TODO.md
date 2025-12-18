@@ -398,18 +398,20 @@ specification.
 
 #### Database Schema
 
-- [ ] Add `channel_view` table to PostgreSQL (each participant's view of a channel)
+- [ ] Add `channel_view` table (each participant's view of a channel)
   - [ ] `id`, `ownerAddress`, `counterpartyAddress`
-  - [ ] `myEngagementPubKey`, `theirEngagementPubKey` (actual public keys, 66 hex chars)
-  - [ ] `role` ("initiator" or "recipient" - who opened the channel)
-  - [ ] `status` (pending/accepted/ignored)
-  - [ ] `credits` (owner's message credits)
-  - [ ] `savedToVault` (owner's sync preference)
+  - [ ] `role` ("initiator" or "recipient")
+  - [ ] `status`, `credits`, `savedToVault`
   - [ ] `powChallengeId`, `createdAt`, `updatedAt`
-- [ ] Add `inbox_message` table to PostgreSQL
-  - [ ] `id`, `channelId`, `senderAddress`, `orderInChannel`
+  - [ ] Note: NO public keys - channel is between addresses, keys go in messages
+- [ ] Add `inbox_message` table (messages I received)
+  - [ ] `id`, `channelViewId`, `senderAddress`, `orderInChannel`
   - [ ] `encryptedContent`, `senderEngagementPubKey`
   - [ ] `isRead`, `createdAt`, `expiresAt`
+- [ ] Add `outbox_message` table (messages I sent)
+  - [ ] `id`, `channelViewId`, `recipientAddress`, `orderInChannel`
+  - [ ] `encryptedContent`, `myEngagementPubKey`, `theirEngagementPubKey`
+  - [ ] `createdAt`
 - [ ] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
 
 #### API Procedures

@@ -317,8 +317,6 @@ of the channel, stored on their own server. This is essential for a federated sy
 id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
-my_engagement_pubkey    varchar(66) (owner's 33-byte compressed secp256k1 public key)
-their_engagement_pubkey varchar(66) (counterparty's public key, nullable until known)
 role                    "initiator" | "recipient" (who opened the channel)
 status                  "pending" | "accepted" | "ignored"
 credits                 integer (owner's message credits)
@@ -327,6 +325,11 @@ pow_challenge_id        FK → pow_challenge (only set for initiator)
 created_at              timestamp
 updated_at              timestamp
 ```
+
+**Why no public keys in channel_view?** The channel is between two ADDRESSES, not two
+public keys. Keys can change over time (rotation, fresh keys). Each MESSAGE carries the
+public key(s) used at time of sending. The channel_view only stores the fixed relationship
+metadata.
 
 **Example**: When Bob opens a channel to Alice:
 
@@ -350,26 +353,44 @@ Alice's server creates:
 └─────────────────────────────────────────────┘
 ```
 
-**Why actual public keys, not FK references?** Neither server knows the other's internal
-`derived_key` IDs. The only globally-meaningful identifier is the actual public key,
-which is what ECDH needs to compute the shared secret.
-
-**New table: `inbox_message`**
+**New table: `inbox_message`** (messages I received)
 
 ```sql
 id                       UUIDv7 primary key
-channel_id               FK → channel
+channel_view_id          FK → channel_view
 sender_address           text (e.g., "bob@example.com")
 order_in_channel         integer (1, 2, 3, ...)
-encrypted_content        text (ACS2 encrypted)
-sender_engagement_pubkey text (for decryption - vault's current key)
+encrypted_content        text (ACS2 encrypted with ECDH shared secret)
+sender_engagement_pubkey varchar(66) (sender's public key at time of sending)
 is_read                  boolean
 created_at               timestamp
-expires_at               timestamp (30 days from created_at)
+expires_at               timestamp (30 days from created_at, null if saved)
 ```
 
-Note: We removed the separate `outbox_message` table for MVP simplicity.
-Each message is stored once in the channel, accessible to both participants.
+To decrypt an inbox message: `sharedSecret = ECDH(myPrivKey, senderEngagementPubKey)`
+
+**New table: `outbox_message`** (messages I sent)
+
+```sql
+id                       UUIDv7 primary key
+channel_view_id          FK → channel_view
+recipient_address        text (e.g., "alice@example.com")
+order_in_channel         integer (1, 2, 3, ...)
+encrypted_content        text (ACS2 encrypted with ECDH shared secret)
+my_engagement_pubkey     varchar(66) (which of my keys I used)
+their_engagement_pubkey  varchar(66) (which of their keys I used)
+created_at               timestamp
+```
+
+To decrypt my own outbox message: `sharedSecret = ECDH(myPrivKey, theirEngagementPubKey)`
+(I need both pubkeys stored so I can re-derive the shared secret later)
+
+**Why both inbox and outbox?**
+
+- Inbox stores messages I received (with sender's pubkey for ECDH)
+- Outbox stores messages I sent (with both pubkeys so I can decrypt my own messages later)
+- Each participant maintains their own view of the conversation
+- Alice's outbox message = Bob's inbox message (same content, different metadata)
 
 ### Client-Side (SQLite)
 
