@@ -197,8 +197,9 @@ export default function AppIndex({ loaderData }: Route.ComponentProps) {
                 <p>{formatBytes(loaderData.dbInfo.size)}</p>
               )}
               <p className="mt-2">
-                Your database includes private information. Do not share it with
-                anyone.
+                Your client-side database includes private meta information like
+                the names of your passwords (but not the passwords themselves,
+                which are encrypted). Do not share it with anyone.
               </p>
             </div>
           </div>
