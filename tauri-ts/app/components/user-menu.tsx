@@ -118,6 +118,7 @@ export function UserMenu({ vaultId }: UserMenuProps) {
             Settings
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLockVault}>
           <Lock size={16} className="mr-2" />
           Lock Vault
