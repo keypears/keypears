@@ -400,26 +400,33 @@ specification.
 
 - [ ] Add `channel_view` table (each participant's view of a channel)
   - [ ] `id`, `ownerAddress`, `counterpartyAddress`
-  - [ ] `role` ("initiator" or "recipient")
-  - [ ] `status`, `credits`, `savedToVault`
-  - [ ] `powChallengeId`, `createdAt`, `updatedAt`
-  - [ ] Note: NO public keys - channel is between addresses, keys go in messages
+  - [ ] `status` ("pending" | "accepted" | "ignored")
+  - [ ] `credits`, `savedToVault`
+  - [ ] `minDifficulty` (per-channel PoW override, nullable = use global)
+  - [ ] `createdAt`, `updatedAt`
+  - [ ] Note: NO public keys or role - channels are between addresses, keys go in messages
 - [ ] Add `inbox_message` table (messages I received)
   - [ ] `id`, `channelViewId`, `senderAddress`, `orderInChannel`
-  - [ ] `encryptedContent`, `senderEngagementPubKey`
+  - [ ] `encryptedContent`
+  - [ ] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for decryption)
+  - [ ] `powChallengeId` (proves sender did work for this message)
   - [ ] `isRead`, `createdAt`, `expiresAt`
 - [ ] Add `outbox_message` table (messages I sent)
   - [ ] `id`, `channelViewId`, `recipientAddress`, `orderInChannel`
   - [ ] `encryptedContent`, `myEngagementPubKey`, `theirEngagementPubKey`
   - [ ] `createdAt`
-- [ ] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
+- [ ] Update `engagement_key` table
+  - [ ] Add `purpose` field ("send" | "receive")
+  - [ ] Add `counterpartyPubKey` field (other party's pubkey, for validation)
+- [ ] Create Drizzle models (`channel.ts`, `message.ts`)
 
 #### API Procedures
 
-- [ ] `getEngagementKey` - Get/create engagement key for specific counterparty
-- [ ] `getCounterpartyEngagementKey` - Public endpoint for messaging
-- [ ] `openChannel` - Create channel with PoW proof + first message
-- [ ] `sendMessage` - Send message (costs 1 credit)
+- [ ] `getEngagementKeyForSending` - Create engagement key for sending (purpose: "send")
+- [ ] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey, creates
+      key with purpose "receive", stores sender's pubkey for later validation
+- [ ] `sendMessage` - Send message with PoW proof; validates engagement key metadata
+      (purpose, counterpartyAddress, counterpartyPubKey) before accepting
 - [ ] `getChannels` - List channels for an address (with pagination)
 - [ ] `getChannelMessages` - Get messages in a channel
 - [ ] `updateChannelStatus` - Accept/ignore channel
@@ -472,9 +479,9 @@ specification.
 
 ### Credit System
 
-- [ ] PoW completion grants +1 credit to initiator
+- [ ] PoW completion grants +1 credit to sender
 - [ ] Sending message costs -1 credit
-- [ ] Receiving reply grants +1 credit
+- [ ] Receiving reply grants +1 credit to original sender
 - [ ] Block sends when credits = 0
 
 ### Federation (Cross-Domain)

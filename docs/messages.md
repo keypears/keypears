@@ -121,26 +121,51 @@ When Bob wants to message Alice for the first time:
 
 ### Engagement Keys System
 
-The infrastructure already exists:
+The engagement key infrastructure enables secure DH key exchange:
 
-- Bob's server generates an engagement public key for Bob↔Alice relationship
-- Alice's server generates an engagement public key for Alice↔Bob relationship
+- Each engagement key has a **purpose**: "send" or "receive"
+- Each engagement key tracks the **counterparty's public key** for validation
 - Neither party exposes their primary vault public key
 
-**Flow:**
+**Full DH Flow (Bob sends message to Alice):**
 
 ```
-1. Bob requests his engagement key from his server (bob@example2.com)
-   → Server uses elliptic curve addition to create Bob's engagement pubkey for Alice
+1. CREATE SENDER KEY: Bob creates his engagement key (on Bob's server)
+   → Purpose: "send"
+   → counterpartyAddress: "alice@example.com"
+   → counterpartyPubKey: null (Alice's key, not known yet)
 
-2. Bob requests Alice's engagement key from Alice's server (alice@example.com)
-   → Alice's server creates Alice's engagement pubkey for Bob
+2. REQUEST RECIPIENT KEY: Bob requests Alice's engagement key (from Alice's server)
+   → Bob provides: his address + his pubkey
+   → Alice's server creates engagement key:
+     - Purpose: "receive"
+     - counterpartyAddress: "bob@example2.com"
+     - counterpartyPubKey: Bob's pubkey (stored for later validation)
+   → Alice's server returns: Alice's engagement pubkey
 
-3. Both compute: shared_secret = ECDH(my_privkey, their_pubkey)
+3. UPDATE SENDER KEY: Bob updates his engagement key (on Bob's server)
+   → counterpartyPubKey: Alice's pubkey (now known)
+
+4. COMPUTE SHARED SECRET: Both sides can compute
+   → shared_secret = ECDH(my_privkey, their_pubkey)
 ```
 
-The `engagement_key` table already tracks `counterpartyAddress` - we use it to bind
-engagement keys to specific relationships.
+**Validation at message receipt:**
+
+When Alice's server receives a message, it validates the engagement key:
+
+```
+1. Look up engagement key by recipientEngagementPubKey
+2. Validate:
+   - purpose = "receive" ✓
+   - counterpartyAddress = sender's address ✓
+   - counterpartyPubKey = senderEngagementPubKey ✓
+   - isUsed = false ✓
+3. Mark engagement key as used
+4. Store message in inbox
+```
+
+This prevents misuse - someone cannot use a key meant for a different person or purpose.
 
 ### End-to-End Encryption
 
@@ -153,17 +178,24 @@ Bob sends message to Alice:
 
 3. Bob sends to Alice's server:
    {
-     channelId: "...",
-     encryptedContent: "...",  // Server cannot read
-     signature: "...",          // Bob signs with his engagement key
-     timestamp: ...
+     senderAddress: "bob@example2.com",
+     encryptedContent: "...",           // Server cannot read
+     senderEngagementPubKey: "...",     // Bob's pubkey (for ECDH)
+     recipientEngagementPubKey: "...",  // Alice's pubkey (for key lookup)
+     powChallengeId: "...",             // Solved PoW proof
    }
 
-4. Alice retrieves from her server
+4. Alice's server validates engagement key metadata and stores in inbox
 
-5. Alice computes: same_shared_secret = ECDH(alice_privkey, bob_pubkey)
+5. Alice retrieves message from her server
 
-6. Alice decrypts: message_content = ACS2_decrypt(encrypted_content, shared_secret)
+6. Alice looks up her engagement key by recipientEngagementPubKey
+
+7. Alice derives her private key from engagement key material
+
+8. Alice computes: same_shared_secret = ECDH(alice_privkey, bob_pubkey)
+
+9. Alice decrypts: message_content = ACS2_decrypt(encrypted_content, shared_secret)
 ```
 
 **What servers see:**
@@ -185,7 +217,7 @@ Bob sends message to Alice:
 
 | Action                       | Credit Change |
 | ---------------------------- | ------------- |
-| Open channel (requires PoW)  | +1            |
+| Send message with PoW        | +1            |
 | Send message                 | -1            |
 | Receive reply from recipient | +1            |
 
@@ -317,11 +349,10 @@ of the channel, stored on their own server. This is essential for a federated sy
 id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
-role                    "initiator" | "recipient" (who opened the channel)
 status                  "pending" | "accepted" | "ignored"
 credits                 integer (owner's message credits)
 saved_to_vault          boolean (owner's sync preference)
-pow_challenge_id        FK → pow_challenge (only set for initiator)
+min_difficulty          text (per-channel PoW override, null = use global setting)
 created_at              timestamp
 updated_at              timestamp
 ```
@@ -331,15 +362,17 @@ public keys. Keys can change over time (rotation, fresh keys). Each MESSAGE carr
 public key(s) used at time of sending. The channel_view only stores the fixed relationship
 metadata.
 
-**Example**: When Bob opens a channel to Alice:
+**Why no role field?** It doesn't matter who "initiated" the channel. What matters is
+the current state: status, credits, and sync preference. The channel is symmetric.
+
+**Example**: When Bob sends a message to Alice:
 
 ```
 Bob's server creates:
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: bob@example2.com)      │
 │ counterparty: alice@example.com             │
-│ role: "initiator"                           │
-│ credits: 1 (from PoW)                       │
+│ credits: 0 (spent on sending)               │
 │ saved_to_vault: false                       │
 └─────────────────────────────────────────────┘
 
@@ -347,7 +380,7 @@ Alice's server creates:
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: alice@example.com)     │
 │ counterparty: bob@example2.com              │
-│ role: "recipient"                           │
+│ status: "pending"                           │
 │ credits: 0                                  │
 │ saved_to_vault: false                       │
 └─────────────────────────────────────────────┘
@@ -356,18 +389,27 @@ Alice's server creates:
 **New table: `inbox_message`** (messages I received)
 
 ```sql
-id                       UUIDv7 primary key
-channel_view_id          FK → channel_view
-sender_address           text (e.g., "bob@example.com")
-order_in_channel         integer (1, 2, 3, ...)
-encrypted_content        text (ACS2 encrypted with ECDH shared secret)
-sender_engagement_pubkey varchar(66) (sender's public key at time of sending)
-is_read                  boolean
-created_at               timestamp
-expires_at               timestamp (30 days from created_at, null if saved)
+id                          UUIDv7 primary key
+channel_view_id             FK → channel_view
+sender_address              text (e.g., "bob@example.com")
+order_in_channel            integer (1, 2, 3, ...)
+encrypted_content           text (ACS2 encrypted with ECDH shared secret)
+sender_engagement_pubkey    varchar(66) (sender's public key for ECDH)
+recipient_engagement_pubkey varchar(66) (my public key, for looking up my private key)
+pow_challenge_id            FK → pow_challenge (proves sender did work)
+is_read                     boolean
+created_at                  timestamp
+expires_at                  timestamp (30 days from created_at, null if saved)
 ```
 
-To decrypt an inbox message: `sharedSecret = ECDH(myPrivKey, senderEngagementPubKey)`
+To decrypt an inbox message:
+
+```
+1. Look up my engagement key by recipient_engagement_pubkey
+2. Derive my private key from engagement key material
+3. Compute: sharedSecret = ECDH(myPrivKey, senderEngagementPubKey)
+4. Decrypt: content = ACS2_decrypt(encrypted_content, sharedSecret)
+```
 
 **New table: `outbox_message`** (messages I sent)
 
@@ -391,6 +433,38 @@ To decrypt my own outbox message: `sharedSecret = ECDH(myPrivKey, theirEngagemen
 - Outbox stores messages I sent (with both pubkeys so I can decrypt my own messages later)
 - Each participant maintains their own view of the conversation
 - Alice's outbox message = Bob's inbox message (same content, different metadata)
+
+**Updated table: `engagement_key`** (add fields for messaging validation)
+
+The existing `engagement_key` table is extended with two new fields:
+
+```sql
+-- New fields added to engagement_key table:
+purpose                  varchar(30) ("send" | "receive")
+counterparty_pubkey      varchar(66) (other party's pubkey, for validation)
+```
+
+**Purpose field:**
+
+- `"send"` - I created this key to send a message to counterparty
+- `"receive"` - Counterparty requested this key to send me a message
+
+**Counterparty pubkey field:**
+
+- Stored when the key is created/requested
+- Validated when message is received
+- Ensures the sender is using the key they claimed they would use
+
+**Validation flow at message receipt:**
+
+```
+1. Look up engagement key by recipientEngagementPubKey
+2. Verify purpose = "receive"
+3. Verify counterpartyAddress = sender's address
+4. Verify counterpartyPubKey = senderEngagementPubKey
+5. Verify isUsed = false
+6. Mark key as used, store message
+```
 
 ### Client-Side (SQLite)
 
@@ -446,8 +520,8 @@ last_message_at     timestamp
 
 | Component           | How It's Used                    |
 | ------------------- | -------------------------------- |
-| Engagement Keys     | Public keys for ECDH             |
-| PoW (pow5-64b)      | Channel opening tax              |
+| Engagement Keys     | Public keys for ECDH + validation|
+| PoW (pow5-64b)      | Per-message spam prevention      |
 | ACS2 encryption     | Message content encryption       |
 | Secret Updates      | Storage for saved messages       |
 | Sync infrastructure | Cross-device message sync        |
@@ -456,10 +530,10 @@ last_message_at     timestamp
 
 | Component              | Purpose                        |
 | ---------------------- | ------------------------------ |
-| Channel management API | Open/accept/ignore channels    |
-| Message inbox API      | Deposit/retrieve messages      |
+| Message send API       | Send messages with validation  |
+| Message inbox API      | Retrieve messages              |
+| Channel status API     | Accept/ignore channels         |
 | Credit tracking        | Anti-spam enforcement          |
-| Well-known discovery   | Resolve addresses to servers   |
 | Channel UI             | Messages tab interface         |
 
 ## Implementation Status
@@ -487,13 +561,16 @@ Settings included in Phase 0:
 
 ### Phase 1: Server-Side Foundation - IN PROGRESS
 
-- [ ] Add `channel` table to PostgreSQL (addresses, not vault IDs)
+- [ ] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
+- [ ] Add `channel_view` table to PostgreSQL
 - [ ] Add `inbox_message` table to PostgreSQL
-- [ ] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
-- [ ] `getEngagementKey` - Get/create derived key for counterparty
-- [ ] `getCounterpartyEngagementKey` - Public endpoint (cross-domain)
-- [ ] `openChannel` - Create channel with PoW + first message
-- [ ] `sendMessage` - Send message (costs 1 credit)
+- [ ] Add `outbox_message` table to PostgreSQL
+- [ ] Create Drizzle models (`channel.ts`, `message.ts`)
+- [ ] `getEngagementKeyForSending` - Create engagement key with purpose "send"
+- [ ] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
+      creates key with purpose "receive", stores sender's pubkey for validation
+- [ ] `sendMessage` - Send message with PoW; validates engagement key metadata
+      (purpose, counterpartyAddress, counterpartyPubKey) before accepting
 - [ ] `getChannels` - List channels for an address
 - [ ] `getChannelMessages` - Get messages in a channel
 - [ ] `updateChannelStatus` - Accept/ignore channel
