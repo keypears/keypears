@@ -191,14 +191,14 @@ one immutable key.
 ## Diffie-Hellman Key Exchange with Quantum Protection
 
 The vault key enables decentralized secret sharing between any two vaults using
-a **derived public key system** that provides quantum resistance by hiding the
+an **engagement key system** that provides quantum resistance by hiding the
 primary vault public key.
 
 ### Key Protection Strategy
 
 **Critical principle**: The primary vault public key is **never exposed to third
 parties**. Instead, each communication channel uses deterministically derived
-public keys unique to that relationship.
+engagement keys unique to that relationship.
 
 **Why this matters**:
 
@@ -206,12 +206,12 @@ public keys unique to that relationship.
   public keys
 - If Alice's primary public key were exposed, a quantum attack could compromise
   all her communication channels
-- By exposing only relationship-specific derived keys, a quantum attack on
+- By exposing only relationship-specific engagement keys, a quantum attack on
   Alice↔Bob only compromises that channel
-- Alice↔Carol remains secure because Bob never sees the derived key for that
+- Alice↔Carol remains secure because Bob never sees the engagement key for that
   relationship
 
-### Derived Public Key Protocol
+### Engagement Key Protocol
 
 When `bob@hevybags.com` wants to communicate with `alice@keypears.com`:
 
@@ -234,7 +234,7 @@ Both Sides:
 
 **Key properties**:
 
-- Each Alice↔Bob relationship has **immutable derived keys** (per vault)
+- Each Alice↔Bob relationship has **immutable engagement keys** (per vault)
 - Bob never learns Alice's primary public key
 - Alice never learns Bob's primary public key
 - Compromising Alice↔Bob does not help attack Alice↔Carol
@@ -243,20 +243,20 @@ Both Sides:
 **What's exposed**:
 
 - Vault pubkeyhash (32-byte SHA-256 hash) - public identifier
-- Relationship-specific derived public keys (only to counterparty)
+- Relationship-specific engagement public keys (only to counterparty)
 - Primary vault public key - **never exposed**
 - Vault private key - **never leaves device**
 
 **Quantum resistance properties**:
 
-- Primary key protected: Cannot derive from hash or derived keys
+- Primary key protected: Cannot derive from hash or engagement keys
 - Limited attack surface: Each relationship isolated
 - Forward secrecy: Compromising one channel doesn't cascade
 - Graceful degradation: Quantum attack requires targeting each relationship
   individually
 
 **Protocol details**: Not yet fully specified. The exact derivation mechanism
-for relationship-specific keys is under development.
+for relationship-specific engagement keys is under development.
 
 **Use cases**:
 
@@ -264,7 +264,7 @@ for relationship-specific keys is under development.
 - Cryptocurrency wallet identity tied to email address
 - End-to-end encrypted messaging with quantum protection
 
-**Status**: Infrastructure in place, derived key protocol under development.
+**Status**: Infrastructure in place, engagement key protocol under development.
 
 ---
 
@@ -272,5 +272,4 @@ for relationship-specific keys is under development.
 
 - [Key Derivation Functions](./kdf.md) - Password-based key derivation system
 - [Diffie-Hellman Protocol](./dh.md) - Federated DH key exchange protocol
-- [Derived Keys](./derived-keys.md) - Server-generated derived
-  keys
+- [Engagement Keys](./engagement-keys.md) - Server-generated engagement keys

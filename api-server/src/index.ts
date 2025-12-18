@@ -9,8 +9,8 @@ import { createSecretUpdateProcedure } from "./procedures/create-secret-update.j
 import { getSecretUpdatesProcedure } from "./procedures/get-secret-updates.js";
 import { getVaultInfoProcedure } from "./procedures/get-vault-info.js";
 import { getVaultInfoPublicProcedure } from "./procedures/get-vault-info-public.js";
-import { createDerivedKeyProcedure } from "./procedures/create-derived-key.js";
-import { getDerivedKeysProcedure } from "./procedures/get-derived-keys.js";
+import { createEngagementKeyProcedure } from "./procedures/create-engagement-key.js";
+import { getEngagementKeysProcedure } from "./procedures/get-engagement-keys.js";
 import { getDerivationPrivKeyProcedure } from "./procedures/get-derivation-privkey.js";
 import { getPowChallengeProcedure } from "./procedures/get-pow-challenge.js";
 import { verifyPowProofProcedure } from "./procedures/verify-pow-proof.js";
@@ -30,8 +30,8 @@ export const router = {
   getSecretUpdates: getSecretUpdatesProcedure,
   getVaultInfo: getVaultInfoProcedure,
   getVaultInfoPublic: getVaultInfoPublicProcedure,
-  createDerivedKey: createDerivedKeyProcedure,
-  getDerivedKeys: getDerivedKeysProcedure,
+  createEngagementKey: createEngagementKeyProcedure,
+  getEngagementKeys: getEngagementKeysProcedure,
   getDerivationPrivKey: getDerivationPrivKeyProcedure,
   // PoW testing procedures (NOT SECURE - for testing only)
   getPowChallenge: getPowChallengeProcedure,

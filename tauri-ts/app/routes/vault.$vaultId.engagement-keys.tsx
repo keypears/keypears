@@ -1,4 +1,4 @@
-import type { Route } from "./+types/vault.$vaultId.derived-keys";
+import type { Route } from "./+types/vault.$vaultId.engagement-keys";
 import { useState } from "react";
 import { Key, Plus, Copy, Eye, EyeOff, Check } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
@@ -11,9 +11,9 @@ import {
 } from "~app/lib/vault-store";
 import { privateKeyAdd, publicKeyCreate, FixedBuf } from "@keypears/lib";
 
-interface DerivedKey {
+interface EngagementKey {
   id: string;
-  derivedPubKey: string;
+  engagementPubKey: string;
   createdAt: Date;
   isUsed: boolean;
 }
@@ -37,11 +37,11 @@ function formatRelativeTime(date: Date): string {
 }
 
 function KeyCard({
-  derivedKey,
+  engagementKey,
   vaultId,
   vaultDomain,
 }: {
-  derivedKey: DerivedKey;
+  engagementKey: EngagementKey;
   vaultId: string;
   vaultDomain: string;
 }) {
@@ -75,26 +75,26 @@ function KeyCard({
 
       // Get derivation private key from server
       const response = await client.api.getDerivationPrivKey({
-        derivedKeyId: derivedKey.id,
+        engagementKeyId: engagementKey.id,
       });
 
       // Get vault private key
       const vaultPrivKey = getVaultKey(vaultId);
 
-      // Derive full private key: derivedPrivKey = vaultPrivKey + derivationPrivKey
+      // Derive full private key: engagementPrivKey = vaultPrivKey + derivationPrivKey
       const derivationPrivKey = FixedBuf.fromHex(
         32,
         response.derivationPrivKey,
       );
-      const derivedPrivKey = privateKeyAdd(vaultPrivKey, derivationPrivKey);
+      const engagementPrivKey = privateKeyAdd(vaultPrivKey, derivationPrivKey);
 
-      // Verify the derived public key matches
-      const verifyPubKey = publicKeyCreate(derivedPrivKey);
-      if (verifyPubKey.toHex() !== derivedKey.derivedPubKey) {
-        throw new Error("Derived key verification failed");
+      // Verify the engagement public key matches
+      const verifyPubKey = publicKeyCreate(engagementPrivKey);
+      if (verifyPubKey.toHex() !== engagementKey.engagementPubKey) {
+        throw new Error("Engagement key verification failed");
       }
 
-      setPrivateKey(derivedPrivKey.toHex());
+      setPrivateKey(engagementPrivKey.toHex());
       setShowPrivateKey(true);
     } catch (err) {
       console.error("Error deriving private key:", err);
@@ -128,14 +128,14 @@ function KeyCard({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Key size={16} className="text-muted-foreground flex-shrink-0" />
           <div className="overflow-x-auto font-mono text-sm whitespace-nowrap">
-            {derivedKey.derivedPubKey}
+            {engagementKey.engagementPubKey}
           </div>
         </div>
         <Button
           variant="ghost"
           size="sm"
           className="h-8 w-20 flex-shrink-0"
-          onClick={() => copyToClipboard(derivedKey.derivedPubKey, "pub")}
+          onClick={() => copyToClipboard(engagementKey.engagementPubKey, "pub")}
         >
           {copiedPubKey ? (
             <>
@@ -153,8 +153,8 @@ function KeyCard({
 
       {/* Middle: Created timestamp + used badge */}
       <div className="text-muted-foreground mt-1 text-sm">
-        Created {formatRelativeTime(derivedKey.createdAt)}
-        {derivedKey.isUsed && (
+        Created {formatRelativeTime(engagementKey.createdAt)}
+        {engagementKey.isUsed && (
           <span className="ml-2 text-yellow-600 dark:text-yellow-400">
             (used)
           </span>
@@ -235,7 +235,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     sessionToken,
   });
 
-  const response = await client.api.getDerivedKeys({
+  const response = await client.api.getEngagementKeys({
     vaultId,
     limit: 20,
   });
@@ -248,7 +248,7 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   };
 }
 
-export default function VaultKeys({ loaderData }: Route.ComponentProps) {
+export default function EngagementKeys({ loaderData }: Route.ComponentProps) {
   const {
     vaultId,
     vaultDomain,
@@ -256,7 +256,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
     hasMore: initialHasMore,
   } = loaderData;
 
-  const [keys, setKeys] = useState<DerivedKey[]>(initialKeys);
+  const [keys, setKeys] = useState<EngagementKey[]>(initialKeys);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -276,7 +276,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
         sessionToken,
       });
 
-      const response = await client.api.createDerivedKey({
+      const response = await client.api.createEngagementKey({
         vaultId,
       });
 
@@ -284,7 +284,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
       setKeys((prev) => [
         {
           id: response.id,
-          derivedPubKey: response.derivedPubKey,
+          engagementPubKey: response.engagementPubKey,
           createdAt: response.createdAt,
           isUsed: false,
         },
@@ -314,7 +314,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
       });
 
       const lastKey = keys[keys.length - 1];
-      const response = await client.api.getDerivedKeys({
+      const response = await client.api.getEngagementKeys({
         vaultId,
         limit: 20,
         beforeCreatedAt: lastKey?.createdAt,
@@ -336,7 +336,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="mb-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Derived Keys</h1>
+            <h1 className="text-2xl font-bold">Engagement Keys</h1>
             <Button onClick={handleGenerateKey} disabled={isGenerating}>
               {isGenerating ? (
                 "Generating..."
@@ -349,7 +349,7 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
           <p className="text-muted-foreground mt-2 text-sm">
-            Derived keys are unique keypairs generated from your vault. Only you
+            Engagement keys are unique keypairs for DH key exchange. Only you
             can derive the private keys.
           </p>
         </div>
@@ -365,16 +365,16 @@ export default function VaultKeys({ loaderData }: Route.ComponentProps) {
           {keys.length === 0 ? (
             <div className="border-border bg-card rounded-lg border p-8 text-center">
               <Key size={48} className="text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No derived keys yet</p>
+              <p className="text-muted-foreground">No engagement keys yet</p>
               <p className="text-muted-foreground mt-1 text-sm">
-                Click "Generate New Key" to create your first derived key.
+                Click "Generate New Key" to create your first engagement key.
               </p>
             </div>
           ) : (
             keys.map((key) => (
               <KeyCard
                 key={key.id}
-                derivedKey={key}
+                engagementKey={key}
                 vaultId={vaultId}
                 vaultDomain={vaultDomain}
               />

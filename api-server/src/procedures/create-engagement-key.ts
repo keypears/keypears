@@ -8,21 +8,21 @@ import {
   publicKeyAdd,
 } from "@keypears/lib";
 import {
-  CreateDerivedKeyRequestSchema,
-  CreateDerivedKeyResponseSchema,
+  CreateEngagementKeyRequestSchema,
+  CreateEngagementKeyResponseSchema,
 } from "../zod-schemas.js";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
 import { db } from "../db/index.js";
-import { TableDerivedKey } from "../db/schema.js";
+import { TableEngagementKey } from "../db/schema.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
 } from "../derivation-keys.js";
 
 /**
- * Create derived key procedure
- * Generates a new derived public key for the vault using server-side key derivation
+ * Create engagement key procedure
+ * Generates a new engagement public key for the vault using server-side key derivation
  *
  * Authentication: Requires valid session token in X-Vault-Session-Token header
  *
@@ -31,15 +31,15 @@ import {
  * 2. Get current server entropy from environment
  * 3. Compute derivationPrivKey = HMAC-SHA256(serverEntropy, dbEntropy)
  * 4. Compute derivationPubKey = derivationPrivKey * G
- * 5. Compute derivedPubKey = vaultPubKey + derivationPubKey
+ * 5. Compute engagementPubKey = vaultPubKey + derivationPubKey
  * 6. Store record in database
  *
  * The server never learns the vault private key.
  * Only the vault owner can derive the full private key by adding their vault private key.
  */
-export const createDerivedKeyProcedure = sessionAuthedProcedure
-  .input(CreateDerivedKeyRequestSchema)
-  .output(CreateDerivedKeyResponseSchema)
+export const createEngagementKeyProcedure = sessionAuthedProcedure
+  .input(CreateEngagementKeyRequestSchema)
+  .output(CreateEngagementKeyResponseSchema)
   .handler(async ({ input, context }) => {
     const { vaultId: sessionVaultId } = context;
     const { vaultId } = input;
@@ -80,42 +80,42 @@ export const createDerivedKeyProcedure = sessionAuthedProcedure
     // 4. Compute derivation public key
     const derivationPubKey = publicKeyCreate(derivationPrivKey);
 
-    // 5. Compute derived public key (vault pubkey + derivation pubkey)
+    // 5. Compute engagement public key (vault pubkey + derivation pubkey)
     const vaultPubKey = FixedBuf.fromHex(33, vault.vaultPubKey);
-    const derivedPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
-    const derivedPubKeyHash = sha256Hash(derivedPubKey.buf);
+    const engagementPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
+    const engagementPubKeyHash = sha256Hash(engagementPubKey.buf);
 
     // 6. Generate ID and insert record
     const id = generateId();
 
-    await db.insert(TableDerivedKey).values({
+    await db.insert(TableEngagementKey).values({
       id,
       vaultId,
       dbEntropy: dbEntropy.toHex(),
       dbEntropyHash: dbEntropyHash.toHex(),
       serverEntropyIndex,
       derivationPubKey: derivationPubKey.toHex(),
-      derivedPubKey: derivedPubKey.toHex(),
-      derivedPubKeyHash: derivedPubKeyHash.toHex(),
+      engagementPubKey: engagementPubKey.toHex(),
+      engagementPubKeyHash: engagementPubKeyHash.toHex(),
     });
 
     // Fetch the created record to get createdAt timestamp
     const { eq } = await import("drizzle-orm");
     const [created] = await db
       .select()
-      .from(TableDerivedKey)
-      .where(eq(TableDerivedKey.id, id))
+      .from(TableEngagementKey)
+      .where(eq(TableEngagementKey.id, id))
       .limit(1);
 
     if (!created) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "Failed to create derived key",
+        message: "Failed to create engagement key",
       });
     }
 
     return {
       id: created.id,
-      derivedPubKey: created.derivedPubKey,
+      engagementPubKey: created.engagementPubKey,
       createdAt: created.createdAt,
     };
   });

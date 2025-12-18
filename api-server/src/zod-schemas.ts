@@ -68,29 +68,29 @@ export const GetSecretUpdatesResponseSchema = z.object({
   latestGlobalOrder: z.number().int().nonnegative(), // Highest order in the vault
 });
 
-// Create derived key
-export const CreateDerivedKeyRequestSchema = z.object({
+// Create engagement key
+export const CreateEngagementKeyRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
 });
 
-export const CreateDerivedKeyResponseSchema = z.object({
-  id: z.string().length(26), // UUIDv7 (26-char) of the derived key record
-  derivedPubKey: z.string().length(66), // 33 bytes hex = 66 chars
+export const CreateEngagementKeyResponseSchema = z.object({
+  id: z.string().length(26), // UUIDv7 (26-char) of the engagement key record
+  engagementPubKey: z.string().length(66), // 33 bytes hex = 66 chars
   createdAt: z.date(),
 });
 
-// Get derived keys (paginated)
-export const GetDerivedKeysRequestSchema = z.object({
+// Get engagement keys (paginated)
+export const GetEngagementKeysRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
   limit: z.number().int().positive().max(100).default(20),
   beforeCreatedAt: z.date().optional(), // Cursor for pagination
 });
 
-export const GetDerivedKeysResponseSchema = z.object({
+export const GetEngagementKeysResponseSchema = z.object({
   keys: z.array(
     z.object({
       id: z.string().length(26),
-      derivedPubKey: z.string().length(66),
+      engagementPubKey: z.string().length(66),
       createdAt: z.date(),
       isUsed: z.boolean(),
     }),
@@ -100,7 +100,7 @@ export const GetDerivedKeysResponseSchema = z.object({
 
 // Get derivation private key (for client to derive full private key)
 export const GetDerivationPrivKeyRequestSchema = z.object({
-  derivedKeyId: z.string().length(26), // UUIDv7 (26-char) of the derived key record
+  engagementKeyId: z.string().length(26), // UUIDv7 (26-char) of the engagement key record
 });
 
 export const GetDerivationPrivKeyResponseSchema = z.object({

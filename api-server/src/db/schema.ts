@@ -169,11 +169,11 @@ export const TableDeviceSession = pgTable(
 export type SelectDeviceSession = typeof TableDeviceSession.$inferSelect;
 export type InsertDeviceSession = typeof TableDeviceSession.$inferInsert;
 
-// Derived keys table - stores server-generated derived public keys
+// Engagement keys table - stores server-generated public keys for DH key exchange
 // Server can generate public keys for users while only the user can derive private keys
-// Uses elliptic curve addition: derivedPubKey = vaultPubKey + derivationPubKey
-export const TableDerivedKey = pgTable(
-  "derived_key",
+// Uses elliptic curve addition: engagementPubKey = vaultPubKey + derivationPubKey
+export const TableEngagementKey = pgTable(
+  "engagement_key",
   {
     // Primary key - UUIDv7 in Crockford Base32 (26-char, time-ordered, collision-resistant)
     id: varchar("id", { length: 26 }).primaryKey(),
@@ -183,7 +183,7 @@ export const TableDerivedKey = pgTable(
       .notNull()
       .references(() => TableVault.id, { onDelete: "cascade" }),
 
-    // DB entropy - 32 bytes random, unique per derived key
+    // DB entropy - 32 bytes random, unique per engagement key
     // Combined with server entropy to derive the derivation private key
     dbEntropy: varchar("db_entropy", { length: 64 }).notNull(), // 32 bytes hex = 64 chars
 
@@ -198,15 +198,15 @@ export const TableDerivedKey = pgTable(
     // derivationPubKey = derivationPrivKey * G
     derivationPubKey: varchar("derivation_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
 
-    // Final derived public key - the result of elliptic curve addition
-    // derivedPubKey = vaultPubKey + derivationPubKey
-    derivedPubKey: varchar("derived_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
+    // Final engagement public key - the result of elliptic curve addition
+    // engagementPubKey = vaultPubKey + derivationPubKey
+    engagementPubKey: varchar("engagement_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
 
-    // Hash of derived public key for efficient unique constraint
-    derivedPubKeyHash: varchar("derived_pubkey_hash", { length: 64 }).notNull(), // SHA256 hex = 64 chars
+    // Hash of engagement public key for efficient unique constraint
+    engagementPubKeyHash: varchar("engagement_pubkey_hash", { length: 64 }).notNull(), // SHA256 hex = 64 chars
 
-    // Counterparty address - for future DH key exchange (e.g., "bob@keypears.com")
-    // Null for general-purpose derived keys
+    // Counterparty address - for DH key exchange (e.g., "bob@keypears.com")
+    // Null for general-purpose engagement keys
     counterpartyAddress: varchar("counterparty_address", { length: 255 }),
 
     // Vault generation - tracks key rotation (default 1 for initial vault)
@@ -219,14 +219,14 @@ export const TableDerivedKey = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    // Unique constraint on derived public key hash (prevents duplicate keys)
-    unique().on(table.derivedPubKeyHash),
+    // Unique constraint on engagement public key hash (prevents duplicate keys)
+    unique().on(table.engagementPubKeyHash),
 
     // Index for listing keys by vault in reverse chronological order
-    index("idx_derived_key_vault_created").on(table.vaultId, table.createdAt),
+    index("idx_engagement_key_vault_created").on(table.vaultId, table.createdAt),
 
     // Index for filtering unused keys by vault
-    index("idx_derived_key_vault_unused").on(
+    index("idx_engagement_key_vault_unused").on(
       table.vaultId,
       table.isUsed,
       table.createdAt,
@@ -234,8 +234,8 @@ export const TableDerivedKey = pgTable(
   ],
 );
 
-export type SelectDerivedKey = typeof TableDerivedKey.$inferSelect;
-export type InsertDerivedKey = typeof TableDerivedKey.$inferInsert;
+export type SelectEngagementKey = typeof TableEngagementKey.$inferSelect;
+export type InsertEngagementKey = typeof TableEngagementKey.$inferInsert;
 
 // PoW challenges table - stores proof-of-work challenges to prevent replay attacks
 // Each challenge can only be used once and expires after a set time

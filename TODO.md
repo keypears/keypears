@@ -303,7 +303,7 @@ For each file, verify:
 **Goal**: Enable server-side public key generation for offline users while
 maintaining zero-knowledge of private keys.
 
-**Details**: See [docs/derived-keys.md](docs/derived-keys.md) for full
+**Details**: See [docs/engagement-keys.md](docs/engagement-keys.md) for full
 implementation plan.
 
 ### Overview
@@ -313,7 +313,7 @@ The key derivation system enables:
 1. **Offline key generation**: Server generates public keys while user is
    offline
 2. **User-only private keys**: Only the vault owner can derive private keys
-3. **Per-key isolation**: Each derived key uses fresh entropy
+3. **Per-key isolation**: Each engagement key uses fresh entropy
 
 Uses elliptic curve addition property: `(a + b) * G = A + B`
 
@@ -321,8 +321,8 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 
 - [x] **@keypears/lib**: Export `privateKeyAdd`, `publicKeyAdd` from secp256k1
 - [x] **@keypears/api-server schema**: Add `vaultPubKey` to vault table, create
-      `derived_keys` table
-- [x] **@keypears/api-server procedures**: `createDerivedKey`, `getDerivedKeys`,
+      `engagement_key` table
+- [x] **@keypears/api-server procedures**: `createEngagementKey`, `getEngagementKeys`,
       `getDerivationPrivKey`
 - [x] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
 - [x] **@keypears/tauri-ts**: Create Keys page route with key list and private
@@ -416,7 +416,7 @@ specification.
 
 #### API Procedures
 
-- [ ] `getEngagementKey` - Get/create derived key for specific counterparty
+- [ ] `getEngagementKey` - Get/create engagement key for specific counterparty
 - [ ] `getCounterpartyEngagementKey` - Public endpoint for messaging
 - [ ] `openChannel` - Create channel with PoW proof + first message
 - [ ] `sendMessage` - Send message (costs 1 credit)

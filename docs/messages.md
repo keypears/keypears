@@ -119,27 +119,27 @@ When Bob wants to message Alice for the first time:
 
 ## Key Exchange
 
-### Engagement Keys via Derived Keys System
+### Engagement Keys System
 
 The infrastructure already exists:
 
-- Bob's server generates a derived public key for Bob↔Alice relationship
-- Alice's server generates a derived public key for Alice↔Bob relationship
+- Bob's server generates an engagement public key for Bob↔Alice relationship
+- Alice's server generates an engagement public key for Alice↔Bob relationship
 - Neither party exposes their primary vault public key
 
 **Flow:**
 
 ```
 1. Bob requests his engagement key from his server (bob@example2.com)
-   → Server uses elliptic curve addition to create Bob's derived pubkey for Alice
+   → Server uses elliptic curve addition to create Bob's engagement pubkey for Alice
 
 2. Bob requests Alice's engagement key from Alice's server (alice@example.com)
-   → Alice's server creates Alice's derived pubkey for Bob
+   → Alice's server creates Alice's engagement pubkey for Bob
 
 3. Both compute: shared_secret = ECDH(my_privkey, their_pubkey)
 ```
 
-The derived keys table already tracks `counterpartyAddress` - we use it to bind
+The `engagement_key` table already tracks `counterpartyAddress` - we use it to bind
 engagement keys to specific relationships.
 
 ### End-to-End Encryption
@@ -446,7 +446,7 @@ last_message_at     timestamp
 
 | Component           | How It's Used                    |
 | ------------------- | -------------------------------- |
-| Derived Keys        | Engagement keys for DH           |
+| Engagement Keys     | Public keys for ECDH             |
 | PoW (pow5-64b)      | Channel opening tax              |
 | ACS2 encryption     | Message content encryption       |
 | Secret Updates      | Storage for saved messages       |
@@ -482,7 +482,7 @@ Settings included in Phase 0:
 ### Phase 0.5: Foundation Components - COMPLETE
 
 - [x] Well-known discovery (`/.well-known/keypears.json`)
-- [x] Derived keys system with `counterpartyAddress` field
+- [x] Engagement keys system with `counterpartyAddress` field
 - [x] Messages UI placeholder route (`/vault/:vaultId/messages`)
 
 ### Phase 1: Server-Side Foundation - IN PROGRESS
