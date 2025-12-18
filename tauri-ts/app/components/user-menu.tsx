@@ -79,7 +79,7 @@ export function UserMenu({ vaultId }: UserMenuProps) {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuItem asChild>
           <Link to={href("/vault/:vaultId/passwords", { vaultId })}>
             {vault.vaultName}@{vault.vaultDomain}
