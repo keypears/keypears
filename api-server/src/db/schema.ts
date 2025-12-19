@@ -299,3 +299,119 @@ export const TablePowChallenge = pgTable(
 
 export type SelectPowChallenge = typeof TablePowChallenge.$inferSelect;
 export type InsertPowChallenge = typeof TablePowChallenge.$inferInsert;
+
+// Channel view table - each user's view of a conversation with another user
+// This is a per-participant view, not a shared channel record
+// Channel status enum for type safety
+// - "pending": User hasn't decided yet (or moved back to pending)
+// - "saved": Channel is saved to user's vault (accepted)
+// - "ignored": Hidden from main feed, only visible in "ignored" feed
+const channelStatusEnum = ["pending", "saved", "ignored"] as const;
+
+export const TableChannelView = pgTable(
+  "channel_view",
+  {
+    // Primary key - UUIDv7 in Crockford Base32 (26-char)
+    id: varchar("id", { length: 26 }).primaryKey(),
+
+    // Owner of this channel view (e.g., "alice@example.com")
+    ownerAddress: varchar("owner_address", { length: 255 }).notNull(),
+
+    // Who they're talking to (e.g., "bob@example2.com")
+    counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
+
+    // Channel status from owner's perspective
+    // "saved" = in vault (accepted), "ignored" = hidden, "pending" = undecided
+    status: varchar("status", {
+      length: 20,
+      enum: channelStatusEnum,
+    })
+      .notNull()
+      .default("pending"),
+
+    // Per-channel PoW difficulty override (null = use global setting)
+    // Stored as string for bigint compatibility
+    minDifficulty: varchar("min_difficulty", { length: 30 }),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Each address pair should have only one channel view per owner
+    unique().on(table.ownerAddress, table.counterpartyAddress),
+
+    // Index for listing channels by owner
+    index("idx_channel_view_owner").on(table.ownerAddress, table.updatedAt),
+
+    // Index for looking up by counterparty
+    index("idx_channel_view_counterparty").on(table.counterpartyAddress),
+  ],
+);
+
+export type SelectChannelView = typeof TableChannelView.$inferSelect;
+export type InsertChannelView = typeof TableChannelView.$inferInsert;
+
+// Inbox message table - stores received messages for each channel
+// No outbox table - sent messages are stored directly in the sender's vault
+export const TableInboxMessage = pgTable(
+  "inbox_message",
+  {
+    // Primary key - UUIDv7 in Crockford Base32 (26-char)
+    id: varchar("id", { length: 26 }).primaryKey(),
+
+    // Foreign key to channel view
+    channelViewId: varchar("channel_view_id", { length: 26 })
+      .notNull()
+      .references(() => TableChannelView.id, { onDelete: "cascade" }),
+
+    // Sender's address (e.g., "bob@example.com")
+    senderAddress: varchar("sender_address", { length: 255 }).notNull(),
+
+    // Message order within channel (1, 2, 3, ...)
+    orderInChannel: integer("order_in_channel").notNull(),
+
+    // Encrypted message content (ACS2 with ECDH shared secret)
+    encryptedContent: text("encrypted_content").notNull(),
+
+    // Sender's engagement public key (for ECDH decryption)
+    senderEngagementPubKey: varchar("sender_engagement_pubkey", {
+      length: 66,
+    }).notNull(),
+
+    // Recipient's engagement public key (for looking up private key)
+    recipientEngagementPubKey: varchar("recipient_engagement_pubkey", {
+      length: 66,
+    }).notNull(),
+
+    // PoW challenge that was solved to send this message
+    powChallengeId: varchar("pow_challenge_id", { length: 26 })
+      .notNull()
+      .references(() => TablePowChallenge.id),
+
+    // Read status
+    isRead: boolean("is_read").notNull().default(false),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+
+    // Expiration (30 days from creation, null if channel is saved)
+    expiresAt: timestamp("expires_at"),
+  },
+  (table) => [
+    // Index for listing messages in a channel
+    index("idx_inbox_message_channel").on(
+      table.channelViewId,
+      table.orderInChannel,
+    ),
+
+    // Index for finding unread messages
+    index("idx_inbox_message_unread").on(table.channelViewId, table.isRead),
+
+    // Unique constraint on channel + order
+    unique().on(table.channelViewId, table.orderInChannel),
+  ],
+);
+
+export type SelectInboxMessage = typeof TableInboxMessage.$inferSelect;
+export type InsertInboxMessage = typeof TableInboxMessage.$inferInsert;

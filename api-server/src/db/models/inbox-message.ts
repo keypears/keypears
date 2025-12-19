@@ -1,0 +1,257 @@
+import { eq, and, lt, asc, max, count, sql } from "drizzle-orm";
+import { generateId } from "@keypears/lib";
+import { db } from "../index.js";
+import { TableInboxMessage, TableChannelView } from "../schema.js";
+
+/**
+ * Inbox message model interface
+ * Represents a received message in a channel
+ */
+export interface InboxMessage {
+  id: string;
+  channelViewId: string;
+  senderAddress: string;
+  orderInChannel: number;
+  encryptedContent: string;
+  senderEngagementPubKey: string;
+  recipientEngagementPubKey: string;
+  powChallengeId: string;
+  isRead: boolean;
+  createdAt: Date;
+  expiresAt: Date | null;
+}
+
+/**
+ * Create a new inbox message
+ * The orderInChannel is auto-generated as max + 1 within a transaction
+ *
+ * @param params - Message creation parameters
+ * @returns The newly created inbox message
+ */
+export async function createInboxMessage(params: {
+  channelViewId: string;
+  senderAddress: string;
+  encryptedContent: string;
+  senderEngagementPubKey: string;
+  recipientEngagementPubKey: string;
+  powChallengeId: string;
+  expiresAt?: Date;
+}): Promise<InboxMessage> {
+  const {
+    channelViewId,
+    senderAddress,
+    encryptedContent,
+    senderEngagementPubKey,
+    recipientEngagementPubKey,
+    powChallengeId,
+    expiresAt,
+  } = params;
+
+  const messageId = generateId();
+
+  // Use transaction to atomically get order number and insert
+  const result = await db.transaction(async (tx) => {
+    // Get the current max orderInChannel for this channel
+    const orderResult = await tx
+      .select({
+        maxOrder: max(TableInboxMessage.orderInChannel),
+      })
+      .from(TableInboxMessage)
+      .where(eq(TableInboxMessage.channelViewId, channelViewId));
+
+    const nextOrder = (orderResult[0]?.maxOrder ?? 0) + 1;
+
+    // Insert the new message
+    await tx.insert(TableInboxMessage).values({
+      id: messageId,
+      channelViewId,
+      senderAddress,
+      orderInChannel: nextOrder,
+      encryptedContent,
+      senderEngagementPubKey,
+      recipientEngagementPubKey,
+      powChallengeId,
+      expiresAt: expiresAt ?? null,
+    });
+
+    // Fetch the created record
+    const created = await tx
+      .select()
+      .from(TableInboxMessage)
+      .where(eq(TableInboxMessage.id, messageId))
+      .limit(1);
+
+    return created[0];
+  });
+
+  if (!result) {
+    throw new Error("Failed to create inbox message");
+  }
+
+  return {
+    id: result.id,
+    channelViewId: result.channelViewId,
+    senderAddress: result.senderAddress,
+    orderInChannel: result.orderInChannel,
+    encryptedContent: result.encryptedContent,
+    senderEngagementPubKey: result.senderEngagementPubKey,
+    recipientEngagementPubKey: result.recipientEngagementPubKey,
+    powChallengeId: result.powChallengeId,
+    isRead: result.isRead,
+    createdAt: result.createdAt,
+    expiresAt: result.expiresAt,
+  };
+}
+
+/**
+ * Get an inbox message by its ID
+ *
+ * @param id - The message ID
+ * @returns The message if found, null otherwise
+ */
+export async function getInboxMessageById(id: string): Promise<InboxMessage | null> {
+  const result = await db
+    .select()
+    .from(TableInboxMessage)
+    .where(eq(TableInboxMessage.id, id))
+    .limit(1);
+
+  const row = result[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    channelViewId: row.channelViewId,
+    senderAddress: row.senderAddress,
+    orderInChannel: row.orderInChannel,
+    encryptedContent: row.encryptedContent,
+    senderEngagementPubKey: row.senderEngagementPubKey,
+    recipientEngagementPubKey: row.recipientEngagementPubKey,
+    powChallengeId: row.powChallengeId,
+    isRead: row.isRead,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+  };
+}
+
+/**
+ * Get messages for a channel, ordered by orderInChannel ASC
+ *
+ * @param channelViewId - The channel view ID
+ * @param options - Pagination options
+ * @returns Object containing messages and hasMore flag
+ */
+export async function getMessagesByChannel(
+  channelViewId: string,
+  options?: { limit?: number; afterOrder?: number },
+): Promise<{ messages: InboxMessage[]; hasMore: boolean }> {
+  const limit = options?.limit ?? 50;
+  const afterOrder = options?.afterOrder;
+
+  // Build query conditions
+  const conditions = [eq(TableInboxMessage.channelViewId, channelViewId)];
+
+  if (afterOrder !== undefined) {
+    conditions.push(
+      sql`${TableInboxMessage.orderInChannel} > ${afterOrder}`,
+    );
+  }
+
+  // Fetch limit + 1 to determine if more exist
+  const results = await db
+    .select()
+    .from(TableInboxMessage)
+    .where(and(...conditions))
+    .orderBy(asc(TableInboxMessage.orderInChannel))
+    .limit(limit + 1);
+
+  const hasMore = results.length > limit;
+  const messages = results.slice(0, limit).map((row) => ({
+    id: row.id,
+    channelViewId: row.channelViewId,
+    senderAddress: row.senderAddress,
+    orderInChannel: row.orderInChannel,
+    encryptedContent: row.encryptedContent,
+    senderEngagementPubKey: row.senderEngagementPubKey,
+    recipientEngagementPubKey: row.recipientEngagementPubKey,
+    powChallengeId: row.powChallengeId,
+    isRead: row.isRead,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+  }));
+
+  return { messages, hasMore };
+}
+
+/**
+ * Mark a single message as read
+ *
+ * @param id - The message ID
+ */
+export async function markMessageAsRead(id: string): Promise<void> {
+  await db
+    .update(TableInboxMessage)
+    .set({ isRead: true })
+    .where(eq(TableInboxMessage.id, id));
+}
+
+/**
+ * Mark all messages in a channel as read
+ *
+ * @param channelViewId - The channel view ID
+ */
+export async function markAllMessagesAsRead(channelViewId: string): Promise<void> {
+  await db
+    .update(TableInboxMessage)
+    .set({ isRead: true })
+    .where(
+      and(
+        eq(TableInboxMessage.channelViewId, channelViewId),
+        eq(TableInboxMessage.isRead, false),
+      ),
+    );
+}
+
+/**
+ * Get the count of unread messages for a channel
+ *
+ * @param channelViewId - The channel view ID
+ * @returns The number of unread messages
+ */
+export async function getUnreadCount(channelViewId: string): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(TableInboxMessage)
+    .where(
+      and(
+        eq(TableInboxMessage.channelViewId, channelViewId),
+        eq(TableInboxMessage.isRead, false),
+      ),
+    );
+
+  return result[0]?.count ?? 0;
+}
+
+/**
+ * Get the total count of unread messages across all channels for an owner
+ *
+ * @param ownerAddress - The owner's address
+ * @returns The total number of unread messages
+ */
+export async function getUnreadCountByOwner(ownerAddress: string): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(TableInboxMessage)
+    .innerJoin(
+      TableChannelView,
+      eq(TableInboxMessage.channelViewId, TableChannelView.id),
+    )
+    .where(
+      and(
+        eq(TableChannelView.ownerAddress, ownerAddress),
+        eq(TableInboxMessage.isRead, false),
+      ),
+    );
+
+  return result[0]?.count ?? 0;
+}

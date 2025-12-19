@@ -1,6 +1,5 @@
 import type { Route } from "./+types/vault.$vaultId.settings";
 import { useState } from "react";
-import { Settings } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
