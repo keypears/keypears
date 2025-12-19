@@ -114,7 +114,6 @@ export default function VaultSettingsPage({
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="mb-6">
           <div className="flex items-center gap-3">
-            <Settings size={24} className="text-primary" />
             <h1 className="text-2xl font-bold">Vault Settings</h1>
           </div>
           <p className="text-muted-foreground mt-2 text-sm">
