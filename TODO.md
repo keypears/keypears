@@ -386,7 +386,7 @@ spam/sybil attacks.
 
 ## Phase 5: DH-Based Messaging System
 
-**Status**: ⏳ **IN PROGRESS**
+**Status**: ⏳ **IN PROGRESS** (Server-side foundation complete, client UI pending)
 
 **Goal**: Enable end-to-end encrypted messaging between any two addresses using
 Diffie-Hellman key exchange.
@@ -394,9 +394,9 @@ Diffie-Hellman key exchange.
 **Details**: See [docs/messages.md](docs/messages.md) for full protocol
 specification.
 
-### Server-Side Foundation
+### Server-Side Foundation ✅ COMPLETED
 
-#### Database Schema
+#### Database Schema ✅ COMPLETED
 
 - [x] Add `channel_view` table (each participant's view of a channel)
   - [x] `id`, `ownerAddress`, `counterpartyAddress`
@@ -419,21 +419,34 @@ specification.
   - [x] Inbox message model with auto-incrementing orderInChannel, read tracking
   - [x] Unit tests for both models
 
-#### API Procedures
+#### API Procedures ✅ COMPLETED
 
-- [ ] `getEngagementKeyForSending` - Create engagement key for sending (purpose: "send")
-- [ ] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey, creates
+- [x] `getEngagementKeyForSending` - Create engagement key for sending (purpose: "send")
+- [x] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey, creates
       key with purpose "receive", stores sender's pubkey for later validation
-- [ ] `sendMessage` - Send message with PoW proof; validates engagement key metadata
+- [x] `sendMessage` - Send message with PoW proof; validates engagement key metadata
       (purpose, counterpartyAddress, counterpartyPubKey) before accepting
-- [ ] `getChannels` - List channels for an address (with pagination)
-- [ ] `getChannelMessages` - Get messages in a channel
-- [ ] `updateChannelStatus` - Accept/ignore channel
-- [ ] `saveChannelToVault` - Toggle vault sync for channel
+- [x] `getChannels` - List channels for an address (with pagination)
+- [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
+- [x] `updateChannelStatus` - Accept/ignore channel
 
-#### Zod Schemas
+#### Zod Schemas ✅ COMPLETED
 
-- [ ] Add request/response schemas for all messaging procedures
+- [x] Add request/response schemas for all messaging procedures
+- [x] `ChannelStatusSchema` - Enum for channel status (pending/saved/ignored)
+- [x] `GetEngagementKeyForSendingRequestSchema` / `ResponseSchema`
+- [x] `GetCounterpartyEngagementKeyRequestSchema` / `ResponseSchema`
+- [x] `SendMessageRequestSchema` / `ResponseSchema`
+- [x] `GetChannelsRequestSchema` / `ResponseSchema`
+- [x] `GetChannelMessagesRequestSchema` / `ResponseSchema`
+- [x] `UpdateChannelStatusRequestSchema` / `ResponseSchema`
+
+#### Integration Test Setup ✅ COMPLETED
+
+- [x] Refactor test/server.ts to export `createTestServer()` function
+- [x] Create test/global-setup.ts for vitest globalSetup
+- [x] Update vitest.config.ts with globalSetup option
+- [x] Single `pnpm test` command now runs all tests automatically
 
 ### Client-Side Encryption
 

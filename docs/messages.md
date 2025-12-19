@@ -104,9 +104,9 @@ When Bob wants to message Alice:
 │                                  7. Channel appears in      │
 │                                     Alice's "Pending"       │
 │                                     ↓                       │
-│                                  8. Alice accepts/ignores   │
+│                                  8. Alice saves/ignores     │
 │                                     ↓                       │
-│                                  9. If accepts, Alice can   │
+│                                  9. If saved, Alice can     │
 │                                     set low difficulty for  │
 │                                     Bob to make replies easy│
 │     ←────────────────────────────────                       │
@@ -379,12 +379,13 @@ of the channel, stored on their own server. This is essential for a federated sy
 id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
-status                  "pending" | "accepted" | "ignored"
-saved_to_vault          boolean (owner's sync preference)
+status                  "pending" | "saved" | "ignored"
 min_difficulty          text (per-channel PoW override, null = use global setting)
 created_at              timestamp
 updated_at              timestamp
 ```
+
+Note: `saved_to_vault` was removed - the `status: "saved"` indicates the channel is saved.
 
 **Why no public keys in channel_view?** The channel is between two ADDRESSES, not two
 public keys. Keys can change over time (rotation, fresh keys). Each MESSAGE carries the
@@ -397,24 +398,17 @@ the current state: status, sync preference, and per-channel difficulty. The chan
 **Example**: When Bob sends a message to Alice:
 
 ```
-Bob's server creates:
-┌─────────────────────────────────────────────┐
-│ channel_view (owner: bob@example2.com)      │
-│ counterparty: alice@example.com             │
-│ status: "accepted" (Bob initiated)          │
-│ saved_to_vault: false                       │
-│ min_difficulty: null (use global)           │
-└─────────────────────────────────────────────┘
-
 Alice's server creates:
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: alice@example.com)     │
 │ counterparty: bob@example2.com              │
 │ status: "pending"                           │
-│ saved_to_vault: false                       │
 │ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
 ```
+
+Note: Only the recipient's server creates a channel_view. The sender saves their
+sent message directly to their vault via secret_update (no channel_view on sender's side).
 
 **New table: `inbox_message`** (messages I received)
 
@@ -600,22 +594,23 @@ Settings included in Phase 0:
 - [x] Engagement keys system with `counterpartyAddress` field
 - [x] Messages UI placeholder route (`/vault/:vaultId/messages`)
 
-### Phase 1: Server-Side Foundation - IN PROGRESS
+### Phase 1: Server-Side Foundation - COMPLETE
 
 - [x] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
-- [ ] Add `channel_view` table to PostgreSQL
-- [ ] Add `inbox_message` table to PostgreSQL
-- [ ] Create Drizzle models (`channel.ts`, `message.ts`)
-- [ ] Note: NO outbox table - sent messages saved to sender's vault via secret_update
-- [ ] `getEngagementKeyForSending` - Create engagement key with purpose "send"
-- [ ] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
+- [x] Add `channel_view` table to PostgreSQL
+- [x] Add `inbox_message` table to PostgreSQL
+- [x] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
+- [x] Note: NO outbox table - sent messages saved to sender's vault via secret_update
+- [x] `getEngagementKeyForSending` - Create engagement key with purpose "send"
+- [x] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
       creates key with purpose "receive", stores sender's pubkey for validation
-- [ ] `sendMessage` - Send message with PoW; validates engagement key metadata
+- [x] `sendMessage` - Send message with PoW; validates engagement key metadata
       (purpose, counterpartyAddress, counterpartyPubKey) before accepting
-- [ ] `getChannels` - List channels for an address
-- [ ] `getChannelMessages` - Get messages in a channel
-- [ ] `updateChannelStatus` - Accept/ignore channel
-- [ ] `saveChannelToVault` - Toggle vault sync
+- [x] `getChannels` - List channels for an address (with pagination, reverse chronological)
+- [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
+- [x] `updateChannelStatus` - Accept/ignore channel
+- [x] Unit tests for channel and inbox-message models
+- [x] Integration test setup with vitest globalSetup (single `pnpm test` command)
 
 ### Phase 2: Client Integration
 
