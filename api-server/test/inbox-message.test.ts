@@ -165,7 +165,7 @@ describe("Inbox Message Model", () => {
   });
 
   describe("getMessagesByChannel", () => {
-    it("should return messages ordered by orderInChannel ASC", async () => {
+    it("should return messages in reverse chronological order (DESC)", async () => {
       // Create additional PoW challenges
       const powId2 = generateId();
       const powId3 = generateId();
@@ -222,9 +222,10 @@ describe("Inbox Message Model", () => {
       const result = await getMessagesByChannel(testChannelId);
 
       expect(result.messages).toHaveLength(3);
-      expect(result.messages[0]!.encryptedContent).toBe("first");
+      // Reverse chronological: most recent (third) first
+      expect(result.messages[0]!.encryptedContent).toBe("third");
       expect(result.messages[1]!.encryptedContent).toBe("second");
-      expect(result.messages[2]!.encryptedContent).toBe("third");
+      expect(result.messages[2]!.encryptedContent).toBe("first");
     });
 
     it("should support pagination", async () => {
@@ -271,19 +272,22 @@ describe("Inbox Message Model", () => {
         powChallengeId: powIds[1]!,
       });
 
-      // Get first 2
+      // Get first 2 (most recent first, so orders 3 and 2)
       const page1 = await getMessagesByChannel(testChannelId, { limit: 2 });
       expect(page1.messages).toHaveLength(2);
       expect(page1.hasMore).toBe(true);
+      // Verify reverse chronological order
+      expect(page1.messages[0]!.orderInChannel).toBe(3);
+      expect(page1.messages[1]!.orderInChannel).toBe(2);
 
-      // Get remaining after order 2
+      // Get older messages (before order 2, i.e. order < 2)
       const page2 = await getMessagesByChannel(testChannelId, {
         limit: 2,
-        afterOrder: 2,
+        beforeOrder: 2,
       });
       expect(page2.messages).toHaveLength(1);
       expect(page2.hasMore).toBe(false);
-      expect(page2.messages[0]!.orderInChannel).toBe(3);
+      expect(page2.messages[0]!.orderInChannel).toBe(1);
     });
 
     it("should return empty array for channel with no messages", async () => {

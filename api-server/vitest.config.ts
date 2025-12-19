@@ -9,5 +9,7 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
     },
+    // Global setup: automatically starts/stops the test server for integration tests
+    globalSetup: "./test/global-setup.ts",
   },
 });

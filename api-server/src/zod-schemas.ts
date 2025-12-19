@@ -190,3 +190,113 @@ export const UpdateVaultSettingsRequestSchema = z.object({
 export const UpdateVaultSettingsResponseSchema = z.object({
   settings: VaultSettingsSchema,
 });
+
+// Channel status enum
+// - "pending": User hasn't decided yet (or moved back to pending)
+// - "saved": Channel is saved to user's vault (accepted)
+// - "ignored": Hidden from main feed, only visible in "ignored" feed
+export const ChannelStatusSchema = z.enum(["pending", "saved", "ignored"]);
+export type ChannelStatus = z.infer<typeof ChannelStatusSchema>;
+
+// Get engagement key for sending - creates or returns existing key for outgoing messages
+export const GetEngagementKeyForSendingRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  counterpartyAddress: z.string().min(1).max(255), // Who I want to message (name@domain)
+});
+
+export const GetEngagementKeyForSendingResponseSchema = z.object({
+  engagementKeyId: z.string().length(26), // UUIDv7 (26-char)
+  engagementPubKey: z.string().length(66), // 33 bytes hex = 66 chars
+});
+
+// Get counterparty engagement key - public endpoint for key exchange
+// Sender provides their pubkey, recipient's server creates a key and returns it
+export const GetCounterpartyEngagementKeyRequestSchema = z.object({
+  recipientAddress: z.string().min(1).max(255), // Who I want to message (name@domain)
+  senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
+  senderPubKey: z.string().length(66), // My engagement pubkey (33 bytes hex)
+});
+
+export const GetCounterpartyEngagementKeyResponseSchema = z.object({
+  engagementPubKey: z.string().length(66), // Recipient's engagement pubkey
+});
+
+// Send message - public endpoint authenticated via PoW
+export const SendMessageRequestSchema = z.object({
+  recipientAddress: z.string().min(1).max(255), // Who I'm messaging (name@domain)
+  senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
+  encryptedContent: z.string().min(1), // Encrypted message content
+  senderEngagementPubKey: z.string().length(66), // My engagement pubkey
+  recipientEngagementPubKey: z.string().length(66), // Their engagement pubkey
+  powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge
+  solvedHeader: z.string(), // Hex-encoded solved PoW header
+  solvedHash: z.string().length(64), // 32 bytes hex = 64 chars
+});
+
+export const SendMessageResponseSchema = z.object({
+  messageId: z.string().length(26), // UUIDv7 (26-char)
+  orderInChannel: z.number().int().positive(),
+  createdAt: z.date(),
+});
+
+// Get channels - list channels for an address with pagination
+export const GetChannelsRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  ownerAddress: z.string().min(1).max(255), // My address (name@domain)
+  limit: z.number().int().positive().max(100).default(20),
+  beforeUpdatedAt: z.date().optional(), // Cursor for pagination
+});
+
+export const GetChannelsResponseSchema = z.object({
+  channels: z.array(
+    z.object({
+      id: z.string().length(26), // UUIDv7 (26-char)
+      counterpartyAddress: z.string(),
+      status: ChannelStatusSchema,
+      minDifficulty: z.string().nullable(),
+      unreadCount: z.number().int(),
+      lastMessageAt: z.date().nullable(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    }),
+  ),
+  hasMore: z.boolean(),
+});
+
+// Get channel messages - returns messages in reverse chronological order
+// Pagination: beforeOrder fetches older messages (going back in time)
+export const GetChannelMessagesRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  channelId: z.string().length(26), // UUIDv7 (26-char)
+  limit: z.number().int().positive().max(100).default(50),
+  beforeOrder: z.number().int().optional(), // Fetch messages older than this order
+});
+
+export const GetChannelMessagesResponseSchema = z.object({
+  messages: z.array(
+    z.object({
+      id: z.string().length(26), // UUIDv7 (26-char)
+      senderAddress: z.string(),
+      orderInChannel: z.number().int(),
+      encryptedContent: z.string(),
+      senderEngagementPubKey: z.string().length(66),
+      recipientEngagementPubKey: z.string().length(66),
+      isRead: z.boolean(),
+      createdAt: z.date(),
+    }),
+  ),
+  hasMore: z.boolean(), // True if there are older messages to fetch
+});
+
+// Update channel status - change status of a channel (pending/saved/ignored)
+export const UpdateChannelStatusRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  channelId: z.string().length(26), // UUIDv7 (26-char)
+  status: ChannelStatusSchema,
+});
+
+export const UpdateChannelStatusResponseSchema = z.object({
+  id: z.string().length(26), // UUIDv7 (26-char)
+  status: ChannelStatusSchema,
+  updatedAt: z.date(),
+});

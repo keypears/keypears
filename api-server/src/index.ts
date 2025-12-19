@@ -16,6 +16,13 @@ import { getPowChallengeProcedure } from "./procedures/get-pow-challenge.js";
 import { verifyPowProofProcedure } from "./procedures/verify-pow-proof.js";
 import { getVaultSettingsProcedure } from "./procedures/get-vault-settings.js";
 import { updateVaultSettingsProcedure } from "./procedures/update-vault-settings.js";
+// Messaging procedures
+import { getEngagementKeyForSendingProcedure } from "./procedures/get-engagement-key-for-sending.js";
+import { getCounterpartyEngagementKeyProcedure } from "./procedures/get-counterparty-engagement-key.js";
+import { sendMessageProcedure } from "./procedures/send-message.js";
+import { getChannelsProcedure } from "./procedures/get-channels.js";
+import { getChannelMessagesProcedure } from "./procedures/get-channel-messages.js";
+import { updateChannelStatusProcedure } from "./procedures/update-channel-status.js";
 
 /**
  * KeyPears Node API Router
@@ -39,6 +46,13 @@ export const router = {
   // Vault settings
   getVaultSettings: getVaultSettingsProcedure,
   updateVaultSettings: updateVaultSettingsProcedure,
+  // Messaging
+  getEngagementKeyForSending: getEngagementKeyForSendingProcedure,
+  getCounterpartyEngagementKey: getCounterpartyEngagementKeyProcedure,
+  sendMessage: sendMessageProcedure,
+  getChannels: getChannelsProcedure,
+  getChannelMessages: getChannelMessagesProcedure,
+  updateChannelStatus: updateChannelStatusProcedure,
 };
 
 // Export the router type for client usage

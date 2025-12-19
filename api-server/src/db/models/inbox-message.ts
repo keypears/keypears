@@ -1,4 +1,4 @@
-import { eq, and, lt, asc, max, count, sql } from "drizzle-orm";
+import { eq, and, lt, desc, max, count } from "drizzle-orm";
 import { generateId } from "@keypears/lib";
 import { db } from "../index.js";
 import { TableInboxMessage, TableChannelView } from "../schema.js";
@@ -135,34 +135,33 @@ export async function getInboxMessageById(id: string): Promise<InboxMessage | nu
 }
 
 /**
- * Get messages for a channel, ordered by orderInChannel ASC
+ * Get messages for a channel, ordered by orderInChannel DESC (reverse chronological)
+ * Returns most recent messages first, consistent with other lists in the app
  *
  * @param channelViewId - The channel view ID
  * @param options - Pagination options
- * @returns Object containing messages and hasMore flag
+ * @returns Object containing messages and hasMore flag (true if older messages exist)
  */
 export async function getMessagesByChannel(
   channelViewId: string,
-  options?: { limit?: number; afterOrder?: number },
+  options?: { limit?: number; beforeOrder?: number },
 ): Promise<{ messages: InboxMessage[]; hasMore: boolean }> {
   const limit = options?.limit ?? 50;
-  const afterOrder = options?.afterOrder;
+  const beforeOrder = options?.beforeOrder;
 
   // Build query conditions
   const conditions = [eq(TableInboxMessage.channelViewId, channelViewId)];
 
-  if (afterOrder !== undefined) {
-    conditions.push(
-      sql`${TableInboxMessage.orderInChannel} > ${afterOrder}`,
-    );
+  if (beforeOrder !== undefined) {
+    conditions.push(lt(TableInboxMessage.orderInChannel, beforeOrder));
   }
 
-  // Fetch limit + 1 to determine if more exist
+  // Fetch limit + 1 to determine if more (older) messages exist
   const results = await db
     .select()
     .from(TableInboxMessage)
     .where(and(...conditions))
-    .orderBy(asc(TableInboxMessage.orderInChannel))
+    .orderBy(desc(TableInboxMessage.orderInChannel))
     .limit(limit + 1);
 
   const hasMore = results.length > limit;
@@ -254,4 +253,23 @@ export async function getUnreadCountByOwner(ownerAddress: string): Promise<numbe
     );
 
   return result[0]?.count ?? 0;
+}
+
+/**
+ * Get the timestamp of the most recent message in a channel
+ *
+ * @param channelViewId - The channel view ID
+ * @returns The timestamp of the last message, or null if no messages
+ */
+export async function getLastMessageTimestamp(
+  channelViewId: string,
+): Promise<Date | null> {
+  const result = await db
+    .select({ createdAt: TableInboxMessage.createdAt })
+    .from(TableInboxMessage)
+    .where(eq(TableInboxMessage.channelViewId, channelViewId))
+    .orderBy(desc(TableInboxMessage.orderInChannel))
+    .limit(1);
+
+  return result[0]?.createdAt ?? null;
 }
