@@ -129,7 +129,7 @@ When Bob wants to message Alice:
 
 The engagement key infrastructure enables secure DH key exchange:
 
-- Each engagement key has a **purpose**: "send" or "receive"
+- Each engagement key has a **purpose**: "send", "receive", or "manual"
 - Each engagement key tracks the **counterparty's public key** for validation
 - Neither party exposes their primary vault public key
 
@@ -462,14 +462,15 @@ The existing `engagement_key` table is extended with two new fields:
 
 ```sql
 -- New fields added to engagement_key table:
-purpose                  varchar(30) ("send" | "receive")
+purpose                  varchar(30) ("send" | "receive" | "manual")
 counterparty_pubkey      varchar(66) (other party's pubkey, for validation)
 ```
 
 **Purpose field:**
 
-- `"send"` - I created this key to send a message to counterparty
-- `"receive"` - Counterparty requested this key to send me a message
+- `"manual"` - User-created via Engagement Keys page (general purpose)
+- `"send"` - Auto-created when initiating messaging to counterparty
+- `"receive"` - Auto-created when counterparty requests a key to send me a message
 
 **Counterparty pubkey field:**
 
@@ -601,7 +602,7 @@ Settings included in Phase 0:
 
 ### Phase 1: Server-Side Foundation - IN PROGRESS
 
-- [ ] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
+- [x] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
 - [ ] Add `channel_view` table to PostgreSQL
 - [ ] Add `inbox_message` table to PostgreSQL
 - [ ] Create Drizzle models (`channel.ts`, `message.ts`)

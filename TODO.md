@@ -412,9 +412,9 @@ specification.
   - [ ] `powChallengeId` (proves sender did work for this message)
   - [ ] `isRead`, `createdAt`, `expiresAt`
   - [ ] Note: NO outbox table - sent messages saved to sender's vault via secret_update
-- [ ] Update `engagement_key` table
-  - [ ] Add `purpose` field ("send" | "receive")
-  - [ ] Add `counterpartyPubKey` field (other party's pubkey, for validation)
+- [x] Update `engagement_key` table
+  - [x] Add `purpose` field ("send" | "receive" | "manual")
+  - [x] Add `counterpartyPubKey` field (other party's pubkey, for validation)
 - [ ] Create Drizzle models (`channel.ts`, `message.ts`)
 
 #### API Procedures
