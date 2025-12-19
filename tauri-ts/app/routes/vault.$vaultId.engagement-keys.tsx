@@ -16,6 +16,8 @@ interface EngagementKey {
   engagementPubKey: string;
   createdAt: Date;
   isUsed: boolean;
+  purpose: "send" | "receive" | "manual";
+  counterpartyAddress: string | null;
 }
 
 function formatRelativeTime(date: Date): string {
@@ -121,9 +123,42 @@ function KeyCard({
     }
   };
 
+  // Get purpose badge color
+  const purposeBadgeClass =
+    engagementKey.purpose === "manual"
+      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+      : engagementKey.purpose === "send"
+        ? "bg-green-500/10 text-green-600 dark:text-green-400"
+        : "bg-purple-500/10 text-purple-600 dark:text-purple-400";
+
+  const purposeLabel =
+    engagementKey.purpose.charAt(0).toUpperCase() +
+    engagementKey.purpose.slice(1);
+
   return (
     <div className="border-border bg-card rounded-lg border p-4">
-      {/* Top: Public key + copy button */}
+      {/* Top: Badges row */}
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${purposeBadgeClass}`}
+        >
+          {purposeLabel}
+        </span>
+        {engagementKey.isUsed ? (
+          <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
+            Used
+          </span>
+        ) : (
+          <span className="rounded-full bg-gray-500/10 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+            Unused
+          </span>
+        )}
+        <span className="text-muted-foreground ml-auto text-xs">
+          {formatRelativeTime(engagementKey.createdAt)}
+        </span>
+      </div>
+
+      {/* Public key + copy button */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Key size={16} className="text-muted-foreground flex-shrink-0" />
@@ -151,15 +186,12 @@ function KeyCard({
         </Button>
       </div>
 
-      {/* Middle: Created timestamp + used badge */}
-      <div className="text-muted-foreground mt-1 text-sm">
-        Created {formatRelativeTime(engagementKey.createdAt)}
-        {engagementKey.isUsed && (
-          <span className="ml-2 text-yellow-600 dark:text-yellow-400">
-            (used)
-          </span>
-        )}
-      </div>
+      {/* Counterparty address (if set) */}
+      {engagementKey.counterpartyAddress && (
+        <div className="text-muted-foreground mt-1 text-sm">
+          Counterparty: {engagementKey.counterpartyAddress}
+        </div>
+      )}
 
       {/* Bottom: Show/Hide button (left) + Copy (right) */}
       <div className="border-border mt-3 flex items-center justify-between border-t pt-3">
@@ -278,6 +310,7 @@ export default function EngagementKeys({ loaderData }: Route.ComponentProps) {
 
       const response = await client.api.createEngagementKey({
         vaultId,
+        purpose: "manual",
       });
 
       // Add new key to the beginning of the list
@@ -287,6 +320,8 @@ export default function EngagementKeys({ loaderData }: Route.ComponentProps) {
           engagementPubKey: response.engagementPubKey,
           createdAt: response.createdAt,
           isUsed: false,
+          purpose: "manual",
+          counterpartyAddress: null,
         },
         ...prev,
       ]);

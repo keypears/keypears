@@ -209,6 +209,19 @@ export const TableEngagementKey = pgTable(
     // Null for general-purpose engagement keys
     counterpartyAddress: varchar("counterparty_address", { length: 255 }),
 
+    // Purpose of this engagement key:
+    // - "manual": User-created via Engagement Keys page (general purpose)
+    // - "send": Auto-created when initiating messaging to someone
+    // - "receive": Auto-created when someone requests a key to message you
+    purpose: varchar("purpose", {
+      length: 30,
+      enum: ["send", "receive", "manual"],
+    }).notNull(),
+
+    // Counterparty's public key - for validation in messaging
+    // Only set for "receive" keys (stores sender's pubkey for validation)
+    counterpartyPubKey: varchar("counterparty_pubkey", { length: 66 }),
+
     // Vault generation - tracks key rotation (default 1 for initial vault)
     vaultGeneration: integer("vault_generation").notNull().default(1),
 

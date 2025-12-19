@@ -68,9 +68,19 @@ export const GetSecretUpdatesResponseSchema = z.object({
   latestGlobalOrder: z.number().int().nonnegative(), // Highest order in the vault
 });
 
+// Engagement key purpose enum
+// - "manual": User-created via Engagement Keys page (general purpose)
+// - "send": Auto-created when initiating messaging to someone
+// - "receive": Auto-created when someone requests a key to message you
+export const EngagementKeyPurposeSchema = z.enum(["send", "receive", "manual"]);
+export type EngagementKeyPurpose = z.infer<typeof EngagementKeyPurposeSchema>;
+
 // Create engagement key
 export const CreateEngagementKeyRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
+  purpose: EngagementKeyPurposeSchema, // Required - type of engagement key
+  counterpartyAddress: z.string().max(255).optional(), // For send/receive keys
+  counterpartyPubKey: z.string().length(66).optional(), // For receive keys (sender's pubkey)
 });
 
 export const CreateEngagementKeyResponseSchema = z.object({
@@ -93,6 +103,8 @@ export const GetEngagementKeysResponseSchema = z.object({
       engagementPubKey: z.string().length(66),
       createdAt: z.date(),
       isUsed: z.boolean(),
+      purpose: EngagementKeyPurposeSchema, // Type of engagement key
+      counterpartyAddress: z.string().nullable(), // For send/receive keys
     }),
   ),
   hasMore: z.boolean(),

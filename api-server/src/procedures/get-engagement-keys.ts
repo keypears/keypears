@@ -45,6 +45,8 @@ export const getEngagementKeysProcedure = sessionAuthedProcedure
         engagementPubKey: TableEngagementKey.engagementPubKey,
         createdAt: TableEngagementKey.createdAt,
         isUsed: TableEngagementKey.isUsed,
+        purpose: TableEngagementKey.purpose,
+        counterpartyAddress: TableEngagementKey.counterpartyAddress,
       })
       .from(TableEngagementKey)
       .where(and(...conditions))

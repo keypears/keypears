@@ -44,6 +44,8 @@ export const createEngagementKeyProcedure = sessionAuthedProcedure
     const { vaultId: sessionVaultId } = context;
     const { vaultId } = input;
 
+    const { purpose, counterpartyAddress, counterpartyPubKey } = input;
+
     // Verify session's vaultId matches input vaultId
     if (vaultId !== sessionVaultId) {
       throw new ORPCError("FORBIDDEN", {
@@ -97,6 +99,9 @@ export const createEngagementKeyProcedure = sessionAuthedProcedure
       derivationPubKey: derivationPubKey.toHex(),
       engagementPubKey: engagementPubKey.toHex(),
       engagementPubKeyHash: engagementPubKeyHash.toHex(),
+      purpose,
+      counterpartyAddress,
+      counterpartyPubKey,
     });
 
     // Fetch the created record to get createdAt timestamp
