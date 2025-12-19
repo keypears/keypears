@@ -1,6 +1,6 @@
 # KeyPears
 
-**Federated Diffie-Hellman Key Exchange System**
+**Federated Diffie-Hellman Key Exchange Protocol**
 
 ---
 
