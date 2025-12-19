@@ -398,24 +398,26 @@ specification.
 
 #### Database Schema
 
-- [ ] Add `channel_view` table (each participant's view of a channel)
-  - [ ] `id`, `ownerAddress`, `counterpartyAddress`
-  - [ ] `status` ("pending" | "accepted" | "ignored")
-  - [ ] `savedToVault`
-  - [ ] `minDifficulty` (per-channel PoW override, nullable = use global)
-  - [ ] `createdAt`, `updatedAt`
-  - [ ] Note: NO public keys or role - channels are between addresses, keys go in messages
-- [ ] Add `inbox_message` table (messages I received)
-  - [ ] `id`, `channelViewId`, `senderAddress`, `orderInChannel`
-  - [ ] `encryptedContent`
-  - [ ] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for decryption)
-  - [ ] `powChallengeId` (proves sender did work for this message)
-  - [ ] `isRead`, `createdAt`, `expiresAt`
-  - [ ] Note: NO outbox table - sent messages saved to sender's vault via secret_update
+- [x] Add `channel_view` table (each participant's view of a channel)
+  - [x] `id`, `ownerAddress`, `counterpartyAddress`
+  - [x] `status` ("pending" | "saved" | "ignored") - "saved" means in vault
+  - [x] `minDifficulty` (per-channel PoW override, nullable = use global)
+  - [x] `createdAt`, `updatedAt`
+  - [x] Note: NO public keys or role - channels are between addresses, keys go in messages
+- [x] Add `inbox_message` table (messages I received)
+  - [x] `id`, `channelViewId`, `senderAddress`, `orderInChannel`
+  - [x] `encryptedContent`
+  - [x] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for decryption)
+  - [x] `powChallengeId` (proves sender did work for this message)
+  - [x] `isRead`, `createdAt`, `expiresAt`
+  - [x] Note: NO outbox table - sent messages saved to sender's vault via secret_update
 - [x] Update `engagement_key` table
   - [x] Add `purpose` field ("send" | "receive" | "manual")
   - [x] Add `counterpartyPubKey` field (other party's pubkey, for validation)
-- [ ] Create Drizzle models (`channel.ts`, `message.ts`)
+- [x] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
+  - [x] Channel model with CRUD operations, status updates, pagination
+  - [x] Inbox message model with auto-incrementing orderInChannel, read tracking
+  - [x] Unit tests for both models
 
 #### API Procedures
 
@@ -658,4 +660,4 @@ limits.
 
 ---
 
-**Last Updated**: 2025-12-17
+**Last Updated**: 2025-12-19
