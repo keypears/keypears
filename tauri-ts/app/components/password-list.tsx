@@ -30,7 +30,10 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
       setIsLoading(true);
       try {
         const vaultKey = getVaultKey(vaultId);
-        const currentSecrets = await getAllCurrentSecrets(vaultId);
+        // Exclude messages from password list at database level
+        const currentSecrets = await getAllCurrentSecrets(vaultId, {
+          excludeTypes: ["message"],
+        });
 
         // Decrypt blobs for display (domain, username, etc.)
         const decryptedSecrets = currentSecrets.map((secret) => ({

@@ -13,11 +13,15 @@ import {
   clearSyncError,
 } from "../db/models/vault-sync-state";
 import { insertSecretUpdatesFromSync } from "../db/models/password";
+import { getVault } from "../db/models/vault";
+import { deriveEngagementPrivKeyByPubKey } from "./engagement-key-utils";
+import { decryptMessage } from "./message-encryption";
 
 export interface SyncResult {
   success: boolean;
   error?: string;
   updatesReceived?: number;
+  messagesSynced?: number;
 }
 
 /**
@@ -113,12 +117,31 @@ export async function syncVault(
     // Use the server's latestGlobalOrder to ensure we're synced to the absolute latest
     await updateLastSyncedOrder(vaultId, currentGlobalOrder);
 
+    // Sync inbox messages from saved channels to vault
+    let messagesSynced = 0;
+    try {
+      // Get vault domain from local storage
+      const vault = await getVault(vaultId);
+      if (vault) {
+        messagesSynced = await syncInboxMessages(
+          vaultId,
+          vault.domain,
+          vaultKey,
+          apiClient,
+        );
+      }
+    } catch (inboxError) {
+      // Log error but don't fail the entire sync
+      console.error("Failed to sync inbox messages:", inboxError);
+    }
+
     // Clear any previous error
     await clearSyncError(vaultId);
 
     return {
       success: true,
       updatesReceived: totalUpdatesReceived,
+      messagesSynced,
     };
   } catch (error) {
     const errorMessage =
@@ -174,4 +197,99 @@ export async function pushSecretUpdate(
     localOrder: response.localOrder,
     createdAt: response.createdAt,
   };
+}
+
+/**
+ * Sync inbox messages from saved channels to vault
+ *
+ * For each inbox message in a "saved" channel:
+ * 1. Derive engagement private key from recipientEngagementPubKey
+ * 2. Decrypt message content with DH shared secret
+ * 3. Re-encrypt with vault key as secret_update
+ * 4. Push to server
+ * 5. Delete from inbox
+ *
+ * @param vaultId - The vault to sync messages for
+ * @param vaultDomain - The vault's domain (e.g., "keypears.com")
+ * @param vaultKey - The vault key for re-encryption
+ * @param apiClient - The orpc API client
+ * @returns Number of messages synced
+ */
+export async function syncInboxMessages(
+  vaultId: string,
+  vaultDomain: string,
+  vaultKey: FixedBuf<32>,
+  apiClient: KeypearsClient,
+): Promise<number> {
+  // Get inbox messages for saved channels
+  const response = await apiClient.api.getInboxMessagesForSync({
+    vaultId,
+    limit: 100,
+  });
+
+  if (response.messages.length === 0) {
+    return 0;
+  }
+
+  const syncedMessageIds: string[] = [];
+
+  for (const msg of response.messages) {
+    try {
+      // 1. Derive my engagement private key from the recipient pubkey
+      const myPrivKey = await deriveEngagementPrivKeyByPubKey(
+        vaultId,
+        vaultDomain,
+        msg.recipientEngagementPubKey,
+      );
+
+      // 2. Decrypt message content with DH shared secret
+      const senderPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
+      const content = decryptMessage(msg.encryptedContent, myPrivKey, senderPubKey);
+
+      // 3. Create secret blob for vault storage
+      const messageSecretData: SecretBlobData = {
+        name: `Message from ${msg.senderAddress}`,
+        type: "message",
+        deleted: false,
+        messageData: {
+          direction: "received",
+          counterpartyAddress: msg.counterpartyAddress,
+          myEngagementPubKey: msg.recipientEngagementPubKey,
+          theirEngagementPubKey: msg.senderEngagementPubKey,
+          content,
+          timestamp: msg.createdAt.getTime(),
+        },
+      };
+
+      // 4. Push to server as secret_update (uses channel's secretId)
+      await pushSecretUpdate(
+        vaultId,
+        msg.channelSecretId,
+        messageSecretData,
+        vaultKey,
+        apiClient,
+      );
+
+      // Track successfully synced message
+      syncedMessageIds.push(msg.id);
+    } catch (err) {
+      // Log error but continue with other messages
+      console.error(`Failed to sync inbox message ${msg.id}:`, err);
+    }
+  }
+
+  // 5. Delete synced messages from inbox
+  if (syncedMessageIds.length > 0) {
+    try {
+      await apiClient.api.deleteInboxMessages({
+        vaultId,
+        messageIds: syncedMessageIds,
+      });
+    } catch (err) {
+      // Log error but don't fail the sync - messages will be re-synced next time
+      console.error("Failed to delete synced inbox messages:", err);
+    }
+  }
+
+  return syncedMessageIds.length;
 }

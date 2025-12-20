@@ -2,26 +2,31 @@ import { useState } from "react";
 import { Send, Loader2, Zap, Cpu } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import { getSessionToken } from "~app/lib/vault-store";
+import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";
 import {
   encryptMessage,
   createTextMessage,
 } from "~app/lib/message-encryption";
+import { pushSecretUpdate } from "~app/lib/sync";
+import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Default messaging difficulty
 const DEFAULT_MESSAGING_DIFFICULTY = "4194304"; // 2^22
 
-type SendPhase = "idle" | "preparing" | "mining" | "sending" | "error";
+type SendPhase = "idle" | "preparing" | "mining" | "sending" | "saving" | "error";
 
 interface ComposeBoxProps {
   vaultId: string;
   vaultDomain: string;
   ownerAddress: string;
   counterpartyAddress: string;
+  channelId?: string; // Required for replying to existing channels
+  channelStatus?: "pending" | "saved" | "ignored"; // Current channel status
   onMessageSent?: () => void;
+  onChannelStatusChanged?: (newStatus: "saved") => void; // Called when status auto-changes
 }
 
 function parseAddress(address: string): { name: string; domain: string } | null {
@@ -37,7 +42,10 @@ export function ComposeBox({
   vaultDomain,
   ownerAddress,
   counterpartyAddress,
+  channelId,
+  channelStatus,
   onMessageSent,
+  onChannelStatusChanged,
 }: ComposeBoxProps): React.ReactElement {
   const [messageText, setMessageText] = useState("");
   const [phase, setPhase] = useState<SendPhase>("idle");
@@ -80,6 +88,18 @@ export function ComposeBox({
       const myClient = await createClientFromDomain(vaultDomain, {
         sessionToken,
       });
+
+      // Auto-save channel if replying to pending/ignored channel
+      // Sending a reply = user cares about this conversation = save it
+      if (channelId && (channelStatus === "pending" || channelStatus === "ignored")) {
+        await myClient.api.updateChannelStatus({
+          vaultId,
+          channelId,
+          status: "saved",
+        });
+        onChannelStatusChanged?.("saved");
+      }
+
       const myKey = await myClient.api.getEngagementKeyForSending({
         vaultId,
         counterpartyAddress,
@@ -129,6 +149,42 @@ export function ComposeBox({
         solvedHeader: powResult.solvedHeader,
         solvedHash: powResult.hash,
       });
+
+      // Step 6: Save sent message to our vault
+      setPhase("saving");
+
+      // Get or create our channel (with status "saved")
+      const senderChannel = await myClient.api.getSenderChannel({
+        vaultId,
+        counterpartyAddress,
+      });
+
+      // Get vault key for encryption
+      const vaultKey = getVaultKey(vaultId);
+
+      // Create secret blob for the message
+      const messageSecretData: SecretBlobData = {
+        name: `Message to ${counterpartyAddress}`,
+        type: "message",
+        deleted: false,
+        messageData: {
+          direction: "sent",
+          counterpartyAddress,
+          myEngagementPubKey: myKey.engagementPubKey,
+          theirEngagementPubKey: theirKey.engagementPubKey,
+          content,
+          timestamp: Date.now(),
+        },
+      };
+
+      // Push to server (uses the channel's secretId)
+      await pushSecretUpdate(
+        vaultId,
+        senderChannel.secretId,
+        messageSecretData,
+        vaultKey,
+        myClient,
+      );
 
       // Success - reset state
       setMessageText("");
@@ -187,6 +243,7 @@ export function ComposeBox({
               </span>
             )}
             {phase === "sending" && "Sending..."}
+            {phase === "saving" && "Saving..."}
           </div>
         </div>
       ) : (

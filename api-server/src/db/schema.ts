@@ -323,6 +323,11 @@ export const TableChannelView = pgTable(
     // Stored as string for bigint compatibility
     minDifficulty: varchar("min_difficulty", { length: 30 }),
 
+    // Secret ID for vault storage - used when messages are saved to vault
+    // Server generates this on channel creation to ensure consistency across devices
+    // All of a user's devices will see the same secretId for the same channel
+    secretId: varchar("secret_id", { length: 26 }).notNull(),
+
     // Timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

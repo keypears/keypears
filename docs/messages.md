@@ -334,28 +334,47 @@ Sent messages are saved directly to your vault:
 **Sending a message:**
 
 1. Client sends directly to recipient's server with PoW
-2. Client saves sent message to local vault
-3. Vault syncs to your server via existing secret_update mechanism
-4. Sent messages available on all your devices
+2. Client calls `getSenderChannel` API to get/create sender's channel_view (status: "saved")
+3. Client saves sent message to local vault using channel's `secretId`
+4. Vault syncs to your server via existing secret_update mechanism
+5. Sent messages available on all your devices
 
-**Receiving messages:**
+**Receiving messages (pending/ignored channels):**
 
-- User opens Messages tab
-- Fetches channels/messages from their server's inbox
-- Channels marked as "pending" until accepted
-- Can save received messages to vault for offline access
+- User opens Messages tab → fetches channels from server
+- Opens a channel → fetches messages from server's inbox
+- Messages decrypted client-side using ECDH (engagement keys)
+- Channels marked as "pending" until user saves or ignores
 
-**Saving received messages:**
+**Receiving messages (saved channels):**
 
-- User can "Save Channel" → received messages copied to vault
-- User can "Save Message" → single message copied to vault
-- Saved = synced across devices, offline access
+- Background sync (`syncInboxMessages`) runs periodically
+- For each saved channel with new inbox messages:
+  1. Fetch inbox messages via `getInboxMessagesForSync` API
+  2. Decrypt with ECDH shared secret (using engagement key)
+  3. Re-encrypt with vault key
+  4. Save as `secret_update` to vault
+  5. Delete from inbox via `deleteInboxMessages` API
+- User opens saved channel → messages loaded from local vault (not server)
+- Messages decrypted client-side using vault key
+
+**Auto-save on reply:**
+
+- When replying to a "pending" or "ignored" channel, it automatically becomes "saved"
+- Rationale: sending a reply = you care about this conversation = save it
+- Better UX than requiring manual "Save" before replying
+
+**Display source logic:**
+
+- **Saved channels**: Query local SQLite vault (`getSecretUpdatesBySecretId`)
+- **Pending/ignored channels**: Query server inbox (`getChannelMessages` API)
+- When channel status changes to "saved", UI reloads from vault
 
 **Implementation:**
 
 - Both sent and received messages become `secret_update` records with `type: "message"`
-- Encrypted blob includes `direction: "sent" | "received"` to distinguish
-- Channel ID becomes the `secretId`
+- Encrypted blob includes `direction: "sent" | "received"` and `messageData` object
+- Channel's server-generated `secretId` used for all vault storage
 - Uses existing sync infrastructure
 
 ## Data Model
@@ -381,9 +400,15 @@ owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
 status                  "pending" | "saved" | "ignored"
 min_difficulty          text (per-channel PoW override, null = use global setting)
+secret_id               varchar(26) -- Server-generated ID for vault storage
 created_at              timestamp
 updated_at              timestamp
 ```
+
+**Note on `secret_id`**: The server generates a unique `secretId` when creating each
+channel_view. This ID is used as the `secretId` for all `secret_update` records when
+messages are saved to the vault. Server-side generation ensures all devices for the
+same user see the same `secretId` for the same channel, preventing sync conflicts.
 
 Note: `saved_to_vault` was removed - the `status: "saved"` indicates the channel is saved.
 
@@ -398,17 +423,28 @@ the current state: status, sync preference, and per-channel difficulty. The chan
 **Example**: When Bob sends a message to Alice:
 
 ```
-Alice's server creates:
+Alice's server creates (recipient):
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: alice@example.com)     │
 │ counterparty: bob@example2.com              │
 │ status: "pending"                           │
+│ secret_id: "01JFXYZ..." (server-generated)  │
+│ min_difficulty: null (use global)           │
+└─────────────────────────────────────────────┘
+
+Bob's server creates (sender, via getSenderChannel API):
+┌─────────────────────────────────────────────┐
+│ channel_view (owner: bob@example2.com)      │
+│ counterparty: alice@example.com             │
+│ status: "saved" (sender always saves)       │
+│ secret_id: "01JFABC..." (server-generated)  │
 │ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
 ```
 
-Note: Only the recipient's server creates a channel_view. The sender saves their
-sent message directly to their vault via secret_update (no channel_view on sender's side).
+Note: Both participants have their own channel_view. The sender's is created with
+`status: "saved"` (you initiated it, so you want it saved). The recipient's starts
+as `"pending"` until they decide to save or ignore it.
 
 **New table: `inbox_message`** (messages I received)
 
@@ -508,8 +544,8 @@ interface MessageSecretBlob {
 
 **Storage details:**
 
-- `secretId` = channel identifier (deterministic from sorted addresses)
-- `localOrder` = message order within channel
+- `secretId` = channel's `secret_id` from `channel_view` (server-generated, NOT deterministic)
+- `localOrder` = message order within channel (from server's `secret_update`)
 - `encryptedBlob` = MessageSecretBlob encrypted with vault key
 
 **New table: `contact`** (optional, for UI convenience)
@@ -561,15 +597,22 @@ last_message_at     timestamp
 | Secret Updates      | Storage for saved messages       |
 | Sync infrastructure | Cross-device message sync        |
 
-### New Components Needed
+### New Components Needed (All Implemented)
 
-| Component              | Purpose                        |
-| ---------------------- | ------------------------------ |
-| Message send API       | Send messages with validation  |
-| Message inbox API      | Retrieve messages              |
-| Channel status API     | Accept/ignore channels         |
-| PoW challenge API      | Per-message spam prevention    |
-| Channel UI             | Messages tab interface         |
+| Component                    | Purpose                                      | Status |
+| ---------------------------- | -------------------------------------------- | ------ |
+| `sendMessage` API            | Send messages with PoW validation            | ✅     |
+| `getChannelMessages` API     | Retrieve messages from inbox                 | ✅     |
+| `getChannels` API            | List channels for an address                 | ✅     |
+| `updateChannelStatus` API    | Accept/ignore channels                       | ✅     |
+| `getSenderChannel` API       | Create sender's channel_view (status: saved) | ✅     |
+| `getInboxMessagesForSync` API| Get inbox messages for saved channels        | ✅     |
+| `deleteInboxMessages` API    | Delete synced messages from inbox            | ✅     |
+| PoW challenge APIs           | Per-message spam prevention                  | ✅     |
+| Channel list UI              | Messages tab interface                       | ✅     |
+| Channel detail UI            | Message thread view                          | ✅     |
+| New message dialog           | Compose and send new messages                | ✅     |
+| Compose box                  | Reply to messages with PoW                   | ✅     |
 
 ## Implementation Status
 
@@ -612,21 +655,26 @@ Settings included in Phase 0:
 - [x] Unit tests for channel and inbox-message models
 - [x] Integration test setup with vitest globalSetup (single `pnpm test` command)
 
-### Phase 2: Client Integration
+### Phase 2: Client Integration - COMPLETE
 
-- [ ] ECDH shared secret computation (`@keypears/lib`)
-- [ ] Message encryption/decryption (`message-encryption.ts`)
-- [ ] Channel list UI (replace placeholder)
-- [ ] New message flow with PoW
-- [ ] Channel detail/thread view
+- [x] ECDH shared secret computation (`@keypears/lib` - `ecdhSharedSecret`)
+- [x] Message encryption/decryption (`message-encryption.ts`)
+- [x] Channel list UI (`vault.$vaultId.messages._index.tsx`)
+- [x] New message flow with PoW (`new-message-dialog.tsx`)
+- [x] Channel detail/thread view (`vault.$vaultId.messages.$channelId.tsx`)
+- [x] Compose box with PoW mining (`compose-box.tsx`)
 
-### Phase 3: Vault Integration
+### Phase 3: Vault Integration - COMPLETE
 
-- [ ] Messages page queries server API for all channels
-- [ ] Passwords page filters `type !== "message"`
-- [ ] "Save to vault" toggle on channels
-- [ ] Auto-sync: saved channels create secret_updates
-- [ ] Notifications via existing unread count system
+- [x] Messages page queries server API (pending/ignored) or local vault (saved)
+- [x] Passwords page filters `type !== "message"` via `excludeTypes` option
+- [x] Status toggle on channels (Save/Pending/Ignore buttons)
+- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for saved channels
+- [x] Server-generated `secretId` in `channel_view` ensures consistency across devices
+- [x] Sender saves messages to vault immediately after sending
+- [x] Auto-save on reply: replying to pending/ignored channel automatically saves it
+- [x] `getSenderChannel` API creates sender's channel_view with status "saved"
+- [x] `getInboxMessagesForSync` / `deleteInboxMessages` APIs for sync process
 
 ### Phase 4: Attachments (Future)
 

@@ -1,6 +1,13 @@
 import { db } from "../index";
 import { TableSecretUpdate } from "../schema";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, inArray, notInArray } from "drizzle-orm";
+
+/**
+ * Secret types supported by the vault
+ * - password/envvar/apikey/walletkey/passkey: Traditional secrets shown in Passwords page
+ * - message: Encrypted messages saved to vault (shown in Messages page)
+ */
+export type SecretType = "password" | "envvar" | "apikey" | "walletkey" | "passkey" | "message";
 
 /**
  * Secret update row as stored in local database
@@ -13,7 +20,7 @@ export interface SecretUpdateRow {
   globalOrder: number;
   localOrder: number;
   name: string;
-  type: "password" | "envvar" | "apikey" | "walletkey" | "passkey";
+  type: SecretType;
   deleted: boolean;
   encryptedBlob: string;
   isRead: boolean;
@@ -107,10 +114,17 @@ export async function getLatestSecret(
  * Filters out deleted secrets.
  *
  * @param vaultId - The vault ID to get secrets for
+ * @param options - Optional filters
+ * @param options.excludeTypes - Array of types to exclude (e.g., ["message"])
+ * @param options.includeTypes - Array of types to include (e.g., ["password"])
  * @returns Array of current (latest, non-deleted) secrets
  */
 export async function getAllCurrentSecrets(
   vaultId: string,
+  options?: {
+    excludeTypes?: SecretType[];
+    includeTypes?: SecretType[];
+  },
 ): Promise<SecretUpdateRow[]> {
   // Subquery to get the maximum localOrder for each secretId in this vault
   const latestUpdates = db
@@ -151,6 +165,13 @@ export async function getAllCurrentSecrets(
       and(
         eq(TableSecretUpdate.vaultId, vaultId),
         eq(TableSecretUpdate.deleted, false), // Filter out deleted secrets
+        // Apply type filters
+        options?.excludeTypes && options.excludeTypes.length > 0
+          ? notInArray(TableSecretUpdate.type, options.excludeTypes)
+          : undefined,
+        options?.includeTypes && options.includeTypes.length > 0
+          ? inArray(TableSecretUpdate.type, options.includeTypes)
+          : undefined,
       ),
     )
     .orderBy(TableSecretUpdate.name);
@@ -272,4 +293,30 @@ export async function getTotalSecretUpdateCount(
     .where(eq(TableSecretUpdate.vaultId, vaultId));
 
   return result[0]?.count ?? 0;
+}
+
+/**
+ * Get all secret updates for a specific secretId (for message channels)
+ * Returns all updates ordered by localOrder ascending (chronological)
+ *
+ * @param vaultId - The vault ID
+ * @param secretId - The channel's secretId
+ * @returns Array of secret updates for this channel
+ */
+export async function getSecretUpdatesBySecretId(
+  vaultId: string,
+  secretId: string,
+): Promise<SecretUpdateRow[]> {
+  const results = await db
+    .select()
+    .from(TableSecretUpdate)
+    .where(
+      and(
+        eq(TableSecretUpdate.vaultId, vaultId),
+        eq(TableSecretUpdate.secretId, secretId),
+      ),
+    )
+    .orderBy(TableSecretUpdate.localOrder); // ASC for chronological order
+
+  return results as SecretUpdateRow[];
 }

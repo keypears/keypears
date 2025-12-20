@@ -7,7 +7,6 @@ import {
   Bookmark,
   EyeOff,
   Clock,
-  Loader2,
 } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -15,26 +14,24 @@ import { createClientFromDomain } from "@keypears/api-server/client";
 import {
   getUnlockedVault,
   getSessionToken,
+  getVaultKey,
 } from "~app/lib/vault-store";
 import { deriveEngagementPrivKeyByPubKey } from "~app/lib/engagement-key-utils";
-import { decryptMessage, type MessageContent } from "~app/lib/message-encryption";
+import { decryptMessage } from "~app/lib/message-encryption";
+import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 import type { ChannelStatus } from "@keypears/api-server";
 import { ComposeBox } from "~app/components/compose-box";
+import { getSecretUpdatesBySecretId } from "~app/db/models/password";
 
-interface Message {
+/**
+ * Unified display message type that works for both vault and inbox sources
+ */
+interface DisplayMessage {
   id: string;
-  senderAddress: string;
-  orderInChannel: number;
-  encryptedContent: string;
-  senderEngagementPubKey: string;
-  recipientEngagementPubKey: string;
-  isRead: boolean;
-  createdAt: Date;
-}
-
-interface DecryptedMessage extends Message {
-  decryptedContent: MessageContent | null;
+  direction: "sent" | "received";
+  text: string;
+  timestamp: Date;
   decryptionError: string | null;
 }
 
@@ -58,12 +55,10 @@ function formatRelativeTime(date: Date): string {
 
 function MessageBubble({
   message,
-  ownerAddress,
 }: {
-  message: DecryptedMessage;
-  ownerAddress: string;
+  message: DisplayMessage;
 }) {
-  const isFromMe = message.senderAddress === ownerAddress;
+  const isFromMe = message.direction === "sent";
 
   return (
     <div className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
@@ -78,23 +73,133 @@ function MessageBubble({
           <p className="text-sm italic opacity-70">
             Failed to decrypt: {message.decryptionError}
           </p>
-        ) : message.decryptedContent ? (
-          <p className="text-sm whitespace-pre-wrap">
-            {message.decryptedContent.text}
-          </p>
         ) : (
-          <p className="text-sm italic opacity-70">Decrypting...</p>
+          <p className="text-sm whitespace-pre-wrap">
+            {message.text}
+          </p>
         )}
         <p
           className={`mt-1 text-xs ${
             isFromMe ? "text-primary-foreground/70" : "text-muted-foreground"
           }`}
         >
-          {formatRelativeTime(message.createdAt)}
+          {formatRelativeTime(message.timestamp)}
         </p>
       </div>
     </div>
   );
+}
+
+/**
+ * Load messages from local vault for saved channels
+ */
+async function loadVaultMessages(
+  vaultId: string,
+  secretId: string,
+): Promise<DisplayMessage[]> {
+  const vaultKey = getVaultKey(vaultId);
+  const updates = await getSecretUpdatesBySecretId(vaultId, secretId);
+
+  const messages: DisplayMessage[] = [];
+
+  for (const update of updates) {
+    try {
+      const blobData = decryptSecretUpdateBlob(update.encryptedBlob, vaultKey);
+
+      if (blobData.type !== "message" || !blobData.messageData) {
+        continue;
+      }
+
+      const msgData = blobData.messageData;
+      messages.push({
+        id: update.id,
+        direction: msgData.direction,
+        text: msgData.content.text,
+        timestamp: new Date(msgData.timestamp),
+        decryptionError: null,
+      });
+    } catch (err) {
+      console.error("Failed to decrypt vault message:", err);
+      messages.push({
+        id: update.id,
+        direction: "received", // Assume received for errors
+        text: "",
+        timestamp: new Date(update.createdAt),
+        decryptionError: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }
+
+  // Sort by timestamp ascending (oldest first for chronological display)
+  return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+}
+
+/**
+ * Inbox message from server (for pending/ignored channels)
+ */
+interface InboxMessage {
+  id: string;
+  senderAddress: string;
+  orderInChannel: number;
+  encryptedContent: string;
+  senderEngagementPubKey: string;
+  recipientEngagementPubKey: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+/**
+ * Decrypt inbox messages using DH keys
+ */
+async function decryptInboxMessages(
+  messages: InboxMessage[],
+  vaultId: string,
+  vaultDomain: string,
+  ownerAddress: string,
+): Promise<DisplayMessage[]> {
+  const result: DisplayMessage[] = [];
+
+  for (const msg of messages) {
+    const isFromMe = msg.senderAddress === ownerAddress;
+
+    try {
+      // Derive my private key using the recipient engagement pubkey
+      const myPrivKey = await deriveEngagementPrivKeyByPubKey(
+        vaultId,
+        vaultDomain,
+        msg.recipientEngagementPubKey,
+      );
+
+      // Parse sender's public key
+      const theirPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
+
+      // Decrypt the message
+      const content = decryptMessage(
+        msg.encryptedContent,
+        myPrivKey,
+        theirPubKey,
+      );
+
+      result.push({
+        id: msg.id,
+        direction: isFromMe ? "sent" : "received",
+        text: content.text,
+        timestamp: msg.createdAt,
+        decryptionError: null,
+      });
+    } catch (err) {
+      console.error("Failed to decrypt inbox message:", err);
+      result.push({
+        id: msg.id,
+        direction: isFromMe ? "sent" : "received",
+        text: "",
+        timestamp: msg.createdAt,
+        decryptionError: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
@@ -116,31 +221,61 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 
   const ownerAddress = `${vault.vaultName}@${vault.vaultDomain}`;
 
-  // Fetch channel info and messages
-  const [channelsResponse, messagesResponse] = await Promise.all([
-    client.api.getChannels({
-      vaultId,
-      ownerAddress,
-      limit: 100, // Get more to find our channel
-    }),
-    client.api.getChannelMessages({
-      vaultId,
-      channelId: channelId!,
-      limit: 50,
-    }),
-  ]);
+  // Fetch channel info
+  const channelsResponse = await client.api.getChannels({
+    vaultId,
+    ownerAddress,
+    limit: 100, // Get more to find our channel
+  });
 
   // Find the channel in the list
   const channel = channelsResponse.channels.find((c) => c.id === channelId);
+
+  if (!channel) {
+    throw new Response("Channel not found", { status: 404 });
+  }
+
+  // Load messages based on channel status
+  let messages: DisplayMessage[];
+  let hasMore = false;
+  let inboxMessages: InboxMessage[] | null = null;
+
+  if (channel.status === "saved") {
+    // For saved channels: query local vault
+    messages = await loadVaultMessages(vaultId!, channel.secretId);
+  } else {
+    // For pending/ignored channels: query server inbox
+    const messagesResponse = await client.api.getChannelMessages({
+      vaultId,
+      channelId: channelId!,
+      limit: 50,
+    });
+
+    // Store raw inbox messages for load more functionality
+    inboxMessages = messagesResponse.messages;
+    hasMore = messagesResponse.hasMore;
+
+    // Decrypt inbox messages
+    messages = await decryptInboxMessages(
+      messagesResponse.messages,
+      vaultId!,
+      vault.vaultDomain,
+      ownerAddress,
+    );
+  }
 
   return {
     vaultId: vaultId!,
     channelId: channelId!,
     vaultDomain: vault.vaultDomain,
     ownerAddress,
-    channel: channel ?? null,
-    messages: messagesResponse.messages,
-    hasMore: messagesResponse.hasMore,
+    channel,
+    messages,
+    hasMore,
+    // Store last inbox message order for pagination (only for non-saved channels)
+    lastInboxOrder: inboxMessages && inboxMessages.length > 0
+      ? inboxMessages[inboxMessages.length - 1]?.orderInChannel
+      : undefined,
   };
 }
 
@@ -153,81 +288,31 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     channel,
     messages: initialMessages,
     hasMore: initialHasMore,
+    lastInboxOrder: initialLastOrder,
   } = loaderData;
 
-  const [messages, setMessages] = useState<DecryptedMessage[]>(
-    initialMessages.map((m) => ({
-      ...m,
-      decryptedContent: null,
-      decryptionError: null,
-    })),
-  );
+  const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [lastInboxOrder, setLastInboxOrder] = useState(initialLastOrder);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isDecrypting, setIsDecrypting] = useState(true);
   const [channelStatus, setChannelStatus] = useState<ChannelStatus>(
-    channel?.status ?? "pending",
+    channel.status,
   );
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const revalidator = useRevalidator();
 
-  // Decrypt messages on load
+  // Reload messages when status changes to "saved" (need to switch from inbox to vault)
   useEffect(() => {
-    const decryptMessages = async (): Promise<void> => {
-      setIsDecrypting(true);
-
-      const decrypted = await Promise.all(
-        messages.map(async (msg) => {
-          // Skip if already decrypted
-          if (msg.decryptedContent || msg.decryptionError) {
-            return msg;
-          }
-
-          try {
-            // Derive my private key using the recipient engagement pubkey
-            const myPrivKey = await deriveEngagementPrivKeyByPubKey(
-              vaultId,
-              vaultDomain,
-              msg.recipientEngagementPubKey,
-            );
-
-            // Parse sender's public key
-            const theirPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
-
-            // Decrypt the message
-            const content = decryptMessage(
-              msg.encryptedContent,
-              myPrivKey,
-              theirPubKey,
-            );
-
-            return {
-              ...msg,
-              decryptedContent: content,
-              decryptionError: null,
-            };
-          } catch (err) {
-            console.error("Failed to decrypt message:", err);
-            return {
-              ...msg,
-              decryptedContent: null,
-              decryptionError:
-                err instanceof Error ? err.message : "Unknown error",
-            };
-          }
-        }),
-      );
-
-      setMessages(decrypted);
-      setIsDecrypting(false);
-    };
-
-    decryptMessages();
-  }, [vaultId, vaultDomain]); // Only run on mount, not on messages change
+    if (channelStatus === "saved" && channel.status !== "saved") {
+      // Status just changed to saved - reload from vault
+      revalidator.revalidate();
+    }
+  }, [channelStatus, channel.status, revalidator]);
 
   const handleLoadMore = async (): Promise<void> => {
-    if (!hasMore || isLoadingMore) return;
+    // Load more only works for non-saved channels (inbox pagination)
+    if (!hasMore || isLoadingMore || channelStatus === "saved") return;
 
     setIsLoadingMore(true);
 
@@ -241,50 +326,27 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
         sessionToken,
       });
 
-      const lastMessage = messages[messages.length - 1];
       const response = await client.api.getChannelMessages({
         vaultId,
         channelId,
         limit: 50,
-        beforeOrder: lastMessage?.orderInChannel,
+        beforeOrder: lastInboxOrder,
       });
 
-      // Add new messages and decrypt them
-      const newMessages: DecryptedMessage[] = response.messages.map((m) => ({
-        ...m,
-        decryptedContent: null,
-        decryptionError: null,
-      }));
-
-      // Decrypt the new messages
-      const decrypted = await Promise.all(
-        newMessages.map(async (msg) => {
-          try {
-            const myPrivKey = await deriveEngagementPrivKeyByPubKey(
-              vaultId,
-              vaultDomain,
-              msg.recipientEngagementPubKey,
-            );
-            const theirPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
-            const content = decryptMessage(
-              msg.encryptedContent,
-              myPrivKey,
-              theirPubKey,
-            );
-            return { ...msg, decryptedContent: content, decryptionError: null };
-          } catch (err) {
-            return {
-              ...msg,
-              decryptedContent: null,
-              decryptionError:
-                err instanceof Error ? err.message : "Unknown error",
-            };
-          }
-        }),
+      // Decrypt new messages
+      const newMessages = await decryptInboxMessages(
+        response.messages,
+        vaultId,
+        vaultDomain,
+        ownerAddress,
       );
 
-      setMessages((prev) => [...prev, ...decrypted]);
+      setMessages((prev) => [...prev, ...newMessages]);
       setHasMore(response.hasMore);
+
+      if (response.messages.length > 0) {
+        setLastInboxOrder(response.messages[response.messages.length - 1]?.orderInChannel);
+      }
     } catch (err) {
       console.error("Error loading more messages:", err);
       setError(
@@ -331,7 +393,11 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     revalidator.revalidate();
   };
 
-  const counterpartyAddress = channel?.counterpartyAddress ?? "Unknown";
+  const handleChannelStatusChanged = (newStatus: "saved"): void => {
+    setChannelStatus(newStatus);
+  };
+
+  const counterpartyAddress = channel.counterpartyAddress;
 
   return (
     <>
@@ -400,32 +466,22 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
 
         {/* Message list */}
         <div className="mb-4 flex-1 space-y-3">
-          {isDecrypting && messages.length > 0 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-              <span className="text-muted-foreground text-sm">
-                Decrypting messages...
-              </span>
-            </div>
-          )}
-
           {messages.length === 0 ? (
             <div className="border-border bg-card rounded-lg border p-8 text-center">
               <p className="text-muted-foreground">No messages yet</p>
             </div>
           ) : (
             <>
-              {/* Messages in reverse chronological order (newest first) */}
+              {/* Messages in chronological order (oldest first at top) */}
               {messages.map((msg) => (
                 <MessageBubble
                   key={msg.id}
                   message={msg}
-                  ownerAddress={ownerAddress}
                 />
               ))}
 
-              {/* Load more button */}
-              {hasMore && (
+              {/* Load more button - only for non-saved channels */}
+              {hasMore && channelStatus !== "saved" && (
                 <div className="text-center">
                   <Button
                     variant="outline"
@@ -447,7 +503,10 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
           vaultDomain={vaultDomain}
           ownerAddress={ownerAddress}
           counterpartyAddress={counterpartyAddress}
+          channelId={channelId}
+          channelStatus={channelStatus}
           onMessageSent={handleMessageSent}
+          onChannelStatusChanged={handleChannelStatusChanged}
         />
       </div>
     </>

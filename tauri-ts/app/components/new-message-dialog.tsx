@@ -11,13 +11,15 @@ import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import { getSessionToken } from "~app/lib/vault-store";
+import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";
 import {
   encryptMessage,
   createTextMessage,
 } from "~app/lib/message-encryption";
+import { pushSecretUpdate } from "~app/lib/sync";
+import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Default messaging difficulty (can be overridden by recipient settings)
@@ -28,6 +30,7 @@ type SendPhase =
   | "preparing"
   | "mining"
   | "sending"
+  | "saving"
   | "success"
   | "error";
 
@@ -159,6 +162,42 @@ export function NewMessageDialog({
         solvedHash: powResult.hash,
       });
 
+      // Step 6: Save sent message to our vault
+      setPhase("saving");
+
+      // Get or create our channel (with status "saved")
+      const senderChannel = await myClient.api.getSenderChannel({
+        vaultId,
+        counterpartyAddress: recipientAddress,
+      });
+
+      // Get vault key for encryption
+      const vaultKey = getVaultKey(vaultId);
+
+      // Create secret blob for the message
+      const messageSecretData: SecretBlobData = {
+        name: `Message to ${recipientAddress}`,
+        type: "message",
+        deleted: false,
+        messageData: {
+          direction: "sent",
+          counterpartyAddress: recipientAddress,
+          myEngagementPubKey: myKey.engagementPubKey,
+          theirEngagementPubKey: theirKey.engagementPubKey,
+          content,
+          timestamp: Date.now(),
+        },
+      };
+
+      // Push to server (uses the channel's secretId)
+      await pushSecretUpdate(
+        vaultId,
+        senderChannel.secretId,
+        messageSecretData,
+        vaultKey,
+        myClient,
+      );
+
       setPhase("success");
 
       // Close dialog after a brief delay
@@ -251,7 +290,7 @@ export function NewMessageDialog({
             </form>
           )}
 
-          {(phase === "preparing" || phase === "mining" || phase === "sending") && (
+          {(phase === "preparing" || phase === "mining" || phase === "sending" || phase === "saving") && (
             <div className="space-y-4 py-8 text-center">
               <div className="flex justify-center">
                 <div className="bg-primary/10 rounded-full p-4">
@@ -264,6 +303,7 @@ export function NewMessageDialog({
                   {phase === "preparing" && "Preparing..."}
                   {phase === "mining" && "Mining..."}
                   {phase === "sending" && "Sending..."}
+                  {phase === "saving" && "Saving..."}
                 </h3>
                 <p className="text-muted-foreground text-sm">
                   {phase === "preparing" && "Exchanging keys..."}
@@ -286,6 +326,7 @@ export function NewMessageDialog({
                     </>
                   )}
                   {phase === "sending" && "Encrypting and sending message..."}
+                  {phase === "saving" && "Saving to vault..."}
                 </p>
               </div>
 

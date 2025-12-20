@@ -1,4 +1,4 @@
-import { eq, and, lt, desc, max, count } from "drizzle-orm";
+import { eq, and, lt, desc, max, count, inArray } from "drizzle-orm";
 import { generateId } from "@keypears/lib";
 import { db } from "../index.js";
 import { TableInboxMessage, TableChannelView } from "../schema.js";
@@ -272,4 +272,97 @@ export async function getLastMessageTimestamp(
     .limit(1);
 
   return result[0]?.createdAt ?? null;
+}
+
+/**
+ * Inbox message with channel info for sync
+ * Includes the channel's secretId for vault storage
+ */
+export interface InboxMessageForSync extends InboxMessage {
+  channelSecretId: string;
+  counterpartyAddress: string;
+}
+
+/**
+ * Get inbox messages for saved channels (for vault sync)
+ * Returns messages from channels with status "saved" for a given owner
+ *
+ * @param ownerAddress - The owner's address (e.g., "alice@example.com")
+ * @param options - Pagination options
+ * @returns Array of messages with channel info for syncing to vault
+ */
+export async function getInboxMessagesForSync(
+  ownerAddress: string,
+  options?: { limit?: number },
+): Promise<InboxMessageForSync[]> {
+  const limit = options?.limit ?? 100;
+
+  // Join inbox_message with channel_view to get messages for saved channels
+  const results = await db
+    .select({
+      id: TableInboxMessage.id,
+      channelViewId: TableInboxMessage.channelViewId,
+      senderAddress: TableInboxMessage.senderAddress,
+      orderInChannel: TableInboxMessage.orderInChannel,
+      encryptedContent: TableInboxMessage.encryptedContent,
+      senderEngagementPubKey: TableInboxMessage.senderEngagementPubKey,
+      recipientEngagementPubKey: TableInboxMessage.recipientEngagementPubKey,
+      powChallengeId: TableInboxMessage.powChallengeId,
+      isRead: TableInboxMessage.isRead,
+      createdAt: TableInboxMessage.createdAt,
+      expiresAt: TableInboxMessage.expiresAt,
+      channelSecretId: TableChannelView.secretId,
+      counterpartyAddress: TableChannelView.counterpartyAddress,
+    })
+    .from(TableInboxMessage)
+    .innerJoin(
+      TableChannelView,
+      eq(TableInboxMessage.channelViewId, TableChannelView.id),
+    )
+    .where(
+      and(
+        eq(TableChannelView.ownerAddress, ownerAddress),
+        eq(TableChannelView.status, "saved"),
+      ),
+    )
+    .orderBy(TableInboxMessage.createdAt)
+    .limit(limit);
+
+  return results.map((row) => ({
+    id: row.id,
+    channelViewId: row.channelViewId,
+    senderAddress: row.senderAddress,
+    orderInChannel: row.orderInChannel,
+    encryptedContent: row.encryptedContent,
+    senderEngagementPubKey: row.senderEngagementPubKey,
+    recipientEngagementPubKey: row.recipientEngagementPubKey,
+    powChallengeId: row.powChallengeId,
+    isRead: row.isRead,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+    channelSecretId: row.channelSecretId,
+    counterpartyAddress: row.counterpartyAddress,
+  }));
+}
+
+/**
+ * Delete inbox messages by their IDs
+ * Used after messages have been synced to the vault
+ *
+ * @param ids - Array of message IDs to delete
+ * @returns Number of messages deleted
+ */
+export async function deleteInboxMessages(ids: string[]): Promise<number> {
+  if (ids.length === 0) {
+    return 0;
+  }
+
+  // Delete each message - drizzle doesn't return count for bulk deletes
+  await db
+    .delete(TableInboxMessage)
+    .where(inArray(TableInboxMessage.id, ids));
+
+  // Return the number of IDs we attempted to delete
+  // (actual count may differ if some were already deleted)
+  return ids.length;
 }

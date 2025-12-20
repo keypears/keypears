@@ -81,6 +81,7 @@ export const getChannelsProcedure = sessionAuthedProcedure
           counterpartyAddress: channel.counterpartyAddress,
           status: channel.status,
           minDifficulty: channel.minDifficulty,
+          secretId: channel.secretId,
           unreadCount,
           lastMessageAt,
           createdAt: channel.createdAt,

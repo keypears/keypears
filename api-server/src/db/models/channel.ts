@@ -21,6 +21,7 @@ export interface ChannelView {
   counterpartyAddress: string;
   status: ChannelStatus;
   minDifficulty: string | null;
+  secretId: string; // Server-generated ID for vault storage (ensures consistency across devices)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,12 +39,14 @@ export async function createChannelView(params: {
 }): Promise<ChannelView> {
   const { ownerAddress, counterpartyAddress, status = "pending" } = params;
   const id = generateId();
+  const secretId = generateId(); // Server-generated for vault storage consistency
 
   await db.insert(TableChannelView).values({
     id,
     ownerAddress,
     counterpartyAddress,
     status,
+    secretId,
   });
 
   const channel = await getChannelViewById(id);
@@ -76,6 +79,7 @@ export async function getChannelViewById(id: string): Promise<ChannelView | null
     counterpartyAddress: row.counterpartyAddress,
     status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
+    secretId: row.secretId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -112,6 +116,7 @@ export async function getChannelView(
     counterpartyAddress: row.counterpartyAddress,
     status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
+    secretId: row.secretId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -183,6 +188,7 @@ export async function getChannelsByOwner(
     counterpartyAddress: row.counterpartyAddress,
     status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
+    secretId: row.secretId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }));

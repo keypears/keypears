@@ -253,6 +253,7 @@ export const GetChannelsResponseSchema = z.object({
       counterpartyAddress: z.string(),
       status: ChannelStatusSchema,
       minDifficulty: z.string().nullable(),
+      secretId: z.string().length(26), // Server-generated ID for vault storage
       unreadCount: z.number().int(),
       lastMessageAt: z.date().nullable(),
       createdAt: z.date(),
@@ -311,4 +312,50 @@ export const GetEngagementKeyByPubKeyResponseSchema = z.object({
   engagementKeyId: z.string().length(26), // UUIDv7 (26-char)
   purpose: EngagementKeyPurposeSchema,
   counterpartyAddress: z.string().nullable(),
+});
+
+// Get sender channel - get or create the sender's channel_view for a counterparty
+// Used after sending a message to get the secretId for vault storage
+export const GetSenderChannelRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  counterpartyAddress: z.string().min(1).max(255), // Who I'm messaging (name@domain)
+});
+
+export const GetSenderChannelResponseSchema = z.object({
+  channelId: z.string().length(26), // UUIDv7 (26-char)
+  secretId: z.string().length(26), // Server-generated ID for vault storage
+  status: ChannelStatusSchema,
+  isNew: z.boolean(), // Whether the channel was just created
+});
+
+// Get inbox messages for sync - returns messages from saved channels for vault sync
+export const GetInboxMessagesForSyncRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  limit: z.number().int().positive().max(100).default(100),
+});
+
+export const GetInboxMessagesForSyncResponseSchema = z.object({
+  messages: z.array(
+    z.object({
+      id: z.string().length(26), // UUIDv7 (26-char)
+      channelSecretId: z.string().length(26), // Server-generated secret ID for vault storage
+      counterpartyAddress: z.string(), // Who the channel is with
+      senderAddress: z.string(), // Who sent this message
+      orderInChannel: z.number().int(),
+      encryptedContent: z.string(), // DH-encrypted message content
+      senderEngagementPubKey: z.string().length(66), // For ECDH decryption
+      recipientEngagementPubKey: z.string().length(66), // For looking up private key
+      createdAt: z.date(),
+    }),
+  ),
+});
+
+// Delete inbox messages - remove messages after they've been synced to vault
+export const DeleteInboxMessagesRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  messageIds: z.array(z.string().length(26)).min(1).max(100), // IDs to delete
+});
+
+export const DeleteInboxMessagesResponseSchema = z.object({
+  deletedCount: z.number().int().nonnegative(),
 });
