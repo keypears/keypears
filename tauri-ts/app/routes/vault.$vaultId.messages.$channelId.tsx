@@ -310,6 +310,13 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     }
   }, [channelStatus, channel.status, revalidator]);
 
+  // Sync state with loader data when it changes (e.g., after revalidation)
+  useEffect(() => {
+    setMessages(initialMessages);
+    setHasMore(initialHasMore);
+    setLastInboxOrder(initialLastOrder);
+  }, [initialMessages, initialHasMore, initialLastOrder]);
+
   const handleLoadMore = async (): Promise<void> => {
     // Load more only works for non-saved channels (inbox pagination)
     if (!hasMore || isLoadingMore || channelStatus === "saved") return;

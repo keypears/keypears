@@ -191,6 +191,25 @@ export async function pushSecretUpdate(
     encryptedBlob,
   });
 
+  // Also save to local SQLite so it appears immediately in the UI
+  await insertSecretUpdatesFromSync(
+    [
+      {
+        id: response.id,
+        vaultId,
+        secretId,
+        globalOrder: response.globalOrder,
+        localOrder: response.localOrder,
+        name: secretData.name,
+        type: secretData.type,
+        deleted: secretData.deleted ?? false,
+        encryptedBlob,
+        createdAt: response.createdAt.getTime(),
+      },
+    ],
+    true, // isRead = true since user just created it
+  );
+
   return {
     id: response.id,
     globalOrder: response.globalOrder,
