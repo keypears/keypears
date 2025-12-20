@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Send, Zap, Cpu } from "lucide-react";
 import {
   Sheet,
@@ -60,20 +60,11 @@ export function NewMessageDialog({
   const [messageText, setMessageText] = useState("");
   const [phase, setPhase] = useState<SendPhase>("input");
   const [error, setError] = useState<string | null>(null);
+  const [difficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY);
 
-  // Keys obtained during preparation
-  const [myEngagementKeyId, setMyEngagementKeyId] = useState<string | null>(null);
-  const [myEngagementPubKey, setMyEngagementPubKey] = useState<string | null>(null);
-  const [theirEngagementPubKey, setTheirEngagementPubKey] = useState<string | null>(null);
-  const [recipientDomain, setRecipientDomain] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY);
-
-  const hasStartedMining = useRef(false);
-  const hasStartedSending = useRef(false);
-
-  // PoW miner - only active when we have recipient domain and are in preparing/mining phase
+  // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
-    domain: recipientDomain ?? "",
+    domain: "", // Will be overridden in start()
     difficulty,
     preferWgsl: true,
     verifyWithServer: false,
@@ -86,117 +77,9 @@ export function NewMessageDialog({
       setMessageText("");
       setPhase("input");
       setError(null);
-      setMyEngagementKeyId(null);
-      setMyEngagementPubKey(null);
-      setTheirEngagementPubKey(null);
-      setRecipientDomain(null);
-      setDifficulty(DEFAULT_MESSAGING_DIFFICULTY);
-      hasStartedMining.current = false;
-      hasStartedSending.current = false;
       miner.reset();
     }
   }, [open, miner]);
-
-  // Start mining when preparation is complete
-  useEffect(() => {
-    if (
-      phase === "preparing" &&
-      myEngagementPubKey &&
-      theirEngagementPubKey &&
-      recipientDomain &&
-      !hasStartedMining.current
-    ) {
-      hasStartedMining.current = true;
-      setPhase("mining");
-      miner.start();
-    }
-  }, [phase, myEngagementPubKey, theirEngagementPubKey, recipientDomain, miner]);
-
-  // When mining succeeds, send the message
-  useEffect(() => {
-    if (
-      miner.status !== "success" ||
-      !miner.result ||
-      hasStartedSending.current
-    ) {
-      return;
-    }
-
-    hasStartedSending.current = true;
-    setPhase("sending");
-
-    const sendMessage = async (): Promise<void> => {
-      try {
-        const parsed = parseAddress(recipientAddress);
-        if (!parsed) {
-          throw new Error("Invalid recipient address");
-        }
-
-        // Derive my private key for encryption
-        const myPrivKey = await deriveEngagementPrivKey(
-          vaultId,
-          vaultDomain,
-          myEngagementKeyId!,
-          myEngagementPubKey!,
-        );
-
-        // Parse their public key
-        const theirPubKey = FixedBuf.fromHex(33, theirEngagementPubKey!);
-
-        // Encrypt the message
-        const content = createTextMessage(messageText);
-        const encryptedContent = encryptMessage(content, myPrivKey, theirPubKey);
-
-        // Send to recipient's server
-        const recipientClient = await createClientFromDomain(parsed.domain);
-        await recipientClient.api.sendMessage({
-          recipientAddress,
-          senderAddress: ownerAddress,
-          encryptedContent,
-          senderEngagementPubKey: myEngagementPubKey!,
-          recipientEngagementPubKey: theirEngagementPubKey!,
-          powChallengeId: miner.result!.challengeId,
-          solvedHeader: miner.result!.solvedHeader,
-          solvedHash: miner.result!.hash,
-        });
-
-        setPhase("success");
-
-        // Close dialog after a brief delay
-        setTimeout(() => {
-          onOpenChange(false);
-          onMessageSent?.();
-        }, 1500);
-      } catch (err) {
-        console.error("Error sending message:", err);
-        setError(err instanceof Error ? err.message : "Failed to send message");
-        setPhase("error");
-      }
-    };
-
-    sendMessage();
-  }, [
-    miner.status,
-    miner.result,
-    recipientAddress,
-    ownerAddress,
-    vaultId,
-    vaultDomain,
-    myEngagementKeyId,
-    myEngagementPubKey,
-    theirEngagementPubKey,
-    messageText,
-    onOpenChange,
-    onMessageSent,
-  ]);
-
-  // Handle mining errors
-  useEffect(() => {
-    if (miner.status === "error" && miner.error) {
-      setError(miner.error);
-      setPhase("error");
-    }
-  }, [miner.status, miner.error]);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -215,7 +98,6 @@ export function NewMessageDialog({
 
     setError(null);
     setPhase("preparing");
-    setRecipientDomain(parsed.domain);
 
     try {
       const sessionToken = getSessionToken(vaultId);
@@ -231,8 +113,6 @@ export function NewMessageDialog({
         vaultId,
         counterpartyAddress: recipientAddress,
       });
-      setMyEngagementKeyId(myKey.engagementKeyId);
-      setMyEngagementPubKey(myKey.engagementPubKey);
 
       // Step 2: Get counterparty's engagement key (from their server)
       const recipientClient = await createClientFromDomain(parsed.domain);
@@ -241,13 +121,54 @@ export function NewMessageDialog({
         senderAddress: ownerAddress,
         senderPubKey: myKey.engagementPubKey,
       });
-      setTheirEngagementPubKey(theirKey.engagementPubKey);
 
-      // Note: Could also fetch recipient's difficulty setting here
-      // For now, use default difficulty
+      // Step 3: Mine PoW
+      setPhase("mining");
+      const powResult = await miner.start({
+        domain: parsed.domain,
+        difficulty,
+      });
+
+      if (!powResult) {
+        throw new Error("Mining failed or was cancelled");
+      }
+
+      // Step 4: Derive private key and encrypt message
+      setPhase("sending");
+
+      const myPrivKey = await deriveEngagementPrivKey(
+        vaultId,
+        vaultDomain,
+        myKey.engagementKeyId,
+        myKey.engagementPubKey,
+      );
+
+      const theirPubKey = FixedBuf.fromHex(33, theirKey.engagementPubKey);
+      const content = createTextMessage(messageText);
+      const encryptedContent = encryptMessage(content, myPrivKey, theirPubKey);
+
+      // Step 5: Send message to recipient's server
+      await recipientClient.api.sendMessage({
+        recipientAddress,
+        senderAddress: ownerAddress,
+        encryptedContent,
+        senderEngagementPubKey: myKey.engagementPubKey,
+        recipientEngagementPubKey: theirKey.engagementPubKey,
+        powChallengeId: powResult.challengeId,
+        solvedHeader: powResult.solvedHeader,
+        solvedHash: powResult.hash,
+      });
+
+      setPhase("success");
+
+      // Close dialog after a brief delay
+      setTimeout(() => {
+        onOpenChange(false);
+        onMessageSent?.();
+      }, 1500);
     } catch (err) {
-      console.error("Error preparing message:", err);
-      setError(err instanceof Error ? err.message : "Failed to prepare message");
+      console.error("Error sending message:", err);
+      setError(err instanceof Error ? err.message : "Failed to send message");
       setPhase("error");
     }
   };
@@ -262,8 +183,6 @@ export function NewMessageDialog({
   const handleRetry = (): void => {
     setPhase("input");
     setError(null);
-    hasStartedMining.current = false;
-    hasStartedSending.current = false;
     miner.reset();
   };
 

@@ -305,7 +305,7 @@ export default function TestPow() {
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <Button
-                  onClick={miner.start}
+                  onClick={() => miner.start()}
                   disabled={isBusy}
                   className="flex-1"
                 >

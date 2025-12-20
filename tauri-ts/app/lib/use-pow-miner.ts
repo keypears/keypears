@@ -71,7 +71,7 @@ export interface UsePowMinerReturn {
   challengeInfo: PowChallengeInfo | null;
 
   // Actions
-  start: () => Promise<void>;
+  start: (overrides?: { domain?: string; difficulty?: string }) => Promise<PowMinerResult | null>;
   cancel: () => void;
   reset: () => void;
 }
@@ -121,7 +121,10 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     setError("Mining cancelled");
   }, []);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (overrides?: { domain?: string; difficulty?: string }): Promise<PowMinerResult | null> => {
+    const effectiveDomain = overrides?.domain ?? domain;
+    const effectiveDifficulty = overrides?.difficulty ?? difficulty;
+
     cancelledRef.current = false;
     iterationsRef.current = 0;
     setStatus("fetching");
@@ -140,12 +143,12 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
       const useWgsl = preferWgsl && browserHasWebGpu;
 
       // Fetch challenge from server
-      const client = await createClientFromDomain(domain);
+      const client = await createClientFromDomain(effectiveDomain);
       const challenge = await client.api.getPowChallenge({
-        difficulty,
+        difficulty: effectiveDifficulty,
       });
 
-      if (cancelledRef.current) return;
+      if (cancelledRef.current) return null;
 
       // If algorithm was specified and doesn't match, this is an error
       // (In practice, the server currently randomly selects, but we accept what it gives us)
@@ -236,7 +239,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
         }
       }
 
-      if (cancelledRef.current) return;
+      if (cancelledRef.current) return null;
 
       // Final timing update
       const finalElapsedMs = Date.now() - startTimeRef.current;
@@ -268,18 +271,22 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
 
         if (verification.valid) {
           setStatus("success");
+          return miningResult;
         } else {
           setStatus("error");
           setError(`Server rejected proof: ${verification.message}`);
+          return null;
         }
       } else {
         setStatus("success");
+        return miningResult;
       }
     } catch (err) {
       if (!cancelledRef.current) {
         setStatus("error");
         setError(err instanceof Error ? err.message : String(err));
       }
+      return null;
     }
   }, [domain, difficulty, algorithm, preferWgsl, verifyWithServer]);
 

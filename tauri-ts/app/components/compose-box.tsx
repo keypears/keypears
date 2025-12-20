@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Send, Loader2, Zap, Cpu } from "lucide-react";
 import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
@@ -43,130 +43,13 @@ export function ComposeBox({
   const [phase, setPhase] = useState<SendPhase>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // Keys obtained during preparation
-  const [myEngagementKeyId, setMyEngagementKeyId] = useState<string | null>(null);
-  const [myEngagementPubKey, setMyEngagementPubKey] = useState<string | null>(null);
-  const [theirEngagementPubKey, setTheirEngagementPubKey] = useState<string | null>(null);
-  const [recipientDomain, setRecipientDomain] = useState<string | null>(null);
-  const [difficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY);
-
-  const hasStartedMining = useRef(false);
-  const hasStartedSending = useRef(false);
-  const currentMessageText = useRef("");
-
-  // PoW miner
+  // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
-    domain: recipientDomain ?? "",
-    difficulty,
+    domain: "", // Will be overridden in start()
+    difficulty: DEFAULT_MESSAGING_DIFFICULTY,
     preferWgsl: true,
     verifyWithServer: false,
   });
-
-  // Start mining when preparation is complete
-  useEffect(() => {
-    if (
-      phase === "preparing" &&
-      myEngagementPubKey &&
-      theirEngagementPubKey &&
-      recipientDomain &&
-      !hasStartedMining.current
-    ) {
-      hasStartedMining.current = true;
-      setPhase("mining");
-      miner.start();
-    }
-  }, [phase, myEngagementPubKey, theirEngagementPubKey, recipientDomain, miner]);
-
-  // When mining succeeds, send the message
-  useEffect(() => {
-    if (
-      miner.status !== "success" ||
-      !miner.result ||
-      hasStartedSending.current
-    ) {
-      return;
-    }
-
-    hasStartedSending.current = true;
-    setPhase("sending");
-
-    const sendMessage = async (): Promise<void> => {
-      try {
-        const parsed = parseAddress(counterpartyAddress);
-        if (!parsed) {
-          throw new Error("Invalid recipient address");
-        }
-
-        // Derive my private key for encryption
-        const myPrivKey = await deriveEngagementPrivKey(
-          vaultId,
-          vaultDomain,
-          myEngagementKeyId!,
-          myEngagementPubKey!,
-        );
-
-        // Parse their public key
-        const theirPubKey = FixedBuf.fromHex(33, theirEngagementPubKey!);
-
-        // Encrypt the message
-        const content = createTextMessage(currentMessageText.current);
-        const encryptedContent = encryptMessage(content, myPrivKey, theirPubKey);
-
-        // Send to recipient's server
-        const recipientClient = await createClientFromDomain(parsed.domain);
-        await recipientClient.api.sendMessage({
-          recipientAddress: counterpartyAddress,
-          senderAddress: ownerAddress,
-          encryptedContent,
-          senderEngagementPubKey: myEngagementPubKey!,
-          recipientEngagementPubKey: theirEngagementPubKey!,
-          powChallengeId: miner.result!.challengeId,
-          solvedHeader: miner.result!.solvedHeader,
-          solvedHash: miner.result!.hash,
-        });
-
-        // Reset state
-        setMessageText("");
-        setPhase("idle");
-        setMyEngagementKeyId(null);
-        setMyEngagementPubKey(null);
-        setTheirEngagementPubKey(null);
-        setRecipientDomain(null);
-        hasStartedMining.current = false;
-        hasStartedSending.current = false;
-        currentMessageText.current = "";
-        miner.reset();
-
-        onMessageSent?.();
-      } catch (err) {
-        console.error("Error sending message:", err);
-        setError(err instanceof Error ? err.message : "Failed to send message");
-        setPhase("error");
-      }
-    };
-
-    sendMessage();
-  }, [
-    miner.status,
-    miner.result,
-    counterpartyAddress,
-    ownerAddress,
-    vaultId,
-    vaultDomain,
-    myEngagementKeyId,
-    myEngagementPubKey,
-    theirEngagementPubKey,
-    miner,
-    onMessageSent,
-  ]);
-
-  // Handle mining errors
-  useEffect(() => {
-    if (miner.status === "error" && miner.error) {
-      setError(miner.error);
-      setPhase("error");
-    }
-  }, [miner.status, miner.error]);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -181,12 +64,11 @@ export function ComposeBox({
       return;
     }
 
-    // Store the message text for later use
-    currentMessageText.current = messageText;
+    // Store message text before clearing (in case of success)
+    const textToSend = messageText;
 
     setError(null);
     setPhase("preparing");
-    setRecipientDomain(parsed.domain);
 
     try {
       const sessionToken = getSessionToken(vaultId);
@@ -202,8 +84,6 @@ export function ComposeBox({
         vaultId,
         counterpartyAddress,
       });
-      setMyEngagementKeyId(myKey.engagementKeyId);
-      setMyEngagementPubKey(myKey.engagementPubKey);
 
       // Step 2: Get counterparty's engagement key (from their server)
       const recipientClient = await createClientFromDomain(parsed.domain);
@@ -212,10 +92,53 @@ export function ComposeBox({
         senderAddress: ownerAddress,
         senderPubKey: myKey.engagementPubKey,
       });
-      setTheirEngagementPubKey(theirKey.engagementPubKey);
+
+      // Step 3: Mine PoW
+      setPhase("mining");
+      const powResult = await miner.start({
+        domain: parsed.domain,
+        difficulty: DEFAULT_MESSAGING_DIFFICULTY,
+      });
+
+      if (!powResult) {
+        throw new Error("Mining failed or was cancelled");
+      }
+
+      // Step 4: Derive private key and encrypt message
+      setPhase("sending");
+
+      const myPrivKey = await deriveEngagementPrivKey(
+        vaultId,
+        vaultDomain,
+        myKey.engagementKeyId,
+        myKey.engagementPubKey,
+      );
+
+      const theirPubKey = FixedBuf.fromHex(33, theirKey.engagementPubKey);
+      const content = createTextMessage(textToSend);
+      const encryptedContent = encryptMessage(content, myPrivKey, theirPubKey);
+
+      // Step 5: Send message to recipient's server
+      await recipientClient.api.sendMessage({
+        recipientAddress: counterpartyAddress,
+        senderAddress: ownerAddress,
+        encryptedContent,
+        senderEngagementPubKey: myKey.engagementPubKey,
+        recipientEngagementPubKey: theirKey.engagementPubKey,
+        powChallengeId: powResult.challengeId,
+        solvedHeader: powResult.solvedHeader,
+        solvedHash: powResult.hash,
+      });
+
+      // Success - reset state
+      setMessageText("");
+      setPhase("idle");
+      miner.reset();
+
+      onMessageSent?.();
     } catch (err) {
-      console.error("Error preparing message:", err);
-      setError(err instanceof Error ? err.message : "Failed to prepare message");
+      console.error("Error sending message:", err);
+      setError(err instanceof Error ? err.message : "Failed to send message");
       setPhase("error");
     }
   };
@@ -223,13 +146,6 @@ export function ComposeBox({
   const handleReset = (): void => {
     setPhase("idle");
     setError(null);
-    setMyEngagementKeyId(null);
-    setMyEngagementPubKey(null);
-    setTheirEngagementPubKey(null);
-    setRecipientDomain(null);
-    hasStartedMining.current = false;
-    hasStartedSending.current = false;
-    currentMessageText.current = "";
     miner.reset();
   };
 

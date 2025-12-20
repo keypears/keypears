@@ -13,7 +13,6 @@ import {
 } from "../zod-schemas.js";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
-import { getEngagementKeyForSending } from "../db/models/engagement-key.js";
 import { db } from "../db/index.js";
 import { TableEngagementKey } from "../db/schema.js";
 import {
@@ -23,12 +22,12 @@ import {
 
 /**
  * Get engagement key for sending
- * Returns an existing engagement key for the counterparty, or creates a new one
+ * Creates a new engagement key for sending a message to a counterparty.
  *
  * Authentication: Requires valid session token in X-Vault-Session-Token header
  *
- * This procedure is idempotent - calling it multiple times with the same
- * counterpartyAddress returns the same key (if it exists).
+ * A fresh key is created for each call to ensure proper DH key hygiene.
+ * Each message should use a unique engagement key pair.
  */
 export const getEngagementKeyForSendingProcedure = sessionAuthedProcedure
   .input(GetEngagementKeyForSendingRequestSchema)
@@ -42,19 +41,6 @@ export const getEngagementKeyForSendingProcedure = sessionAuthedProcedure
       throw new ORPCError("FORBIDDEN", {
         message: "Session vault does not match input vault",
       });
-    }
-
-    // Check if engagement key already exists for this counterparty
-    const existingKey = await getEngagementKeyForSending(
-      vaultId,
-      counterpartyAddress,
-    );
-
-    if (existingKey) {
-      return {
-        engagementKeyId: existingKey.id,
-        engagementPubKey: existingKey.engagementPubKey,
-      };
     }
 
     // Get vault to retrieve vaultPubKey

@@ -102,7 +102,6 @@ export const GetEngagementKeysResponseSchema = z.object({
       id: z.string().length(26),
       engagementPubKey: z.string().length(66),
       createdAt: z.date(),
-      isUsed: z.boolean(),
       purpose: EngagementKeyPurposeSchema, // Type of engagement key
       counterpartyAddress: z.string().nullable(), // For send/receive keys
     }),

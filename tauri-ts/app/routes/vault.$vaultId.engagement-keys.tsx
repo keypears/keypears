@@ -15,7 +15,6 @@ interface EngagementKey {
   id: string;
   engagementPubKey: string;
   createdAt: Date;
-  isUsed: boolean;
   purpose: "send" | "receive" | "manual";
   counterpartyAddress: string | null;
 }
@@ -144,15 +143,6 @@ function KeyCard({
         >
           {purposeLabel}
         </span>
-        {engagementKey.isUsed ? (
-          <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-            Used
-          </span>
-        ) : (
-          <span className="rounded-full bg-gray-500/10 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-            Unused
-          </span>
-        )}
         <span className="text-muted-foreground ml-auto text-xs">
           {formatRelativeTime(engagementKey.createdAt)}
         </span>
@@ -319,7 +309,6 @@ export default function EngagementKeys({ loaderData }: Route.ComponentProps) {
           id: response.id,
           engagementPubKey: response.engagementPubKey,
           createdAt: response.createdAt,
-          isUsed: false,
           purpose: "manual",
           counterpartyAddress: null,
         },

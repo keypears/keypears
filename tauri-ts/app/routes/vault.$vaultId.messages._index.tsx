@@ -1,6 +1,6 @@
 import type { Route } from "./+types/vault.$vaultId.messages._index";
 import { useState } from "react";
-import { Link, href } from "react-router";
+import { Link, href, useRevalidator } from "react-router";
 import { MessageSquare, Plus, ChevronRight, Inbox } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
@@ -163,6 +163,7 @@ export default function VaultMessagesIndex({
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
+  const revalidator = useRevalidator();
 
   const handleLoadMore = async (): Promise<void> => {
     if (!hasMore || isLoadingMore) return;
@@ -296,8 +297,7 @@ export default function VaultMessagesIndex({
         vaultDomain={vaultDomain}
         ownerAddress={ownerAddress}
         onMessageSent={() => {
-          // Refresh the channel list after sending
-          window.location.reload();
+          revalidator.revalidate();
         }}
       />
     </>

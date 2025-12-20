@@ -225,9 +225,6 @@ export const TableEngagementKey = pgTable(
     // Vault generation - tracks key rotation (default 1 for initial vault)
     vaultGeneration: integer("vault_generation").notNull().default(1),
 
-    // Whether this key has been used (e.g., in a transaction or DH exchange)
-    isUsed: boolean("is_used").notNull().default(false),
-
     // Timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -237,13 +234,6 @@ export const TableEngagementKey = pgTable(
 
     // Index for listing keys by vault in reverse chronological order
     index("idx_engagement_key_vault_created").on(table.vaultId, table.createdAt),
-
-    // Index for filtering unused keys by vault
-    index("idx_engagement_key_vault_unused").on(
-      table.vaultId,
-      table.isUsed,
-      table.createdAt,
-    ),
   ],
 );
 

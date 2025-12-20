@@ -20,7 +20,6 @@ export interface EngagementKey {
   purpose: EngagementKeyPurpose;
   counterpartyPubKey: string | null;
   vaultGeneration: number;
-  isUsed: boolean;
   createdAt: Date;
 }
 
@@ -56,52 +55,6 @@ export async function getEngagementKeyByPubKey(
     purpose: row.purpose as EngagementKeyPurpose,
     counterpartyPubKey: row.counterpartyPubKey,
     vaultGeneration: row.vaultGeneration,
-    isUsed: row.isUsed,
-    createdAt: row.createdAt,
-  };
-}
-
-/**
- * Get an existing engagement key for sending to a counterparty
- * Used to find if we already have a "send" key for this counterparty
- *
- * @param vaultId - The vault ID
- * @param counterpartyAddress - The counterparty's address (e.g., "bob@example.com")
- * @returns The engagement key if found, null otherwise
- */
-export async function getEngagementKeyForSending(
-  vaultId: string,
-  counterpartyAddress: string,
-): Promise<EngagementKey | null> {
-  const result = await db
-    .select()
-    .from(TableEngagementKey)
-    .where(
-      and(
-        eq(TableEngagementKey.vaultId, vaultId),
-        eq(TableEngagementKey.counterpartyAddress, counterpartyAddress),
-        eq(TableEngagementKey.purpose, "send"),
-      ),
-    )
-    .limit(1);
-
-  const row = result[0];
-  if (!row) return null;
-
-  return {
-    id: row.id,
-    vaultId: row.vaultId,
-    dbEntropy: row.dbEntropy,
-    dbEntropyHash: row.dbEntropyHash,
-    serverEntropyIndex: row.serverEntropyIndex,
-    derivationPubKey: row.derivationPubKey,
-    engagementPubKey: row.engagementPubKey,
-    engagementPubKeyHash: row.engagementPubKeyHash,
-    counterpartyAddress: row.counterpartyAddress,
-    purpose: row.purpose as EngagementKeyPurpose,
-    counterpartyPubKey: row.counterpartyPubKey,
-    vaultGeneration: row.vaultGeneration,
-    isUsed: row.isUsed,
     createdAt: row.createdAt,
   };
 }
@@ -150,23 +103,6 @@ export async function getEngagementKeyForReceiving(
     purpose: row.purpose as EngagementKeyPurpose,
     counterpartyPubKey: row.counterpartyPubKey,
     vaultGeneration: row.vaultGeneration,
-    isUsed: row.isUsed,
     createdAt: row.createdAt,
   };
-}
-
-/**
- * Mark an engagement key as used
- * Called after a message is successfully sent using this key
- *
- * @param id - The engagement key ID
- * @returns true if the key was updated, false if not found
- */
-export async function markEngagementKeyAsUsed(id: string): Promise<boolean> {
-  const result = await db
-    .update(TableEngagementKey)
-    .set({ isUsed: true })
-    .where(eq(TableEngagementKey.id, id));
-
-  return result.rowCount !== null && result.rowCount > 0;
 }

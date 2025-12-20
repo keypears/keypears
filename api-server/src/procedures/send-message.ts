@@ -5,10 +5,7 @@ import {
 } from "../zod-schemas.js";
 import { base } from "./base.js";
 import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
-import {
-  getEngagementKeyByPubKey,
-  markEngagementKeyAsUsed,
-} from "../db/models/engagement-key.js";
+import { getEngagementKeyByPubKey } from "../db/models/engagement-key.js";
 import { getOrCreateChannelView } from "../db/models/channel.js";
 import { createInboxMessage } from "../db/models/inbox-message.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
@@ -50,7 +47,6 @@ function parseAddress(address: string): { name: string; domain: string } | null 
  * Security:
  * - Validates engagement key metadata (purpose, counterparty, pubkey)
  * - Verifies PoW proof meets minimum difficulty
- * - Marks engagement key as used (one message per key)
  * - Marks PoW challenge as used (prevents replay)
  */
 export const sendMessageProcedure = base
@@ -121,13 +117,6 @@ export const sendMessageProcedure = base
       });
     }
 
-    // - Must not already be used
-    if (engagementKey.isUsed) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Engagement key has already been used",
-      });
-    }
-
     // 4. Get minimum difficulty from vault settings
     const settings = await getVaultSettings(vault.id);
     let minDifficulty = DEFAULT_MESSAGING_DIFFICULTY;
@@ -155,10 +144,7 @@ export const sendMessageProcedure = base
       senderAddress, // counterpartyAddress (sender)
     );
 
-    // 7. Mark engagement key as used
-    await markEngagementKeyAsUsed(engagementKey.id);
-
-    // 8. Create inbox message
+    // 7. Create inbox message
     const message = await createInboxMessage({
       channelViewId: channel.id,
       senderAddress,
@@ -168,7 +154,7 @@ export const sendMessageProcedure = base
       powChallengeId,
     });
 
-    // 9. Update channel updatedAt
+    // 8. Update channel updatedAt
     await db
       .update(TableChannelView)
       .set({ updatedAt: new Date() })

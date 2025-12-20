@@ -1,6 +1,6 @@
 import type { Route } from "./+types/vault.$vaultId.messages.$channelId";
 import { useState, useEffect } from "react";
-import { Link, href } from "react-router";
+import { Link, href, useRevalidator } from "react-router";
 import {
   ArrowLeft,
   MessageSquare,
@@ -170,6 +170,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   );
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const revalidator = useRevalidator();
 
   // Decrypt messages on load
   useEffect(() => {
@@ -327,8 +328,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   };
 
   const handleMessageSent = (): void => {
-    // Refresh the page to load new messages
-    window.location.reload();
+    revalidator.revalidate();
   };
 
   const counterpartyAddress = channel?.counterpartyAddress ?? "Unknown";
