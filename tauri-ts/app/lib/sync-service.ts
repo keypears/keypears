@@ -6,7 +6,7 @@ import { getSession, isSessionExpiringSoon } from "./vault-store";
 /**
  * Background sync service that runs independently of React rendering.
  * Supports multiple vaults syncing simultaneously.
- * Each vault polls its server every 5 seconds and syncs data to local SQLite database.
+ * Each vault polls its server every 500ms and syncs data to local SQLite database.
  */
 
 interface VaultSyncConfig {
@@ -28,7 +28,7 @@ interface VaultSyncState {
 const vaultSyncStates: Map<string, VaultSyncState> = new Map();
 
 // Constants for sync intervals
-const NORMAL_SYNC_INTERVAL = 5000; // 5 seconds
+const NORMAL_SYNC_INTERVAL = 500; // 500ms for near-realtime messaging
 const MAX_BACKOFF_INTERVAL = 20000; // 20 seconds
 
 /**
