@@ -23,6 +23,6 @@ export const MIN_USER_DIFFICULTY = "256";
 export const DIFFICULTY_PRESETS = {
   default: null, // Uses system default
   easy: "4194304", // 4M hashes
-  hard: "41943040", // 40M hashes
-  veryHard: "419430400", // 400M hashes
+  medium: "41943040", // 40M hashes
+  hard: "419430400", // 400M hashes
 } as const;
