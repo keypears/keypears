@@ -211,6 +211,7 @@ export const GetCounterpartyEngagementKeyRequestSchema = z.object({
 
 export const GetCounterpartyEngagementKeyResponseSchema = z.object({
   engagementPubKey: z.string().length(66), // Recipient's engagement pubkey
+  requiredDifficulty: z.string(), // Difficulty sender must meet (channel → vault → system default)
 });
 
 // Send message - public endpoint authenticated via PoW
@@ -336,4 +337,15 @@ export const DeleteInboxMessagesRequestSchema = z.object({
 
 export const DeleteInboxMessagesResponseSchema = z.object({
   deletedCount: z.number().int().nonnegative(),
+});
+
+// Update channel minimum difficulty - set per-channel PoW difficulty override
+export const UpdateChannelMinDifficultyRequestSchema = z.object({
+  channelId: z.string().length(26), // UUIDv7 (26-char)
+  minDifficulty: z.string().nullable(), // null = use vault/system default
+});
+
+export const UpdateChannelMinDifficultyResponseSchema = z.object({
+  channelId: z.string().length(26),
+  minDifficulty: z.string().nullable(),
 });

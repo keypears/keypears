@@ -13,8 +13,8 @@ import { pushSecretUpdate } from "~app/lib/sync";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
-// Default messaging difficulty
-const DEFAULT_MESSAGING_DIFFICULTY = "4194304"; // 2^22
+// Fallback difficulty (used only if API doesn't provide one, which shouldn't happen)
+const FALLBACK_MESSAGING_DIFFICULTY = "4194304"; // 2^22
 
 type SendPhase = "idle" | "preparing" | "mining" | "sending" | "saving" | "error";
 
@@ -48,7 +48,7 @@ export function ComposeBox({
   // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
     domain: "", // Will be overridden in start()
-    difficulty: DEFAULT_MESSAGING_DIFFICULTY,
+    difficulty: FALLBACK_MESSAGING_DIFFICULTY,
     preferWgsl: true,
     verifyWithServer: false,
   });
@@ -96,11 +96,12 @@ export function ComposeBox({
         senderPubKey: myKey.engagementPubKey,
       });
 
-      // Step 3: Mine PoW
+      // Step 3: Mine PoW with the difficulty required by the recipient
       setPhase("mining");
+      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY;
       const powResult = await miner.start({
         domain: parsed.domain,
-        difficulty: DEFAULT_MESSAGING_DIFFICULTY,
+        difficulty: requiredDifficulty,
       });
 
       if (!powResult) {

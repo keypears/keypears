@@ -12,3 +12,17 @@ export const HEADER_SIZE_64B = 64;
 // Nonce region for pow5-64b (bytes that can be modified by the miner)
 export const NONCE_START_64B = 0;
 export const NONCE_END_64B = 32;
+
+// Default messaging difficulty (2^22 = ~4 million hashes)
+export const DEFAULT_MESSAGING_DIFFICULTY = "4194304";
+
+// Minimum difficulty users can set (prevents trivially low values)
+export const MIN_USER_DIFFICULTY = "256";
+
+// Difficulty presets for UI
+export const DIFFICULTY_PRESETS = {
+  default: null, // Uses system default
+  easy: "4194304", // 4M hashes
+  hard: "41943040", // 40M hashes
+  veryHard: "419430400", // 400M hashes
+} as const;

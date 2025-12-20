@@ -4,13 +4,31 @@ import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~app/components/ui/alert-dialog";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { estimatePowTime } from "@keypears/lib";
 import { getUnlockedVault, getSessionToken } from "~app/lib/vault-store";
 import type { VaultSettings } from "@keypears/api-server";
 
-// Default difficulty is ~4 million (2^22 = 4,194,304) - same as registration
-const DEFAULT_DIFFICULTY = "4194304";
+// Difficulty presets
+const DIFFICULTY_PRESETS = [
+  { label: "Default", value: null, description: "System default (~4M hashes)" },
+  { label: "Easy", value: "4194304", description: "~4 seconds on GPU" },
+  { label: "Hard", value: "41943040", description: "~40 seconds on GPU" },
+  { label: "Very Hard", value: "419430400", description: "~6 minutes on GPU" },
+] as const;
+
+// Minimum difficulty users can set
+const MIN_USER_DIFFICULTY = 256;
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
@@ -50,21 +68,26 @@ export default function VaultSettingsPage({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Convert difficulty string to display value
-  const displayDifficulty =
-    settings.messagingMinDifficulty || DEFAULT_DIFFICULTY;
+  // Custom difficulty dialog state
+  const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
+  const [customDifficultyInput, setCustomDifficultyInput] = useState("");
+  const [customDifficultyError, setCustomDifficultyError] = useState<string | null>(null);
 
-  const handleDifficultyChange = (value: string) => {
-    // Only allow numeric input
-    const numericValue = value.replace(/[^0-9]/g, "");
-    setSettings((prev) => ({
-      ...prev,
-      messagingMinDifficulty: numericValue || undefined,
-    }));
-    setSuccess(false);
+  // Get the current difficulty value for comparison
+  const currentDifficulty = settings.messagingMinDifficulty ?? null;
+
+  // Check if current value matches a preset (by value)
+  const isPresetSelected = (presetValue: string | null): boolean => {
+    return currentDifficulty === presetValue;
   };
 
-  const handleSave = async () => {
+  // Check if current value is custom (not matching any preset)
+  const isCustomValue = (): boolean => {
+    if (currentDifficulty === null) return false;
+    return !DIFFICULTY_PRESETS.some((p) => p.value === currentDifficulty);
+  };
+
+  const handlePresetSelect = async (value: string | null) => {
     setIsSaving(true);
     setError(null);
     setSuccess(false);
@@ -79,9 +102,14 @@ export default function VaultSettingsPage({
         sessionToken,
       });
 
+      const newSettings: VaultSettings = {
+        ...settings,
+        messagingMinDifficulty: value ?? undefined,
+      };
+
       const response = await client.api.updateVaultSettings({
         vaultId,
-        settings,
+        settings: newSettings,
       });
 
       setSettings(response.settings);
@@ -94,12 +122,28 @@ export default function VaultSettingsPage({
     }
   };
 
-  const handleReset = () => {
-    setSettings((prev) => ({
-      ...prev,
-      messagingMinDifficulty: undefined,
-    }));
-    setSuccess(false);
+  const handleCustomDialogOpen = () => {
+    setCustomDifficultyInput(currentDifficulty || "");
+    setCustomDifficultyError(null);
+    setIsCustomDialogOpen(true);
+  };
+
+  const handleCustomDifficultySubmit = async () => {
+    // Validate input
+    const trimmed = customDifficultyInput.trim();
+    if (!trimmed) {
+      setCustomDifficultyError("Please enter a difficulty value");
+      return;
+    }
+
+    const parsed = parseInt(trimmed, 10);
+    if (isNaN(parsed) || parsed < MIN_USER_DIFFICULTY) {
+      setCustomDifficultyError(`Minimum difficulty is ${MIN_USER_DIFFICULTY}`);
+      return;
+    }
+
+    setIsCustomDialogOpen(false);
+    await handlePresetSelect(parsed.toString());
   };
 
   // Format number with commas for display
@@ -138,43 +182,94 @@ export default function VaultSettingsPage({
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="difficulty" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 Minimum Message Difficulty
               </Label>
-              <p className="text-muted-foreground mb-2 text-xs">
+              <p className="text-muted-foreground mb-3 text-xs">
                 Higher values require senders to spend more computation time
                 before messaging you. This helps prevent spam.
               </p>
-              <div className="flex items-stretch gap-3">
-                <Input
-                  id="difficulty"
-                  type="text"
-                  value={displayDifficulty}
-                  onChange={(e) => handleDifficultyChange(e.target.value)}
-                  className="font-mono"
-                  placeholder={DEFAULT_DIFFICULTY}
-                />
-                <Button variant="outline" className="h-9" onClick={handleReset}>
-                  Reset
+
+              {/* Preset buttons */}
+              <div className="flex flex-wrap gap-2">
+                {DIFFICULTY_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant={isPresetSelected(preset.value) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePresetSelect(preset.value)}
+                    disabled={isSaving}
+                    className="min-w-[80px]"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+                <Button
+                  variant={isCustomValue() ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleCustomDialogOpen}
+                  disabled={isSaving}
+                  className="min-w-[80px]"
+                >
+                  Custom
                 </Button>
               </div>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Estimated time: {estimatePowTime(displayDifficulty).timeGpu} on
-                GPU
-              </p>
-              <p className="text-muted-foreground text-xs">
-                Default: {formatNumber(DEFAULT_DIFFICULTY)} (~4 seconds on GPU)
-              </p>
-            </div>
-          </div>
 
-          <div className="border-border mt-6 flex justify-end border-t pt-4">
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Settings"}
-            </Button>
+              {/* Current value info */}
+              <div className="mt-3 space-y-1">
+                <p className="text-muted-foreground text-xs">
+                  Current: {currentDifficulty ? formatNumber(currentDifficulty) : "System default"}{" "}
+                  {currentDifficulty && `(${estimatePowTime(currentDifficulty).timeGpu} on GPU)`}
+                </p>
+                {isCustomValue() && currentDifficulty && (
+                  <p className="text-muted-foreground text-xs">
+                    Custom value: {formatNumber(currentDifficulty)}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Custom difficulty dialog */}
+      <AlertDialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set Custom Difficulty</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter a custom difficulty value. Higher values require more
+              computation from senders. Minimum: {MIN_USER_DIFFICULTY}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              type="text"
+              value={customDifficultyInput}
+              onChange={(e) => {
+                setCustomDifficultyInput(e.target.value.replace(/[^0-9]/g, ""));
+                setCustomDifficultyError(null);
+              }}
+              placeholder="e.g., 10000000"
+              className="font-mono"
+            />
+            {customDifficultyError && (
+              <p className="text-destructive mt-2 text-sm">{customDifficultyError}</p>
+            )}
+            {customDifficultyInput && !customDifficultyError && (
+              <p className="text-muted-foreground mt-2 text-sm">
+                Estimated time: {estimatePowTime(customDifficultyInput).timeGpu} on GPU
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCustomDifficultySubmit}>
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

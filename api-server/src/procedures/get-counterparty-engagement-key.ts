@@ -12,14 +12,16 @@ import {
   GetCounterpartyEngagementKeyResponseSchema,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import { getVaultByNameAndDomain } from "../db/models/vault.js";
+import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
 import { getEngagementKeyForReceiving } from "../db/models/engagement-key.js";
+import { getChannelView } from "../db/models/channel.js";
 import { db } from "../db/index.js";
 import { TableEngagementKey } from "../db/schema.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
 } from "../derivation-keys.js";
+import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
 
 /**
  * Parse an address in the format "name@domain"
@@ -83,10 +85,30 @@ export const getCounterpartyEngagementKeyProcedure = base
       senderPubKey,
     );
 
+    // Helper to resolve difficulty hierarchy: channel → vault → system default
+    const resolveRequiredDifficulty = async (): Promise<string> => {
+      // 1. Check channel-specific difficulty (recipient's view of sender)
+      const channel = await getChannelView(recipientAddress, senderAddress);
+      if (channel?.minDifficulty) {
+        return channel.minDifficulty;
+      }
+
+      // 2. Check vault-level difficulty setting
+      const vaultSettings = await getVaultSettings(vault.id);
+      if (vaultSettings?.messagingMinDifficulty) {
+        return vaultSettings.messagingMinDifficulty;
+      }
+
+      // 3. Use system default
+      return DEFAULT_MESSAGING_DIFFICULTY;
+    };
+
     if (existingKey) {
       // Return existing key (DoS prevention - same request = same response)
+      const requiredDifficulty = await resolveRequiredDifficulty();
       return {
         engagementPubKey: existingKey.engagementPubKey,
+        requiredDifficulty,
       };
     }
 
@@ -128,7 +150,9 @@ export const getCounterpartyEngagementKeyProcedure = base
       counterpartyPubKey: senderPubKey, // Store sender's pubkey for validation
     });
 
+    const requiredDifficulty = await resolveRequiredDifficulty();
     return {
       engagementPubKey: engagementPubKey.toHex(),
+      requiredDifficulty,
     };
   });

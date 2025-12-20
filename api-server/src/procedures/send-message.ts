@@ -6,15 +6,13 @@ import {
 import { base } from "./base.js";
 import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
 import { getEngagementKeyByPubKey } from "../db/models/engagement-key.js";
-import { getOrCreateChannelView } from "../db/models/channel.js";
+import { getOrCreateChannelView, getChannelView } from "../db/models/channel.js";
 import { createInboxMessage } from "../db/models/inbox-message.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
 import { db } from "../db/index.js";
 import { TableChannelView } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-
-// Default difficulty (same as registration: ~4 million = 2^22)
-const DEFAULT_MESSAGING_DIFFICULTY = 4194304n;
+import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
 
 /**
  * Parse an address in the format "name@domain"
@@ -117,11 +115,23 @@ export const sendMessageProcedure = base
       });
     }
 
-    // 4. Get minimum difficulty from vault settings
-    const settings = await getVaultSettings(vault.id);
-    let minDifficulty = DEFAULT_MESSAGING_DIFFICULTY;
-    if (settings?.messagingMinDifficulty) {
-      minDifficulty = BigInt(settings.messagingMinDifficulty);
+    // 4. Resolve minimum difficulty from hierarchy: channel → vault → system default
+    // Check for existing channel with per-channel difficulty override
+    const existingChannel = await getChannelView(recipientAddress, senderAddress);
+    let minDifficulty: bigint;
+
+    if (existingChannel?.minDifficulty) {
+      // Channel-specific difficulty (highest priority)
+      minDifficulty = BigInt(existingChannel.minDifficulty);
+    } else {
+      // Check vault settings
+      const settings = await getVaultSettings(vault.id);
+      if (settings?.messagingMinDifficulty) {
+        minDifficulty = BigInt(settings.messagingMinDifficulty);
+      } else {
+        // System default
+        minDifficulty = BigInt(DEFAULT_MESSAGING_DIFFICULTY);
+      }
     }
 
     // 5. Verify PoW challenge

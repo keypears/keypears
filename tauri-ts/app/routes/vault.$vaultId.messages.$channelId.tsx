@@ -1,8 +1,28 @@
 import type { Route } from "./+types/vault.$vaultId.messages.$channelId";
 import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, MoreVertical, Check, Shield } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
+import { Button } from "~app/components/ui/button";
+import { Input } from "~app/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~app/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~app/components/ui/alert-dialog";
 import { useUnreadCount } from "~app/contexts/sync-context";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import {
@@ -13,6 +33,17 @@ import {
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { ComposeBox } from "~app/components/compose-box";
 import { getSecretUpdatesBySecretId } from "~app/db/models/password";
+
+// Difficulty presets (same as vault settings)
+const DIFFICULTY_PRESETS = [
+  { label: "Default", value: null, description: "Use vault setting" },
+  { label: "Easy", value: "4194304", description: "~4 seconds" },
+  { label: "Hard", value: "41943040", description: "~40 seconds" },
+  { label: "Very Hard", value: "419430400", description: "~6 minutes" },
+] as const;
+
+// Minimum difficulty users can set
+const MIN_USER_DIFFICULTY = 256;
 
 /**
  * Display message type for rendering
@@ -155,12 +186,26 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   } = loaderData;
 
   const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
+  const [channelMinDifficulty, setChannelMinDifficulty] = useState<string | null>(
+    channel.minDifficulty
+  );
+  const [isUpdatingDifficulty, setIsUpdatingDifficulty] = useState(false);
+  const [difficultyError, setDifficultyError] = useState<string | null>(null);
   const revalidator = useRevalidator();
+
+  // Custom difficulty dialog state
+  const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
+  const [customDifficultyInput, setCustomDifficultyInput] = useState("");
+  const [customDifficultyError, setCustomDifficultyError] = useState<string | null>(null);
 
   // Sync state with loader data when it changes (e.g., after revalidation)
   useEffect(() => {
     setMessages(initialMessages);
   }, [initialMessages]);
+
+  useEffect(() => {
+    setChannelMinDifficulty(channel.minDifficulty);
+  }, [channel.minDifficulty]);
 
   // Auto-refresh when new messages arrive via background sync
   const globalUnreadCount = useUnreadCount(vaultId);
@@ -175,6 +220,74 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
 
   const handleMessageSent = (): void => {
     revalidator.revalidate();
+  };
+
+  // Check if current value matches a preset (by value)
+  const isPresetSelected = (presetValue: string | null): boolean => {
+    return channelMinDifficulty === presetValue;
+  };
+
+  // Check if current value is custom (not matching any preset)
+  const isCustomValue = (): boolean => {
+    if (channelMinDifficulty === null) return false;
+    return !DIFFICULTY_PRESETS.some((p) => p.value === channelMinDifficulty);
+  };
+
+  const handleDifficultyChange = async (value: string | null) => {
+    setIsUpdatingDifficulty(true);
+    setDifficultyError(null);
+
+    try {
+      const sessionToken = getSessionToken(vaultId);
+      if (!sessionToken) {
+        throw new Error("No session token available");
+      }
+
+      const client = await createClientFromDomain(vaultDomain, {
+        sessionToken,
+      });
+
+      const response = await client.api.updateChannelMinDifficulty({
+        channelId: channel.id,
+        minDifficulty: value,
+      });
+
+      setChannelMinDifficulty(response.minDifficulty);
+    } catch (err) {
+      console.error("Error updating channel difficulty:", err);
+      setDifficultyError(err instanceof Error ? err.message : "Failed to update difficulty");
+    } finally {
+      setIsUpdatingDifficulty(false);
+    }
+  };
+
+  const handleCustomDialogOpen = () => {
+    setCustomDifficultyInput(channelMinDifficulty || "");
+    setCustomDifficultyError(null);
+    setIsCustomDialogOpen(true);
+  };
+
+  const handleCustomDifficultySubmit = async () => {
+    // Validate input
+    const trimmed = customDifficultyInput.trim();
+    if (!trimmed) {
+      setCustomDifficultyError("Please enter a difficulty value");
+      return;
+    }
+
+    const parsed = parseInt(trimmed, 10);
+    if (isNaN(parsed) || parsed < MIN_USER_DIFFICULTY) {
+      setCustomDifficultyError(`Minimum difficulty is ${MIN_USER_DIFFICULTY}`);
+      return;
+    }
+
+    setIsCustomDialogOpen(false);
+    await handleDifficultyChange(parsed.toString());
+  };
+
+  // Format number with commas for display
+  const formatNumber = (num: string): string => {
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   const counterpartyAddress = channel.counterpartyAddress;
@@ -202,7 +315,62 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
           </div>
+
+          {/* Difficulty dropdown menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" disabled={isUpdatingDifficulty}>
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Spam Protection
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {DIFFICULTY_PRESETS.map((preset) => (
+                <DropdownMenuItem
+                  key={preset.label}
+                  onClick={() => handleDifficultyChange(preset.value)}
+                  className="flex items-center justify-between"
+                >
+                  <span>
+                    {preset.label}
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {preset.description}
+                    </span>
+                  </span>
+                  {isPresetSelected(preset.value) && (
+                    <Check className="h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleCustomDialogOpen}
+                className="flex items-center justify-between"
+              >
+                <span>
+                  Custom
+                  {isCustomValue() && channelMinDifficulty && (
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {formatNumber(channelMinDifficulty)}
+                    </span>
+                  )}
+                </span>
+                {isCustomValue() && <Check className="h-4 w-4" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+
+        {/* Difficulty error message */}
+        {difficultyError && (
+          <div className="border-destructive/50 bg-destructive/10 mb-4 rounded-lg border p-3">
+            <p className="text-destructive text-sm">{difficultyError}</p>
+          </div>
+        )}
 
         {/* Compose box - at top before messages */}
         <ComposeBox
@@ -230,6 +398,40 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
           )}
         </div>
       </div>
+
+      {/* Custom difficulty dialog */}
+      <AlertDialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set Custom Difficulty</AlertDialogTitle>
+            <AlertDialogDescription>
+              Set a custom difficulty for this sender. Higher values require more
+              computation. Minimum: {MIN_USER_DIFFICULTY}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              type="text"
+              value={customDifficultyInput}
+              onChange={(e) => {
+                setCustomDifficultyInput(e.target.value.replace(/[^0-9]/g, ""));
+                setCustomDifficultyError(null);
+              }}
+              placeholder="e.g., 10000000"
+              className="font-mono"
+            />
+            {customDifficultyError && (
+              <p className="text-destructive mt-2 text-sm">{customDifficultyError}</p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCustomDifficultySubmit}>
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
