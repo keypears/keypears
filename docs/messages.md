@@ -278,6 +278,14 @@ interface MessageContent {
 **Phase 2:** Add `type: "password"` for secret sharing
 **Phase 3:** Add `type: "file"` for encrypted file sharing
 
+### Size Limits
+
+All encrypted data blobs (messages and secret updates) are limited to **10KB**
+(`MAX_ENCRYPTED_DATA_BYTES = 10_000` bytes). Since data is hex-encoded, this
+translates to 20,000 characters maximum. This limit accommodates text messages
+and password entries while preventing abuse. Large files should be stored
+externally and referenced via URL.
+
 ## Storage Model
 
 ### Direct-to-Recipient Architecture
@@ -378,7 +386,7 @@ of the channel, stored on their own server. This is essential for a federated sy
 id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
-min_difficulty          text (per-channel PoW override, null = use global setting)
+min_difficulty          bigint (per-channel PoW override, null = use global setting)
 secret_id               varchar(26) -- Server-generated ID for vault storage
 created_at              timestamp
 updated_at              timestamp

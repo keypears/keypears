@@ -4,6 +4,11 @@ This document describes KeyPears' federated Diffie-Hellman (DH) key exchange
 protocol, which enables end-to-end encrypted communication between any two
 email-style addresses across different domains.
 
+> **Related**: For the full messaging protocol that builds on this DH system,
+> see [Messaging System](./messages.md). This document focuses on the DH key
+> exchange mechanics, while messages.md covers the complete messaging flow
+> including PoW spam prevention, channel management, and vault sync.
+
 ## Overview
 
 KeyPears enables secure secret sharing between any two vault addresses, such as
@@ -91,6 +96,11 @@ This enables any client to discover how to interact with any domain's KeyPears
 API.
 
 ## Protocol Flow
+
+> **Implementation Note**: The actual implementation uses Proof-of-Work (PoW)
+> for authentication instead of signatures. See [messages.md](./messages.md)
+> for the complete messaging protocol. The flow below describes the original
+> design concept; the key derivation math remains accurate.
 
 ### Step 1: Alice Initiates Contact
 
@@ -614,7 +624,11 @@ plaintext = AES256_decrypt(shared_secret, encrypted_message)
 
 ## Verification Protocol
 
-### Cross-Domain Key Attestation
+> **Note**: Cross-domain key attestation is **not yet implemented**. The current
+> implementation trusts the recipient's server to manage engagement keys. PoW
+> provides spam prevention without requiring cross-domain verification.
+
+### Cross-Domain Key Attestation (Planned)
 
 When `2.com` receives a request claiming to be from `alice@1.com`:
 
@@ -723,6 +737,9 @@ After initial key exchange, clients should pin engagement keys:
 - Handle vault rotation gracefully (see below)
 
 ## Vault Rotation and Key Lifecycle
+
+> **Note**: Vault rotation is **not yet implemented**. This section describes
+> the planned design. Currently, vault keys are permanent and cannot be rotated.
 
 A vault name (e.g., `alice@1.com`) is a persistent identity, but the underlying
 vault can change. Vault keys are immutable - if a key is lost, stolen, or simply
@@ -1025,45 +1042,33 @@ The encrypted payload can contain any KeyPears secret type:
 
 ## API Endpoints
 
-### Required Server Endpoints
+### Implemented Endpoints (orpc)
 
-Each KeyPears-compatible server must implement:
+The DH key exchange is implemented via orpc procedures. For the full messaging
+API, see [messages.md](./messages.md).
 
-```
-POST   /api/vaults/{username}/engagement-keys
-       Register a new engagement key for a relationship (authenticated)
+**Key Exchange Endpoints:**
 
-GET    /api/vaults/{username}/engagement-keys/{relationship}
-       Get engagement public key for a specific relationship (public)
+| Procedure                      | Auth          | Purpose                                      |
+| ------------------------------ | ------------- | -------------------------------------------- |
+| `getEngagementKeyForSending`   | Session token | Create "send" engagement key for a counterparty |
+| `getCounterpartyEngagementKey` | Public        | Get recipient's engagement key (creates "receive" key) |
+| `getDerivationPrivKey`         | Session token | Get derivation private key to derive engagement private key |
+| `getEngagementKeyByPubKey`     | Session token | Look up engagement key ID from public key    |
 
-GET    /api/vaults/{username}/verify-key?key={engagement_public_key}
-       Check if an engagement key is active, expired, or unknown (public)
-       Returns: { status, vault_generation, registered_at, expired_at? }
+**Messaging Endpoints:**
 
-POST   /api/vaults/{username}/verify-engagement-key
-       Cross-domain verification: confirm key belongs to user (public)
-       Used by remote servers during key exchange
+| Procedure                      | Auth          | Purpose                                      |
+| ------------------------------ | ------------- | -------------------------------------------- |
+| `sendMessage`                  | PoW           | Send encrypted message to recipient          |
+| `getChannels`                  | Session token | List channels for an address                 |
+| `getChannelMessages`           | Session token | Get messages in a channel                    |
+| `getSenderChannel`             | Session token | Get/create sender's channel view             |
 
-POST   /api/vaults/{username}/messages
-       Deliver an encrypted message to a user (public, but signed)
-
-GET    /api/vaults/{username}/messages
-       Retrieve pending encrypted messages (authenticated)
-
-DELETE /api/vaults/{username}/messages/{message_id}
-       Acknowledge receipt of a message (authenticated)
-
-GET    /api/vaults/{username}/generation
-       Get current vault generation number (public)
-```
-
-### OpenAPI Compatibility
-
-All endpoints are designed to be OpenAPI-compatible for:
-
-- Easy integration with existing tooling
-- Automatic client generation
-- Standardized error handling
+**Note**: The original design included signature-based verification and
+cross-domain key attestation. The current implementation uses PoW for
+authentication instead, which is simpler and prevents spam without requiring
+signature infrastructure.
 
 ## Future Enhancements
 
@@ -1093,16 +1098,23 @@ Reduce metadata leakage through timing analysis:
 
 ## Implementation Status
 
-**Current**: Protocol design phase
+**Current**: ✅ Core DH key exchange is implemented
 
-**Next steps**:
+**Completed**:
 
-1. Implement engagement key derivation in `@keypears/lib`
-2. Add engagement key registration to API server
-3. Implement cross-domain verification
-4. Build client-side key management
-5. Create message encryption/decryption flow
-6. Add sharing UI to Tauri app
+1. ✅ Engagement key derivation in `@keypears/lib` (privateKeyAdd, publicKeyAdd)
+2. ✅ Engagement key generation on API server (server-side key derivation)
+3. ✅ Client-side key management (getEngagementKeyForSending, getDerivationPrivKey)
+4. ✅ ECDH shared secret computation (ecdhSharedSecret in @keypears/lib)
+5. ✅ Message encryption/decryption flow (ACS2 with ECDH shared secret)
+6. ✅ Messaging UI in Tauri app (channels, compose, reply)
+7. ✅ PoW-based message authentication (replaces signature verification)
+
+**Not yet implemented**:
+
+- Vault generation / key rotation (see "Vault Rotation" section - marked as future)
+- Cross-domain key attestation API (simplified: trust recipient's server)
+- Secret/password attachments (Phase 2)
 
 ## References
 
