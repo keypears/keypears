@@ -2,13 +2,466 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-12-13T11:22:10.132Z</updated>
+    <updated>2025-12-20T22:35:45.071Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
     <subtitle>Updates and insights from the KeyPears team</subtitle>
     <icon>https://keypears.com/favicon.ico</icon>
     <rights>Copyright 2025 Identellica LLC</rights>
+    <entry>
+        <title type="html"><![CDATA[A Proof-of-Concept of a Diffie-Hellman-Based Messaging System for KeyPears]]></title>
+        <id>https://keypears.com/blog/2025-12-20-dh-messaging-poc</id>
+        <link href="https://keypears.com/blog/2025-12-20-dh-messaging-poc"/>
+        <updated>2025-12-20T18:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>KeyPears is a password manager, but its true foundation is something more
+fundamental: a federated Diffie-Hellman key exchange protocol. Today, we're
+announcing the completion of a proof-of-concept...]]></summary>
+        <content type="html"><![CDATA[<p>KeyPears is a password manager, but its true foundation is something more
+fundamental: a federated Diffie-Hellman key exchange protocol. Today, we're
+announcing the completion of a proof-of-concept messaging system built on this
+foundation—the first step toward secure password sharing between users.</p>
+<h2>Why Build Messaging First?</h2>
+<p>To share a password from <code>alice@keypears.com</code> to <code>bob@example.com</code>, we need to:</p>
+<ol>
+<li>Establish a shared secret between Alice and Bob (DH key exchange)</li>
+<li>Encrypt the password with that shared secret</li>
+<li>Deliver it securely to Bob's inbox</li>
+<li>Sync it to Bob's vault across all his devices</li>
+</ol>
+<p>That's essentially messaging with an attachment. So we started with plain text
+messages. Once messaging works, adding password attachments is straightforward.</p>
+<h2>The Privacy Challenge</h2>
+<p>Every KeyPears vault has a master key (a secp256k1 private key). The naive
+approach would be to publish each vault's public key and let users compute
+shared secrets via ECDH. But this is problematic:</p>
+<ul>
+<li><strong>Correlation</strong>: Your public key becomes a global identifier linking all your
+relationships</li>
+<li><strong>Quantum risk</strong>: A quantum computer could derive your private key from the
+public key, compromising everything at once</li>
+<li><strong>Metadata leakage</strong>: Observers can see who you're communicating with based on
+which public keys you fetch</li>
+</ul>
+<p>Our solution: generate unique "engagement keys" for each relationship. Alice and
+Bob each get a relationship-specific keypair that reveals nothing about their
+underlying vault keys.</p>
+<h2>Server-Side Key Derivation: The Key Innovation</h2>
+<p>Here's the problem: Bob might be offline when Alice wants to message him. She
+needs his public key, but Bob isn't there to generate it.</p>
+<p>Our solution uses a mathematical property of elliptic curve cryptography: if you
+add two private keys together, the result corresponds to adding the two public
+keys together.</p>
+<pre><code>(privateKey_A + privateKey_B) * G = publicKey_A + publicKey_B
+</code></pre>
+<p>This enables server-assisted key generation:</p>
+<ol>
+<li>Server generates random <code>derivationPrivKey</code> and computes <code>derivationPubKey</code></li>
+<li>Server adds Bob's vault public key:
+<code>engagementPubKey = vaultPubKey + derivationPubKey</code></li>
+<li>Server gives <code>derivationPrivKey</code> to Bob when he comes online</li>
+<li>Bob computes: <code>engagementPrivKey = vaultPrivKey + derivationPrivKey</code></li>
+</ol>
+<p>The server never learns Bob's vault private key, yet can generate valid
+engagement public keys on his behalf. Bob can derive the corresponding private
+keys whenever he needs them.</p>
+<h2>Spam Prevention with Proof-of-Work</h2>
+<p>Without spam controls, anyone could flood inboxes with garbage. We use the same
+proof-of-work system as vault registration: every message requires solving a
+computational puzzle.</p>
+<p>The difficulty is configurable at three levels:</p>
+<ol>
+<li><strong>Per-channel</strong>: Set different difficulty for specific contacts (low for
+trusted friends)</li>
+<li><strong>Per-vault</strong>: Your global setting for unknown senders</li>
+<li><strong>System default</strong>: ~4 million hashes if nothing else is set</li>
+</ol>
+<p>When you trust someone, you can lower their difficulty to make replies instant.
+Spammers face the full difficulty—minutes of computation per message.</p>
+<h2>Architecture: Per-Participant Channel Views</h2>
+<p>In a federated system, there's no central database. Alice's server
+(<code>keypears.com</code>) and Bob's server (<code>wokerium.com</code>) are completely separate. So
+instead of a shared "channel" record, each participant has their own view:</p>
+<pre><code>Alice's server stores:
+┌─────────────────────────────────────┐
+│ channel_view                        │
+│ owner: alice@keypears.com           │
+│ counterparty: bob@wokerium.com      │
+│ secretId: "01JFX..." (for vault)    │
+└─────────────────────────────────────┘
+
+Bob's server stores:
+┌─────────────────────────────────────┐
+│ channel_view                        │
+│ owner: bob@wokerium.com             │
+│ counterparty: alice@keypears.com    │
+│ secretId: "01JFA..." (for vault)    │
+└─────────────────────────────────────┘
+</code></pre>
+<p>Each user manages their own copy. The server-generated <code>secretId</code> ensures all of
+Alice's devices see the same channel ID when syncing.</p>
+<h2>No Server-Side Outbox</h2>
+<p>When Alice sends a message to Bob:</p>
+<ol>
+<li>Alice's client connects directly to Bob's server</li>
+<li>Message is stored in Bob's inbox</li>
+<li>Alice saves her sent message to her own vault</li>
+</ol>
+<p>Bob's server only sees incoming messages. Alice's server doesn't know who Alice
+is messaging—she saves sent messages locally. This is more private than email,
+where your outgoing mail server sees everything.</p>
+<h2>The Complete Flow</h2>
+<p>Here's what happens when Alice sends a message to Bob:</p>
+<pre><code>1. Alice gets her engagement key (from her server, purpose: "send")
+2. Alice requests Bob's engagement key (from Bob's server, purpose: "receive")
+   → Bob's server returns the key + required PoW difficulty
+3. Alice solves PoW challenge (WebGPU or WASM fallback)
+4. Alice encrypts message with ECDH shared secret
+5. Alice sends to Bob's server with PoW proof
+6. Bob's server validates PoW and stores in inbox
+7. Bob's sync service moves message from inbox to vault
+8. Bob reads message (decrypted client-side)
+</code></pre>
+<h2>Implementation Details</h2>
+<p>The messaging system spans both the API server and the Tauri client:</p>
+<p><strong>API Server (TypeScript/orpc)</strong>:</p>
+<ul>
+<li><code>getCounterpartyEngagementKey</code> - Public endpoint, returns recipient's key</li>
+<li><code>sendMessage</code> - PoW-authenticated message delivery</li>
+<li><code>getChannels</code> / <code>getChannelMessages</code> - Session-authenticated queries</li>
+<li><code>getInboxMessagesForSync</code> / <code>deleteInboxMessages</code> - Vault sync integration</li>
+</ul>
+<p><strong>Client (TypeScript/React)</strong>:</p>
+<ul>
+<li>ECDH shared secret computation via <code>@keypears/lib</code></li>
+<li>ACS2 encryption (AES-256-CBC + SHA-256-HMAC)</li>
+<li>WebGPU mining with WASM fallback</li>
+<li>Background sync to move inbox messages to vault</li>
+</ul>
+<p><strong>Security Constants</strong>:</p>
+<ul>
+<li>Default difficulty: 4 million hashes (~4 seconds on GPU)</li>
+<li>Max encrypted data size: 10KB per message</li>
+<li>Challenge expiration: 15 minutes</li>
+</ul>
+<h2>What's Next</h2>
+<p>This proof-of-concept handles text messages. The next steps:</p>
+<ol>
+<li><strong>Password attachments</strong>: Attach secrets to messages for sharing</li>
+<li><strong>Cross-domain testing</strong>: Verify messaging between <code>keypears.com</code> and
+<code>wokerium.com</code></li>
+<li><strong>Mobile support</strong>: Test the full flow on Android and iOS</li>
+</ol>
+<p>The foundation is solid. Messaging between addresses works. Now we build the
+secret sharing features that will make KeyPears a truly collaborative password
+manager.</p>
+<h2>Try It Out</h2>
+<p>The messaging system is available in the latest KeyPears development build. You
+can:</p>
+<ol>
+<li>Create a vault at <code>name@keypears.com</code></li>
+<li>Navigate to Messages</li>
+<li>Click "New Message" and enter a recipient address</li>
+<li>Watch the PoW mining (your GPU will spin up briefly)</li>
+<li>Send your message</li>
+</ol>
+<p>For technical details, see our documentation:</p>
+<ul>
+<li><a href="https://keypears.com/docs/dh">Diffie-Hellman Protocol</a></li>
+<li><a href="https://keypears.com/docs/messages">Messaging System</a></li>
+</ul>
+<p>The complete implementation is open source in our
+<a href="https://github.com/keypears/keypears">GitHub repository</a>.</p>
+<p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Why and How KeyPears Uses Proof-of-Work for Vault Registration]]></title>
+        <id>https://keypears.com/blog/2025-12-14-pow-vault-registration</id>
+        <link href="https://keypears.com/blog/2025-12-14-pow-vault-registration"/>
+        <updated>2025-12-14T12:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve b...]]></summary>
+        <content type="html"><![CDATA[<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and
+cryptocurrency wallet. The design decisions described here represent our
+development approach and may evolve before our official release.</p>
+<p>This week we shipped proof-of-work for vault registration. When you create a new
+vault, your device now mines a cryptographic puzzle before the server accepts
+your registration. This post explains why we chose PoW over traditional
+anti-spam measures and how the system works.</p>
+<h2>The Problem: Spam Prevention Without Surveillance</h2>
+<p>Every online service faces the same problem: how do you prevent abuse without
+making legitimate users jump through hoops?</p>
+<p>Traditional solutions all have tradeoffs:</p>
+<p><strong>CAPTCHAs</strong> require users to identify traffic lights and crosswalks, degrading
+the experience. They also send your browsing behavior to Google or hCaptcha,
+compromising privacy. And determined attackers can pay humans pennies to solve
+them at scale.</p>
+<p><strong>Email verification</strong> requires users to have an email address and wait for a
+confirmation link. It tracks users, creates friction, and doesn't work well for
+privacy-conscious users who want to use temporary email addresses.</p>
+<p><strong>Phone verification</strong> is even more invasive—requiring a phone number ties your
+identity to a physical device and excludes users without phones.</p>
+<p><strong>Rate limiting by IP</strong> blocks legitimate users behind shared networks (coffee
+shops, universities, corporate NATs) while sophisticated attackers rotate
+through proxy networks.</p>
+<p>None of these solutions fit KeyPears. We're building a federated password
+manager where users can run their own servers or choose from multiple providers.
+We can't require Google reCAPTCHA on a self-hosted server. We can't demand phone
+verification from privacy-conscious users. We need something that works
+everywhere, respects privacy, and actually prevents abuse.</p>
+<h2>The Solution: Proof-of-Work</h2>
+<p>Proof-of-work flips the model. Instead of proving you're human by identifying
+buses or providing personal information, you prove you're willing to spend
+computational resources. Your device performs work—real, measurable, verifiable
+work—before the server accepts your request.</p>
+<p>This approach has several properties we care about:</p>
+<p><strong>Privacy-preserving.</strong> No tracking, no third parties, no personal information.
+The server only sees that you solved a cryptographic puzzle. It doesn't know who
+you are, where you're from, or what browser you're using.</p>
+<p><strong>Fair.</strong> Everyone follows the same rules. There's no "I'm a real person, trust
+me" appeal process. You either did the work or you didn't.</p>
+<p><strong>Decentralized.</strong> Works across federated servers without coordination. Each
+server generates its own challenges and verifies its own proofs. No central
+authority required.</p>
+<p><strong>Economically effective.</strong> Mass registration attacks become expensive.
+Registering 1,000 vaults requires 1,000× the computational work. At some point,
+the cost exceeds the value of the attack.</p>
+<p>Bitcoin popularized this idea for a different purpose (consensus), but the
+underlying principle applies broadly: computational work is a scarce resource
+that can't be faked.</p>
+<h2>The Algorithm: pow5-64b</h2>
+<p>KeyPears uses <strong>pow5</strong>, an ASIC-resistant proof-of-work algorithm originally
+developed for <a href="https://earthbucks.com">EarthBucks</a>. We adapted it for our use
+case while preserving the core algorithm.</p>
+<h3>Why ASIC Resistance Matters</h3>
+<p>A naive PoW algorithm (just hash repeatedly until you find a low value) can be
+accelerated dramatically by custom hardware. Bitcoin ASICs compute SHA-256
+hashes millions of times faster than GPUs. If KeyPears used simple SHA-256 PoW,
+attackers with ASICs could register vaults instantly while legitimate users on
+laptops waited minutes.</p>
+<p>pow5 resists this by combining BLAKE3 hashing with matrix multiplication:</p>
+<ol>
+<li><strong>Hash the input</strong> with BLAKE3 to get a 32-byte row vector</li>
+<li><strong>Iterate 32 times</strong>, each time:
+<ul>
+<li>Hash the working column with BLAKE3</li>
+<li>Multiply-and-add each byte of the row against the new column (matmul-style)</li>
+</ul>
+</li>
+<li><strong>Expand</strong> the 32 u32 result to 128 bytes</li>
+<li><strong>Hash</strong> the expanded result with BLAKE3 for the final output</li>
+</ol>
+<p>The matrix multiplication step is the key. GPUs are already optimized for
+matmul—it's the core operation in machine learning. Building an ASIC that
+outperforms a GPU at matmul is extremely difficult and expensive. This means
+legitimate users with consumer GPUs can mine efficiently, while attackers can't
+gain a massive advantage with custom hardware.</p>
+<h3>The pow5-64b Variant</h3>
+<p>KeyPears uses pow5-64b, which takes a 64-byte input:</p>
+<ul>
+<li><strong>Bytes 0-31</strong>: Nonce region (the miner searches this space)</li>
+<li><strong>Bytes 32-63</strong>: Challenge from the server (fixed)</li>
+</ul>
+<p>The GPU iterates through nonce values, computing pow5 hashes until it finds one
+below the target threshold. With 32 bytes of nonce space (2^256 possibilities),
+there's always a solution—the question is how long it takes to find one.</p>
+<h2>Variable Difficulty: Short Names Cost More</h2>
+<p>Not all vault registrations are equal. A vault named <code>alice</code> is more valuable
+than one named <code>alice-johnson-2024</code>—just like <code>cars.com</code> is more valuable than
+<code>alice-johnson-cars-for-sale-2024.com</code>.</p>
+<p>We encode this into the difficulty formula:</p>
+<pre><code>difficulty = 4,194,304 × 2^(10 - name_length)
+</code></pre>
+<p>For names with 10 or more characters, the base difficulty (4,194,304, or 2^22)
+applies. For shorter names, difficulty doubles with each character removed:</p>
+<p>| Name Length | Difficulty | GPU Time | CPU Time |
+| ----------- | ---------- | -------- | -------- |
+| 3 chars     | 512M       | ~8 min   | ~85 min  |
+| 4 chars     | 256M       | ~4 min   | ~43 min  |
+| 5 chars     | 128M       | ~2 min   | ~21 min  |
+| 6 chars     | 64M        | ~1 min   | ~11 min  |
+| 7 chars     | 32M        | ~32 sec  | ~5 min   |
+| 8 chars     | 16M        | ~16 sec  | ~3 min   |
+| 9 chars     | 8M         | ~8 sec   | ~80 sec  |
+| 10+ chars   | 4M         | ~4 sec   | ~40 sec  |</p>
+<p>This creates natural economics:</p>
+<ul>
+<li><strong>Typical users</strong> pick descriptive names (8+ characters) and wait a few
+seconds</li>
+<li><strong>Premium names</strong> require significant investment, discouraging squatting</li>
+<li><strong>Mass registration</strong> of short names becomes computationally prohibitive</li>
+</ul>
+<p>The difficulty calculation lives in <code>@keypears/lib</code>:</p>
+<pre><code class="language-typescript">export const BASE_REGISTRATION_DIFFICULTY = 4194304n; // 2^22
+
+export function difficultyForName(name: string): bigint {
+  const length = name.length;
+
+  // Names at or above 10 chars get base difficulty
+  if (length >= 10) {
+    return BASE_REGISTRATION_DIFFICULTY;
+  }
+
+  // Shorter names: double difficulty per character
+  const exponent = 10 - length;
+  return BASE_REGISTRATION_DIFFICULTY * (1n &#x3C;&#x3C; BigInt(exponent));
+}
+</code></pre>
+<h2>The Mining Experience</h2>
+<p>When you create a vault in KeyPears, here's what happens:</p>
+<h3>1. Name Selection</h3>
+<p>You enter your desired vault name. The UI immediately shows the required
+difficulty:</p>
+<pre><code>Mining difficulty: 128M (~2 minutes)
+Shorter names require more work to prevent squatting.
+</code></pre>
+<p>This sets expectations before you commit to the process.</p>
+<h3>2. Challenge Request</h3>
+<p>After you set your master password, the client requests a PoW challenge from the
+server:</p>
+<pre><code class="language-typescript">const challenge = await client.api.getPowChallenge({
+  difficulty: difficultyForName(vaultName).toString(),
+});
+</code></pre>
+<p>The server generates a random 64-byte header, calculates the target threshold
+from the difficulty, and stores the challenge in the database with a 15-minute
+expiration.</p>
+<h3>3. Mining</h3>
+<p>The client mines the challenge using WebGPU (if available) or falls back to
+WebAssembly:</p>
+<p><strong>WebGPU (GPU mining)</strong>:</p>
+<ul>
+<li>256 threads per workgroup</li>
+<li>128 workgroups per dispatch</li>
+<li>32,768 hashes per iteration</li>
+<li>~10x faster than CPU</li>
+</ul>
+<p><strong>WebAssembly (CPU mining)</strong>:</p>
+<ul>
+<li>Sequential execution</li>
+<li>1 hash per iteration</li>
+<li>Yields to UI every 10,000 iterations</li>
+<li>Universal browser support</li>
+</ul>
+<p>The UI shows progress:</p>
+<pre><code>Mining (GPU)...
+Difficulty: 128M
+Using WebGPU
+4,128,768 hashes (2.3s)
+</code></pre>
+<p>Users can cancel at any time if they change their mind.</p>
+<h3>4. Verification and Registration</h3>
+<p>Once the miner finds a valid nonce, the client submits the registration request
+with the solved challenge:</p>
+<pre><code class="language-typescript">await client.api.registerVault({
+  vaultId,
+  name: vaultName,
+  domain,
+  vaultPubKeyHash,
+  vaultPubKey,
+  loginKey,
+  encryptedVaultKey,
+  // PoW proof
+  challengeId: powResult.challengeId,
+  solvedHeader: powResult.solvedHeader,
+  hash: powResult.hash,
+});
+</code></pre>
+<p>The server verifies the proof before creating the vault.</p>
+<h2>Security Properties</h2>
+<p>PoW systems have several potential attack vectors. Here's how we address them:</p>
+<h3>Challenge Freshness</h3>
+<p>Challenges expire after 15 minutes. This extended window accommodates:</p>
+<ul>
+<li>Long mining times for short (high-difficulty) names</li>
+<li>Network latency and retries</li>
+<li>Users on slower devices</li>
+</ul>
+<p>After expiration, challenges cannot be used even if solved. This prevents
+attackers from pre-computing solutions.</p>
+<h3>Atomic Challenge Consumption</h3>
+<p>A critical vulnerability in naive PoW implementations is the TOCTOU
+(time-of-check to time-of-use) race condition. If two requests arrive
+simultaneously with the same solved challenge, both might pass verification
+before either marks the challenge as used.</p>
+<p>We prevent this with an atomic database operation:</p>
+<pre><code class="language-sql">UPDATE pow_challenge
+SET is_used = true, solved_header = ?, verified_at = NOW()
+WHERE id = ? AND is_used = false
+RETURNING id
+</code></pre>
+<p>The <code>WHERE is_used = false</code> clause ensures only one concurrent request can claim
+a challenge. The database guarantees atomicity—if two requests race, exactly one
+succeeds.</p>
+<h3>Minimum Difficulty Enforcement</h3>
+<p>The server enforces minimum difficulty based on the action. For vault
+registration, the challenge difficulty must meet or exceed <code>difficultyForName()</code>
+for the requested name. This prevents attackers from requesting easy challenges
+and using them for valuable short names.</p>
+<h3>Full Verification</h3>
+<p>The server doesn't trust the client's claimed hash. It performs complete
+verification:</p>
+<ol>
+<li>Look up the challenge by ID</li>
+<li>Check the challenge hasn't expired</li>
+<li>Verify difficulty meets the minimum for this action</li>
+<li>Validate the solved header length matches the algorithm</li>
+<li>Verify non-nonce bytes match the original header</li>
+<li>Recompute the hash independently</li>
+<li>Verify the hash meets the difficulty target</li>
+<li>Atomically claim the challenge</li>
+</ol>
+<p>If any step fails, the registration is rejected.</p>
+<h2>What Users See</h2>
+<p>We worked to make the mining experience transparent and non-frustrating:</p>
+<p><strong>Before mining</strong>: The difficulty and estimated time are shown when you select a
+name. No surprises.</p>
+<p><strong>During mining</strong>: Real-time progress shows hash count and elapsed time. A
+cancel button is always available.</p>
+<p><strong>After mining</strong>: Registration completes immediately once mining finishes. The
+PoW is invisible at this point—you just see your new vault.</p>
+<p>For typical names (8+ characters), mining takes about 4 seconds on a GPU or 40
+seconds on a CPU. Most users won't even notice the delay.</p>
+<h2>Future: Cross-Domain Messaging</h2>
+<p>Vault registration is just the first use of PoW in KeyPears. We're planning to
+use it for cross-domain messaging as well.</p>
+<p>When <code>alice@server1.com</code> wants to send a secret to <code>bob@server2.com</code>, she'll
+need to complete a PoW challenge. This prevents:</p>
+<ul>
+<li>Spam flooding between users</li>
+<li>Harassment campaigns</li>
+<li>Automated message attacks</li>
+</ul>
+<p>The difficulty for messaging will be lower than registration (messages should be
+quick to send), and established relationships can skip PoW entirely. But for
+first contact with unknown users, computational work provides a privacy-
+preserving throttle.</p>
+<h2>Conclusion</h2>
+<p>Proof-of-work gives us something unique: spam prevention that respects privacy.</p>
+<p>No CAPTCHAs asking you to identify motorcycles. No email verification tracking
+your address. No phone numbers tying your identity to a SIM card. Just
+computational work—anonymous, verifiable, and fair.</p>
+<p>The pow5 algorithm ensures this work can't be shortcut with specialized
+hardware. Variable difficulty makes short names valuable without blocking normal
+users. Atomic challenge consumption prevents race condition attacks. And the
+15-minute expiration window stops pre-computation.</p>
+<p>For users, the experience is simple: pick a name, set a password, wait a few
+seconds, and your vault is ready. The cryptographic machinery is invisible. But
+behind the scenes, that brief wait represents real computational investment—
+investment that would be prohibitively expensive to replicate at scale for
+attackers.</p>
+<p>This is what we mean by "the convenience of cloud sync with the security of
+self-custody." Even the anti-spam mechanism preserves your privacy.</p>
+<p><em>Next up: the Diffie-Hellman key exchange protocol for cross-user secret
+sharing. Stay tuned!</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Server-Generated Public Keys: How KeyPears Keeps Private Keys Client-Side]]></title>
         <id>https://keypears.com/blog/2025-12-13-server-generated-public-keys</id>

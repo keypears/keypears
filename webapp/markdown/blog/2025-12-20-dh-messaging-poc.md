@@ -82,7 +82,7 @@ Spammers face the full difficulty—minutes of computation per message.
 ## Architecture: Per-Participant Channel Views
 
 In a federated system, there's no central database. Alice's server
-(`keypears.com`) and Bob's server (`wokerium.com`) are completely separate. So
+(`keypears.com`) and Bob's server (`example.com`) are completely separate. So
 instead of a shared "channel" record, each participant has their own view:
 
 ```
@@ -90,14 +90,14 @@ Alice's server stores:
 ┌─────────────────────────────────────┐
 │ channel_view                        │
 │ owner: alice@keypears.com           │
-│ counterparty: bob@wokerium.com      │
+│ counterparty: bob@example.com      │
 │ secretId: "01JFX..." (for vault)    │
 └─────────────────────────────────────┘
 
 Bob's server stores:
 ┌─────────────────────────────────────┐
 │ channel_view                        │
-│ owner: bob@wokerium.com             │
+│ owner: bob@example.com             │
 │ counterparty: alice@keypears.com    │
 │ secretId: "01JFA..." (for vault)    │
 └─────────────────────────────────────┘
@@ -164,7 +164,7 @@ This proof-of-concept handles text messages. The next steps:
 
 1. **Password attachments**: Attach secrets to messages for sharing
 2. **Cross-domain testing**: Verify messaging between `keypears.com` and
-   `wokerium.com`
+   `example.com`
 3. **Mobile support**: Test the full flow on Android and iOS
 
 The foundation is solid. Messaging between addresses works. Now we build the
