@@ -65,7 +65,7 @@ function MessageBubble({
       <div
         className={`max-w-[80%] rounded-lg p-3 ${
           isFromMe
-            ? "bg-secondary text-secondary-foreground"
+            ? "bg-primary text-primary-foreground"
             : "bg-muted text-foreground"
         }`}
       >
@@ -80,7 +80,7 @@ function MessageBubble({
         )}
         <p
           className={`mt-1 text-xs ${
-            isFromMe ? "text-secondary-foreground/70" : "text-muted-foreground"
+            isFromMe ? "text-primary-foreground/70" : "text-muted-foreground"
           }`}
         >
           {formatRelativeTime(message.timestamp)}
