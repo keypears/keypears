@@ -11,7 +11,7 @@ export interface ChannelView {
   id: string;
   ownerAddress: string;
   counterpartyAddress: string;
-  minDifficulty: string | null;
+  minDifficulty: number | null;
   secretId: string; // Server-generated ID for vault storage (ensures consistency across devices)
   createdAt: Date;
   updatedAt: Date;
@@ -188,7 +188,7 @@ export async function getChannelsByOwner(
  */
 export async function updateChannelMinDifficulty(
   id: string,
-  minDifficulty: string | null,
+  minDifficulty: number | null,
 ): Promise<ChannelView | null> {
   await db
     .update(TableChannelView)

@@ -186,7 +186,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   } = loaderData;
 
   const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
-  const [channelMinDifficulty, setChannelMinDifficulty] = useState<string | null>(
+  const [channelMinDifficulty, setChannelMinDifficulty] = useState<number | null>(
     channel.minDifficulty
   );
   const [isUpdatingDifficulty, setIsUpdatingDifficulty] = useState(false);
@@ -224,13 +224,13 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
 
   // Check if current value matches a preset (by value)
   const isPresetSelected = (presetValue: number | null): boolean => {
-    return channelMinDifficulty === (presetValue?.toString() ?? null);
+    return channelMinDifficulty === presetValue;
   };
 
   // Check if current value is custom (not matching any preset)
   const isCustomValue = (): boolean => {
     if (channelMinDifficulty === null) return false;
-    return !DIFFICULTY_PRESETS.some((p) => p.value?.toString() === channelMinDifficulty);
+    return !DIFFICULTY_PRESETS.some((p) => p.value === channelMinDifficulty);
   };
 
   const handleDifficultyChange = async (value: number | null) => {
@@ -249,7 +249,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
 
       const response = await client.api.updateChannelMinDifficulty({
         channelId: channel.id,
-        minDifficulty: value?.toString() ?? null,
+        minDifficulty: value,
       });
 
       setChannelMinDifficulty(response.minDifficulty);
@@ -262,7 +262,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   };
 
   const handleCustomDialogOpen = () => {
-    setCustomDifficultyInput(channelMinDifficulty || "");
+    setCustomDifficultyInput(channelMinDifficulty?.toString() ?? "");
     setCustomDifficultyError(null);
     setIsCustomDialogOpen(true);
   };
@@ -286,8 +286,8 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   };
 
   // Format number with commas for display
-  const formatNumber = (num: string): string => {
-    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const formatNumber = (num: number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   const counterpartyAddress = channel.counterpartyAddress;

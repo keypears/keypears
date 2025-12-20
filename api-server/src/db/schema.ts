@@ -258,8 +258,8 @@ export const TablePowChallenge = pgTable(
     // Target hash that the solution must be less than (32 bytes hex = 64 chars)
     target: varchar("target", { length: 64 }).notNull(),
 
-    // Difficulty as string (bigint representation)
-    difficulty: varchar("difficulty", { length: 30 }).notNull(),
+    // Difficulty (bigint stored as number - safe up to 2^53)
+    difficulty: bigint("difficulty", { mode: "number" }).notNull(),
 
     // Whether this challenge has been used (verified)
     // Once used, cannot be reused - prevents replay attacks
@@ -305,8 +305,7 @@ export const TableChannelView = pgTable(
     counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
 
     // Per-channel PoW difficulty override (null = use global setting)
-    // Stored as string for bigint compatibility
-    minDifficulty: varchar("min_difficulty", { length: 30 }),
+    minDifficulty: bigint("min_difficulty", { mode: "number" }),
 
     // Secret ID for vault storage - used when messages are saved to vault
     // Server generates this on channel creation to ensure consistency across devices

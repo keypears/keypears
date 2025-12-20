@@ -37,7 +37,7 @@ export default function NewVaultStep3() {
       vaultName?: string;
       vaultDomain?: string;
       password?: string;
-      difficulty?: string;
+      difficulty?: number;
     }) || {};
 
   const [phase, setPhase] = useState<CreationPhase>("mining");
@@ -50,7 +50,7 @@ export default function NewVaultStep3() {
   // Initialize PoW miner with difficulty from name availability check
   const miner = usePowMiner({
     domain: vaultDomain ?? "",
-    difficulty: difficulty ?? FALLBACK_DIFFICULTY.toString(),
+    difficulty: difficulty ?? FALLBACK_DIFFICULTY,
     preferWgsl: true,
     verifyWithServer: false, // We'll use the proof in registration, not standalone verify
   });
@@ -244,10 +244,9 @@ export default function NewVaultStep3() {
   };
 
   // Format difficulty for display
-  const formatDifficulty = (diff: string): string => {
-    const n = BigInt(diff);
-    const millions = Number(n / 1000000n);
-    return millions >= 1 ? `${millions}M` : diff;
+  const formatDifficulty = (diff: number): string => {
+    const millions = Math.floor(diff / 1_000_000);
+    return millions >= 1 ? `${millions}M` : diff.toString();
   };
 
   // Get mining status text

@@ -52,14 +52,10 @@ export const updateChannelMinDifficultyProcedure = sessionAuthedProcedure
     }
 
     // 4. Validate minDifficulty if provided
-    if (minDifficulty !== null) {
-      const difficultyBigInt = BigInt(minDifficulty);
-      const minBigInt = BigInt(MIN_USER_DIFFICULTY);
-      if (difficultyBigInt < minBigInt) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: `Difficulty must be at least ${MIN_USER_DIFFICULTY}`,
-        });
-      }
+    if (minDifficulty !== null && minDifficulty < MIN_USER_DIFFICULTY) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Difficulty must be at least ${MIN_USER_DIFFICULTY}`,
+      });
     }
 
     // 5. Update the channel

@@ -17,7 +17,7 @@ export const checkNameAvailabilityProcedure = base
   .input(CheckNameAvailabilityRequestSchema)
   .output(CheckNameAvailabilityResponseSchema)
   .handler(
-    async ({ input }): Promise<{ available: boolean; difficulty?: string }> => {
+    async ({ input }): Promise<{ available: boolean; difficulty?: number }> => {
       const { name, domain } = input;
 
       // Check availability using model
@@ -28,7 +28,7 @@ export const checkNameAvailabilityProcedure = base
       return {
         available,
         ...(available
-          ? { difficulty: difficultyForName(name).toString() }
+          ? { difficulty: Number(difficultyForName(name)) }
           : {}),
       };
     },

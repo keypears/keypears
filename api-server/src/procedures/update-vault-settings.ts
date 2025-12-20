@@ -34,14 +34,13 @@ export const updateVaultSettingsProcedure = sessionAuthedProcedure
     }
 
     // Validate messagingMinDifficulty if provided
-    if (newSettings.messagingMinDifficulty !== undefined) {
-      const difficultyBigInt = BigInt(newSettings.messagingMinDifficulty);
-      const minBigInt = BigInt(MIN_USER_DIFFICULTY);
-      if (difficultyBigInt < minBigInt) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: `Messaging difficulty must be at least ${MIN_USER_DIFFICULTY}`,
-        });
-      }
+    if (
+      newSettings.messagingMinDifficulty !== undefined &&
+      newSettings.messagingMinDifficulty < MIN_USER_DIFFICULTY
+    ) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Messaging difficulty must be at least ${MIN_USER_DIFFICULTY}`,
+      });
     }
 
     // Update settings using model function

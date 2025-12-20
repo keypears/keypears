@@ -48,7 +48,7 @@ export function ComposeBox({
   // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
     domain: "", // Will be overridden in start()
-    difficulty: FALLBACK_MESSAGING_DIFFICULTY.toString(),
+    difficulty: FALLBACK_MESSAGING_DIFFICULTY,
     preferWgsl: true,
     verifyWithServer: false,
   });
@@ -98,7 +98,7 @@ export function ComposeBox({
 
       // Step 3: Mine PoW with the difficulty required by the recipient
       setPhase("mining");
-      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY.toString();
+      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY;
       const powResult = await miner.start({
         domain: parsed.domain,
         difficulty: requiredDifficulty,

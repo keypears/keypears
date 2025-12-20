@@ -254,11 +254,11 @@ describe("Channel Model", () => {
 
       const updated = await updateChannelMinDifficulty(
         channel.id,
-        "1000000000000",
+        1000000000000,
       );
 
       expect(updated).not.toBeNull();
-      expect(updated?.minDifficulty).toBe("1000000000000");
+      expect(updated?.minDifficulty).toBe(1000000000000);
     });
 
     it("should allow setting to null", async () => {
@@ -268,7 +268,7 @@ describe("Channel Model", () => {
       });
 
       // Set difficulty
-      await updateChannelMinDifficulty(channel.id, "1000000000000");
+      await updateChannelMinDifficulty(channel.id, 1000000000000);
 
       // Clear difficulty
       const updated = await updateChannelMinDifficulty(channel.id, null);

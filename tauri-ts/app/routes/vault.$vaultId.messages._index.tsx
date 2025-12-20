@@ -14,7 +14,8 @@ import { NewMessageDialog } from "~app/components/new-message-dialog";
 interface Channel {
   id: string;
   counterpartyAddress: string;
-  minDifficulty: string | null;
+  minDifficulty: number | null;
+  secretId: string;
   unreadCount: number;
   lastMessageAt: Date | null;
   createdAt: Date;

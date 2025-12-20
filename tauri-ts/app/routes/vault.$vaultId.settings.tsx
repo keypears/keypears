@@ -78,13 +78,13 @@ export default function VaultSettingsPage({
 
   // Check if current value matches a preset (by value)
   const isPresetSelected = (presetValue: number | null): boolean => {
-    return currentDifficulty === (presetValue?.toString() ?? null);
+    return currentDifficulty === presetValue;
   };
 
   // Check if current value is custom (not matching any preset)
   const isCustomValue = (): boolean => {
     if (currentDifficulty === null) return false;
-    return !DIFFICULTY_PRESETS.some((p) => p.value?.toString() === currentDifficulty);
+    return !DIFFICULTY_PRESETS.some((p) => p.value === currentDifficulty);
   };
 
   const handlePresetSelect = async (value: number | null) => {
@@ -104,7 +104,7 @@ export default function VaultSettingsPage({
 
       const newSettings: VaultSettings = {
         ...settings,
-        messagingMinDifficulty: value?.toString() ?? undefined,
+        messagingMinDifficulty: value ?? undefined,
       };
 
       const response = await client.api.updateVaultSettings({
@@ -123,7 +123,7 @@ export default function VaultSettingsPage({
   };
 
   const handleCustomDialogOpen = () => {
-    setCustomDifficultyInput(currentDifficulty || "");
+    setCustomDifficultyInput(currentDifficulty?.toString() ?? "");
     setCustomDifficultyError(null);
     setIsCustomDialogOpen(true);
   };
@@ -147,8 +147,8 @@ export default function VaultSettingsPage({
   };
 
   // Format number with commas for display
-  const formatNumber = (num: string): string => {
-    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const formatNumber = (num: number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   return (
@@ -219,7 +219,7 @@ export default function VaultSettingsPage({
               <div className="mt-3 space-y-1">
                 <p className="text-muted-foreground text-xs">
                   Current: {currentDifficulty ? formatNumber(currentDifficulty) : "System default"}{" "}
-                  {currentDifficulty && `(${estimatePowTime(currentDifficulty).timeGpu} on GPU)`}
+                  {currentDifficulty && `(${estimatePowTime(BigInt(currentDifficulty)).timeGpu} on GPU)`}
                 </p>
                 {isCustomValue() && currentDifficulty && (
                   <p className="text-muted-foreground text-xs">

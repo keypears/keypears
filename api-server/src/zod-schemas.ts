@@ -10,7 +10,7 @@ export const CheckNameAvailabilityRequestSchema = z.object({
 export const CheckNameAvailabilityResponseSchema = z.object({
   available: z.boolean(),
   // Difficulty requirement for registration (only present when available is true)
-  difficulty: z.string().optional(),
+  difficulty: z.number().optional(),
 });
 
 // Register vault
@@ -125,18 +125,14 @@ export type PowAlgorithm = z.infer<typeof PowAlgorithmSchema>;
 // PoW Challenge - generates a challenge and stores it in the database
 // Each challenge can only be used once and expires after 5 minutes
 // Minimum difficulty: 1 (allows test mode with TEST_BASE_DIFFICULTY=1)
-// Default difficulty: 4,194,304 (2^22)
+// Default difficulty: 4,000,000
 // Note: Actual difficulty enforcement happens in registerVault via difficultyForName
 export const GetPowChallengeRequestSchema = z.object({
   difficulty: z
-    .string()
+    .number()
     .optional()
     .refine(
-      (val) => {
-        if (val === undefined) return true;
-        const num = BigInt(val);
-        return num >= 1n;
-      },
+      (val) => val === undefined || val >= 1,
       { message: "Difficulty must be at least 1" },
     ),
 });
@@ -145,7 +141,7 @@ export const GetPowChallengeResponseSchema = z.object({
   id: z.string().length(26), // UUIDv7 (26-char) challenge ID for verification
   header: z.string(), // 64 bytes (128 hex chars) for pow5-64b
   target: z.string().length(64), // 32 bytes hex = 64 chars
-  difficulty: z.string(), // bigint as string
+  difficulty: z.number(),
   algorithm: PowAlgorithmSchema,
 });
 
@@ -166,7 +162,7 @@ export const VerifyPowProofResponseSchema = z.object({
 export const VaultSettingsSchema = z.object({
   // Messaging settings
   // Minimum PoW difficulty for channel opening (default: ~4M same as registration)
-  messagingMinDifficulty: z.string().optional(),
+  messagingMinDifficulty: z.number().optional(),
 });
 
 export type VaultSettings = z.infer<typeof VaultSettingsSchema>;
@@ -211,7 +207,7 @@ export const GetCounterpartyEngagementKeyRequestSchema = z.object({
 
 export const GetCounterpartyEngagementKeyResponseSchema = z.object({
   engagementPubKey: z.string().length(66), // Recipient's engagement pubkey
-  requiredDifficulty: z.string(), // Difficulty sender must meet (channel → vault → system default)
+  requiredDifficulty: z.number(), // Difficulty sender must meet (channel → vault → system default)
 });
 
 // Send message - public endpoint authenticated via PoW
@@ -245,7 +241,7 @@ export const GetChannelsResponseSchema = z.object({
     z.object({
       id: z.string().length(26), // UUIDv7 (26-char)
       counterpartyAddress: z.string(),
-      minDifficulty: z.string().nullable(),
+      minDifficulty: z.number().nullable(),
       secretId: z.string().length(26), // Server-generated ID for vault storage
       unreadCount: z.number().int(),
       lastMessageAt: z.date().nullable(),
@@ -342,10 +338,10 @@ export const DeleteInboxMessagesResponseSchema = z.object({
 // Update channel minimum difficulty - set per-channel PoW difficulty override
 export const UpdateChannelMinDifficultyRequestSchema = z.object({
   channelId: z.string().length(26), // UUIDv7 (26-char)
-  minDifficulty: z.string().nullable(), // null = use vault/system default
+  minDifficulty: z.number().nullable(), // null = use vault/system default
 });
 
 export const UpdateChannelMinDifficultyResponseSchema = z.object({
   channelId: z.string().length(26),
-  minDifficulty: z.string().nullable(),
+  minDifficulty: z.number().nullable(),
 });

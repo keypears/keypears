@@ -86,7 +86,7 @@ export const getCounterpartyEngagementKeyProcedure = base
     );
 
     // Helper to resolve difficulty hierarchy: channel → vault → system default
-    const resolveRequiredDifficulty = async (): Promise<string> => {
+    const resolveRequiredDifficulty = async (): Promise<number> => {
       // 1. Check channel-specific difficulty (recipient's view of sender)
       const channel = await getChannelView(recipientAddress, senderAddress);
       if (channel?.minDifficulty) {
@@ -100,7 +100,7 @@ export const getCounterpartyEngagementKeyProcedure = base
       }
 
       // 3. Use system default
-      return DEFAULT_MESSAGING_DIFFICULTY.toString();
+      return DEFAULT_MESSAGING_DIFFICULTY;
     };
 
     if (existingKey) {

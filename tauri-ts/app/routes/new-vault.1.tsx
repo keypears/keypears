@@ -20,7 +20,7 @@ export default function NewVaultStep1() {
   const [domainError, setDomainError] = useState("");
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
-  const [difficulty, setDifficulty] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState<number | null>(null);
 
   // Set default domain on mount
   useEffect(() => {
@@ -189,11 +189,11 @@ export default function NewVaultStep1() {
                         Mining difficulty:{" "}
                       </span>
                       <span className="font-mono font-medium">
-                        {estimatePowTime(difficulty).display}
+                        {estimatePowTime(BigInt(difficulty)).display}
                       </span>
                       <span className="text-muted-foreground">
                         {" "}
-                        ({estimatePowTime(difficulty).timeGpu})
+                        ({estimatePowTime(BigInt(difficulty)).timeGpu})
                       </span>
                     </p>
                     {name.length < 10 && (

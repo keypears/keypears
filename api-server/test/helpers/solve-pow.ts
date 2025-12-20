@@ -11,7 +11,7 @@ export interface PowProof {
 
 export interface SolvePowOptions {
   /** Difficulty to request. If not specified, uses difficultyForName(name) */
-  difficulty?: string;
+  difficulty?: number;
   /** Vault name being registered - used to calculate difficulty if not specified */
   name?: string;
 }
@@ -34,7 +34,7 @@ export async function solvePowChallenge(
   // Use explicit difficulty, or calculate from name, or use a safe default
   const difficulty =
     options?.difficulty ??
-    (options?.name ? difficultyForName(options.name).toString() : "128");
+    (options?.name ? Number(difficultyForName(options.name)) : 128);
   const client = createClient({ url: serverUrl });
 
   // Fetch challenge with specified difficulty

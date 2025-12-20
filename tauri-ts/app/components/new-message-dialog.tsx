@@ -63,7 +63,7 @@ export function NewMessageDialog({
   const [messageText, setMessageText] = useState("");
   const [phase, setPhase] = useState<SendPhase>("input");
   const [error, setError] = useState<string | null>(null);
-  const [difficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY.toString());
+  const [difficulty] = useState<number>(DEFAULT_MESSAGING_DIFFICULTY);
 
   // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
@@ -226,10 +226,9 @@ export function NewMessageDialog({
     miner.reset();
   };
 
-  const formatDifficulty = (diff: string): string => {
-    const n = BigInt(diff);
-    const millions = Number(n / 1000000n);
-    return millions >= 1 ? `${millions}M` : diff;
+  const formatDifficulty = (diff: number): string => {
+    const millions = Math.floor(diff / 1_000_000);
+    return millions >= 1 ? `${millions}M` : diff.toString();
   };
 
   return (

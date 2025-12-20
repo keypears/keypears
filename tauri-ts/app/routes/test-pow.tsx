@@ -41,7 +41,7 @@ export default function TestPow() {
   // Use the mining hook
   const miner = usePowMiner({
     domain,
-    difficulty: difficultyInput,
+    difficulty: Number(difficultyInput) || DEFAULT_TEST_DIFFICULTY,
     preferWgsl: miningMode === "prefer-wgsl",
     verifyWithServer: true,
   });

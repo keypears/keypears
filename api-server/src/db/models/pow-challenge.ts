@@ -29,7 +29,7 @@ export interface PowChallenge {
   algorithm: PowAlgorithm;
   header: string;
   target: string;
-  difficulty: string;
+  difficulty: number;
   isUsed: boolean;
   solvedHeader: string | null;
   solvedHash: string | null;
@@ -143,7 +143,7 @@ export async function createChallenge(
     algorithm,
     header: header.toHex(),
     target: target.buf.toHex(),
-    difficulty: difficulty.toString(),
+    difficulty: Number(difficulty),
     expiresAt,
   });
 

@@ -46,13 +46,13 @@ export interface PowMinerResult {
 export interface PowChallengeInfo {
   id: string;
   algorithm: PowAlgorithm;
-  difficulty: string;
+  difficulty: number;
   target: string;
 }
 
 export interface UsePowMinerOptions {
   domain: string;
-  difficulty: string;
+  difficulty: number;
   algorithm?: PowAlgorithm; // If not specified, server chooses
   preferWgsl?: boolean; // Default true
   verifyWithServer?: boolean; // Default false - whether to call verifyPowProof after mining
@@ -71,7 +71,7 @@ export interface UsePowMinerReturn {
   challengeInfo: PowChallengeInfo | null;
 
   // Actions
-  start: (overrides?: { domain?: string; difficulty?: string }) => Promise<PowMinerResult | null>;
+  start: (overrides?: { domain?: string; difficulty?: number }) => Promise<PowMinerResult | null>;
   cancel: () => void;
   reset: () => void;
 }
@@ -121,7 +121,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     setError("Mining cancelled");
   }, []);
 
-  const start = useCallback(async (overrides?: { domain?: string; difficulty?: string }): Promise<PowMinerResult | null> => {
+  const start = useCallback(async (overrides?: { domain?: string; difficulty?: number }): Promise<PowMinerResult | null> => {
     const effectiveDomain = overrides?.domain ?? domain;
     const effectiveDifficulty = overrides?.difficulty ?? difficulty;
 
