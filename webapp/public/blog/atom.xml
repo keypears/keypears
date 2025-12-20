@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-12-20T22:35:45.071Z</updated>
+    <updated>2025-12-20T22:39:12.868Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
@@ -80,20 +80,20 @@ trusted friends)</li>
 Spammers face the full difficulty—minutes of computation per message.</p>
 <h2>Architecture: Per-Participant Channel Views</h2>
 <p>In a federated system, there's no central database. Alice's server
-(<code>keypears.com</code>) and Bob's server (<code>wokerium.com</code>) are completely separate. So
+(<code>keypears.com</code>) and Bob's server (<code>example.com</code>) are completely separate. So
 instead of a shared "channel" record, each participant has their own view:</p>
 <pre><code>Alice's server stores:
 ┌─────────────────────────────────────┐
 │ channel_view                        │
 │ owner: alice@keypears.com           │
-│ counterparty: bob@wokerium.com      │
+│ counterparty: bob@example.com      │
 │ secretId: "01JFX..." (for vault)    │
 └─────────────────────────────────────┘
 
 Bob's server stores:
 ┌─────────────────────────────────────┐
 │ channel_view                        │
-│ owner: bob@wokerium.com             │
+│ owner: bob@example.com             │
 │ counterparty: alice@keypears.com    │
 │ secretId: "01JFA..." (for vault)    │
 └─────────────────────────────────────┘
@@ -149,7 +149,7 @@ where your outgoing mail server sees everything.</p>
 <ol>
 <li><strong>Password attachments</strong>: Attach secrets to messages for sharing</li>
 <li><strong>Cross-domain testing</strong>: Verify messaging between <code>keypears.com</code> and
-<code>wokerium.com</code></li>
+<code>example.com</code></li>
 <li><strong>Mobile support</strong>: Test the full flow on Android and iOS</li>
 </ol>
 <p>The foundation is solid. Messaging between addresses works. Now we build the
