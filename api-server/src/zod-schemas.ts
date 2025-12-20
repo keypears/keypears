@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { vaultNameSchema } from "@keypears/lib";
+import { MAX_ENCRYPTED_DATA_BYTES } from "./constants.js";
 
 // Check name availability
 export const CheckNameAvailabilityRequestSchema = z.object({
@@ -36,7 +37,7 @@ export const RegisterVaultResponseSchema = z.object({
 export const CreateSecretUpdateRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
   secretId: z.string().length(26), // UUIDv7 (26-char, same for all updates to this secret)
-  encryptedBlob: z.string().min(1), // Encrypted JSON containing all secret data
+  encryptedBlob: z.string().min(1).max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted JSON (hex, max 10KB)
 });
 
 export const CreateSecretUpdateResponseSchema = z.object({
@@ -214,7 +215,7 @@ export const GetCounterpartyEngagementKeyResponseSchema = z.object({
 export const SendMessageRequestSchema = z.object({
   recipientAddress: z.string().min(1).max(255), // Who I'm messaging (name@domain)
   senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
-  encryptedContent: z.string().min(1), // Encrypted message content
+  encryptedContent: z.string().min(1).max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted message (hex, max 10KB)
   senderEngagementPubKey: z.string().length(66), // My engagement pubkey
   recipientEngagementPubKey: z.string().length(66), // Their engagement pubkey
   powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge

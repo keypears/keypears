@@ -19,6 +19,10 @@ export const DEFAULT_MESSAGING_DIFFICULTY = 4_000_000;
 // Minimum difficulty users can set (prevents trivially low values)
 export const MIN_USER_DIFFICULTY = 256;
 
+// Maximum size of encrypted data blobs in bytes (10KB)
+// This applies to messages, secret updates, and other encrypted content
+export const MAX_ENCRYPTED_DATA_BYTES = 10_000;
+
 // Difficulty presets for UI
 export const DIFFICULTY_PRESETS = {
   default: null, // Uses system default
