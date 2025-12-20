@@ -7,7 +7,7 @@ import { createChallenge } from "../db/models/pow-challenge.js";
 
 // Default difficulty: 4,000,000 = ~4 million hashes average
 // Takes a few seconds with WGSL, much longer with WASM
-const DEFAULT_DIFFICULTY = 4000000n;
+const DEFAULT_DIFFICULTY = 4_000_000n;
 
 /**
  * Get PoW Challenge procedure

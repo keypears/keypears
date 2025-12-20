@@ -471,7 +471,7 @@ export function calculatePasswordEntropy(
  * This is the difficulty for names with 10+ characters.
  * Shorter names have exponentially higher difficulty.
  */
-export const BASE_REGISTRATION_DIFFICULTY = 4000000n;
+export const BASE_REGISTRATION_DIFFICULTY = 4_000_000n;
 
 /**
  * Base difficulty for tests: 1 (trivial, for fast test execution)

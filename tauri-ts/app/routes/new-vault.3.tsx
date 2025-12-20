@@ -25,7 +25,7 @@ import { startBackgroundSync } from "~app/lib/sync-service";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 
 // Fallback difficulty if not provided (should not happen in normal flow)
-const FALLBACK_DIFFICULTY = "4000000";
+const FALLBACK_DIFFICULTY = 4_000_000;
 
 type CreationPhase = "mining" | "registering" | "success" | "error";
 
@@ -50,7 +50,7 @@ export default function NewVaultStep3() {
   // Initialize PoW miner with difficulty from name availability check
   const miner = usePowMiner({
     domain: vaultDomain ?? "",
-    difficulty: difficulty ?? FALLBACK_DIFFICULTY,
+    difficulty: difficulty ?? FALLBACK_DIFFICULTY.toString(),
     preferWgsl: true,
     verifyWithServer: false, // We'll use the proof in registration, not standalone verify
   });

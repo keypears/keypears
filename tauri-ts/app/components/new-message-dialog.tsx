@@ -23,7 +23,7 @@ import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Default messaging difficulty (can be overridden by recipient settings)
-const DEFAULT_MESSAGING_DIFFICULTY = "4000000";
+const DEFAULT_MESSAGING_DIFFICULTY = 4_000_000;
 
 type SendPhase =
   | "input"
@@ -63,7 +63,7 @@ export function NewMessageDialog({
   const [messageText, setMessageText] = useState("");
   const [phase, setPhase] = useState<SendPhase>("input");
   const [error, setError] = useState<string | null>(null);
-  const [difficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY);
+  const [difficulty] = useState<string>(DEFAULT_MESSAGING_DIFFICULTY.toString());
 
   // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({

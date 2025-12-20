@@ -22,9 +22,9 @@ import type { VaultSettings } from "@keypears/api-server";
 // Difficulty presets
 const DIFFICULTY_PRESETS = [
   { label: "Default", value: null, description: "System default (~4M hashes)" },
-  { label: "Easy", value: "4000000", description: "~4 seconds on GPU" },
-  { label: "Medium", value: "40000000", description: "~40 seconds on GPU" },
-  { label: "Hard", value: "400000000", description: "~6 minutes on GPU" },
+  { label: "Easy", value: 4_000_000, description: "~4 seconds on GPU" },
+  { label: "Medium", value: 40_000_000, description: "~40 seconds on GPU" },
+  { label: "Hard", value: 400_000_000, description: "~6 minutes on GPU" },
 ] as const;
 
 // Minimum difficulty users can set
@@ -77,17 +77,17 @@ export default function VaultSettingsPage({
   const currentDifficulty = settings.messagingMinDifficulty ?? null;
 
   // Check if current value matches a preset (by value)
-  const isPresetSelected = (presetValue: string | null): boolean => {
-    return currentDifficulty === presetValue;
+  const isPresetSelected = (presetValue: number | null): boolean => {
+    return currentDifficulty === (presetValue?.toString() ?? null);
   };
 
   // Check if current value is custom (not matching any preset)
   const isCustomValue = (): boolean => {
     if (currentDifficulty === null) return false;
-    return !DIFFICULTY_PRESETS.some((p) => p.value === currentDifficulty);
+    return !DIFFICULTY_PRESETS.some((p) => p.value?.toString() === currentDifficulty);
   };
 
-  const handlePresetSelect = async (value: string | null) => {
+  const handlePresetSelect = async (value: number | null) => {
     setIsSaving(true);
     setError(null);
     setSuccess(false);
@@ -104,7 +104,7 @@ export default function VaultSettingsPage({
 
       const newSettings: VaultSettings = {
         ...settings,
-        messagingMinDifficulty: value ?? undefined,
+        messagingMinDifficulty: value?.toString() ?? undefined,
       };
 
       const response = await client.api.updateVaultSettings({
@@ -143,7 +143,7 @@ export default function VaultSettingsPage({
     }
 
     setIsCustomDialogOpen(false);
-    await handlePresetSelect(parsed.toString());
+    await handlePresetSelect(parsed);
   };
 
   // Format number with commas for display

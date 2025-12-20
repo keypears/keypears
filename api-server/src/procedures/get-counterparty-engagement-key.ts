@@ -100,7 +100,7 @@ export const getCounterpartyEngagementKeyProcedure = base
       }
 
       // 3. Use system default
-      return DEFAULT_MESSAGING_DIFFICULTY;
+      return DEFAULT_MESSAGING_DIFFICULTY.toString();
     };
 
     if (existingKey) {

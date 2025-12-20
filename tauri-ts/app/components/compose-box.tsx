@@ -14,7 +14,7 @@ import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Fallback difficulty (used only if API doesn't provide one, which shouldn't happen)
-const FALLBACK_MESSAGING_DIFFICULTY = "4000000";
+const FALLBACK_MESSAGING_DIFFICULTY = 4_000_000;
 
 type SendPhase = "idle" | "preparing" | "mining" | "sending" | "saving" | "error";
 
@@ -48,7 +48,7 @@ export function ComposeBox({
   // PoW miner (for UI state only - we call start() with overrides)
   const miner = usePowMiner({
     domain: "", // Will be overridden in start()
-    difficulty: FALLBACK_MESSAGING_DIFFICULTY,
+    difficulty: FALLBACK_MESSAGING_DIFFICULTY.toString(),
     preferWgsl: true,
     verifyWithServer: false,
   });
@@ -98,7 +98,7 @@ export function ComposeBox({
 
       // Step 3: Mine PoW with the difficulty required by the recipient
       setPhase("mining");
-      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY;
+      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY.toString();
       const powResult = await miner.start({
         domain: parsed.domain,
         difficulty: requiredDifficulty,

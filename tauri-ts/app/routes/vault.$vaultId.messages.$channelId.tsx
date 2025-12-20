@@ -37,9 +37,9 @@ import { getSecretUpdatesBySecretId } from "~app/db/models/password";
 // Difficulty presets (same as vault settings)
 const DIFFICULTY_PRESETS = [
   { label: "Default", value: null, description: "Use vault setting" },
-  { label: "Easy", value: "4000000", description: "~4 seconds" },
-  { label: "Medium", value: "40000000", description: "~40 seconds" },
-  { label: "Hard", value: "400000000", description: "~6 minutes" },
+  { label: "Easy", value: 4_000_000, description: "~4 seconds" },
+  { label: "Medium", value: 40_000_000, description: "~40 seconds" },
+  { label: "Hard", value: 400_000_000, description: "~6 minutes" },
 ] as const;
 
 // Minimum difficulty users can set
@@ -223,17 +223,17 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   };
 
   // Check if current value matches a preset (by value)
-  const isPresetSelected = (presetValue: string | null): boolean => {
-    return channelMinDifficulty === presetValue;
+  const isPresetSelected = (presetValue: number | null): boolean => {
+    return channelMinDifficulty === (presetValue?.toString() ?? null);
   };
 
   // Check if current value is custom (not matching any preset)
   const isCustomValue = (): boolean => {
     if (channelMinDifficulty === null) return false;
-    return !DIFFICULTY_PRESETS.some((p) => p.value === channelMinDifficulty);
+    return !DIFFICULTY_PRESETS.some((p) => p.value?.toString() === channelMinDifficulty);
   };
 
-  const handleDifficultyChange = async (value: string | null) => {
+  const handleDifficultyChange = async (value: number | null) => {
     setIsUpdatingDifficulty(true);
     setDifficultyError(null);
 
@@ -249,7 +249,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
 
       const response = await client.api.updateChannelMinDifficulty({
         channelId: channel.id,
-        minDifficulty: value,
+        minDifficulty: value?.toString() ?? null,
       });
 
       setChannelMinDifficulty(response.minDifficulty);
@@ -282,7 +282,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     }
 
     setIsCustomDialogOpen(false);
-    await handleDifficultyChange(parsed.toString());
+    await handleDifficultyChange(parsed);
   };
 
   // Format number with commas for display

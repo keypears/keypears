@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 
+// Default difficulty for the test page
+const DEFAULT_TEST_DIFFICULTY = 4_000_000;
+
 type MiningMode = "prefer-wgsl" | "wasm-only";
 
 export function meta(_args: Route.MetaArgs) {
@@ -26,7 +29,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function TestPow() {
   // UI-specific state
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
-  const [difficultyInput, setDifficultyInput] = useState<string>("4000000");
+  const [difficultyInput, setDifficultyInput] = useState<string>(DEFAULT_TEST_DIFFICULTY.toString());
   const [domain, setDomain] = useState<string>(
     () => getOfficialDomains()[0] ?? "keypears.com",
   );
