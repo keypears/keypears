@@ -1,5 +1,5 @@
 import type { Route } from "./+types/vault.$vaultId.messages._index";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, href, useRevalidator } from "react-router";
 import { MessageSquare, Plus, ChevronRight, Inbox } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
@@ -164,6 +164,12 @@ export default function VaultMessagesIndex({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const revalidator = useRevalidator();
+
+  // Sync state with loader data when it changes (e.g., after revalidation)
+  useEffect(() => {
+    setChannels(initialChannels);
+    setHasMore(initialHasMore);
+  }, [initialChannels, initialHasMore]);
 
   const handleLoadMore = async (): Promise<void> => {
     if (!hasMore || isLoadingMore) return;
