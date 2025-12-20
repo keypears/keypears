@@ -427,7 +427,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
         {/* Status actions */}
         <div className="border-border mb-4 flex gap-2 rounded-lg border p-2">
           <Button
-            variant={channelStatus === "saved" ? "default" : "ghost"}
+            variant={channelStatus === "saved" ? "secondary" : "ghost"}
             size="sm"
             className="flex-1"
             onClick={() => handleStatusChange("saved")}
@@ -437,7 +437,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
             Save
           </Button>
           <Button
-            variant={channelStatus === "pending" ? "default" : "ghost"}
+            variant={channelStatus === "pending" ? "secondary" : "ghost"}
             size="sm"
             className="flex-1"
             onClick={() => handleStatusChange("pending")}
@@ -447,7 +447,7 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
             Pending
           </Button>
           <Button
-            variant={channelStatus === "ignored" ? "default" : "ghost"}
+            variant={channelStatus === "ignored" ? "secondary" : "ghost"}
             size="sm"
             className="flex-1"
             onClick={() => handleStatusChange("ignored")}
