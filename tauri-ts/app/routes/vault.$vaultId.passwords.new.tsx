@@ -16,8 +16,6 @@ import {
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import { pushSecretUpdate } from "~app/lib/sync";
-import { insertSecretUpdatesFromSync } from "~app/db/models/password";
-import { encryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import { triggerManualSync } from "~app/lib/sync-service";
 import { generateId } from "@keypears/lib";
 
@@ -108,35 +106,15 @@ export default function NewPassword({ loaderData }: Route.ComponentProps) {
       // Get vault key for encryption
       const vaultKey = getVaultKey(vaultId);
 
-      // Push to server (server generates ID, order numbers, timestamp)
-      const serverResponse = await pushSecretUpdate(
+      // Push to server and save locally
+      await pushSecretUpdate({
         vaultId,
         secretId,
         secretData,
         vaultKey,
-        authedClient,
-      );
-
-      // Immediately store locally with server-generated data
-      // Pass isRead=true since this is a locally-created secret
-      const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
-      await insertSecretUpdatesFromSync(
-        [
-          {
-            id: serverResponse.id,
-            vaultId,
-            secretId,
-            globalOrder: serverResponse.globalOrder,
-            localOrder: serverResponse.localOrder,
-            name: secretData.name,
-            type: secretData.type,
-            deleted: secretData.deleted,
-            encryptedBlob,
-            createdAt: new Date(serverResponse.createdAt).getTime(),
-          },
-        ],
-        true,
-      );
+        apiClient: authedClient,
+        isRead: true, // User-initiated action
+      });
 
       // Still trigger sync to fetch any other updates
       await triggerManualSync(vaultId);

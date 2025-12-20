@@ -190,13 +190,14 @@ export function NewMessageDialog({
       };
 
       // Push to server (uses the channel's secretId)
-      await pushSecretUpdate(
+      await pushSecretUpdate({
         vaultId,
-        senderChannel.secretId,
-        messageSecretData,
+        secretId: senderChannel.secretId,
+        secretData: messageSecretData,
         vaultKey,
-        myClient,
-      );
+        apiClient: myClient,
+        isRead: true, // Messages I send are already "read"
+      });
 
       setPhase("success");
 

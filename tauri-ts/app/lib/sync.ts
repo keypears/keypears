@@ -162,20 +162,23 @@ export async function syncVault(
  * Encrypts blob, sends to server, waits for response
  * Does NOT sync - sync will pick it up on next poll
  *
- * @param vaultId - The vault this secret belongs to
- * @param secretId - The secret ID (client-generated UUIDv7 for grouping updates)
- * @param secretData - The secret data to encrypt and send
- * @param vaultKey - The vault key for encryption
- * @param apiClient - The orpc API client
  * @returns Server response with generated ID, order numbers, and timestamp
  */
-export async function pushSecretUpdate(
-  vaultId: string,
-  secretId: string,
-  secretData: SecretBlobData,
-  vaultKey: FixedBuf<32>,
-  apiClient: KeypearsClient,
-): Promise<{
+export async function pushSecretUpdate({
+  vaultId,
+  secretId,
+  secretData,
+  vaultKey,
+  apiClient,
+  isRead = false,
+}: {
+  vaultId: string;
+  secretId: string;
+  secretData: SecretBlobData;
+  vaultKey: FixedBuf<32>;
+  apiClient: KeypearsClient;
+  isRead?: boolean;
+}): Promise<{
   id: string;
   globalOrder: number;
   localOrder: number;
@@ -207,7 +210,7 @@ export async function pushSecretUpdate(
         createdAt: response.createdAt.getTime(),
       },
     ],
-    true, // isRead = true since user just created it
+    isRead,
   );
 
   return {
@@ -281,13 +284,14 @@ export async function syncInboxMessages(
       };
 
       // 4. Push to server as secret_update (uses channel's secretId)
-      await pushSecretUpdate(
+      await pushSecretUpdate({
         vaultId,
-        msg.channelSecretId,
-        messageSecretData,
+        secretId: msg.channelSecretId,
+        secretData: messageSecretData,
         vaultKey,
         apiClient,
-      );
+        // isRead defaults to false - received messages are unread
+      });
 
       // Track successfully synced message
       syncedMessageIds.push(msg.id);

@@ -16,14 +16,8 @@ import {
 } from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import {
-  getLatestSecret,
-  insertSecretUpdatesFromSync,
-} from "~app/db/models/password";
-import {
-  decryptSecretUpdateBlob,
-  encryptSecretUpdateBlob,
-} from "~app/lib/secret-encryption";
+import { getLatestSecret } from "~app/db/models/password";
+import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import { triggerManualSync } from "~app/lib/sync-service";
@@ -146,35 +140,15 @@ export default function EditPassword({ loaderData }: Route.ComponentProps) {
       // Get vault key for encryption
       const vaultKey = getVaultKey(vaultId);
 
-      // Push update to server (creates new version with higher localOrder)
-      const serverResponse = await pushSecretUpdate(
+      // Push update to server and save locally (creates new version with higher localOrder)
+      await pushSecretUpdate({
         vaultId,
         secretId, // Same secretId for versioning
         secretData,
         vaultKey,
-        authedClient,
-      );
-
-      // Immediately store locally with server-generated data
-      // Pass isRead=true since this is a locally-created update
-      const encryptedBlob = encryptSecretUpdateBlob(secretData, vaultKey);
-      await insertSecretUpdatesFromSync(
-        [
-          {
-            id: serverResponse.id,
-            vaultId,
-            secretId,
-            globalOrder: serverResponse.globalOrder,
-            localOrder: serverResponse.localOrder,
-            name: secretData.name,
-            type: secretData.type,
-            deleted: secretData.deleted,
-            encryptedBlob,
-            createdAt: new Date(serverResponse.createdAt).getTime(),
-          },
-        ],
-        true,
-      );
+        apiClient: authedClient,
+        isRead: true, // User-initiated action
+      });
 
       // Still trigger sync to fetch any other updates
       await triggerManualSync(vaultId);

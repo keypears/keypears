@@ -136,7 +136,14 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
 
       // Push tombstone to server (creates new version with higher localOrder)
       const vaultKey = getVaultKey(vaultId);
-      await pushSecretUpdate(vaultId, secretId, secretData, vaultKey, client);
+      await pushSecretUpdate({
+        vaultId,
+        secretId,
+        secretData,
+        vaultKey,
+        apiClient: client,
+        isRead: true, // User-initiated action
+      });
 
       // Trigger immediate sync to fetch the tombstone
       await triggerManualSync(vaultId);
