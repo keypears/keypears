@@ -508,18 +508,17 @@ function formatPowTime(seconds: number): string {
  * - GPU: ~1M hashes/sec
  * - CPU: ~100k hashes/sec (10x slower)
  *
- * @param difficulty - The PoW difficulty as bigint or string
+ * @param difficulty - The PoW difficulty as a number
  * @returns Object with formatted difficulty display and estimated times
  */
-export function estimatePowTime(difficulty: bigint | string): {
+export function estimatePowTime(difficulty: number): {
   display: string; // e.g., "4M" or "128M"
   secondsGpu: number; // Raw seconds on GPU
   secondsCpu: number; // Raw seconds on CPU (~10x slower)
   timeGpu: string; // e.g., "~4 seconds" or "~2 minutes"
   timeCpu: string; // e.g., "~40 seconds" or "~20 minutes"
 } {
-  const n = typeof difficulty === "string" ? BigInt(difficulty) : difficulty;
-  const millions = Number(n / 1_000_000n);
+  const millions = Math.floor(difficulty / 1_000_000);
 
   // Rough estimates based on observed performance:
   // GPU: ~1M hashes/sec
@@ -528,7 +527,7 @@ export function estimatePowTime(difficulty: bigint | string): {
   const secondsCpu = millions * 10;
 
   return {
-    display: millions >= 1 ? `${millions}M` : n.toString(),
+    display: millions >= 1 ? `${millions}M` : difficulty.toString(),
     secondsGpu,
     secondsCpu,
     timeGpu: formatPowTime(secondsGpu),

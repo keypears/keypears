@@ -219,7 +219,7 @@ export default function VaultSettingsPage({
               <div className="mt-3 space-y-1">
                 <p className="text-muted-foreground text-xs">
                   Current: {currentDifficulty ? formatNumber(currentDifficulty) : "System default"}{" "}
-                  {currentDifficulty && `(${estimatePowTime(BigInt(currentDifficulty)).timeGpu} on GPU)`}
+                  {currentDifficulty && `(${estimatePowTime(currentDifficulty).timeGpu} on GPU)`}
                 </p>
                 {isCustomValue() && currentDifficulty && (
                   <p className="text-muted-foreground text-xs">
@@ -258,7 +258,7 @@ export default function VaultSettingsPage({
             )}
             {customDifficultyInput && !customDifficultyError && (
               <p className="text-muted-foreground mt-2 text-sm">
-                Estimated time: {estimatePowTime(customDifficultyInput).timeGpu} on GPU
+                Estimated time: {estimatePowTime(Number(customDifficultyInput)).timeGpu} on GPU
               </p>
             )}
           </div>

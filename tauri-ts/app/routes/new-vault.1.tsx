@@ -189,11 +189,11 @@ export default function NewVaultStep1() {
                         Mining difficulty:{" "}
                       </span>
                       <span className="font-mono font-medium">
-                        {estimatePowTime(BigInt(difficulty)).display}
+                        {estimatePowTime(difficulty).display}
                       </span>
                       <span className="text-muted-foreground">
                         {" "}
-                        ({estimatePowTime(BigInt(difficulty)).timeGpu})
+                        ({estimatePowTime(difficulty).timeGpu})
                       </span>
                     </p>
                     {name.length < 10 && (
