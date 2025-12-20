@@ -1,5 +1,5 @@
 import type { Route } from "./+types/vault.$vaultId.messages.$channelId";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
+import { useUnreadCount } from "~app/contexts/sync-context";
 import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import {
@@ -316,6 +317,17 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     setHasMore(initialHasMore);
     setLastInboxOrder(initialLastOrder);
   }, [initialMessages, initialHasMore, initialLastOrder]);
+
+  // Auto-refresh when new messages arrive via background sync
+  const globalUnreadCount = useUnreadCount(vaultId);
+  const prevUnreadCount = useRef(globalUnreadCount);
+
+  useEffect(() => {
+    if (globalUnreadCount > prevUnreadCount.current) {
+      revalidator.revalidate();
+    }
+    prevUnreadCount.current = globalUnreadCount;
+  }, [globalUnreadCount, revalidator]);
 
   const handleLoadMore = async (): Promise<void> => {
     // Load more only works for non-saved channels (inbox pagination)
