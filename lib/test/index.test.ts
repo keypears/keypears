@@ -462,9 +462,8 @@ describe("Index", () => {
   });
 
   describe("difficultyForName", () => {
-    it("should have BASE_REGISTRATION_DIFFICULTY equal to 4,194,304 (2^22)", () => {
-      expect(BASE_REGISTRATION_DIFFICULTY).toBe(4194304n);
-      expect(BASE_REGISTRATION_DIFFICULTY).toBe(1n << 22n);
+    it("should have BASE_REGISTRATION_DIFFICULTY equal to 4,000,000", () => {
+      expect(BASE_REGISTRATION_DIFFICULTY).toBe(4000000n);
     });
 
     it("should have TEST_BASE_DIFFICULTY equal to 1", () => {

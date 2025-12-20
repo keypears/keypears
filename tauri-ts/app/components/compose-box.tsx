@@ -14,7 +14,7 @@ import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Fallback difficulty (used only if API doesn't provide one, which shouldn't happen)
-const FALLBACK_MESSAGING_DIFFICULTY = "4194304"; // 2^22
+const FALLBACK_MESSAGING_DIFFICULTY = "4000000";
 
 type SendPhase = "idle" | "preparing" | "mining" | "sending" | "saving" | "error";
 

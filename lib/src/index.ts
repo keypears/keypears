@@ -467,11 +467,11 @@ export function calculatePasswordEntropy(
 // ============================================================================
 
 /**
- * Base difficulty for PoW registration: 4,194,304 (2^22)
+ * Base difficulty for PoW registration: 4,000,000
  * This is the difficulty for names with 10+ characters.
  * Shorter names have exponentially higher difficulty.
  */
-export const BASE_REGISTRATION_DIFFICULTY = 4194304n;
+export const BASE_REGISTRATION_DIFFICULTY = 4000000n;
 
 /**
  * Base difficulty for tests: 1 (trivial, for fast test execution)

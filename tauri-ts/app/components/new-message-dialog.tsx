@@ -23,7 +23,7 @@ import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
 
 // Default messaging difficulty (can be overridden by recipient settings)
-const DEFAULT_MESSAGING_DIFFICULTY = "4194304"; // 2^22
+const DEFAULT_MESSAGING_DIFFICULTY = "4000000";
 
 type SendPhase =
   | "input"

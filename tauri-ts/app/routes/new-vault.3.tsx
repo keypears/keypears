@@ -25,7 +25,7 @@ import { startBackgroundSync } from "~app/lib/sync-service";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 
 // Fallback difficulty if not provided (should not happen in normal flow)
-const FALLBACK_DIFFICULTY = "4194304";
+const FALLBACK_DIFFICULTY = "4000000";
 
 type CreationPhase = "mining" | "registering" | "success" | "error";
 

@@ -13,8 +13,8 @@ export const HEADER_SIZE_64B = 64;
 export const NONCE_START_64B = 0;
 export const NONCE_END_64B = 32;
 
-// Default messaging difficulty (2^22 = ~4 million hashes)
-export const DEFAULT_MESSAGING_DIFFICULTY = "4194304";
+// Default messaging difficulty (~4 million hashes)
+export const DEFAULT_MESSAGING_DIFFICULTY = "4000000";
 
 // Minimum difficulty users can set (prevents trivially low values)
 export const MIN_USER_DIFFICULTY = "256";
@@ -22,7 +22,7 @@ export const MIN_USER_DIFFICULTY = "256";
 // Difficulty presets for UI
 export const DIFFICULTY_PRESETS = {
   default: null, // Uses system default
-  easy: "4194304", // 4M hashes
-  medium: "41943040", // 40M hashes
-  hard: "419430400", // 400M hashes
+  easy: "4000000", // 4M hashes
+  medium: "40000000", // 40M hashes
+  hard: "400000000", // 400M hashes
 } as const;

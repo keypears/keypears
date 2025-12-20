@@ -22,9 +22,9 @@ import type { VaultSettings } from "@keypears/api-server";
 // Difficulty presets
 const DIFFICULTY_PRESETS = [
   { label: "Default", value: null, description: "System default (~4M hashes)" },
-  { label: "Easy", value: "4194304", description: "~4 seconds on GPU" },
-  { label: "Medium", value: "41943040", description: "~40 seconds on GPU" },
-  { label: "Hard", value: "419430400", description: "~6 minutes on GPU" },
+  { label: "Easy", value: "4000000", description: "~4 seconds on GPU" },
+  { label: "Medium", value: "40000000", description: "~40 seconds on GPU" },
+  { label: "Hard", value: "400000000", description: "~6 minutes on GPU" },
 ] as const;
 
 // Minimum difficulty users can set

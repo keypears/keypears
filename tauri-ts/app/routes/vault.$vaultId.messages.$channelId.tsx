@@ -37,9 +37,9 @@ import { getSecretUpdatesBySecretId } from "~app/db/models/password";
 // Difficulty presets (same as vault settings)
 const DIFFICULTY_PRESETS = [
   { label: "Default", value: null, description: "Use vault setting" },
-  { label: "Easy", value: "4194304", description: "~4 seconds" },
-  { label: "Medium", value: "41943040", description: "~40 seconds" },
-  { label: "Hard", value: "419430400", description: "~6 minutes" },
+  { label: "Easy", value: "4000000", description: "~4 seconds" },
+  { label: "Medium", value: "40000000", description: "~40 seconds" },
+  { label: "Hard", value: "400000000", description: "~6 minutes" },
 ] as const;
 
 // Minimum difficulty users can set
