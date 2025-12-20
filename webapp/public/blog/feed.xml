@@ -4,7 +4,7 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 20 Dec 2025 22:39:12 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 20 Dec 2025 23:04:51 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -166,11 +166,6 @@ can:</p>
 <li>Watch the PoW mining (your GPU will spin up briefly)</li>
 <li>Send your message</li>
 </ol>
-<p>For technical details, see our documentation:</p>
-<ul>
-<li><a href="https://keypears.com/docs/dh">Diffie-Hellman Protocol</a></li>
-<li><a href="https://keypears.com/docs/messages">Messaging System</a></li>
-</ul>
 <p>The complete implementation is open source in our
 <a href="https://github.com/keypears/keypears">GitHub repository</a>.</p>
 <p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>]]></content:encoded>

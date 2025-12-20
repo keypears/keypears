@@ -182,11 +182,6 @@ can:
 4. Watch the PoW mining (your GPU will spin up briefly)
 5. Send your message
 
-For technical details, see our documentation:
-
-- [Diffie-Hellman Protocol](https://keypears.com/docs/dh)
-- [Messaging System](https://keypears.com/docs/messages)
-
 The complete implementation is open source in our
 [GitHub repository](https://github.com/keypears/keypears).
 
