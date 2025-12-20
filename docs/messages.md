@@ -18,6 +18,7 @@ plaintext content.
 - PoW-gated to prevent spam
 - Per-participant storage for full independence
 - Optional vault sync for cross-device access
+- Reverse chronological display (newest messages at top)
 
 ## Two-Layer Architecture
 
@@ -584,6 +585,30 @@ last_message_at     timestamp
 ### Read Receipts
 
 - **Deferred to later** - privacy tradeoff to consider
+
+### Reverse Chronological Order
+
+Messages are displayed in **reverse chronological order** (newest at top, oldest at
+bottom), with the compose box positioned above the message list. This differs from
+most messaging apps which display chronologically (oldest at top).
+
+**Rationale:**
+
+- **Consistency**: Matches the display pattern used throughout the app (passwords,
+  sync activity, channels list) where newest items appear first
+- **Web platform compatibility**: Aligns with how the web naturally works - content
+  at the top is seen first, scrolling down reveals older content
+- **Simplicity**: Single consistent pattern across all list views reduces cognitive
+  load and implementation complexity
+- **Blog-like model**: Treats message threads like a feed where new content appears
+  at the top, similar to blogs, social media feeds, and email inboxes
+
+**Implementation:**
+
+- APIs return messages in DESC order (newest first)
+- Client displays messages in the order received from API
+- "Load more" fetches older messages that appear below
+- Compose box appears at the top, before the message list
 
 ## Integration with Existing Systems
 
