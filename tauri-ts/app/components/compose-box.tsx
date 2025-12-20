@@ -209,7 +209,7 @@ export function ComposeBox({
   const isProcessing = phase !== "idle" && phase !== "error";
 
   return (
-    <div className="border-border bg-card rounded-lg border p-3">
+    <div>
       {phase === "error" && (
         <div className="border-destructive/50 bg-destructive/10 mb-3 rounded-lg border p-3">
           <p className="text-destructive text-sm">{error}</p>
