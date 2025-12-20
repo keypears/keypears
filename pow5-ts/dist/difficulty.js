@@ -13,18 +13,18 @@ const MAX_TARGET = (1n << 256n) - 1n;
  * @returns 32-byte target in big-endian format
  */
 export function targetFromDifficulty(difficulty) {
-  if (difficulty <= 0n) {
-    throw new Error("Difficulty must be greater than 0");
-  }
-  const target = MAX_TARGET / difficulty;
-  // Convert bigint to 32-byte big-endian buffer
-  const buf = WebBuf.alloc(32);
-  let remaining = target;
-  for (let i = 31; i >= 0; i--) {
-    buf[i] = Number(remaining & 0xffn);
-    remaining = remaining >> 8n;
-  }
-  return FixedBuf.fromBuf(32, buf);
+    if (difficulty <= 0n) {
+        throw new Error("Difficulty must be greater than 0");
+    }
+    const target = MAX_TARGET / difficulty;
+    // Convert bigint to 32-byte big-endian buffer
+    const buf = WebBuf.alloc(32);
+    let remaining = target;
+    for (let i = 31; i >= 0; i--) {
+        buf[i] = Number(remaining & 0xffn);
+        remaining = remaining >> 8n;
+    }
+    return FixedBuf.fromBuf(32, buf);
 }
 /**
  * Convert a 256-bit target to a difficulty number.
@@ -36,19 +36,19 @@ export function targetFromDifficulty(difficulty) {
  * @returns The difficulty as a bigint
  */
 export function difficultyFromTarget(target) {
-  // Convert 32-byte big-endian buffer to bigint
-  let targetBn = 0n;
-  for (let i = 0; i < 32; i++) {
-    const byte = target.buf[i];
-    if (byte === undefined) {
-      throw new Error(`Target byte at index ${i} is undefined`);
+    // Convert 32-byte big-endian buffer to bigint
+    let targetBn = 0n;
+    for (let i = 0; i < 32; i++) {
+        const byte = target.buf[i];
+        if (byte === undefined) {
+            throw new Error(`Target byte at index ${i} is undefined`);
+        }
+        targetBn = (targetBn << 8n) | BigInt(byte);
     }
-    targetBn = (targetBn << 8n) | BigInt(byte);
-  }
-  if (targetBn === 0n) {
-    throw new Error("Target cannot be zero");
-  }
-  return MAX_TARGET / targetBn;
+    if (targetBn === 0n) {
+        throw new Error("Target cannot be zero");
+    }
+    return MAX_TARGET / targetBn;
 }
 /**
  * Check if a hash meets the target (hash < target).
@@ -58,20 +58,20 @@ export function difficultyFromTarget(target) {
  * @returns true if hash < target (valid proof of work)
  */
 export function hashMeetsTarget(hash, target) {
-  // Compare byte by byte from most significant
-  for (let i = 0; i < 32; i++) {
-    const hashByte = hash.buf[i];
-    const targetByte = target.buf[i];
-    if (hashByte === undefined || targetByte === undefined) {
-      throw new Error(`Byte at index ${i} is undefined`);
+    // Compare byte by byte from most significant
+    for (let i = 0; i < 32; i++) {
+        const hashByte = hash.buf[i];
+        const targetByte = target.buf[i];
+        if (hashByte === undefined || targetByte === undefined) {
+            throw new Error(`Byte at index ${i} is undefined`);
+        }
+        if (hashByte < targetByte) {
+            return true;
+        }
+        if (hashByte > targetByte) {
+            return false;
+        }
     }
-    if (hashByte < targetByte) {
-      return true;
-    }
-    if (hashByte > targetByte) {
-      return false;
-    }
-  }
-  // Equal - hash must be strictly less than target
-  return false;
+    // Equal - hash must be strictly less than target
+    return false;
 }

@@ -5,6 +5,7 @@ import {
   publicKeyCreate,
   privateKeyAdd,
   publicKeyAdd,
+  sharedSecret,
 } from "@webbuf/secp256k1";
 import { WebBuf } from "@webbuf/webbuf";
 import { z } from "zod";
@@ -22,7 +23,8 @@ export { sha256Hash, sha256Hmac, acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf };
 // - publicKeyCreate: derive public key from private key
 // - privateKeyAdd: add two private keys (mod curve order)
 // - publicKeyAdd: add two public keys (elliptic curve point addition)
-export { publicKeyCreate, privateKeyAdd, publicKeyAdd };
+// - sharedSecret: compute ECDH shared secret from private key and public key
+export { publicKeyCreate, privateKeyAdd, publicKeyAdd, sharedSecret };
 
 // Export domain configuration
 export {

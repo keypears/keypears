@@ -52,8 +52,12 @@ export function PasswordList({ showDeleted = false }: PasswordListProps) {
     loadPasswords();
   }, [vaultId]);
 
-  // Filter passwords based on showDeleted prop
-  const filteredPasswords = passwords.filter((p) => p.deleted === showDeleted);
+  // Filter passwords based on showDeleted prop and exclude messages
+  const filteredPasswords = passwords.filter((p) => {
+    // Exclude messages from password list
+    if (p.decryptedBlob.type === "message") return false;
+    return p.deleted === showDeleted;
+  });
 
   if (!vaultId) {
     return null;

@@ -1,4 +1,17 @@
 import { acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf } from "@keypears/lib";
+import type { MessageContent } from "./message-encryption";
+
+/**
+ * Message-specific data stored in vault when a channel is saved
+ */
+export interface MessageSecretBlob {
+  direction: "sent" | "received";
+  counterpartyAddress: string;
+  myEngagementPubKey: string;
+  theirEngagementPubKey: string;
+  content: MessageContent;
+  timestamp: number;
+}
 
 /**
  * Secret data that goes in the encrypted blob
@@ -6,7 +19,7 @@ import { acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf } from "@keypears/lib";
  */
 export interface SecretBlobData {
   name: string;
-  type: "password" | "envvar" | "apikey" | "walletkey" | "passkey";
+  type: "password" | "envvar" | "apikey" | "walletkey" | "passkey" | "message";
   domain?: string;
   username?: string;
   email?: string;
@@ -16,6 +29,9 @@ export interface SecretBlobData {
   folders?: string[];
   tags?: string[];
   deleted: boolean;
+
+  // Message-specific fields (only when type === "message")
+  messageData?: MessageSecretBlob;
 }
 
 /**

@@ -26,7 +26,4 @@ export declare function difficultyFromTarget(target: FixedBuf<32>): bigint;
  * @param target - 32-byte target in big-endian format
  * @returns true if hash < target (valid proof of work)
  */
-export declare function hashMeetsTarget(
-  hash: FixedBuf<32>,
-  target: FixedBuf<32>,
-): boolean;
+export declare function hashMeetsTarget(hash: FixedBuf<32>, target: FixedBuf<32>): boolean;

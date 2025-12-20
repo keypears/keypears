@@ -23,6 +23,7 @@ import { sendMessageProcedure } from "./procedures/send-message.js";
 import { getChannelsProcedure } from "./procedures/get-channels.js";
 import { getChannelMessagesProcedure } from "./procedures/get-channel-messages.js";
 import { updateChannelStatusProcedure } from "./procedures/update-channel-status.js";
+import { getEngagementKeyByPubKeyProcedure } from "./procedures/get-engagement-key-by-pubkey.js";
 
 /**
  * KeyPears Node API Router
@@ -53,6 +54,7 @@ export const router = {
   getChannels: getChannelsProcedure,
   getChannelMessages: getChannelMessagesProcedure,
   updateChannelStatus: updateChannelStatusProcedure,
+  getEngagementKeyByPubKey: getEngagementKeyByPubKeyProcedure,
 };
 
 // Export the router type for client usage

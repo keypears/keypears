@@ -300,3 +300,16 @@ export const UpdateChannelStatusResponseSchema = z.object({
   status: ChannelStatusSchema,
   updatedAt: z.date(),
 });
+
+// Get engagement key by public key - look up engagement key ID from public key
+// Used by client to find the engagement key ID for decryption
+export const GetEngagementKeyByPubKeyRequestSchema = z.object({
+  vaultId: z.string().length(26), // UUIDv7 (26-char)
+  pubKey: z.string().length(66), // Compressed secp256k1 public key (33 bytes hex)
+});
+
+export const GetEngagementKeyByPubKeyResponseSchema = z.object({
+  engagementKeyId: z.string().length(26), // UUIDv7 (26-char)
+  purpose: EngagementKeyPurposeSchema,
+  counterpartyAddress: z.string().nullable(),
+});

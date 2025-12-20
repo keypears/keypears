@@ -6,7 +6,7 @@ let server: Server | null = null;
  * Vitest global setup - starts the test server before any tests run.
  * The server is shared across all test files and runs on port 4275.
  */
-export async function setup() {
+export async function setup(): Promise<void> {
   // Load environment variables (same as test:server script)
   const dotenvx = await import("@dotenvx/dotenvx");
   dotenvx.config({ path: ".env.development" });
@@ -21,7 +21,7 @@ export async function setup() {
 /**
  * Vitest global teardown - stops the test server after all tests complete.
  */
-export async function teardown() {
+export async function teardown(): Promise<void> {
   if (server) {
     await new Promise<void>((resolve, reject) => {
       server!.close((err) => {

@@ -1,6 +1,6 @@
+import { createServer, type Server } from "node:http";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { createServer, type Server } from "node:http";
 import { RPCHandler } from "@orpc/server/node";
 import { CORSPlugin } from "@orpc/server/plugins";
 // Importing router automatically loads derivation keys from environment variables

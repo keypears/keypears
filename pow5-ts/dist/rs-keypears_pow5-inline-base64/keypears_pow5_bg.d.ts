@@ -24,10 +24,7 @@ export function elementary_iteration_217a(header: Uint8Array): Uint8Array;
  * @param {number} nonce
  * @returns {Uint8Array}
  */
-export function insert_nonce_217a(
-  header: Uint8Array,
-  nonce: number,
-): Uint8Array;
+export function insert_nonce_217a(header: Uint8Array, nonce: number): Uint8Array;
 /**
  * Matmul work computation for 64-byte input.
  * Same ASIC-resistant algorithm as 217a, just with different input size.
@@ -57,9 +54,6 @@ export function insert_nonce_64b(header: Uint8Array, nonce: number): Uint8Array;
  * @param {Uint8Array} nonce
  * @returns {Uint8Array}
  */
-export function set_nonce_64b(
-  header: Uint8Array,
-  nonce: Uint8Array,
-): Uint8Array;
+export function set_nonce_64b(header: Uint8Array, nonce: Uint8Array): Uint8Array;
 export function __wbindgen_cast_2241b6af4c4b2941(arg0: any, arg1: any): string;
 export function __wbindgen_init_externref_table(): void;
