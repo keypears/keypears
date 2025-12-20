@@ -119,10 +119,9 @@ function ActivityItem({
             <span className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
           )}
           <span className="truncate font-medium">{update.name}</span>
-          <span className="text-muted-foreground text-sm">{actionText}</span>
         </div>
         <div className="text-muted-foreground mt-1 text-sm">
-          {formatRelativeTime(update.createdAt)}
+          {actionText} {formatRelativeTime(update.createdAt)}
         </div>
       </div>
       <Button
