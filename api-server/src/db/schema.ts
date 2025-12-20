@@ -292,12 +292,6 @@ export type InsertPowChallenge = typeof TablePowChallenge.$inferInsert;
 
 // Channel view table - each user's view of a conversation with another user
 // This is a per-participant view, not a shared channel record
-// Channel status enum for type safety
-// - "pending": User hasn't decided yet (or moved back to pending)
-// - "saved": Channel is saved to user's vault (accepted)
-// - "ignored": Hidden from main feed, only visible in "ignored" feed
-const channelStatusEnum = ["pending", "saved", "ignored"] as const;
-
 export const TableChannelView = pgTable(
   "channel_view",
   {
@@ -309,15 +303,6 @@ export const TableChannelView = pgTable(
 
     // Who they're talking to (e.g., "bob@example2.com")
     counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
-
-    // Channel status from owner's perspective
-    // "saved" = in vault (accepted), "ignored" = hidden, "pending" = undecided
-    status: varchar("status", {
-      length: 20,
-      enum: channelStatusEnum,
-    })
-      .notNull()
-      .default("pending"),
 
     // Per-channel PoW difficulty override (null = use global setting)
     // Stored as string for bigint compatibility

@@ -9,21 +9,17 @@ import {
   getUnlockedVault,
   getSessionToken,
 } from "~app/lib/vault-store";
-import type { ChannelStatus } from "@keypears/api-server";
 import { NewMessageDialog } from "~app/components/new-message-dialog";
 
 interface Channel {
   id: string;
   counterpartyAddress: string;
-  status: ChannelStatus;
   minDifficulty: string | null;
   unreadCount: number;
   lastMessageAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
-
-type StatusFilter = "all" | ChannelStatus;
 
 function formatRelativeTime(date: Date | null): string {
   if (!date) return "";
@@ -52,17 +48,6 @@ function ChannelCard({
   channel: Channel;
   vaultId: string;
 }) {
-  // Get status badge color
-  const statusBadgeClass =
-    channel.status === "saved"
-      ? "bg-green-500/10 text-green-600 dark:text-green-400"
-      : channel.status === "ignored"
-        ? "bg-gray-500/10 text-gray-600 dark:text-gray-400"
-        : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400";
-
-  const statusLabel =
-    channel.status.charAt(0).toUpperCase() + channel.status.slice(1);
-
   return (
     <Link
       to={href("/vault/:vaultId/messages/:channelId", {
@@ -87,16 +72,11 @@ function ChannelCard({
                 </span>
               )}
             </div>
-            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass}`}
-              >
-                {statusLabel}
-              </span>
-              {channel.lastMessageAt && (
-                <span>{formatRelativeTime(channel.lastMessageAt)}</span>
-              )}
-            </div>
+            {channel.lastMessageAt && (
+              <div className="text-muted-foreground text-sm">
+                {formatRelativeTime(channel.lastMessageAt)}
+              </div>
+            )}
           </div>
         </div>
         <ChevronRight className="text-muted-foreground h-5 w-5 flex-shrink-0" />
@@ -104,13 +84,6 @@ function ChannelCard({
     </Link>
   );
 }
-
-const STATUS_TABS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "saved", label: "Saved" },
-  { value: "ignored", label: "Ignored" },
-];
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;
@@ -161,7 +134,6 @@ export default function VaultMessagesIndex({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const revalidator = useRevalidator();
 
@@ -206,12 +178,6 @@ export default function VaultMessagesIndex({
     }
   };
 
-  // Filter channels by status
-  const filteredChannels =
-    statusFilter === "all"
-      ? channels
-      : channels.filter((c) => c.status === statusFilter);
-
   return (
     <>
       <Navbar vaultId={vaultId} />
@@ -225,23 +191,6 @@ export default function VaultMessagesIndex({
           </Button>
         </div>
 
-        {/* Status filter tabs */}
-        <div className="border-border mb-4 flex gap-1 rounded-lg border p-1">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setStatusFilter(tab.value)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                statusFilter === tab.value
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         {error && (
           <div className="border-destructive/50 bg-destructive/10 mb-4 rounded-lg border p-4">
             <p className="text-destructive text-sm">{error}</p>
@@ -250,39 +199,31 @@ export default function VaultMessagesIndex({
 
         {/* Channel list */}
         <div className="space-y-2">
-          {filteredChannels.length === 0 ? (
+          {channels.length === 0 ? (
             <div className="border-border bg-card rounded-lg border p-8">
               <div className="flex flex-col items-center text-center">
                 <div className="bg-primary/10 mb-4 rounded-full p-4">
                   <Inbox className="text-primary h-8 w-8" />
                 </div>
-                <h2 className="mb-2 text-lg font-semibold">
-                  {statusFilter === "all"
-                    ? "No messages yet"
-                    : `No ${statusFilter} messages`}
-                </h2>
+                <h2 className="mb-2 text-lg font-semibold">No messages yet</h2>
                 <p className="text-muted-foreground mb-4 text-sm">
-                  {statusFilter === "all"
-                    ? "Start a conversation by sending a message to someone."
-                    : `You don't have any ${statusFilter} channels.`}
+                  Start a conversation by sending a message to someone.
                 </p>
-                {statusFilter === "all" && (
-                  <Button onClick={() => setIsNewMessageOpen(true)}>
-                    <Plus size={16} className="mr-2" />
-                    Send First Message
-                  </Button>
-                )}
+                <Button onClick={() => setIsNewMessageOpen(true)}>
+                  <Plus size={16} className="mr-2" />
+                  Send First Message
+                </Button>
               </div>
             </div>
           ) : (
-            filteredChannels.map((channel) => (
+            channels.map((channel) => (
               <ChannelCard key={channel.id} channel={channel} vaultId={vaultId} />
             ))
           )}
         </div>
 
         {/* Load more button */}
-        {hasMore && filteredChannels.length > 0 && statusFilter === "all" && (
+        {hasMore && channels.length > 0 && (
           <div className="mt-6 text-center">
             <Button
               variant="outline"

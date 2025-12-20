@@ -1,32 +1,21 @@
 import type { Route } from "./+types/vault.$vaultId.messages.$channelId";
 import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
-import {
-  ArrowLeft,
-  MessageSquare,
-  Bookmark,
-  EyeOff,
-  Clock,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { useUnreadCount } from "~app/contexts/sync-context";
-import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
 import {
   getUnlockedVault,
   getSessionToken,
   getVaultKey,
 } from "~app/lib/vault-store";
-import { deriveEngagementPrivKeyByPubKey } from "~app/lib/engagement-key-utils";
-import { decryptMessage } from "~app/lib/message-encryption";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
-import { FixedBuf } from "@keypears/lib";
-import type { ChannelStatus } from "@keypears/api-server";
 import { ComposeBox } from "~app/components/compose-box";
 import { getSecretUpdatesBySecretId } from "~app/db/models/password";
 
 /**
- * Unified display message type that works for both vault and inbox sources
+ * Display message type for rendering
  */
 interface DisplayMessage {
   id: string;
@@ -67,7 +56,7 @@ function MessageBubble({
 }
 
 /**
- * Load messages from local vault for saved channels
+ * Load messages from local vault
  */
 async function loadVaultMessages(
   vaultId: string,
@@ -110,74 +99,6 @@ async function loadVaultMessages(
   return messages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
 
-/**
- * Inbox message from server (for pending/ignored channels)
- */
-interface InboxMessage {
-  id: string;
-  senderAddress: string;
-  orderInChannel: number;
-  encryptedContent: string;
-  senderEngagementPubKey: string;
-  recipientEngagementPubKey: string;
-  isRead: boolean;
-  createdAt: Date;
-}
-
-/**
- * Decrypt inbox messages using DH keys
- */
-async function decryptInboxMessages(
-  messages: InboxMessage[],
-  vaultId: string,
-  vaultDomain: string,
-  ownerAddress: string,
-): Promise<DisplayMessage[]> {
-  const result: DisplayMessage[] = [];
-
-  for (const msg of messages) {
-    const isFromMe = msg.senderAddress === ownerAddress;
-
-    try {
-      // Derive my private key using the recipient engagement pubkey
-      const myPrivKey = await deriveEngagementPrivKeyByPubKey(
-        vaultId,
-        vaultDomain,
-        msg.recipientEngagementPubKey,
-      );
-
-      // Parse sender's public key
-      const theirPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
-
-      // Decrypt the message
-      const content = decryptMessage(
-        msg.encryptedContent,
-        myPrivKey,
-        theirPubKey,
-      );
-
-      result.push({
-        id: msg.id,
-        direction: isFromMe ? "sent" : "received",
-        text: content.text,
-        timestamp: msg.createdAt,
-        decryptionError: null,
-      });
-    } catch (err) {
-      console.error("Failed to decrypt inbox message:", err);
-      result.push({
-        id: msg.id,
-        direction: isFromMe ? "sent" : "received",
-        text: "",
-        timestamp: msg.createdAt,
-        decryptionError: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  }
-
-  return result;
-}
-
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const { vaultId, channelId } = params;
 
@@ -211,34 +132,8 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     throw new Response("Channel not found", { status: 404 });
   }
 
-  // Load messages based on channel status
-  let messages: DisplayMessage[];
-  let hasMore = false;
-  let inboxMessages: InboxMessage[] | null = null;
-
-  if (channel.status === "saved") {
-    // For saved channels: query local vault
-    messages = await loadVaultMessages(vaultId!, channel.secretId);
-  } else {
-    // For pending/ignored channels: query server inbox
-    const messagesResponse = await client.api.getChannelMessages({
-      vaultId,
-      channelId: channelId!,
-      limit: 50,
-    });
-
-    // Store raw inbox messages for load more functionality
-    inboxMessages = messagesResponse.messages;
-    hasMore = messagesResponse.hasMore;
-
-    // Decrypt inbox messages
-    messages = await decryptInboxMessages(
-      messagesResponse.messages,
-      vaultId!,
-      vault.vaultDomain,
-      ownerAddress,
-    );
-  }
+  // Always load messages from local vault (sync service keeps it updated)
+  const messages = await loadVaultMessages(vaultId!, channel.secretId);
 
   return {
     vaultId: vaultId!,
@@ -247,51 +142,25 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
     ownerAddress,
     channel,
     messages,
-    hasMore,
-    // Store last inbox message order for pagination (only for non-saved channels)
-    lastInboxOrder: inboxMessages && inboxMessages.length > 0
-      ? inboxMessages[inboxMessages.length - 1]?.orderInChannel
-      : undefined,
   };
 }
 
 export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   const {
     vaultId,
-    channelId,
     vaultDomain,
     ownerAddress,
     channel,
     messages: initialMessages,
-    hasMore: initialHasMore,
-    lastInboxOrder: initialLastOrder,
   } = loaderData;
 
   const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [lastInboxOrder, setLastInboxOrder] = useState(initialLastOrder);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [channelStatus, setChannelStatus] = useState<ChannelStatus>(
-    channel.status,
-  );
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const revalidator = useRevalidator();
-
-  // Reload messages when status changes to "saved" (need to switch from inbox to vault)
-  useEffect(() => {
-    if (channelStatus === "saved" && channel.status !== "saved") {
-      // Status just changed to saved - reload from vault
-      revalidator.revalidate();
-    }
-  }, [channelStatus, channel.status, revalidator]);
 
   // Sync state with loader data when it changes (e.g., after revalidation)
   useEffect(() => {
     setMessages(initialMessages);
-    setHasMore(initialHasMore);
-    setLastInboxOrder(initialLastOrder);
-  }, [initialMessages, initialHasMore, initialLastOrder]);
+  }, [initialMessages]);
 
   // Auto-refresh when new messages arrive via background sync
   const globalUnreadCount = useUnreadCount(vaultId);
@@ -304,91 +173,8 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
     prevUnreadCount.current = globalUnreadCount;
   }, [globalUnreadCount, revalidator]);
 
-  const handleLoadMore = async (): Promise<void> => {
-    // Load more only works for non-saved channels (inbox pagination)
-    if (!hasMore || isLoadingMore || channelStatus === "saved") return;
-
-    setIsLoadingMore(true);
-
-    try {
-      const sessionToken = getSessionToken(vaultId);
-      if (!sessionToken) {
-        throw new Error("No session token available");
-      }
-
-      const client = await createClientFromDomain(vaultDomain, {
-        sessionToken,
-      });
-
-      const response = await client.api.getChannelMessages({
-        vaultId,
-        channelId,
-        limit: 50,
-        beforeOrder: lastInboxOrder,
-      });
-
-      // Decrypt new messages
-      const newMessages = await decryptInboxMessages(
-        response.messages,
-        vaultId,
-        vaultDomain,
-        ownerAddress,
-      );
-
-      setMessages((prev) => [...prev, ...newMessages]);
-      setHasMore(response.hasMore);
-
-      if (response.messages.length > 0) {
-        setLastInboxOrder(response.messages[response.messages.length - 1]?.orderInChannel);
-      }
-    } catch (err) {
-      console.error("Error loading more messages:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to load more messages",
-      );
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: ChannelStatus): Promise<void> => {
-    if (isUpdatingStatus) return;
-
-    setIsUpdatingStatus(true);
-
-    try {
-      const sessionToken = getSessionToken(vaultId);
-      if (!sessionToken) {
-        throw new Error("No session token available");
-      }
-
-      const client = await createClientFromDomain(vaultDomain, {
-        sessionToken,
-      });
-
-      await client.api.updateChannelStatus({
-        vaultId,
-        channelId,
-        status: newStatus,
-      });
-
-      setChannelStatus(newStatus);
-    } catch (err) {
-      console.error("Error updating channel status:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to update channel status",
-      );
-    } finally {
-      setIsUpdatingStatus(false);
-    }
-  };
-
   const handleMessageSent = (): void => {
     revalidator.revalidate();
-  };
-
-  const handleChannelStatusChanged = (newStatus: "saved"): void => {
-    setChannelStatus(newStatus);
   };
 
   const counterpartyAddress = channel.counterpartyAddress;
@@ -418,56 +204,13 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* Status actions */}
-        <div className="border-border mb-4 flex gap-2 rounded-lg border p-2">
-          <Button
-            variant={channelStatus === "saved" ? "secondary" : "ghost"}
-            size="sm"
-            className="flex-1"
-            onClick={() => handleStatusChange("saved")}
-            disabled={isUpdatingStatus}
-          >
-            <Bookmark size={14} className="mr-1" />
-            Save
-          </Button>
-          <Button
-            variant={channelStatus === "pending" ? "secondary" : "ghost"}
-            size="sm"
-            className="flex-1"
-            onClick={() => handleStatusChange("pending")}
-            disabled={isUpdatingStatus}
-          >
-            <Clock size={14} className="mr-1" />
-            Pending
-          </Button>
-          <Button
-            variant={channelStatus === "ignored" ? "secondary" : "ghost"}
-            size="sm"
-            className="flex-1"
-            onClick={() => handleStatusChange("ignored")}
-            disabled={isUpdatingStatus}
-          >
-            <EyeOff size={14} className="mr-1" />
-            Ignore
-          </Button>
-        </div>
-
-        {error && (
-          <div className="border-destructive/50 bg-destructive/10 mb-4 rounded-lg border p-4">
-            <p className="text-destructive text-sm">{error}</p>
-          </div>
-        )}
-
         {/* Compose box - at top before messages */}
         <ComposeBox
           vaultId={vaultId}
           vaultDomain={vaultDomain}
           ownerAddress={ownerAddress}
           counterpartyAddress={counterpartyAddress}
-          channelId={channelId}
-          channelStatus={channelStatus}
           onMessageSent={handleMessageSent}
-          onChannelStatusChanged={handleChannelStatusChanged}
         />
 
         {/* Message list */}
@@ -477,29 +220,13 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
               <p className="text-muted-foreground">No messages yet</p>
             </div>
           ) : (
-            <>
-              {/* Messages in reverse chronological order (newest first at top) */}
-              {messages.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                />
-              ))}
-
-              {/* Load more button - only for non-saved channels */}
-              {hasMore && channelStatus !== "saved" && (
-                <div className="text-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadMore}
-                    disabled={isLoadingMore}
-                  >
-                    {isLoadingMore ? "Loading..." : "Load older messages"}
-                  </Button>
-                </div>
-              )}
-            </>
+            /* Messages in reverse chronological order (newest first at top) */
+            messages.map((msg) => (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+              />
+            ))
           )}
         </div>
       </div>

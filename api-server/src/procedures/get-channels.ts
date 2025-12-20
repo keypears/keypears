@@ -79,7 +79,6 @@ export const getChannelsProcedure = sessionAuthedProcedure
         return {
           id: channel.id,
           counterpartyAddress: channel.counterpartyAddress,
-          status: channel.status,
           minDifficulty: channel.minDifficulty,
           secretId: channel.secretId,
           unreadCount,

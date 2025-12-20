@@ -22,7 +22,6 @@ import { getCounterpartyEngagementKeyProcedure } from "./procedures/get-counterp
 import { sendMessageProcedure } from "./procedures/send-message.js";
 import { getChannelsProcedure } from "./procedures/get-channels.js";
 import { getChannelMessagesProcedure } from "./procedures/get-channel-messages.js";
-import { updateChannelStatusProcedure } from "./procedures/update-channel-status.js";
 import { getEngagementKeyByPubKeyProcedure } from "./procedures/get-engagement-key-by-pubkey.js";
 import { getSenderChannelProcedure } from "./procedures/get-sender-channel.js";
 import { getInboxMessagesForSyncProcedure } from "./procedures/get-inbox-messages-for-sync.js";
@@ -56,7 +55,6 @@ export const router = {
   sendMessage: sendMessageProcedure,
   getChannels: getChannelsProcedure,
   getChannelMessages: getChannelMessagesProcedure,
-  updateChannelStatus: updateChannelStatusProcedure,
   getEngagementKeyByPubKey: getEngagementKeyByPubKeyProcedure,
   getSenderChannel: getSenderChannelProcedure,
   getInboxMessagesForSync: getInboxMessagesForSyncProcedure,

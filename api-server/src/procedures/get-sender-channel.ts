@@ -15,8 +15,6 @@ import { getOrCreateChannelView } from "../db/models/channel.js";
  * This endpoint is called by the sender after successfully sending a message.
  * It ensures the sender has a channel_view for the conversation, which is needed
  * to get the secretId for saving the message to their vault.
- *
- * The channel is created with status "saved" since the sender initiated the conversation.
  */
 export const getSenderChannelProcedure = sessionAuthedProcedure
   .input(GetSenderChannelRequestSchema)
@@ -43,18 +41,15 @@ export const getSenderChannelProcedure = sessionAuthedProcedure
     // Construct the owner's address from vault name and domain
     const ownerAddress = `${vault.name}@${vault.domain}`;
 
-    // 3. Get or create the channel with status "saved"
-    // Sender-initiated channels are always "saved" since they chose to message this person
+    // 3. Get or create the channel
     const { channel, isNew } = await getOrCreateChannelView(
       ownerAddress,
       counterpartyAddress,
-      "saved",
     );
 
     return {
       channelId: channel.id,
       secretId: channel.secretId,
-      status: channel.status,
       isNew,
     };
   });

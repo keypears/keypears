@@ -190,13 +190,6 @@ export const UpdateVaultSettingsResponseSchema = z.object({
   settings: VaultSettingsSchema,
 });
 
-// Channel status enum
-// - "pending": User hasn't decided yet (or moved back to pending)
-// - "saved": Channel is saved to user's vault (accepted)
-// - "ignored": Hidden from main feed, only visible in "ignored" feed
-export const ChannelStatusSchema = z.enum(["pending", "saved", "ignored"]);
-export type ChannelStatus = z.infer<typeof ChannelStatusSchema>;
-
 // Get engagement key for sending - creates or returns existing key for outgoing messages
 export const GetEngagementKeyForSendingRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
@@ -251,7 +244,6 @@ export const GetChannelsResponseSchema = z.object({
     z.object({
       id: z.string().length(26), // UUIDv7 (26-char)
       counterpartyAddress: z.string(),
-      status: ChannelStatusSchema,
       minDifficulty: z.string().nullable(),
       secretId: z.string().length(26), // Server-generated ID for vault storage
       unreadCount: z.number().int(),
@@ -288,19 +280,6 @@ export const GetChannelMessagesResponseSchema = z.object({
   hasMore: z.boolean(), // True if there are older messages to fetch
 });
 
-// Update channel status - change status of a channel (pending/saved/ignored)
-export const UpdateChannelStatusRequestSchema = z.object({
-  vaultId: z.string().length(26), // UUIDv7 (26-char)
-  channelId: z.string().length(26), // UUIDv7 (26-char)
-  status: ChannelStatusSchema,
-});
-
-export const UpdateChannelStatusResponseSchema = z.object({
-  id: z.string().length(26), // UUIDv7 (26-char)
-  status: ChannelStatusSchema,
-  updatedAt: z.date(),
-});
-
 // Get engagement key by public key - look up engagement key ID from public key
 // Used by client to find the engagement key ID for decryption
 export const GetEngagementKeyByPubKeyRequestSchema = z.object({
@@ -324,11 +303,10 @@ export const GetSenderChannelRequestSchema = z.object({
 export const GetSenderChannelResponseSchema = z.object({
   channelId: z.string().length(26), // UUIDv7 (26-char)
   secretId: z.string().length(26), // Server-generated ID for vault storage
-  status: ChannelStatusSchema,
   isNew: z.boolean(), // Whether the channel was just created
 });
 
-// Get inbox messages for sync - returns messages from saved channels for vault sync
+// Get inbox messages for sync - returns messages from all channels for vault sync
 export const GetInboxMessagesForSyncRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
   limit: z.number().int().positive().max(100).default(100),

@@ -5,7 +5,6 @@ import {
   getChannelView,
   getOrCreateChannelView,
   getChannelsByOwner,
-  updateChannelStatus,
   updateChannelMinDifficulty,
 } from "../src/db/models/channel.js";
 import { db } from "../src/db/index.js";
@@ -29,25 +28,6 @@ describe("Channel Model", () => {
       expect(channel.id).toHaveLength(26);
       expect(channel.createdAt).toBeInstanceOf(Date);
       expect(channel.updatedAt).toBeInstanceOf(Date);
-    });
-
-    it("should default status to 'pending'", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-      });
-
-      expect(channel.status).toBe("pending");
-    });
-
-    it("should allow setting initial status", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-        status: "saved",
-      });
-
-      expect(channel.status).toBe("saved");
     });
   });
 
@@ -262,66 +242,6 @@ describe("Channel Model", () => {
 
       expect(result.channels).toHaveLength(0);
       expect(result.hasMore).toBe(false);
-    });
-  });
-
-  describe("updateChannelStatus", () => {
-    it("should update status to saved", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-      });
-
-      const updated = await updateChannelStatus(channel.id, "saved");
-
-      expect(updated).not.toBeNull();
-      expect(updated?.status).toBe("saved");
-    });
-
-    it("should update status to ignored", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-      });
-
-      const updated = await updateChannelStatus(channel.id, "ignored");
-
-      expect(updated).not.toBeNull();
-      expect(updated?.status).toBe("ignored");
-    });
-
-    it("should update status back to pending", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-        status: "saved",
-      });
-
-      const updated = await updateChannelStatus(channel.id, "pending");
-
-      expect(updated).not.toBeNull();
-      expect(updated?.status).toBe("pending");
-    });
-
-    it("should update updatedAt timestamp", async () => {
-      const channel = await createChannelView({
-        ownerAddress: "alice@example.com",
-        counterpartyAddress: "bob@example2.com",
-      });
-
-      const originalUpdatedAt = channel.updatedAt;
-
-      // Wait a bit to ensure different timestamp
-      await new Promise<void>((resolve) => {
-        globalThis.setTimeout(resolve, 50);
-      });
-
-      const updated = await updateChannelStatus(channel.id, "saved");
-
-      expect(updated).not.toBeNull();
-      expect(updated!.updatedAt.getTime()).toBeGreaterThan(
-        originalUpdatedAt.getTime(),
-      );
     });
   });
 

@@ -4,14 +4,6 @@ import { db } from "../index.js";
 import { TableChannelView } from "../schema.js";
 
 /**
- * Channel status enum
- * - "pending": User hasn't decided yet (or moved back to pending)
- * - "saved": Channel is saved to user's vault (accepted)
- * - "ignored": Hidden from main feed, only visible in "ignored" feed
- */
-export type ChannelStatus = "pending" | "saved" | "ignored";
-
-/**
  * Channel view model interface
  * Represents a user's view of a conversation channel
  */
@@ -19,7 +11,6 @@ export interface ChannelView {
   id: string;
   ownerAddress: string;
   counterpartyAddress: string;
-  status: ChannelStatus;
   minDifficulty: string | null;
   secretId: string; // Server-generated ID for vault storage (ensures consistency across devices)
   createdAt: Date;
@@ -35,9 +26,8 @@ export interface ChannelView {
 export async function createChannelView(params: {
   ownerAddress: string;
   counterpartyAddress: string;
-  status?: ChannelStatus;
 }): Promise<ChannelView> {
-  const { ownerAddress, counterpartyAddress, status = "pending" } = params;
+  const { ownerAddress, counterpartyAddress } = params;
   const id = generateId();
   const secretId = generateId(); // Server-generated for vault storage consistency
 
@@ -45,7 +35,6 @@ export async function createChannelView(params: {
     id,
     ownerAddress,
     counterpartyAddress,
-    status,
     secretId,
   });
 
@@ -77,7 +66,6 @@ export async function getChannelViewById(id: string): Promise<ChannelView | null
     id: row.id,
     ownerAddress: row.ownerAddress,
     counterpartyAddress: row.counterpartyAddress,
-    status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
     secretId: row.secretId,
     createdAt: row.createdAt,
@@ -114,7 +102,6 @@ export async function getChannelView(
     id: row.id,
     ownerAddress: row.ownerAddress,
     counterpartyAddress: row.counterpartyAddress,
-    status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
     secretId: row.secretId,
     createdAt: row.createdAt,
@@ -128,13 +115,11 @@ export async function getChannelView(
  *
  * @param ownerAddress - The owner's address
  * @param counterpartyAddress - The counterparty's address
- * @param status - Initial status for new channels (default: "pending")
  * @returns Object containing the channel and whether it was newly created
  */
 export async function getOrCreateChannelView(
   ownerAddress: string,
   counterpartyAddress: string,
-  status?: ChannelStatus,
 ): Promise<{ channel: ChannelView; isNew: boolean }> {
   // Check if channel already exists
   const existing = await getChannelView(ownerAddress, counterpartyAddress);
@@ -146,7 +131,6 @@ export async function getOrCreateChannelView(
   const channel = await createChannelView({
     ownerAddress,
     counterpartyAddress,
-    ...(status !== undefined && { status }),
   });
 
   return { channel, isNew: true };
@@ -186,7 +170,6 @@ export async function getChannelsByOwner(
     id: row.id,
     ownerAddress: row.ownerAddress,
     counterpartyAddress: row.counterpartyAddress,
-    status: row.status as ChannelStatus,
     minDifficulty: row.minDifficulty,
     secretId: row.secretId,
     createdAt: row.createdAt,
@@ -194,26 +177,6 @@ export async function getChannelsByOwner(
   }));
 
   return { channels, hasMore };
-}
-
-/**
- * Update the status of a channel view
- * Also updates the updatedAt timestamp
- *
- * @param id - The channel view ID
- * @param status - The new status
- * @returns The updated channel view, or null if not found
- */
-export async function updateChannelStatus(
-  id: string,
-  status: ChannelStatus,
-): Promise<ChannelView | null> {
-  await db
-    .update(TableChannelView)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(TableChannelView.id, id));
-
-  return getChannelViewById(id);
 }
 
 /**

@@ -23,10 +23,7 @@ interface ComposeBoxProps {
   vaultDomain: string;
   ownerAddress: string;
   counterpartyAddress: string;
-  channelId?: string; // Required for replying to existing channels
-  channelStatus?: "pending" | "saved" | "ignored"; // Current channel status
   onMessageSent?: () => void;
-  onChannelStatusChanged?: (newStatus: "saved") => void; // Called when status auto-changes
 }
 
 function parseAddress(address: string): { name: string; domain: string } | null {
@@ -42,10 +39,7 @@ export function ComposeBox({
   vaultDomain,
   ownerAddress,
   counterpartyAddress,
-  channelId,
-  channelStatus,
   onMessageSent,
-  onChannelStatusChanged,
 }: ComposeBoxProps): React.ReactElement {
   const [messageText, setMessageText] = useState("");
   const [phase, setPhase] = useState<SendPhase>("idle");
@@ -88,17 +82,6 @@ export function ComposeBox({
       const myClient = await createClientFromDomain(vaultDomain, {
         sessionToken,
       });
-
-      // Auto-save channel if replying to pending/ignored channel
-      // Sending a reply = user cares about this conversation = save it
-      if (channelId && (channelStatus === "pending" || channelStatus === "ignored")) {
-        await myClient.api.updateChannelStatus({
-          vaultId,
-          channelId,
-          status: "saved",
-        });
-        onChannelStatusChanged?.("saved");
-      }
 
       const myKey = await myClient.api.getEngagementKeyForSending({
         vaultId,

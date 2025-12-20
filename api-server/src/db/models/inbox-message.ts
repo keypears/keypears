@@ -297,7 +297,7 @@ export async function getInboxMessagesForSync(
 ): Promise<InboxMessageForSync[]> {
   const limit = options?.limit ?? 100;
 
-  // Join inbox_message with channel_view to get messages for saved channels
+  // Join inbox_message with channel_view to get all messages for the owner
   const results = await db
     .select({
       id: TableInboxMessage.id,
@@ -319,12 +319,7 @@ export async function getInboxMessagesForSync(
       TableChannelView,
       eq(TableInboxMessage.channelViewId, TableChannelView.id),
     )
-    .where(
-      and(
-        eq(TableChannelView.ownerAddress, ownerAddress),
-        eq(TableChannelView.status, "saved"),
-      ),
-    )
+    .where(eq(TableChannelView.ownerAddress, ownerAddress))
     .orderBy(TableInboxMessage.createdAt)
     .limit(limit);
 

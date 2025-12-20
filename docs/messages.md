@@ -24,17 +24,16 @@ plaintext content.
 
 Messaging requires **two separate systems**:
 
-### Layer 1: Channel Inbox (Server-Side, Ephemeral)
+### Layer 1: Channel Inbox (Server-Side, Temporary)
 
-- Where incoming messages land
-- NOT automatically synced to vault
-- Sender cannot inject into recipient's vault
-- Recipient chooses what to accept/save
-- Messages expire after 30 days if not saved
+- Where incoming messages initially land
+- Automatically synced to vault by background sync
+- Spam control via PoW (Proof of Work)
+- Messages deleted from inbox after sync to vault
 
 ### Layer 2: Vault Storage (Client-Side, Synced)
 
-- Where saved messages live permanently
+- Where messages live permanently
 - Uses existing secret_update sync infrastructure
 - Cross-device synchronization
 - Offline access
@@ -42,9 +41,9 @@ Messaging requires **two separate systems**:
 
 **This separation ensures:**
 
-- Senders can send messages without polluting recipient's vault
-- Recipients control what gets synchronized
-- Spam stays in the inbox, not the vault
+- Sender cannot inject directly into recipient's vault
+- PoW protects against spam before messages reach inbox
+- All messages that pass PoW are automatically synced to vault
 
 ## Protocol Flow
 
@@ -102,24 +101,19 @@ When Bob wants to message Alice:
 │     ↓                                                       │
 │  6. Send message with PoW proof                             │
 │     ────────────────────────────────────→                   │
-│                                  7. Channel appears in      │
-│                                     Alice's "Pending"       │
+│                                  7. Message lands in        │
+│                                     Alice's inbox           │
 │                                     ↓                       │
-│                                  8. Alice saves/ignores     │
+│                                  8. Background sync moves   │
+│                                     message to Alice's vault│
 │                                     ↓                       │
-│                                  9. If saved, Alice can     │
-│                                     set low difficulty for  │
-│                                     Bob to make replies easy│
+│                                  9. Alice can set low       │
+│                                     difficulty for Bob to   │
+│                                     make replies easy       │
 │     ←────────────────────────────────                       │
 │  10. Alice replies (with PoW for Bob's difficulty)          │
 │      ↓                                                      │
 │  [Each message requires PoW at recipient's difficulty]      │
-│                                                             │
-│  If Alice ignores:                                          │
-│  - Bob's messages still delivered to inbox                  │
-│  - Alice doesn't see them in main view                      │
-│  - Bob doesn't know he's ignored                            │
-│  - Bob must pay PoW for each additional message             │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -245,7 +239,6 @@ messages effectively free while still requiring the PoW handshake.
 
 - Global PoW difficulty (default ~4M, can increase for more protection)
 - Per-channel difficulty override (lower for trusted contacts)
-- "Ignore" channel: Sender never knows, but recipient doesn't see messages
 - "Block" channel: Future enhancement, rejects at server level
 
 **Server-side enforcement:**
@@ -310,14 +303,14 @@ Bob sends message to Alice:
 
 ### Inbox (Server-Side)
 
-The server-side inbox stores messages you've received:
+The server-side inbox is temporary storage before sync to vault:
 
-| Property               | Description                     |
-| ---------------------- | ------------------------------- |
-| Server-side only       | Stored on recipient's server    |
-| Ephemeral (30 days)    | Expires if not saved to vault   |
-| Incoming messages only | No outbox on server             |
-| No offline access      | Must fetch from server          |
+| Property               | Description                           |
+| ---------------------- | ------------------------------------- |
+| Server-side only       | Stored on recipient's server          |
+| Temporary              | Deleted after sync to vault           |
+| Incoming messages only | No outbox on server                   |
+| Auto-synced            | Background sync moves to vault        |
 
 ### Sent Messages (Vault)
 
@@ -335,41 +328,27 @@ Sent messages are saved directly to your vault:
 **Sending a message:**
 
 1. Client sends directly to recipient's server with PoW
-2. Client calls `getSenderChannel` API to get/create sender's channel_view (status: "saved")
+2. Client calls `getSenderChannel` API to get/create sender's channel_view
 3. Client saves sent message to local vault using channel's `secretId`
 4. Vault syncs to your server via existing secret_update mechanism
 5. Sent messages available on all your devices
 
-**Receiving messages (pending/ignored channels):**
-
-- User opens Messages tab → fetches channels from server
-- Opens a channel → fetches messages from server's inbox
-- Messages decrypted client-side using ECDH (engagement keys)
-- Channels marked as "pending" until user saves or ignores
-
-**Receiving messages (saved channels):**
+**Receiving messages:**
 
 - Background sync (`syncInboxMessages`) runs periodically
-- For each saved channel with new inbox messages:
+- For each channel with new inbox messages:
   1. Fetch inbox messages via `getInboxMessagesForSync` API
   2. Decrypt with ECDH shared secret (using engagement key)
   3. Re-encrypt with vault key
   4. Save as `secret_update` to vault
   5. Delete from inbox via `deleteInboxMessages` API
-- User opens saved channel → messages loaded from local vault (not server)
+- User opens channel → messages loaded from local vault
 - Messages decrypted client-side using vault key
 
-**Auto-save on reply:**
+**Display source:**
 
-- When replying to a "pending" or "ignored" channel, it automatically becomes "saved"
-- Rationale: sending a reply = you care about this conversation = save it
-- Better UX than requiring manual "Save" before replying
-
-**Display source logic:**
-
-- **Saved channels**: Query local SQLite vault (`getSecretUpdatesBySecretId`)
-- **Pending/ignored channels**: Query server inbox (`getChannelMessages` API)
-- When channel status changes to "saved", UI reloads from vault
+- All channels: Query local SQLite vault (`getSecretUpdatesBySecretId`)
+- Background sync keeps vault up to date with server inbox
 
 **Implementation:**
 
@@ -399,7 +378,6 @@ of the channel, stored on their own server. This is essential for a federated sy
 id                      UUIDv7 primary key
 owner_address           text (e.g., "alice@example.com") -- who owns this view
 counterparty_address    text (e.g., "bob@example2.com") -- who they're talking to
-status                  "pending" | "saved" | "ignored"
 min_difficulty          text (per-channel PoW override, null = use global setting)
 secret_id               varchar(26) -- Server-generated ID for vault storage
 created_at              timestamp
@@ -411,15 +389,13 @@ channel_view. This ID is used as the `secretId` for all `secret_update` records 
 messages are saved to the vault. Server-side generation ensures all devices for the
 same user see the same `secretId` for the same channel, preventing sync conflicts.
 
-Note: `saved_to_vault` was removed - the `status: "saved"` indicates the channel is saved.
-
 **Why no public keys in channel_view?** The channel is between two ADDRESSES, not two
 public keys. Keys can change over time (rotation, fresh keys). Each MESSAGE carries the
 public key(s) used at time of sending. The channel_view only stores the fixed relationship
 metadata.
 
 **Why no role field?** It doesn't matter who "initiated" the channel. What matters is
-the current state: status, sync preference, and per-channel difficulty. The channel is symmetric.
+the per-channel difficulty setting. The channel is symmetric.
 
 **Example**: When Bob sends a message to Alice:
 
@@ -428,7 +404,6 @@ Alice's server creates (recipient):
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: alice@example.com)     │
 │ counterparty: bob@example2.com              │
-│ status: "pending"                           │
 │ secret_id: "01JFXYZ..." (server-generated)  │
 │ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
@@ -437,15 +412,12 @@ Bob's server creates (sender, via getSenderChannel API):
 ┌─────────────────────────────────────────────┐
 │ channel_view (owner: bob@example2.com)      │
 │ counterparty: alice@example.com             │
-│ status: "saved" (sender always saves)       │
 │ secret_id: "01JFABC..." (server-generated)  │
 │ min_difficulty: null (use global)           │
 └─────────────────────────────────────────────┘
 ```
 
-Note: Both participants have their own channel_view. The sender's is created with
-`status: "saved"` (you initiated it, so you want it saved). The recipient's starts
-as `"pending"` until they decide to save or ignore it.
+Note: Both participants have their own channel_view stored on their respective servers.
 
 **New table: `inbox_message`** (messages I received)
 
@@ -563,18 +535,11 @@ last_message_at     timestamp
 
 ## Design Decisions
 
-### Message Expiration
+### Message Flow
 
-- **Unsaved inbox messages expire after 30 days**
-- Saved messages (in vault) never expire
-- This prevents inbox bloat while giving reasonable time window
-
-### Ignored Channel Behavior
-
-- **Messages are still stored** when recipient ignores sender
-- Sender still pays PoW for each message
-- Recipient can un-ignore later and see full history
-- This preserves optionality for recipient
+- Messages that pass PoW are automatically synced to vault
+- No manual accept/ignore workflow needed
+- PoW is the only spam control gate
 
 ### Offline Handling
 
@@ -629,9 +594,8 @@ most messaging apps which display chronologically (oldest at top).
 | `sendMessage` API            | Send messages with PoW validation            | ✅     |
 | `getChannelMessages` API     | Retrieve messages from inbox                 | ✅     |
 | `getChannels` API            | List channels for an address                 | ✅     |
-| `updateChannelStatus` API    | Accept/ignore channels                       | ✅     |
-| `getSenderChannel` API       | Create sender's channel_view (status: saved) | ✅     |
-| `getInboxMessagesForSync` API| Get inbox messages for saved channels        | ✅     |
+| `getSenderChannel` API       | Create sender's channel_view                 | ✅     |
+| `getInboxMessagesForSync` API| Get inbox messages for sync                  | ✅     |
 | `deleteInboxMessages` API    | Delete synced messages from inbox            | ✅     |
 | PoW challenge APIs           | Per-message spam prevention                  | ✅     |
 | Channel list UI              | Messages tab interface                       | ✅     |
@@ -676,7 +640,6 @@ Settings included in Phase 0:
       (purpose, counterpartyAddress, counterpartyPubKey) before accepting
 - [x] `getChannels` - List channels for an address (with pagination, reverse chronological)
 - [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
-- [x] `updateChannelStatus` - Accept/ignore channel
 - [x] Unit tests for channel and inbox-message models
 - [x] Integration test setup with vitest globalSetup (single `pnpm test` command)
 
@@ -691,14 +654,12 @@ Settings included in Phase 0:
 
 ### Phase 3: Vault Integration - COMPLETE
 
-- [x] Messages page queries server API (pending/ignored) or local vault (saved)
+- [x] Messages page loads from local vault (synced via background process)
 - [x] Passwords page filters `type !== "message"` via `excludeTypes` option
-- [x] Status toggle on channels (Save/Pending/Ignore buttons)
-- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for saved channels
+- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for all channels
 - [x] Server-generated `secretId` in `channel_view` ensures consistency across devices
 - [x] Sender saves messages to vault immediately after sending
-- [x] Auto-save on reply: replying to pending/ignored channel automatically saves it
-- [x] `getSenderChannel` API creates sender's channel_view with status "saved"
+- [x] `getSenderChannel` API creates sender's channel_view
 - [x] `getInboxMessagesForSync` / `deleteInboxMessages` APIs for sync process
 
 ### Phase 4: Attachments (Future)
