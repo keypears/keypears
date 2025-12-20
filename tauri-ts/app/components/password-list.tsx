@@ -1,79 +1,35 @@
-import { useState, useEffect } from "react";
 import { Link, href, useParams } from "react-router";
 import { Key, Plus, Globe, User, Trash2 } from "lucide-react";
 import { Button } from "~app/components/ui/button";
-import { getAllCurrentSecrets } from "~app/db/models/password";
 import type { SecretUpdateRow } from "~app/db/models/password";
-import { getVaultKey } from "~app/lib/vault-store";
-import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 
-interface PasswordListProps {
-  showDeleted?: boolean;
-}
-
-interface DecryptedSecret extends SecretUpdateRow {
+/**
+ * Decrypted secret with blob data for display
+ * Exported for use in route loaders
+ */
+export interface DecryptedSecret extends SecretUpdateRow {
   decryptedBlob: SecretBlobData;
 }
 
-export function PasswordList({ showDeleted = false }: PasswordListProps) {
+interface PasswordListProps {
+  passwords: DecryptedSecret[];
+  showDeleted?: boolean;
+}
+
+export function PasswordList({ passwords, showDeleted = false }: PasswordListProps) {
   const params = useParams<{ vaultId: string }>();
   const vaultId = params.vaultId;
 
-  const [passwords, setPasswords] = useState<DecryptedSecret[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadPasswords = async () => {
-      if (!vaultId) return;
-
-      setIsLoading(true);
-      try {
-        const vaultKey = getVaultKey(vaultId);
-        // Exclude messages from password list at database level
-        const currentSecrets = await getAllCurrentSecrets(vaultId, {
-          excludeTypes: ["message"],
-        });
-
-        // Decrypt blobs for display (domain, username, etc.)
-        const decryptedSecrets = currentSecrets.map((secret) => ({
-          ...secret,
-          decryptedBlob: decryptSecretUpdateBlob(
-            secret.encryptedBlob,
-            vaultKey,
-          ),
-        }));
-
-        setPasswords(decryptedSecrets);
-      } catch (error) {
-        console.error("Failed to load passwords:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPasswords();
-  }, [vaultId]);
-
   // Filter passwords based on showDeleted prop and exclude messages
   const filteredPasswords = passwords.filter((p) => {
-    // Exclude messages from password list
+    // Exclude messages from password list (double-check, should already be excluded by loader)
     if (p.decryptedBlob.type === "message") return false;
     return p.deleted === showDeleted;
   });
 
   if (!vaultId) {
     return null;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="border-border bg-card rounded-lg border p-8">
-        <div className="flex flex-col items-center text-center">
-          <p className="text-muted-foreground text-sm">Loading passwords...</p>
-        </div>
-      </div>
-    );
   }
 
   if (filteredPasswords.length === 0) {
