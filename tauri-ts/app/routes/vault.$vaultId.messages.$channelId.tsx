@@ -130,8 +130,8 @@ async function loadVaultMessages(
     }
   }
 
-  // Sort by timestamp ascending (oldest first for chronological display)
-  return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  // Sort by timestamp descending (newest first for reverse chronological display)
+  return messages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 }
 
 /**
@@ -464,15 +464,27 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
+        {/* Compose box - at top before messages */}
+        <ComposeBox
+          vaultId={vaultId}
+          vaultDomain={vaultDomain}
+          ownerAddress={ownerAddress}
+          counterpartyAddress={counterpartyAddress}
+          channelId={channelId}
+          channelStatus={channelStatus}
+          onMessageSent={handleMessageSent}
+          onChannelStatusChanged={handleChannelStatusChanged}
+        />
+
         {/* Message list */}
-        <div className="mb-4 flex-1 space-y-3">
+        <div className="mt-4 flex-1 space-y-3">
           {messages.length === 0 ? (
             <div className="border-border bg-card rounded-lg border p-8 text-center">
               <p className="text-muted-foreground">No messages yet</p>
             </div>
           ) : (
             <>
-              {/* Messages in chronological order (oldest first at top) */}
+              {/* Messages in reverse chronological order (newest first at top) */}
               {messages.map((msg) => (
                 <MessageBubble
                   key={msg.id}
@@ -496,18 +508,6 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
             </>
           )}
         </div>
-
-        {/* Compose box */}
-        <ComposeBox
-          vaultId={vaultId}
-          vaultDomain={vaultDomain}
-          ownerAddress={ownerAddress}
-          counterpartyAddress={counterpartyAddress}
-          channelId={channelId}
-          channelStatus={channelStatus}
-          onMessageSent={handleMessageSent}
-          onChannelStatusChanged={handleChannelStatusChanged}
-        />
       </div>
     </>
   );
