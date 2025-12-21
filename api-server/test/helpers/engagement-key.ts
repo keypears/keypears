@@ -58,10 +58,7 @@ export async function createSendEngagementKey(
  * @param privKey - The 32-byte engagement private key
  * @returns Hex-encoded signature
  */
-export function signPowHash(
-  solvedHash: string,
-  privKey: FixedBuf<32>,
-): string {
+export function signPowHash(solvedHash: string, privKey: FixedBuf<32>): string {
   const messageHash = FixedBuf.fromHex(32, solvedHash);
   const nonce = FixedBuf.fromRandom(32); // ECDSA requires a random nonce
   const signature = sign(messageHash, privKey, nonce);

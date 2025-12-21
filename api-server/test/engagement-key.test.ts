@@ -11,18 +11,20 @@ import { db } from "../src/db/index.js";
 import { TableEngagementKey, TableVault } from "../src/db/schema.js";
 
 // Test fixture data
-const createTestKeyParams = (overrides: Partial<CreateEngagementKeyParams> = {}): CreateEngagementKeyParams => ({
+const createTestKeyParams = (
+  overrides: Partial<CreateEngagementKeyParams> = {},
+): CreateEngagementKeyParams => ({
   id: generateId(),
   vaultId: "01HTEST000000000000000001",
   dbEntropy: "a".repeat(64),
   dbEntropyHash: "b".repeat(64),
   serverEntropyIndex: 1,
-  derivationPubKey: `02${  "c".repeat(64)}`,
-  engagementPubKey: `02${  "d".repeat(64)}`,
+  derivationPubKey: `02${"c".repeat(64)}`,
+  engagementPubKey: `02${"d".repeat(64)}`,
   engagementPubKeyHash: "e".repeat(64),
   purpose: "send" as const,
   counterpartyAddress: "bob@example.com",
-  counterpartyPubKey: `02${  "f".repeat(64)}`,
+  counterpartyPubKey: `02${"f".repeat(64)}`,
   ...overrides,
 });
 
@@ -38,7 +40,7 @@ describe("EngagementKey Model", () => {
       name: "alice",
       domain: "example.com",
       vaultPubKeyHash: "test-pubkey-hash",
-      vaultPubKey: `02${  "0".repeat(64)}`,
+      vaultPubKey: `02${"0".repeat(64)}`,
       hashedLoginKey: "test-hashed-login-key",
       encryptedVaultKey: "test-encrypted-vault-key",
     });
@@ -89,22 +91,24 @@ describe("EngagementKey Model", () => {
     });
 
     it("should create keys with different purposes", async () => {
-      const sendKey = await createEngagementKey(createTestKeyParams({ purpose: "send" }));
+      const sendKey = await createEngagementKey(
+        createTestKeyParams({ purpose: "send" }),
+      );
       const receiveKey = await createEngagementKey(
         createTestKeyParams({
           id: generateId(),
           purpose: "receive",
-          engagementPubKey: `02${  "1".repeat(64)}`,
+          engagementPubKey: `02${"1".repeat(64)}`,
           engagementPubKeyHash: "1".repeat(64),
-        })
+        }),
       );
       const manualKey = await createEngagementKey(
         createTestKeyParams({
           id: generateId(),
           purpose: "manual",
-          engagementPubKey: `02${  "2".repeat(64)}`,
+          engagementPubKey: `02${"2".repeat(64)}`,
           engagementPubKeyHash: "2".repeat(64),
-        })
+        }),
       );
 
       expect(sendKey.purpose).toBe("send");
@@ -145,7 +149,7 @@ describe("EngagementKey Model", () => {
     });
 
     it("should return null for non-existent pubkey", async () => {
-      const found = await getEngagementKeyByPubKey(`02${  "9".repeat(64)}`);
+      const found = await getEngagementKeyByPubKey(`02${"9".repeat(64)}`);
 
       expect(found).toBeNull();
     });
@@ -156,14 +160,14 @@ describe("EngagementKey Model", () => {
       const params = createTestKeyParams({
         purpose: "receive",
         counterpartyAddress: "sender@other.com",
-        counterpartyPubKey: `03${  "1".repeat(64)}`,
+        counterpartyPubKey: `03${"1".repeat(64)}`,
       });
       await createEngagementKey(params);
 
       const found = await getEngagementKeyForReceiving(
         params.vaultId,
         "sender@other.com",
-        `03${  "1".repeat(64)}`,
+        `03${"1".repeat(64)}`,
       );
 
       expect(found).not.toBeNull();
@@ -175,14 +179,14 @@ describe("EngagementKey Model", () => {
       const params = createTestKeyParams({
         purpose: "send",
         counterpartyAddress: "sender@other.com",
-        counterpartyPubKey: `03${  "1".repeat(64)}`,
+        counterpartyPubKey: `03${"1".repeat(64)}`,
       });
       await createEngagementKey(params);
 
       const found = await getEngagementKeyForReceiving(
         params.vaultId,
         "sender@other.com",
-        `03${  "1".repeat(64)}`,
+        `03${"1".repeat(64)}`,
       );
 
       expect(found).toBeNull();
@@ -192,14 +196,14 @@ describe("EngagementKey Model", () => {
       const params = createTestKeyParams({
         purpose: "receive",
         counterpartyAddress: "sender@other.com",
-        counterpartyPubKey: `03${  "1".repeat(64)}`,
+        counterpartyPubKey: `03${"1".repeat(64)}`,
       });
       await createEngagementKey(params);
 
       const found = await getEngagementKeyForReceiving(
         params.vaultId,
         "different@other.com", // Different address
-        `03${  "1".repeat(64)}`,
+        `03${"1".repeat(64)}`,
       );
 
       expect(found).toBeNull();
@@ -209,14 +213,14 @@ describe("EngagementKey Model", () => {
       const params = createTestKeyParams({
         purpose: "receive",
         counterpartyAddress: "sender@other.com",
-        counterpartyPubKey: `03${  "1".repeat(64)}`,
+        counterpartyPubKey: `03${"1".repeat(64)}`,
       });
       await createEngagementKey(params);
 
       const found = await getEngagementKeyForReceiving(
         params.vaultId,
         "sender@other.com",
-        `03${  "2".repeat(64)}`, // Different pubkey
+        `03${"2".repeat(64)}`, // Different pubkey
       );
 
       expect(found).toBeNull();
@@ -226,14 +230,14 @@ describe("EngagementKey Model", () => {
       const params = createTestKeyParams({
         purpose: "receive",
         counterpartyAddress: "sender@other.com",
-        counterpartyPubKey: `03${  "1".repeat(64)}`,
+        counterpartyPubKey: `03${"1".repeat(64)}`,
       });
       await createEngagementKey(params);
 
       const found = await getEngagementKeyForReceiving(
         "01HDIFFERENT0000000000000", // Different vault
         "sender@other.com",
-        `03${  "1".repeat(64)}`,
+        `03${"1".repeat(64)}`,
       );
 
       expect(found).toBeNull();

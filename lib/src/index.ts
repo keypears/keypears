@@ -28,7 +28,14 @@ export { sha256Hash, sha256Hmac, acs2Encrypt, acs2Decrypt, FixedBuf, WebBuf };
 // - sharedSecret: compute ECDH shared secret from private key and public key
 // - sign: create ECDSA signature (messageHash, privKey, k) -> signature
 // - verify: verify ECDSA signature (signature, messageHash, pubKey) -> boolean
-export { publicKeyCreate, privateKeyAdd, publicKeyAdd, sharedSecret, sign, verify };
+export {
+  publicKeyCreate,
+  privateKeyAdd,
+  publicKeyAdd,
+  sharedSecret,
+  sign,
+  verify,
+};
 
 // Export domain configuration
 export {

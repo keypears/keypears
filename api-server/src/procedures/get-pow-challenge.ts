@@ -4,7 +4,10 @@ import {
 } from "@keypears/api-client";
 import { base } from "./base.js";
 import { createChallenge } from "../db/models/pow-challenge.js";
-import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
+import {
+  getVaultByNameAndDomain,
+  getVaultSettings,
+} from "../db/models/vault.js";
 import { getChannelView } from "../db/models/channel.js";
 import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
 

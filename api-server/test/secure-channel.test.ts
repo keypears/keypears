@@ -82,7 +82,9 @@ describe("Secure Channel Establishment", () => {
   describe("Signature verification", () => {
     it("should accept valid signature over solved PoW hash", async () => {
       // Solve PoW challenge with messaging difficulty
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
 
       // Sign the solved hash with Alice's engagement private key
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
@@ -103,7 +105,9 @@ describe("Secure Channel Establishment", () => {
     });
 
     it("should reject invalid signature (random bytes)", async () => {
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const invalidSignature = createInvalidSignature();
 
       await expect(
@@ -120,7 +124,9 @@ describe("Secure Channel Establishment", () => {
     });
 
     it("should reject signature from wrong key", async () => {
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
 
       // Sign with a different key than Alice's claimed pubkey
       const { signature } = signWithWrongKey(pow.hash);
@@ -139,12 +145,18 @@ describe("Secure Channel Establishment", () => {
     });
 
     it("should reject signature over wrong message (not solvedHash)", async () => {
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
 
       // Sign a different message than the solved hash
       const wrongMessage = FixedBuf.fromRandom(32);
       const nonce = FixedBuf.fromRandom(32);
-      const wrongSignature = sign(wrongMessage, aliceSendKey.engagementPrivKey, nonce);
+      const wrongSignature = sign(
+        wrongMessage,
+        aliceSendKey.engagementPrivKey,
+        nonce,
+      );
 
       await expect(
         client.api.getCounterpartyEngagementKey({
@@ -189,7 +201,9 @@ describe("Secure Channel Establishment", () => {
 
     it("should return valid=false for receive key (wrong purpose)", async () => {
       // First, complete the flow to create a "receive" key for Bob
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
 
       const bobReceiveResult = await client.api.getCounterpartyEngagementKey({
@@ -241,7 +255,9 @@ describe("Secure Channel Establishment", () => {
 
     beforeEach(async () => {
       // Complete the full flow to consume a PoW
-      consumedPow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      consumedPow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(
         consumedPow.hash,
         aliceSendKey.engagementPrivKey,
@@ -339,7 +355,9 @@ describe("Secure Channel Establishment", () => {
   describe("PoW replay prevention", () => {
     it("should reject expired PoW challenge", async () => {
       // Create a PoW challenge
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
 
       // Manually expire it in the database
       await db
@@ -364,7 +382,9 @@ describe("Secure Channel Establishment", () => {
 
     it("should reject already-used PoW challenge", async () => {
       // Complete the flow once to consume the PoW
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
 
       await client.api.getCounterpartyEngagementKey({
@@ -401,7 +421,9 @@ describe("Secure Channel Establishment", () => {
     });
 
     it("should accept fresh unused PoW challenge", async () => {
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
 
       const result = await client.api.getCounterpartyEngagementKey({
@@ -425,7 +447,9 @@ describe("Secure Channel Establishment", () => {
   describe("Idempotent engagement keys", () => {
     it("should return same key for same sender+pubkey (no new PoW needed)", async () => {
       // First request - consumes PoW, creates key
-      const pow1 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow1 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature1 = signPowHash(pow1.hash, aliceSendKey.engagementPrivKey);
 
       const result1 = await client.api.getCounterpartyEngagementKey({
@@ -440,7 +464,9 @@ describe("Secure Channel Establishment", () => {
 
       // Second request with same sender+pubkey - should return same key without new PoW
       // Note: We're using a new PoW here, but the key should be the same
-      const pow2 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow2 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature2 = signPowHash(pow2.hash, aliceSendKey.engagementPrivKey);
 
       const result2 = await client.api.getCounterpartyEngagementKey({
@@ -459,7 +485,9 @@ describe("Secure Channel Establishment", () => {
 
     it("should create new key for same sender with different pubkey", async () => {
       // First key
-      const pow1 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow1 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature1 = signPowHash(pow1.hash, aliceSendKey.engagementPrivKey);
 
       const result1 = await client.api.getCounterpartyEngagementKey({
@@ -481,8 +509,13 @@ describe("Secure Channel Establishment", () => {
       );
 
       // Second request with different pubkey
-      const pow2 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
-      const signature2 = signPowHash(pow2.hash, aliceSendKey2.engagementPrivKey);
+      const pow2 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
+      const signature2 = signPowHash(
+        pow2.hash,
+        aliceSendKey2.engagementPrivKey,
+      );
 
       const result2 = await client.api.getCounterpartyEngagementKey({
         recipientAddress: bob.address,
@@ -514,7 +547,9 @@ describe("Secure Channel Establishment", () => {
       );
 
       // First request from alice
-      const pow1 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow1 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature1 = signPowHash(pow1.hash, aliceSendKey.engagementPrivKey);
 
       const result1 = await client.api.getCounterpartyEngagementKey({
@@ -528,8 +563,13 @@ describe("Secure Channel Establishment", () => {
       });
 
       // Second request from alice2
-      const pow2 = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
-      const signature2 = signPowHash(pow2.hash, alice2SendKey.engagementPrivKey);
+      const pow2 = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
+      const signature2 = signPowHash(
+        pow2.hash,
+        alice2SendKey.engagementPrivKey,
+      );
 
       const result2 = await client.api.getCounterpartyEngagementKey({
         recipientAddress: bob.address,
@@ -555,7 +595,9 @@ describe("Secure Channel Establishment", () => {
       // 1. Alice already has a "send" engagement key (created in beforeEach)
 
       // 2. Alice solves PoW and signs it
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
 
       // 3. Alice requests Bob's engagement key
@@ -605,7 +647,9 @@ describe("Secure Channel Establishment", () => {
         seed: "carol-test-seed",
       });
 
-      const pow = await solvePowChallenge(TEST_SERVER_URL, { forMessaging: true });
+      const pow = await solvePowChallenge(TEST_SERVER_URL, {
+        forMessaging: true,
+      });
       const signature = signPowHash(pow.hash, aliceSendKey.engagementPrivKey);
 
       // Alice claims to be Bob, but signs with her own key

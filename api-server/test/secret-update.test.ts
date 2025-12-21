@@ -24,7 +24,7 @@ describe("SecretUpdate Model", () => {
       name: "alice",
       domain: "example.com",
       vaultPubKeyHash: "test-pubkey-hash",
-      vaultPubKey: `02${  "0".repeat(64)}`,
+      vaultPubKey: `02${"0".repeat(64)}`,
       hashedLoginKey: "test-hashed-login-key",
       encryptedVaultKey: "test-encrypted-vault-key",
     });
@@ -89,9 +89,21 @@ describe("SecretUpdate Model", () => {
 
   describe("createSecretUpdate", () => {
     it("should create update with auto-incremented global order", async () => {
-      const update1 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc1");
-      const update2 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc2");
-      const update3 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_2, "enc3");
+      const update1 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc1",
+      );
+      const update2 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc2",
+      );
+      const update3 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_2,
+        "enc3",
+      );
 
       expect(update1.globalOrder).toBe(1);
       expect(update2.globalOrder).toBe(2);
@@ -100,12 +112,28 @@ describe("SecretUpdate Model", () => {
 
     it("should create update with auto-incremented local order per secret", async () => {
       // Updates for same secret share local order sequence
-      const update1 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc1");
-      const update2 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc2");
+      const update1 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc1",
+      );
+      const update2 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc2",
+      );
 
       // Different secret has its own sequence
-      const update3 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_2, "enc3");
-      const update4 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_2, "enc4");
+      const update3 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_2,
+        "enc3",
+      );
+      const update4 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_2,
+        "enc4",
+      );
 
       expect(update1.localOrder).toBe(1);
       expect(update2.localOrder).toBe(2);
@@ -115,14 +143,26 @@ describe("SecretUpdate Model", () => {
 
     it("should store encrypted blob correctly", async () => {
       const encryptedData = "base64encodedencrypteddata==";
-      const update = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, encryptedData);
+      const update = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        encryptedData,
+      );
 
       expect(update.encryptedBlob).toBe(encryptedData);
     });
 
     it("should generate unique IDs", async () => {
-      const update1 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc1");
-      const update2 = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc2");
+      const update1 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc1",
+      );
+      const update2 = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc2",
+      );
 
       expect(update1.id).not.toBe(update2.id);
       expect(update1.id).toHaveLength(26); // ULID format
@@ -131,12 +171,20 @@ describe("SecretUpdate Model", () => {
 
     it("should set createdAt timestamp", async () => {
       const beforeCreate = new Date();
-      const update = await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "enc");
+      const update = await createSecretUpdate(
+        TEST_VAULT_ID,
+        TEST_SECRET_ID_1,
+        "enc",
+      );
       const afterCreate = new Date();
 
       expect(update.createdAt).toBeInstanceOf(Date);
-      expect(update.createdAt.getTime()).toBeGreaterThanOrEqual(beforeCreate.getTime() - 1000);
-      expect(update.createdAt.getTime()).toBeLessThanOrEqual(afterCreate.getTime() + 1000);
+      expect(update.createdAt.getTime()).toBeGreaterThanOrEqual(
+        beforeCreate.getTime() - 1000,
+      );
+      expect(update.createdAt.getTime()).toBeLessThanOrEqual(
+        afterCreate.getTime() + 1000,
+      );
     });
   });
 
@@ -211,13 +259,17 @@ describe("SecretUpdate Model", () => {
         name: "bob",
         domain: "example2.com",
         vaultPubKeyHash: "test-pubkey-hash-2",
-        vaultPubKey: `02${  "1".repeat(64)}`,
+        vaultPubKey: `02${"1".repeat(64)}`,
         hashedLoginKey: "test-hashed-login-key-2",
         encryptedVaultKey: "test-encrypted-vault-key-2",
       });
 
       await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "alice-enc1");
-      await createSecretUpdate("01HTEST000000000000000002", TEST_SECRET_ID_2, "bob-enc1");
+      await createSecretUpdate(
+        "01HTEST000000000000000002",
+        TEST_SECRET_ID_2,
+        "bob-enc1",
+      );
       await createSecretUpdate(TEST_VAULT_ID, TEST_SECRET_ID_1, "alice-enc2");
 
       const result = await getSecretUpdatesSince(TEST_VAULT_ID, 0, 10);

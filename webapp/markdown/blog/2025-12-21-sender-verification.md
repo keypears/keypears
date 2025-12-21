@@ -117,7 +117,7 @@ yourself and then claim to be someone else.
 ## Layer 3: Cross-Domain Verification
 
 Here's the key innovation. Even with a valid signature, we only know the sender
-owns *some* private key. We don't know if that key actually belongs to
+owns _some_ private key. We don't know if that key actually belongs to
 `alice@keypears.com`.
 
 So Bob's server asks Alice's server directly:

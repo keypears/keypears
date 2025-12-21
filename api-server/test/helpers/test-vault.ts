@@ -47,7 +47,9 @@ export async function createTestVault(
   const vaultPubKeyHash = sha256Hash(vaultPubKey.buf);
 
   // Generate login key
-  const loginKeyBuf = sha256Hash(WebBuf.fromUtf8(`${seed || address}-login-key`));
+  const loginKeyBuf = sha256Hash(
+    WebBuf.fromUtf8(`${seed || address}-login-key`),
+  );
   const loginKey = loginKeyBuf.buf.toHex();
 
   // Generate encrypted vault key placeholder

@@ -163,11 +163,7 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
           header: string;
         };
 
-        if (
-          overrides?.challengeId &&
-          overrides?.header &&
-          overrides?.target
-        ) {
+        if (overrides?.challengeId && overrides?.header && overrides?.target) {
           // Use pre-fetched challenge
           challenge = {
             id: overrides.challengeId,

@@ -130,7 +130,8 @@ export const sendMessageProcedure = base
     // Verify the PoW was consumed (isUsed = true)
     if (!powChallenge.isUsed) {
       throw new ORPCError("BAD_REQUEST", {
-        message: "PoW challenge has not been consumed - call getCounterpartyEngagementKey first",
+        message:
+          "PoW challenge has not been consumed - call getCounterpartyEngagementKey first",
       });
     }
 

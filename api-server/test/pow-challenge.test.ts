@@ -43,7 +43,9 @@ describe("PowChallenge Model", () => {
 
       // Allow 1 second tolerance for timing
       expect(actualExpiry).toBeGreaterThanOrEqual(expectedExpiry - 1000);
-      expect(actualExpiry).toBeLessThanOrEqual(afterCreate + CHALLENGE_EXPIRATION_MS + 1000);
+      expect(actualExpiry).toBeLessThanOrEqual(
+        afterCreate + CHALLENGE_EXPIRATION_MS + 1000,
+      );
     });
   });
 
@@ -194,7 +196,9 @@ describe("PowChallenge Model", () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.message).toContain("difficulty 64 is below minimum required 256");
+      expect(result.message).toContain(
+        "difficulty 64 is below minimum required 256",
+      );
     });
   });
 
@@ -206,14 +210,14 @@ describe("PowChallenge Model", () => {
         challenge.id,
         "alice@example.com",
         "bob@example2.com",
-        `02${  "a".repeat(64)}`, // 66 char pubkey
+        `02${"a".repeat(64)}`, // 66 char pubkey
       );
 
       const updated = await getChallenge(challenge.id);
 
       expect(updated?.senderAddress).toBe("alice@example.com");
       expect(updated?.recipientAddress).toBe("bob@example2.com");
-      expect(updated?.senderPubKey).toBe(`02${  "a".repeat(64)}`);
+      expect(updated?.senderPubKey).toBe(`02${"a".repeat(64)}`);
     });
 
     it("should be able to update channel binding multiple times", async () => {
@@ -224,7 +228,7 @@ describe("PowChallenge Model", () => {
         challenge.id,
         "alice@example.com",
         "bob@example2.com",
-        `02${  "a".repeat(64)}`,
+        `02${"a".repeat(64)}`,
       );
 
       // Second binding (overwrite)
@@ -232,14 +236,14 @@ describe("PowChallenge Model", () => {
         challenge.id,
         "charlie@example.com",
         "dave@example2.com",
-        `03${  "b".repeat(64)}`,
+        `03${"b".repeat(64)}`,
       );
 
       const updated = await getChallenge(challenge.id);
 
       expect(updated?.senderAddress).toBe("charlie@example.com");
       expect(updated?.recipientAddress).toBe("dave@example2.com");
-      expect(updated?.senderPubKey).toBe(`03${  "b".repeat(64)}`);
+      expect(updated?.senderPubKey).toBe(`03${"b".repeat(64)}`);
     });
   });
 });
