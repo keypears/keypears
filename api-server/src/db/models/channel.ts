@@ -52,7 +52,9 @@ export async function createChannelView(params: {
  * @param id - The channel view ID
  * @returns The channel view if found, null otherwise
  */
-export async function getChannelViewById(id: string): Promise<ChannelView | null> {
+export async function getChannelViewById(
+  id: string,
+): Promise<ChannelView | null> {
   const result = await db
     .select()
     .from(TableChannelView)

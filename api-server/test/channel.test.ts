@@ -225,7 +225,9 @@ describe("Channel Model", () => {
       });
 
       // Request with limit 2
-      const result = await getChannelsByOwner("alice@example.com", { limit: 2 });
+      const result = await getChannelsByOwner("alice@example.com", {
+        limit: 2,
+      });
 
       expect(result.channels).toHaveLength(2);
       expect(result.hasMore).toBe(true);

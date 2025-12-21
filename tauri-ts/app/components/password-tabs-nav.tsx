@@ -11,7 +11,9 @@ export function PasswordTabsNav({ vaultId, activeTab }: PasswordTabsNavProps) {
     <Tabs value={activeTab} className="mb-6">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="active" asChild>
-          <Link to={href("/vault/:vaultId/passwords", { vaultId })}>Passwords</Link>
+          <Link to={href("/vault/:vaultId/passwords", { vaultId })}>
+            Passwords
+          </Link>
         </TabsTrigger>
         <TabsTrigger value="deleted" asChild>
           <Link to={href("/vault/:vaultId/passwords/deleted", { vaultId })}>

@@ -266,7 +266,11 @@ export async function syncInboxMessages(
 
       // 2. Decrypt message content with DH shared secret
       const senderPubKey = FixedBuf.fromHex(33, msg.senderEngagementPubKey);
-      const content = decryptMessage(msg.encryptedContent, myPrivKey, senderPubKey);
+      const content = decryptMessage(
+        msg.encryptedContent,
+        myPrivKey,
+        senderPubKey,
+      );
 
       // 3. Create secret blob for vault storage
       const messageSecretData: SecretBlobData = {

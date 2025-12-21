@@ -71,7 +71,10 @@ export interface UsePowMinerReturn {
   challengeInfo: PowChallengeInfo | null;
 
   // Actions
-  start: (overrides?: { domain?: string; difficulty?: number }) => Promise<PowMinerResult | null>;
+  start: (overrides?: {
+    domain?: string;
+    difficulty?: number;
+  }) => Promise<PowMinerResult | null>;
   cancel: () => void;
   reset: () => void;
 }
@@ -121,174 +124,180 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
     setError("Mining cancelled");
   }, []);
 
-  const start = useCallback(async (overrides?: { domain?: string; difficulty?: number }): Promise<PowMinerResult | null> => {
-    const effectiveDomain = overrides?.domain ?? domain;
-    const effectiveDifficulty = overrides?.difficulty ?? difficulty;
+  const start = useCallback(
+    async (overrides?: {
+      domain?: string;
+      difficulty?: number;
+    }): Promise<PowMinerResult | null> => {
+      const effectiveDomain = overrides?.domain ?? domain;
+      const effectiveDifficulty = overrides?.difficulty ?? difficulty;
 
-    cancelledRef.current = false;
-    iterationsRef.current = 0;
-    setStatus("fetching");
-    setError(null);
-    setResult(null);
-    setChallengeInfo(null);
-    setIterations(0);
-    setHashesComputed(0);
-    setElapsedMs(0);
+      cancelledRef.current = false;
+      iterationsRef.current = 0;
+      setStatus("fetching");
+      setError(null);
+      setResult(null);
+      setChallengeInfo(null);
+      setIterations(0);
+      setHashesComputed(0);
+      setElapsedMs(0);
 
-    try {
-      // Check WebGPU availability
-      const browserHasWebGpu =
-        typeof navigator !== "undefined" && "gpu" in navigator;
-      setWebGpuAvailable(browserHasWebGpu);
-      const useWgsl = preferWgsl && browserHasWebGpu;
+      try {
+        // Check WebGPU availability
+        const browserHasWebGpu =
+          typeof navigator !== "undefined" && "gpu" in navigator;
+        setWebGpuAvailable(browserHasWebGpu);
+        const useWgsl = preferWgsl && browserHasWebGpu;
 
-      // Fetch challenge from server
-      const client = await createClientFromDomain(effectiveDomain);
-      const challenge = await client.api.getPowChallenge({
-        difficulty: effectiveDifficulty,
-      });
+        // Fetch challenge from server
+        const client = await createClientFromDomain(effectiveDomain);
+        const challenge = await client.api.getPowChallenge({
+          difficulty: effectiveDifficulty,
+        });
 
-      if (cancelledRef.current) return null;
+        if (cancelledRef.current) return null;
 
-      // If algorithm was specified and doesn't match, this is an error
-      // (In practice, the server currently randomly selects, but we accept what it gives us)
-      const challengeAlgorithm = challenge.algorithm as PowAlgorithm;
+        // If algorithm was specified and doesn't match, this is an error
+        // (In practice, the server currently randomly selects, but we accept what it gives us)
+        const challengeAlgorithm = challenge.algorithm as PowAlgorithm;
 
-      setChallengeInfo({
-        id: challenge.id,
-        algorithm: challengeAlgorithm,
-        difficulty: challenge.difficulty,
-        target: challenge.target,
-      });
+        setChallengeInfo({
+          id: challenge.id,
+          algorithm: challengeAlgorithm,
+          difficulty: challenge.difficulty,
+          target: challenge.target,
+        });
 
-      // Start timing
-      startTimeRef.current = Date.now();
+        // Start timing
+        startTimeRef.current = Date.now();
 
-      const targetBuf = FixedBuf.fromHex(32, challenge.target);
+        const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
-      let solvedHeaderHex: string = "";
-      let hashHex: string = "";
-      let nonce = 0;
+        let solvedHeaderHex: string = "";
+        let hashHex: string = "";
+        let nonce = 0;
 
-      // Set implementation based on WebGPU availability
-      const impl: PowImplementation = useWgsl ? "WGSL" : "WASM";
-      setImplementation(impl);
-      setStatus("mining");
+        // Set implementation based on WebGPU availability
+        const impl: PowImplementation = useWgsl ? "WGSL" : "WASM";
+        setImplementation(impl);
+        setStatus("mining");
 
-      // Currently only pow5-64b is supported (more algorithms may be added in the future)
-      const headerBuf = FixedBuf.fromHex(64, challenge.header);
+        // Currently only pow5-64b is supported (more algorithms may be added in the future)
+        const headerBuf = FixedBuf.fromHex(64, challenge.header);
 
-      if (useWgsl) {
-        // WGSL/GPU mining for pow5-64b
-        const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
-        await pow5.init();
+        if (useWgsl) {
+          // WGSL/GPU mining for pow5-64b
+          const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
+          await pow5.init();
 
-        let found = false;
-        let currentHeader = headerBuf;
+          let found = false;
+          let currentHeader = headerBuf;
 
-        while (!found && !cancelledRef.current) {
-          const workResult = await pow5.work();
-          iterationsRef.current++;
-          setIterations(iterationsRef.current);
-          setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
-          setElapsedMs(Date.now() - startTimeRef.current);
+          while (!found && !cancelledRef.current) {
+            const workResult = await pow5.work();
+            iterationsRef.current++;
+            setIterations(iterationsRef.current);
+            setHashesComputed(iterationsRef.current * HASHES_PER_GPU_ITERATION);
+            setElapsedMs(Date.now() - startTimeRef.current);
 
-          const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+            const isZeroHash = workResult.hash.buf.every((b) => b === 0);
 
-          if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
-            nonce = workResult.nonce;
-            hashHex = workResult.hash.buf.toHex();
-            solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
-              currentHeader,
-              nonce,
-            ).buf.toHex();
-            found = true;
-          } else {
-            currentHeader = randomizeHeader64(headerBuf);
-            await pow5.setInput(currentHeader, targetBuf, 128);
-          }
-        }
-      } else {
-        // WASM/CPU mining for pow5-64b
-        let found = false;
-        nonce = 0;
-
-        while (!found && !cancelledRef.current) {
-          const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
-          const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
-          iterationsRef.current++;
-
-          if (hashMeetsTarget(testHash, targetBuf)) {
-            solvedHeaderHex = testHeader.buf.toHex();
-            hashHex = testHash.buf.toHex();
-            found = true;
-          } else {
-            nonce++;
-            if (nonce > 100_000_000) {
-              throw new Error("Mining took too long (>100M iterations)");
+            if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
+              nonce = workResult.nonce;
+              hashHex = workResult.hash.buf.toHex();
+              solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
+                currentHeader,
+                nonce,
+              ).buf.toHex();
+              found = true;
+            } else {
+              currentHeader = randomizeHeader64(headerBuf);
+              await pow5.setInput(currentHeader, targetBuf, 128);
             }
           }
+        } else {
+          // WASM/CPU mining for pow5-64b
+          let found = false;
+          nonce = 0;
 
-          // Yield to UI every 10000 iterations for WASM
-          if (iterationsRef.current % 10000 === 0) {
-            setIterations(iterationsRef.current);
-            setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
-            setElapsedMs(Date.now() - startTimeRef.current);
-            await new Promise((resolve) => setTimeout(resolve, 0));
+          while (!found && !cancelledRef.current) {
+            const testHeader = Pow5_64b_Wasm.insertNonce(headerBuf, nonce);
+            const testHash = Pow5_64b_Wasm.elementaryIteration(testHeader);
+            iterationsRef.current++;
+
+            if (hashMeetsTarget(testHash, targetBuf)) {
+              solvedHeaderHex = testHeader.buf.toHex();
+              hashHex = testHash.buf.toHex();
+              found = true;
+            } else {
+              nonce++;
+              if (nonce > 100_000_000) {
+                throw new Error("Mining took too long (>100M iterations)");
+              }
+            }
+
+            // Yield to UI every 10000 iterations for WASM
+            if (iterationsRef.current % 10000 === 0) {
+              setIterations(iterationsRef.current);
+              setHashesComputed(iterationsRef.current); // CPU: 1 hash per iteration
+              setElapsedMs(Date.now() - startTimeRef.current);
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
           }
         }
-      }
 
-      if (cancelledRef.current) return null;
+        if (cancelledRef.current) return null;
 
-      // Final timing update
-      const finalElapsedMs = Date.now() - startTimeRef.current;
-      setIterations(iterationsRef.current);
-      setElapsedMs(finalElapsedMs);
+        // Final timing update
+        const finalElapsedMs = Date.now() - startTimeRef.current;
+        setIterations(iterationsRef.current);
+        setElapsedMs(finalElapsedMs);
 
-      const miningResult: PowMinerResult = {
-        challengeId: challenge.id,
-        solvedHeader: solvedHeaderHex,
-        hash: hashHex,
-        algorithm: challengeAlgorithm,
-        implementation: impl,
-        nonce,
-        iterations: iterationsRef.current,
-        elapsedMs: finalElapsedMs,
-      };
-
-      setResult(miningResult);
-
-      // Optionally verify with server
-      if (verifyWithServer) {
-        setStatus("verifying");
-
-        const verification = await client.api.verifyPowProof({
+        const miningResult: PowMinerResult = {
           challengeId: challenge.id,
           solvedHeader: solvedHeaderHex,
           hash: hashHex,
-        });
+          algorithm: challengeAlgorithm,
+          implementation: impl,
+          nonce,
+          iterations: iterationsRef.current,
+          elapsedMs: finalElapsedMs,
+        };
 
-        if (verification.valid) {
+        setResult(miningResult);
+
+        // Optionally verify with server
+        if (verifyWithServer) {
+          setStatus("verifying");
+
+          const verification = await client.api.verifyPowProof({
+            challengeId: challenge.id,
+            solvedHeader: solvedHeaderHex,
+            hash: hashHex,
+          });
+
+          if (verification.valid) {
+            setStatus("success");
+            return miningResult;
+          } else {
+            setStatus("error");
+            setError(`Server rejected proof: ${verification.message}`);
+            return null;
+          }
+        } else {
           setStatus("success");
           return miningResult;
-        } else {
-          setStatus("error");
-          setError(`Server rejected proof: ${verification.message}`);
-          return null;
         }
-      } else {
-        setStatus("success");
-        return miningResult;
+      } catch (err) {
+        if (!cancelledRef.current) {
+          setStatus("error");
+          setError(err instanceof Error ? err.message : String(err));
+        }
+        return null;
       }
-    } catch (err) {
-      if (!cancelledRef.current) {
-        setStatus("error");
-        setError(err instanceof Error ? err.message : String(err));
-      }
-      return null;
-    }
-  }, [domain, difficulty, algorithm, preferWgsl, verifyWithServer]);
+    },
+    [domain, difficulty, algorithm, preferWgsl, verifyWithServer],
+  );
 
   return {
     status,

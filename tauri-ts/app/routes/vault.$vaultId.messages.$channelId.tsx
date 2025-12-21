@@ -1,7 +1,13 @@
 import type { Route } from "./+types/vault.$vaultId.messages.$channelId";
 import { useState, useEffect, useRef } from "react";
 import { Link, href, useRevalidator } from "react-router";
-import { ArrowLeft, MessageSquare, MoreVertical, Check, Shield } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  MoreVertical,
+  Check,
+  Shield,
+} from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
@@ -56,11 +62,7 @@ interface DisplayMessage {
   decryptionError: string | null;
 }
 
-function MessageBubble({
-  message,
-}: {
-  message: DisplayMessage;
-}) {
+function MessageBubble({ message }: { message: DisplayMessage }) {
   const isFromMe = message.direction === "sent";
 
   return (
@@ -77,9 +79,7 @@ function MessageBubble({
             Failed to decrypt: {message.decryptionError}
           </p>
         ) : (
-          <p className="text-sm whitespace-pre-wrap">
-            {message.text}
-          </p>
+          <p className="text-sm whitespace-pre-wrap">{message.text}</p>
         )}
       </div>
     </div>
@@ -186,9 +186,9 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   } = loaderData;
 
   const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
-  const [channelMinDifficulty, setChannelMinDifficulty] = useState<number | null>(
-    channel.minDifficulty
-  );
+  const [channelMinDifficulty, setChannelMinDifficulty] = useState<
+    number | null
+  >(channel.minDifficulty);
   const [isUpdatingDifficulty, setIsUpdatingDifficulty] = useState(false);
   const [difficultyError, setDifficultyError] = useState<string | null>(null);
   const revalidator = useRevalidator();
@@ -196,7 +196,9 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
   // Custom difficulty dialog state
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
   const [customDifficultyInput, setCustomDifficultyInput] = useState("");
-  const [customDifficultyError, setCustomDifficultyError] = useState<string | null>(null);
+  const [customDifficultyError, setCustomDifficultyError] = useState<
+    string | null
+  >(null);
 
   // Sync state with loader data when it changes (e.g., after revalidation)
   useEffect(() => {
@@ -255,7 +257,9 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
       setChannelMinDifficulty(response.minDifficulty);
     } catch (err) {
       console.error("Error updating channel difficulty:", err);
-      setDifficultyError(err instanceof Error ? err.message : "Failed to update difficulty");
+      setDifficultyError(
+        err instanceof Error ? err.message : "Failed to update difficulty",
+      );
     } finally {
       setIsUpdatingDifficulty(false);
     }
@@ -319,7 +323,11 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
           {/* Difficulty dropdown menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={isUpdatingDifficulty}>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={isUpdatingDifficulty}
+              >
                 <MoreVertical className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -389,24 +397,22 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
             </div>
           ) : (
             /* Messages in reverse chronological order (newest first at top) */
-            messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                message={msg}
-              />
-            ))
+            messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)
           )}
         </div>
       </div>
 
       {/* Custom difficulty dialog */}
-      <AlertDialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
+      <AlertDialog
+        open={isCustomDialogOpen}
+        onOpenChange={setIsCustomDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Set Custom Difficulty</AlertDialogTitle>
             <AlertDialogDescription>
-              Set a custom difficulty for this sender. Higher values require more
-              computation. Minimum: {MIN_USER_DIFFICULTY}.
+              Set a custom difficulty for this sender. Higher values require
+              more computation. Minimum: {MIN_USER_DIFFICULTY}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -421,7 +427,9 @@ export default function ChannelDetail({ loaderData }: Route.ComponentProps) {
               className="font-mono"
             />
             {customDifficultyError && (
-              <p className="text-destructive mt-2 text-sm">{customDifficultyError}</p>
+              <p className="text-destructive mt-2 text-sm">
+                {customDifficultyError}
+              </p>
             )}
           </div>
           <AlertDialogFooter>

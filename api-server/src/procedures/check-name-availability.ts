@@ -27,9 +27,7 @@ export const checkNameAvailabilityProcedure = base
       // Difficulty varies by name length - shorter names require more work
       return {
         available,
-        ...(available
-          ? { difficulty: Number(difficultyForName(name)) }
-          : {}),
+        ...(available ? { difficulty: Number(difficultyForName(name)) } : {}),
       };
     },
   );

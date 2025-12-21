@@ -29,7 +29,9 @@ export function meta(_args: Route.MetaArgs) {
 export default function TestPow() {
   // UI-specific state
   const [miningMode, setMiningMode] = useState<MiningMode>("prefer-wgsl");
-  const [difficultyInput, setDifficultyInput] = useState<string>(DEFAULT_TEST_DIFFICULTY.toString());
+  const [difficultyInput, setDifficultyInput] = useState<string>(
+    DEFAULT_TEST_DIFFICULTY.toString(),
+  );
   const [domain, setDomain] = useState<string>(
     () => getOfficialDomains()[0] ?? "keypears.com",
   );

@@ -5,10 +5,7 @@ import { createClientFromDomain } from "@keypears/api-server/client";
 import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";
-import {
-  encryptMessage,
-  createTextMessage,
-} from "~app/lib/message-encryption";
+import { encryptMessage, createTextMessage } from "~app/lib/message-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
@@ -16,7 +13,13 @@ import { FixedBuf } from "@keypears/lib";
 // Fallback difficulty (used only if API doesn't provide one, which shouldn't happen)
 const FALLBACK_MESSAGING_DIFFICULTY = 4_000_000;
 
-type SendPhase = "idle" | "preparing" | "mining" | "sending" | "saving" | "error";
+type SendPhase =
+  | "idle"
+  | "preparing"
+  | "mining"
+  | "sending"
+  | "saving"
+  | "error";
 
 interface ComposeBoxProps {
   vaultId: string;
@@ -26,7 +29,9 @@ interface ComposeBoxProps {
   onMessageSent?: () => void;
 }
 
-function parseAddress(address: string): { name: string; domain: string } | null {
+function parseAddress(
+  address: string,
+): { name: string; domain: string } | null {
   const parts = address.split("@");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     return null;
@@ -98,7 +103,8 @@ export function ComposeBox({
 
       // Step 3: Mine PoW with the difficulty required by the recipient
       setPhase("mining");
-      const requiredDifficulty = theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY;
+      const requiredDifficulty =
+        theirKey.requiredDifficulty || FALLBACK_MESSAGING_DIFFICULTY;
       const powResult = await miner.start({
         domain: parsed.domain,
         difficulty: requiredDifficulty,
@@ -234,7 +240,7 @@ export function ComposeBox({
       ) : (
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
-            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[44px] max-h-[120px] flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex max-h-[120px] min-h-[44px] flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Type a message..."
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}

@@ -203,7 +203,9 @@ export const TableEngagementKey = pgTable(
     engagementPubKey: varchar("engagement_pubkey", { length: 66 }).notNull(), // 33 bytes hex = 66 chars
 
     // Hash of engagement public key for efficient unique constraint
-    engagementPubKeyHash: varchar("engagement_pubkey_hash", { length: 64 }).notNull(), // SHA256 hex = 64 chars
+    engagementPubKeyHash: varchar("engagement_pubkey_hash", {
+      length: 64,
+    }).notNull(), // SHA256 hex = 64 chars
 
     // Counterparty address - for DH key exchange (e.g., "bob@keypears.com")
     // Null for general-purpose engagement keys
@@ -233,7 +235,10 @@ export const TableEngagementKey = pgTable(
     unique().on(table.engagementPubKeyHash),
 
     // Index for listing keys by vault in reverse chronological order
-    index("idx_engagement_key_vault_created").on(table.vaultId, table.createdAt),
+    index("idx_engagement_key_vault_created").on(
+      table.vaultId,
+      table.createdAt,
+    ),
   ],
 );
 
@@ -302,7 +307,9 @@ export const TableChannelView = pgTable(
     ownerAddress: varchar("owner_address", { length: 255 }).notNull(),
 
     // Who they're talking to (e.g., "bob@example2.com")
-    counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
+    counterpartyAddress: varchar("counterparty_address", {
+      length: 255,
+    }).notNull(),
 
     // Per-channel PoW difficulty override (null = use global setting)
     minDifficulty: bigint("min_difficulty", { mode: "number" }),

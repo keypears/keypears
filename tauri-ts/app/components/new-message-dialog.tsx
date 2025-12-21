@@ -14,10 +14,7 @@ import { createClientFromDomain } from "@keypears/api-server/client";
 import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";
-import {
-  encryptMessage,
-  createTextMessage,
-} from "~app/lib/message-encryption";
+import { encryptMessage, createTextMessage } from "~app/lib/message-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
 import { FixedBuf } from "@keypears/lib";
@@ -43,7 +40,9 @@ interface NewMessageDialogProps {
   onMessageSent?: () => void;
 }
 
-function parseAddress(address: string): { name: string; domain: string } | null {
+function parseAddress(
+  address: string,
+): { name: string; domain: string } | null {
   const parts = address.split("@");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     return null;
@@ -290,7 +289,10 @@ export function NewMessageDialog({
             </form>
           )}
 
-          {(phase === "preparing" || phase === "mining" || phase === "sending" || phase === "saving") && (
+          {(phase === "preparing" ||
+            phase === "mining" ||
+            phase === "sending" ||
+            phase === "saving") && (
             <div className="space-y-4 py-8 text-center">
               <div className="flex justify-center">
                 <div className="bg-primary/10 rounded-full p-4">
@@ -348,7 +350,7 @@ export function NewMessageDialog({
           {phase === "success" && (
             <div className="space-y-4 py-8 text-center">
               <div className="flex justify-center">
-                <div className="bg-green-500/10 rounded-full p-4">
+                <div className="rounded-full bg-green-500/10 p-4">
                   <Send className="h-8 w-8 text-green-500" />
                 </div>
               </div>

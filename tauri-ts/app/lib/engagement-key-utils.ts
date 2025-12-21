@@ -1,9 +1,5 @@
 import { createClientFromDomain } from "@keypears/api-server/client";
-import {
-  privateKeyAdd,
-  publicKeyCreate,
-  FixedBuf,
-} from "@keypears/lib";
+import { privateKeyAdd, publicKeyCreate, FixedBuf } from "@keypears/lib";
 import { getSessionToken, getVaultKey } from "./vault-store";
 
 /**
@@ -53,7 +49,9 @@ export async function deriveEngagementPrivKey(
   if (expectedPubKey) {
     const computedPubKey = publicKeyCreate(engagementPrivKey);
     if (computedPubKey.toHex() !== expectedPubKey) {
-      throw new Error("Engagement key verification failed - public key mismatch");
+      throw new Error(
+        "Engagement key verification failed - public key mismatch",
+      );
     }
   }
 

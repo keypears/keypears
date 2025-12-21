@@ -66,7 +66,7 @@ export function Navbar({ showBackButton = false, vaultId }: NavbarProps) {
                   to={href("/vault/:vaultId/passwords", {
                     vaultId: vault.vaultId,
                   })}
-                  className="min-w-0 truncate text-foreground hover:text-primary font-mono text-sm transition-colors"
+                  className="text-foreground hover:text-primary min-w-0 truncate font-mono text-sm transition-colors"
                 >
                   {vault.vaultName}@{vault.vaultDomain}
                 </Link>

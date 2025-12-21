@@ -4,9 +4,15 @@ import {
   SendMessageResponseSchema,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
+import {
+  getVaultByNameAndDomain,
+  getVaultSettings,
+} from "../db/models/vault.js";
 import { getEngagementKeyByPubKey } from "../db/models/engagement-key.js";
-import { getOrCreateChannelView, getChannelView } from "../db/models/channel.js";
+import {
+  getOrCreateChannelView,
+  getChannelView,
+} from "../db/models/channel.js";
 import { createInboxMessage } from "../db/models/inbox-message.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
 import { db } from "../db/index.js";
@@ -19,7 +25,9 @@ import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
  * @param address - The address to parse
  * @returns Object with name and domain, or null if invalid format
  */
-function parseAddress(address: string): { name: string; domain: string } | null {
+function parseAddress(
+  address: string,
+): { name: string; domain: string } | null {
   const atIndex = address.indexOf("@");
   if (atIndex === -1 || atIndex === 0 || atIndex === address.length - 1) {
     return null;
@@ -79,7 +87,9 @@ export const sendMessageProcedure = base
     }
 
     // 2. Look up engagement key by recipientEngagementPubKey
-    const engagementKey = await getEngagementKeyByPubKey(recipientEngagementPubKey);
+    const engagementKey = await getEngagementKeyByPubKey(
+      recipientEngagementPubKey,
+    );
     if (!engagementKey) {
       throw new ORPCError("NOT_FOUND", {
         message: "Recipient engagement key not found",
@@ -117,7 +127,10 @@ export const sendMessageProcedure = base
 
     // 4. Resolve minimum difficulty from hierarchy: channel → vault → system default
     // Check for existing channel with per-channel difficulty override
-    const existingChannel = await getChannelView(recipientAddress, senderAddress);
+    const existingChannel = await getChannelView(
+      recipientAddress,
+      senderAddress,
+    );
     let minDifficulty: bigint;
 
     if (existingChannel?.minDifficulty) {

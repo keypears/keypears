@@ -5,10 +5,7 @@ import { MessageSquare, Plus, ChevronRight, Inbox } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
 import { createClientFromDomain } from "@keypears/api-server/client";
-import {
-  getUnlockedVault,
-  getSessionToken,
-} from "~app/lib/vault-store";
+import { getUnlockedVault, getSessionToken } from "~app/lib/vault-store";
 import { NewMessageDialog } from "~app/components/new-message-dialog";
 
 interface Channel {
@@ -218,7 +215,11 @@ export default function VaultMessagesIndex({
             </div>
           ) : (
             channels.map((channel) => (
-              <ChannelCard key={channel.id} channel={channel} vaultId={vaultId} />
+              <ChannelCard
+                key={channel.id}
+                channel={channel}
+                vaultId={vaultId}
+              />
             ))
           )}
         </div>

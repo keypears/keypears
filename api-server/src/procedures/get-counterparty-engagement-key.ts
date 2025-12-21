@@ -12,7 +12,10 @@ import {
   GetCounterpartyEngagementKeyResponseSchema,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";
+import {
+  getVaultByNameAndDomain,
+  getVaultSettings,
+} from "../db/models/vault.js";
 import { getEngagementKeyForReceiving } from "../db/models/engagement-key.js";
 import { getChannelView } from "../db/models/channel.js";
 import { db } from "../db/index.js";
@@ -28,7 +31,9 @@ import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
  * @param address - The address to parse
  * @returns Object with name and domain, or null if invalid format
  */
-function parseAddress(address: string): { name: string; domain: string } | null {
+function parseAddress(
+  address: string,
+): { name: string; domain: string } | null {
   const atIndex = address.indexOf("@");
   if (atIndex === -1 || atIndex === 0 || atIndex === address.length - 1) {
     return null;

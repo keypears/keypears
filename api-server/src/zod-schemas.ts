@@ -37,7 +37,10 @@ export const RegisterVaultResponseSchema = z.object({
 export const CreateSecretUpdateRequestSchema = z.object({
   vaultId: z.string().length(26), // UUIDv7 (26-char)
   secretId: z.string().length(26), // UUIDv7 (26-char, same for all updates to this secret)
-  encryptedBlob: z.string().min(1).max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted JSON (hex, max 10KB)
+  encryptedBlob: z
+    .string()
+    .min(1)
+    .max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted JSON (hex, max 10KB)
 });
 
 export const CreateSecretUpdateResponseSchema = z.object({
@@ -132,10 +135,9 @@ export const GetPowChallengeRequestSchema = z.object({
   difficulty: z
     .number()
     .optional()
-    .refine(
-      (val) => val === undefined || val >= 1,
-      { message: "Difficulty must be at least 1" },
-    ),
+    .refine((val) => val === undefined || val >= 1, {
+      message: "Difficulty must be at least 1",
+    }),
 });
 
 export const GetPowChallengeResponseSchema = z.object({
@@ -215,7 +217,10 @@ export const GetCounterpartyEngagementKeyResponseSchema = z.object({
 export const SendMessageRequestSchema = z.object({
   recipientAddress: z.string().min(1).max(255), // Who I'm messaging (name@domain)
   senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
-  encryptedContent: z.string().min(1).max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted message (hex, max 10KB)
+  encryptedContent: z
+    .string()
+    .min(1)
+    .max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted message (hex, max 10KB)
   senderEngagementPubKey: z.string().length(66), // My engagement pubkey
   recipientEngagementPubKey: z.string().length(66), // Their engagement pubkey
   powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge

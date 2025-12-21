@@ -17,7 +17,10 @@ interface PasswordListProps {
   showDeleted?: boolean;
 }
 
-export function PasswordList({ passwords, showDeleted = false }: PasswordListProps) {
+export function PasswordList({
+  passwords,
+  showDeleted = false,
+}: PasswordListProps) {
   const params = useParams<{ vaultId: string }>();
   const vaultId = params.vaultId;
 

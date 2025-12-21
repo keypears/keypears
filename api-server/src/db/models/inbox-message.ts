@@ -109,7 +109,9 @@ export async function createInboxMessage(params: {
  * @param id - The message ID
  * @returns The message if found, null otherwise
  */
-export async function getInboxMessageById(id: string): Promise<InboxMessage | null> {
+export async function getInboxMessageById(
+  id: string,
+): Promise<InboxMessage | null> {
   const result = await db
     .select()
     .from(TableInboxMessage)
@@ -199,7 +201,9 @@ export async function markMessageAsRead(id: string): Promise<void> {
  *
  * @param channelViewId - The channel view ID
  */
-export async function markAllMessagesAsRead(channelViewId: string): Promise<void> {
+export async function markAllMessagesAsRead(
+  channelViewId: string,
+): Promise<void> {
   await db
     .update(TableInboxMessage)
     .set({ isRead: true })
@@ -237,7 +241,9 @@ export async function getUnreadCount(channelViewId: string): Promise<number> {
  * @param ownerAddress - The owner's address
  * @returns The total number of unread messages
  */
-export async function getUnreadCountByOwner(ownerAddress: string): Promise<number> {
+export async function getUnreadCountByOwner(
+  ownerAddress: string,
+): Promise<number> {
   const result = await db
     .select({ count: count() })
     .from(TableInboxMessage)
@@ -353,9 +359,7 @@ export async function deleteInboxMessages(ids: string[]): Promise<number> {
   }
 
   // Delete each message - drizzle doesn't return count for bulk deletes
-  await db
-    .delete(TableInboxMessage)
-    .where(inArray(TableInboxMessage.id, ids));
+  await db.delete(TableInboxMessage).where(inArray(TableInboxMessage.id, ids));
 
   // Return the number of IDs we attempted to delete
   // (actual count may differ if some were already deleted)

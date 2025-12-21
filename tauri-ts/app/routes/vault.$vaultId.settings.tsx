@@ -71,7 +71,9 @@ export default function VaultSettingsPage({
   // Custom difficulty dialog state
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
   const [customDifficultyInput, setCustomDifficultyInput] = useState("");
-  const [customDifficultyError, setCustomDifficultyError] = useState<string | null>(null);
+  const [customDifficultyError, setCustomDifficultyError] = useState<
+    string | null
+  >(null);
 
   // Get the current difficulty value for comparison
   const currentDifficulty = settings.messagingMinDifficulty ?? null;
@@ -195,7 +197,9 @@ export default function VaultSettingsPage({
                 {DIFFICULTY_PRESETS.map((preset) => (
                   <Button
                     key={preset.label}
-                    variant={isPresetSelected(preset.value) ? "default" : "outline"}
+                    variant={
+                      isPresetSelected(preset.value) ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => handlePresetSelect(preset.value)}
                     disabled={isSaving}
@@ -218,8 +222,12 @@ export default function VaultSettingsPage({
               {/* Current value info */}
               <div className="mt-3 space-y-1">
                 <p className="text-muted-foreground text-xs">
-                  Current: {currentDifficulty ? formatNumber(currentDifficulty) : "System default"}{" "}
-                  {currentDifficulty && `(${estimatePowTime(currentDifficulty).timeGpu} on GPU)`}
+                  Current:{" "}
+                  {currentDifficulty
+                    ? formatNumber(currentDifficulty)
+                    : "System default"}{" "}
+                  {currentDifficulty &&
+                    `(${estimatePowTime(currentDifficulty).timeGpu} on GPU)`}
                 </p>
                 {isCustomValue() && currentDifficulty && (
                   <p className="text-muted-foreground text-xs">
@@ -233,7 +241,10 @@ export default function VaultSettingsPage({
       </div>
 
       {/* Custom difficulty dialog */}
-      <AlertDialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
+      <AlertDialog
+        open={isCustomDialogOpen}
+        onOpenChange={setIsCustomDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Set Custom Difficulty</AlertDialogTitle>
@@ -254,11 +265,14 @@ export default function VaultSettingsPage({
               className="font-mono"
             />
             {customDifficultyError && (
-              <p className="text-destructive mt-2 text-sm">{customDifficultyError}</p>
+              <p className="text-destructive mt-2 text-sm">
+                {customDifficultyError}
+              </p>
             )}
             {customDifficultyInput && !customDifficultyError && (
               <p className="text-muted-foreground mt-2 text-sm">
-                Estimated time: {estimatePowTime(Number(customDifficultyInput)).timeGpu} on GPU
+                Estimated time:{" "}
+                {estimatePowTime(Number(customDifficultyInput)).timeGpu} on GPU
               </p>
             )}
           </div>

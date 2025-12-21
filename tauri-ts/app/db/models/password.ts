@@ -7,7 +7,13 @@ import { eq, and, desc, sql, count, inArray, notInArray } from "drizzle-orm";
  * - password/envvar/apikey/walletkey/passkey: Traditional secrets shown in Passwords page
  * - message: Encrypted messages saved to vault (shown in Messages page)
  */
-export type SecretType = "password" | "envvar" | "apikey" | "walletkey" | "passkey" | "message";
+export type SecretType =
+  | "password"
+  | "envvar"
+  | "apikey"
+  | "walletkey"
+  | "passkey"
+  | "message";
 
 /**
  * Secret update row as stored in local database
