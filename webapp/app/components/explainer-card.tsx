@@ -5,9 +5,14 @@ export function ExplainerCard() {
   return (
     <section className="border-border bg-card rounded-lg border p-6 text-center">
       {/* Identity visual */}
-      <div className="text-primary mb-4 font-mono text-lg">
+      <div className="text-primary mb-2 font-mono text-lg">
         alice@keypears.com <span className="text-muted-foreground">↔</span>{" "}
         bob@example.com
+      </div>
+
+      {/* Slogan */}
+      <div className="mb-4 text-xl font-semibold">
+        End-to-end encrypted secret sharing
       </div>
 
       {/* Explanation */}
