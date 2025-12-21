@@ -4,7 +4,7 @@ let server: Server | null = null;
 
 /**
  * Vitest global setup - starts the test server before any tests run.
- * The server is shared across all test files and runs on port 4275.
+ * The server is shared across all test files and runs on port 4273.
  */
 export async function setup(): Promise<void> {
   // Load environment variables (same as test:server script)
@@ -15,7 +15,7 @@ export async function setup(): Promise<void> {
   const { createTestServer } = await import("./server.js");
   server = await createTestServer();
 
-  console.log("Test server started on port 4275");
+  console.log("Test server started on port 4273");
 }
 
 /**

@@ -3,6 +3,10 @@ import * as Pow5_64b_Wasm from "@keypears/pow5/dist/pow5-64b-wasm.js";
 import { hashMeetsTarget } from "@keypears/pow5/dist/difficulty.js";
 import { createClient } from "../../src/client.js";
 
+// In test mode, messaging difficulty is set to MIN_USER_DIFFICULTY (256)
+// See api-server/src/constants.ts - test mode uses trivial difficulty
+const TEST_MESSAGING_DIFFICULTY = 256;
+
 export interface PowProof {
   challengeId: string;
   solvedHeader: string;
@@ -14,6 +18,8 @@ export interface SolvePowOptions {
   difficulty?: number;
   /** Vault name being registered - used to calculate difficulty if not specified */
   name?: string;
+  /** If true, use messaging difficulty instead of registration difficulty */
+  forMessaging?: boolean;
 }
 
 /**
@@ -26,15 +32,28 @@ export interface SolvePowOptions {
  * @param options - Optional settings
  * @param options.difficulty - Explicit difficulty to request
  * @param options.name - Vault name (used to calculate difficulty via difficultyForName)
+ * @param options.forMessaging - If true, use messaging difficulty (for getCounterpartyEngagementKey)
  */
 export async function solvePowChallenge(
   serverUrl: string,
   options?: SolvePowOptions,
 ): Promise<PowProof> {
-  // Use explicit difficulty, or calculate from name, or use a safe default
-  const difficulty =
-    options?.difficulty ??
-    (options?.name ? Number(difficultyForName(options.name)) : 128);
+  // Determine difficulty:
+  // 1. Explicit difficulty if provided
+  // 2. Messaging difficulty if forMessaging is true
+  // 3. Calculated from name for registration
+  // 4. Default safe value
+  let difficulty: number;
+  if (options?.difficulty !== undefined) {
+    difficulty = options.difficulty;
+  } else if (options?.forMessaging) {
+    difficulty = TEST_MESSAGING_DIFFICULTY;
+  } else if (options?.name) {
+    difficulty = Number(difficultyForName(options.name));
+  } else {
+    difficulty = 128;
+  }
+
   const client = createClient({ url: serverUrl });
 
   // Fetch challenge with specified difficulty

@@ -6,7 +6,7 @@ import { CORSPlugin } from "@orpc/server/plugins";
 // Importing router automatically loads derivation keys from environment variables
 import { router } from "../src/index.js";
 
-const PORT = 4275; // Different port to avoid conflict with webapp
+const PORT = 4273; // Same port as webapp - can't run both simultaneously
 
 /**
  * Create and start the test server programmatically.
@@ -23,6 +23,14 @@ export function createTestServer(): Promise<Server> {
     // oRPC handler (matching the working project pattern)
     const orpcHandler = new RPCHandler(router, {
       plugins: [new CORSPlugin()],
+    });
+
+    // Serve .well-known/keypears.json for cross-domain verification
+    app.get("/.well-known/keypears.json", (_req: Request, res: Response) => {
+      res.json({
+        version: 1,
+        apiUrl: `http://keypears.localhost:${PORT}/api`,
+      });
     });
 
     // Mount on /api route

@@ -18,10 +18,10 @@ const testPrivKey = sha256Hash(WebBuf.fromUtf8("test-vault-privkey"));
 const testPubKey = publicKeyCreate(FixedBuf.fromBuf(32, testPrivKey.buf));
 
 // Test server URL
-const TEST_SERVER_URL = "http://localhost:4275/api";
+const TEST_SERVER_URL = "http://localhost:4273/api";
 
 // Create client pointing to test server
-// Note: Test server must be running on port 4275
+// Note: Test server must be running on port 4273
 const client = createClient({
   url: TEST_SERVER_URL,
 });
