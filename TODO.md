@@ -506,7 +506,7 @@ specification.
 - [x] Unit tests: channel and inbox-message models
 - [x] Integration tests: API procedures with vitest globalSetup
 - [ ] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
-- [ ] Manual: cross-domain messaging (alice@keypears.com → bob@wokerium.com)
+- [ ] Manual: cross-domain messaging (alice@keypears.com → bob@passapples.com)
 - [ ] Manual: verify sent messages appear on all sender's devices
 - [ ] Manual: verify saved channel messages sync across recipient's devices
 - [ ] Manual: verify auto-save on reply works correctly
@@ -522,15 +522,15 @@ specification.
 
 ### Official Domains
 
-- [ ] Register and configure wokerium.com domain
-- [ ] Register and configure hevybags.com domain
+- [ ] Register and configure passapples.com domain
+- [ ] Register and configure lockberries.com domain
 - [ ] Deploy KeyPears server to all three domains
 - [ ] Configure DNS and SSL for all domains
 
 ### Domain Discovery UI
 
-- [ ] Add domain dropdown to vault creation (keypears.com, wokerium.com,
-      hevybags.com)
+- [ ] Add domain dropdown to vault creation (keypears.com, passapples.com,
+      lockberries.com)
 - [ ] Add "Custom domain" option with validation
 - [ ] Implement connectivity check for custom domains
 - [ ] Show domain status indicators
@@ -670,9 +670,9 @@ limits.
 - [ ] ✅ User can share password with `bob@keypears.com` via DH key exchange
 - [ ] ✅ Bob receives, decrypts, and imports shared password
 - [ ] ✅ All features work on Windows, macOS, Linux, Android, iOS
-- [ ] ✅ Server supports keypears.com + wokerium.com + hevybags.com domains
+- [ ] ✅ Server supports keypears.com + passapples.com + lockberries.com domains
 - [ ] ✅ User can add custom domain server (with manual domain entry)
-- [ ] ✅ Cross-domain sharing works (keypears.com ↔ wokerium.com)
+- [ ] ✅ Cross-domain sharing works (keypears.com ↔ passapples.com)
 - [ ] ✅ Zero-knowledge architecture verified (server cannot decrypt secrets)
 - [ ] ✅ Free tier limits enforced (300 syncs, 50 shares, 500 secrets per month)
 - [ ] ✅ User can purchase Premium tier ($99/year) via Stripe

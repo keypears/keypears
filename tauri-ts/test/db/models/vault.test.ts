@@ -85,7 +85,7 @@ describe("Vault Model", () => {
       const vault2 = await createVault(
         generateId(),
         "samename",
-        "hevybags.localhost",
+        "passapples.localhost",
         "0".repeat(64),
         "1".repeat(64),
         testDeviceId(),
@@ -93,7 +93,7 @@ describe("Vault Model", () => {
       );
 
       expect(vault2).toBeDefined();
-      expect(vault2.domain).toBe("hevybags.localhost");
+      expect(vault2.domain).toBe("passapples.localhost");
     });
 
     it("should reject names that are too short", async () => {
@@ -239,7 +239,7 @@ describe("Vault Model", () => {
       await createVault(
         generateId(),
         "samename",
-        "hevybags.localhost",
+        "passapples.localhost",
         "0".repeat(64),
         "1".repeat(64),
         testDeviceId(),

@@ -3,11 +3,11 @@
  */
 
 export const OFFICIAL_DOMAINS = {
-  production: ["keypears.com", "hevybags.com", "wokerium.com"],
+  production: ["keypears.com", "passapples.com", "lockberries.com"],
   development: [
     "keypears.localhost",
-    "hevybags.localhost",
-    "wokerium.localhost",
+    "passapples.localhost",
+    "lockberries.localhost",
   ],
 } as const;
 
@@ -17,8 +17,8 @@ export const OFFICIAL_DOMAINS = {
  */
 export const DEV_PORT_MAP = {
   "keypears.localhost": 4273,
-  "hevybags.localhost": 4283,
-  "wokerium.localhost": 4293,
+  "passapples.localhost": 4283,
+  "lockberries.localhost": 4293,
 } as const;
 
 /**
