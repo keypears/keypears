@@ -3,16 +3,16 @@ import { ExternalLink } from "lucide-react";
 
 export function ExplainerCard() {
   return (
-    <section className="border-border bg-card rounded-lg border p-6 text-center">
-      {/* Identity visual */}
-      <div className="text-primary mb-2 font-mono text-lg">
-        alice@keypears.com <span className="text-muted-foreground">↔</span>{" "}
-        bob@example.com
+    <section className="border-border bg-card rounded-lg border p-6">
+      {/* Slogan */}
+      <div className="mb-4 text-center text-lg font-semibold">
+        End-to-end encrypted secret sharing across domains
       </div>
 
-      {/* Slogan */}
-      <div className="mb-4 text-xl font-semibold">
-        End-to-end encrypted secret sharing
+      {/* Identity visual */}
+      <div className="text-primary mb-4 text-center font-mono text-lg">
+        alice@keypears.com <span className="text-muted-foreground">↔</span>{" "}
+        bob@example.com
       </div>
 
       {/* Explanation */}
