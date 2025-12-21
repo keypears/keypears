@@ -1,6 +1,7 @@
 import { href, Link } from "react-router";
 import { loadBlogPosts } from "~/util/blog";
 import { BlogPostCard } from "~/components/blog-post-card";
+import { ExplainerCard } from "~/components/explainer-card";
 import { Header } from "~/components/header";
 import { Footer } from "~/components/footer";
 import type { Route } from "./+types/_index";
@@ -50,6 +51,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Header />
+
+        <ExplainerCard />
 
         {recentPosts.length > 0 && (
           <section className="mt-16">
