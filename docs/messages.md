@@ -209,7 +209,9 @@ When Alice's server receives a message, it validates:
 ```
 
 This prevents:
-- **Impersonation**: Signature + cross-domain verification ensures sender identity
+
+- **Impersonation**: Signature + cross-domain verification ensures sender
+  identity
 - **DoS attacks**: PoW required before any engagement key is created
 - **Replay attacks**: PoW is tied to specific sender+recipient+pubkey
 
@@ -262,12 +264,15 @@ Bob sends message to Alice:
 ### Per-Channel Proof-of-Work
 
 Establishing a new channel requires proof-of-work. The PoW is consumed when the
-sender requests the recipient's engagement key, NOT when sending individual messages.
+sender requests the recipient's engagement key, NOT when sending individual
+messages.
 
 **Difficulty determination:**
 
-1. **Per-channel override**: Recipient can set specific difficulty for known senders
-2. **Global setting**: Each user has a default `messagingMinDifficulty` (default ~4M)
+1. **Per-channel override**: Recipient can set specific difficulty for known
+   senders
+2. **Global setting**: Each user has a default `messagingMinDifficulty` (default
+   ~4M)
 3. **System default**: Fallback to server's DEFAULT_MESSAGING_DIFFICULTY (~4M)
 
 **How it works:**
@@ -282,16 +287,21 @@ sender requests the recipient's engagement key, NOT when sending individual mess
 
 **Security properties:**
 
-- **DoS prevention**: Attackers can't spam key requests without computational work
-- **Identity verification**: Signature proves ownership; cross-domain call confirms identity
-- **Channel binding**: PoW is tied to specific sender+recipient pair, preventing replay
-- **Idempotent keys**: Same sender+pubkey returns same key (no storage exhaustion)
+- **DoS prevention**: Attackers can't spam key requests without computational
+  work
+- **Identity verification**: Signature proves ownership; cross-domain call
+  confirms identity
+- **Channel binding**: PoW is tied to specific sender+recipient pair, preventing
+  replay
+- **Idempotent keys**: Same sender+pubkey returns same key (no storage
+  exhaustion)
 
 **Enabling easy replies:**
 
 When you accept a channel from someone you trust, you can lower your per-channel
-difficulty for them. Setting difficulty to a trivial value (e.g., 256) makes their
-channel establishment effectively free while still requiring the verification handshake.
+difficulty for them. Setting difficulty to a trivial value (e.g., 256) makes
+their channel establishment effectively free while still requiring the
+verification handshake.
 
 **Recipient's controls:**
 
@@ -301,7 +311,8 @@ channel establishment effectively free while still requiring the verification ha
 
 **Server-side enforcement:**
 
-- PoW + signature + identity verification required for `getCounterpartyEngagementKey`
+- PoW + signature + identity verification required for
+  `getCounterpartyEngagementKey`
 - `sendMessage` only verifies channel binding (PoW already consumed)
 - Difficulty lookup: per-channel override → vault setting → system default
 
@@ -333,9 +344,9 @@ interface MessageContent {
 }
 ```
 
-**Phase 1 (MVP):** Only `type: "text"` supported
-**Phase 2:** Add `type: "password"` for secret sharing
-**Phase 3:** Add `type: "file"` for encrypted file sharing
+**Phase 1 (MVP):** Only `type: "text"` supported **Phase 2:** Add
+`type: "password"` for secret sharing **Phase 3:** Add `type: "file"` for
+encrypted file sharing
 
 ### Size Limits
 
@@ -349,8 +360,8 @@ externally and referenced via URL.
 
 ### Direct-to-Recipient Architecture
 
-Unlike email (where your server relays messages), KeyPears clients send directly to
-the recipient's server. There is no server-side outbox.
+Unlike email (where your server relays messages), KeyPears clients send directly
+to the recipient's server. There is no server-side outbox.
 
 ```
 Bob sends message to Alice:
@@ -372,23 +383,23 @@ Bob sends message to Alice:
 
 The server-side inbox is temporary storage before sync to vault:
 
-| Property               | Description                           |
-| ---------------------- | ------------------------------------- |
-| Server-side only       | Stored on recipient's server          |
-| Temporary              | Deleted after sync to vault           |
-| Incoming messages only | No outbox on server                   |
-| Auto-synced            | Background sync moves to vault        |
+| Property               | Description                    |
+| ---------------------- | ------------------------------ |
+| Server-side only       | Stored on recipient's server   |
+| Temporary              | Deleted after sync to vault    |
+| Incoming messages only | No outbox on server            |
+| Auto-synced            | Background sync moves to vault |
 
 ### Sent Messages (Vault)
 
 Sent messages are saved directly to your vault:
 
-| Property               | Description                     |
-| ---------------------- | ------------------------------- |
-| Client-side + sync     | Stored in vault, synced to server |
-| Persistent             | Never expires                   |
-| Full offline access    | Available without network       |
-| Encrypted with vault key | Server can't read content     |
+| Property                 | Description                       |
+| ------------------------ | --------------------------------- |
+| Client-side + sync       | Stored in vault, synced to server |
+| Persistent               | Never expires                     |
+| Full offline access      | Available without network         |
+| Encrypted with vault key | Server can't read content         |
 
 **User flows:**
 
@@ -419,8 +430,10 @@ Sent messages are saved directly to your vault:
 
 **Implementation:**
 
-- Both sent and received messages become `secret_update` records with `type: "message"`
-- Encrypted blob includes `direction: "sent" | "received"` and `messageData` object
+- Both sent and received messages become `secret_update` records with
+  `type: "message"`
+- Encrypted blob includes `direction: "sent" | "received"` and `messageData`
+  object
 - Channel's server-generated `secretId` used for all vault storage
 - Uses existing sync infrastructure
 
@@ -428,16 +441,21 @@ Sent messages are saved directly to your vault:
 
 ### Server-Side (PostgreSQL)
 
-**Important design principle**: The abstract "channel" between Alice and Bob doesn't
-exist as a single database record anywhere. What exists is each participant's **view**
-of the channel, stored on their own server. This is essential for a federated system.
+**Important design principle**: The abstract "channel" between Alice and Bob
+doesn't exist as a single database record anywhere. What exists is each
+participant's **view** of the channel, stored on their own server. This is
+essential for a federated system.
 
 **Why channel views, not shared channels?**
 
-- Alice's server (example.com) and Bob's server (example2.com) have separate databases
-- Alice cannot know or store whether Bob synced to his vault - that's Bob's private state
-- Even if Alice and Bob share the same server, they each have their own channel_view row
-- Each view stores only the owner's state (their sync preference, their per-channel difficulty)
+- Alice's server (example.com) and Bob's server (example2.com) have separate
+  databases
+- Alice cannot know or store whether Bob synced to his vault - that's Bob's
+  private state
+- Even if Alice and Bob share the same server, they each have their own
+  channel_view row
+- Each view stores only the owner's state (their sync preference, their
+  per-channel difficulty)
 
 **New table: `channel_view`** (each participant's view of a channel)
 
@@ -451,18 +469,19 @@ created_at              timestamp
 updated_at              timestamp
 ```
 
-**Note on `secret_id`**: The server generates a unique `secretId` when creating each
-channel_view. This ID is used as the `secretId` for all `secret_update` records when
-messages are saved to the vault. Server-side generation ensures all devices for the
-same user see the same `secretId` for the same channel, preventing sync conflicts.
+**Note on `secret_id`**: The server generates a unique `secretId` when creating
+each channel_view. This ID is used as the `secretId` for all `secret_update`
+records when messages are saved to the vault. Server-side generation ensures all
+devices for the same user see the same `secretId` for the same channel,
+preventing sync conflicts.
 
-**Why no public keys in channel_view?** The channel is between two ADDRESSES, not two
-public keys. Keys can change over time (rotation, fresh keys). Each MESSAGE carries the
-public key(s) used at time of sending. The channel_view only stores the fixed relationship
-metadata.
+**Why no public keys in channel_view?** The channel is between two ADDRESSES,
+not two public keys. Keys can change over time (rotation, fresh keys). Each
+MESSAGE carries the public key(s) used at time of sending. The channel_view only
+stores the fixed relationship metadata.
 
-**Why no role field?** It doesn't matter who "initiated" the channel. What matters is
-the per-channel difficulty setting. The channel is symmetric.
+**Why no role field?** It doesn't matter who "initiated" the channel. What
+matters is the per-channel difficulty setting. The channel is symmetric.
 
 **Example**: When Bob sends a message to Alice:
 
@@ -484,7 +503,8 @@ Bob's server creates (sender, via getSenderChannel API):
 └─────────────────────────────────────────────┘
 ```
 
-Note: Both participants have their own channel_view stored on their respective servers.
+Note: Both participants have their own channel_view stored on their respective
+servers.
 
 **New table: `inbox_message`** (messages I received)
 
@@ -513,9 +533,9 @@ To decrypt an inbox message:
 
 **No server-side outbox table**
 
-Sent messages are NOT stored on the server. Instead, the sender saves them directly
-to their vault as `secret_update` records. This is simpler and more private - the
-sender's server doesn't need to know who they're messaging.
+Sent messages are NOT stored on the server. Instead, the sender saves them
+directly to their vault as `secret_update` records. This is simpler and more
+private - the sender's server doesn't need to know who they're messaging.
 
 To decrypt a sent message from vault:
 
@@ -540,7 +560,8 @@ counterparty_pubkey      varchar(66) (other party's pubkey, for validation)
 
 - `"manual"` - User-created via Engagement Keys page (general purpose)
 - `"send"` - Auto-created when initiating messaging to counterparty
-- `"receive"` - Auto-created when counterparty requests a key to send me a message
+- `"receive"` - Auto-created when counterparty requests a key to send me a
+  message
 
 **Counterparty pubkey field:**
 
@@ -563,7 +584,8 @@ counterparty_pubkey      varchar(66) (other party's pubkey, for validation)
 
 **Messages stored in vault via `secret_update` table:**
 
-Both sent and received messages use `type: "message"` in the existing `secret_update` table.
+Both sent and received messages use `type: "message"` in the existing
+`secret_update` table.
 
 ```typescript
 // Encrypted blob structure for messages
@@ -584,7 +606,8 @@ interface MessageSecretBlob {
 
 **Storage details:**
 
-- `secretId` = channel's `secret_id` from `channel_view` (server-generated, NOT deterministic)
+- `secretId` = channel's `secret_id` from `channel_view` (server-generated, NOT
+  deterministic)
 - `localOrder` = message order within channel (from server's `secret_update`)
 - `encryptedBlob` = MessageSecretBlob encrypted with vault key
 
@@ -620,20 +643,20 @@ last_message_at     timestamp
 
 ### Reverse Chronological Order
 
-Messages are displayed in **reverse chronological order** (newest at top, oldest at
-bottom), with the compose box positioned above the message list. This differs from
-most messaging apps which display chronologically (oldest at top).
+Messages are displayed in **reverse chronological order** (newest at top, oldest
+at bottom), with the compose box positioned above the message list. This differs
+from most messaging apps which display chronologically (oldest at top).
 
 **Rationale:**
 
-- **Consistency**: Matches the display pattern used throughout the app (passwords,
-  sync activity, channels list) where newest items appear first
-- **Web platform compatibility**: Aligns with how the web naturally works - content
-  at the top is seen first, scrolling down reveals older content
-- **Simplicity**: Single consistent pattern across all list views reduces cognitive
-  load and implementation complexity
-- **Blog-like model**: Treats message threads like a feed where new content appears
-  at the top, similar to blogs, social media feeds, and email inboxes
+- **Consistency**: Matches the display pattern used throughout the app
+  (passwords, sync activity, channels list) where newest items appear first
+- **Web platform compatibility**: Aligns with how the web naturally works -
+  content at the top is seen first, scrolling down reveals older content
+- **Simplicity**: Single consistent pattern across all list views reduces
+  cognitive load and implementation complexity
+- **Blog-like model**: Treats message threads like a feed where new content
+  appears at the top, similar to blogs, social media feeds, and email inboxes
 
 **Implementation:**
 
@@ -646,32 +669,32 @@ most messaging apps which display chronologically (oldest at top).
 
 ### Reused Components
 
-| Component           | How It's Used                                      |
-| ------------------- | -------------------------------------------------- |
-| Engagement Keys     | Public keys for ECDH + validation + signing        |
-| PoW (pow5-64b)      | Per-channel spam prevention (at key request)       |
-| ECDSA signatures    | Sender identity proof (sign PoW hash)              |
-| ACS2 encryption     | Message content encryption                         |
-| Secret Updates      | Storage for saved messages                         |
-| Sync infrastructure | Cross-device message sync                          |
+| Component           | How It's Used                                |
+| ------------------- | -------------------------------------------- |
+| Engagement Keys     | Public keys for ECDH + validation + signing  |
+| PoW (pow5-64b)      | Per-channel spam prevention (at key request) |
+| ECDSA signatures    | Sender identity proof (sign PoW hash)        |
+| ACS2 encryption     | Message content encryption                   |
+| Secret Updates      | Storage for saved messages                   |
+| Sync infrastructure | Cross-device message sync                    |
 
 ### New Components Needed (All Implemented)
 
-| Component                         | Purpose                                           | Status |
-| --------------------------------- | ------------------------------------------------- | ------ |
-| `getCounterpartyEngagementKey` API| Get recipient's key (PoW + signature + identity)  | ✅     |
-| `verifyEngagementKeyOwnership` API| Cross-domain identity verification                | ✅     |
-| `sendMessage` API                 | Send messages (channel binding verification)      | ✅     |
-| `getChannelMessages` API          | Retrieve messages from inbox                      | ✅     |
-| `getChannels` API                 | List channels for an address                      | ✅     |
-| `getSenderChannel` API            | Create sender's channel_view                      | ✅     |
-| `getInboxMessagesForSync` API     | Get inbox messages for sync                       | ✅     |
-| `deleteInboxMessages` API         | Delete synced messages from inbox                 | ✅     |
-| PoW challenge APIs                | Per-channel spam prevention                       | ✅     |
-| Channel list UI                   | Messages tab interface                            | ✅     |
-| Channel detail UI                 | Message thread view                               | ✅     |
-| New message dialog                | Compose and send new messages                     | ✅     |
-| Compose box                       | Reply to messages with PoW                        | ✅     |
+| Component                          | Purpose                                          | Status |
+| ---------------------------------- | ------------------------------------------------ | ------ |
+| `getCounterpartyEngagementKey` API | Get recipient's key (PoW + signature + identity) | ✅     |
+| `verifyEngagementKeyOwnership` API | Cross-domain identity verification               | ✅     |
+| `sendMessage` API                  | Send messages (channel binding verification)     | ✅     |
+| `getChannelMessages` API           | Retrieve messages from inbox                     | ✅     |
+| `getChannels` API                  | List channels for an address                     | ✅     |
+| `getSenderChannel` API             | Create sender's channel_view                     | ✅     |
+| `getInboxMessagesForSync` API      | Get inbox messages for sync                      | ✅     |
+| `deleteInboxMessages` API          | Delete synced messages from inbox                | ✅     |
+| PoW challenge APIs                 | Per-channel spam prevention                      | ✅     |
+| Channel list UI                    | Messages tab interface                           | ✅     |
+| Channel detail UI                  | Message thread view                              | ✅     |
+| New message dialog                 | Compose and send new messages                    | ✅     |
+| Compose box                        | Reply to messages with PoW                       | ✅     |
 
 ## Implementation Status
 
@@ -698,25 +721,30 @@ Settings included in Phase 0:
 
 ### Phase 1: Server-Side Foundation - COMPLETE
 
-- [x] Update `engagement_key` table with `purpose` and `counterparty_pubkey` fields
+- [x] Update `engagement_key` table with `purpose` and `counterparty_pubkey`
+      fields
 - [x] Add `channel_view` table to PostgreSQL
 - [x] Add `inbox_message` table to PostgreSQL
 - [x] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
-- [x] Note: NO outbox table - sent messages saved to sender's vault via secret_update
+- [x] Note: NO outbox table - sent messages saved to sender's vault via
+      secret_update
 - [x] `getEngagementKeyForSending` - Create engagement key with purpose "send"
-- [x] `getCounterpartyEngagementKey` - Public endpoint with three-layer verification:
-      1) PoW verification (prevents DoS)
-      2) Signature verification (proves key ownership)
-      3) Cross-domain identity verification via `verifyEngagementKeyOwnership`
-      Creates key with purpose "receive", stores sender's pubkey for validation
+- [x] `getCounterpartyEngagementKey` - Public endpoint with three-layer
+      verification: 1) PoW verification (prevents DoS) 2) Signature verification
+      (proves key ownership) 3) Cross-domain identity verification via
+      `verifyEngagementKeyOwnership` Creates key with purpose "receive", stores
+      sender's pubkey for validation
 - [x] `verifyEngagementKeyOwnership` - Public endpoint for cross-domain identity
       verification; confirms pubkey belongs to claimed address
 - [x] `sendMessage` - Send message; validates channel binding (PoW was consumed
       for this sender+recipient pair) and engagement key metadata
-- [x] `getChannels` - List channels for an address (with pagination, reverse chronological)
-- [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
+- [x] `getChannels` - List channels for an address (with pagination, reverse
+      chronological)
+- [x] `getChannelMessages` - Get messages in a channel (reverse chronological
+      order)
 - [x] Unit tests for channel and inbox-message models
-- [x] Integration test setup with vitest globalSetup (single `pnpm test` command)
+- [x] Integration test setup with vitest globalSetup (single `pnpm test`
+      command)
 
 ### Phase 2: Client Integration - COMPLETE
 
@@ -732,8 +760,10 @@ Settings included in Phase 0:
 
 - [x] Messages page loads from local vault (synced via background process)
 - [x] Passwords page filters `type !== "message"` via `excludeTypes` option
-- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for all channels
-- [x] Server-generated `secretId` in `channel_view` ensures consistency across devices
+- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for all
+      channels
+- [x] Server-generated `secretId` in `channel_view` ensures consistency across
+      devices
 - [x] Sender saves messages to vault immediately after sending
 - [x] `getSenderChannel` API creates sender's channel_view
 - [x] `getInboxMessagesForSync` / `deleteInboxMessages` APIs for sync process

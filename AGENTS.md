@@ -49,10 +49,12 @@ manager", or "digital vault".
 
 ## Project Structure
 
-Four main packages:
+Five main packages:
 
 - **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
   cryptography utilities)
+- **`@keypears/api-client`** (TypeScript): API contract and client factory
+  (type-safe oRPC client, no server dependencies)
 - **`@keypears/api-server`** (TypeScript): KeyPears API server (backend API
   server) using orpc
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
@@ -68,7 +70,8 @@ workspace (`Cargo.toml` at root).
 
 ```
 lib/                - @keypears/lib source (TypeScript)
-api-server/               - @keypears/api-server source (TypeScript API server using orpc)
+api-client/         - @keypears/api-client source (contract + client factory)
+api-server/         - @keypears/api-server source (TypeScript API server using orpc)
 tauri-rs/           - @keypears/tauri source (Rust backend)
 tauri-ts/           - @keypears/tauri source (TypeScript frontend)
   └── src-tauri/    - Symlink to ../tauri-rs (for Tauri CLI compatibility)
@@ -165,15 +168,20 @@ needed.
 
 The backend is built entirely in TypeScript using orpc for type-safe RPC:
 
-- **`@keypears/api-server`**: TypeScript API server using orpc for end-to-end
-  type safety. Exports both the router (for server-side integration) and client
-  factory (for client-side usage).
+- **`@keypears/api-client`**: Contract definitions and client factory functions.
+  Exports `createClient()` and `createClientFromDomain()` for type-safe API
+  calls. Has no server dependencies (can be used in browser/Tauri).
+- **`@keypears/api-server`**: TypeScript API server implementing the contract.
+  Exports the router for server-side integration.
 - **orpc**: Modern TypeScript RPC framework with full type safety, similar to
   tRPC but with better OpenAPI integration
-- **Current status**: Proof-of-concept complete with vault registration and
-  authentication endpoints
-- **Future work**: All backend vault operations and sync protocol will be
-  implemented in TypeScript and exposed via orpc procedures
+- **Current status**: Core features implemented:
+  - ✅ Vault registration with proof-of-work
+  - ✅ Session-based authentication
+  - ✅ Secret sync across devices
+  - ✅ Diffie-Hellman key exchange
+  - ✅ End-to-end encrypted messaging
+  - 🔄 Payment system (TBD)
 - **Branding**: The API server is called a "KeyPears API server" to emphasize
   the decentralized, network-oriented architecture similar to cryptocurrency
   nodes
@@ -190,8 +198,8 @@ The backend is built entirely in TypeScript using orpc for type-safe RPC:
   - NEVER use `any` because you were too lazy to figure out what types to use
   - NEVER EVER EVER use `any` EVER under ANY circumstances. NEVER USE `any`
     EVER!!!!
-- **API client**: `@keypears/api-server` exports `createClient()` for type-safe
-  orpc client
+- **API client**: `@keypears/api-client` exports `createClient()` and
+  `createClientFromDomain()` for type-safe oRPC clients
 - **Validation**: `zod` (for parsing and validation)
 - **RPC framework**: `orpc` (`@orpc/server` and `@orpc/client`) for end-to-end
   type safety
@@ -235,6 +243,8 @@ the KeyPears MVP" for the reasoning behind this decision.
 
 KeyPears has comprehensive design pattern documentation:
 
+### Development Patterns
+
 - **[UI/UX Patterns](docs/uiux.md)**: Visual design system, colors (Catppuccin),
   typography, component patterns (shadcn, buttons, inputs, forms), layout
   patterns, keyboard accessibility, interactions
@@ -244,11 +254,29 @@ KeyPears has comprehensive design pattern documentation:
 - **[Data Patterns](docs/data.md)**: Validation (Zod), database (UUIDv7 primary
   keys in Crockford Base32 format, Drizzle ORM), performance (debouncing,
   optimistic updates), error handling
-- **[Key Derivation Functions](docs/kdf.md)**: Three-tier key derivation system,
+
+### Architecture & Cryptography
+
+- **[oRPC API](docs/orpc.md)**: Contract-first API architecture, client/server
+  setup, authentication headers, procedure definitions
+- **[DH Protocol](docs/dh.md)**: Federated Diffie-Hellman key exchange,
+  engagement keys, cross-domain messaging
+- **[Messaging](docs/messages.md)**: Secure messaging protocol, channels,
+  encryption flow
+- **[Key Derivation](docs/kdf.md)**: Three-tier key derivation system,
   algorithms (SHA-256, ACS2, AES-256), password policy, cross-platform WASM
   crypto stack
 - **[Vault Keys](docs/vault-keys.md)**: Vault key architecture, secp256k1 keys,
   pubkeyhash, DH key exchange overview
+- **[Engagement Keys](docs/engagement-keys.md)**: Server-derived engagement keys
+  for messaging
+- **[Proof of Work](docs/pow.md)**: Spam protection via pow5 algorithm, variable
+  difficulty
+
+### Security
+
+- **[Authentication](docs/auth.md)**: Session-based auth, token management,
+  security model
 - **[Audit Guide](docs/audit.md)**: Codebase audit checklist, security
   assessment, lessons learned from past audits
 
@@ -256,9 +284,9 @@ KeyPears has comprehensive design pattern documentation:
 
 KeyPears has comprehensive business strategy documentation:
 
+- **[Vision](docs/vision.md)**: Project vision and long-term goals
 - **[Business Plan](docs/business.md)**: Market opportunity, target audiences,
-  business model (freemium with $99/year premium tier), revenue projections,
-  growth strategy, marketing, and fundraising
+  business model (freemium, pricing TBD), growth strategy
 - **[MVP Requirements](docs/mvp.md)**: Complete MVP specifications organized by
   phase with success criteria
 

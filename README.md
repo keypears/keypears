@@ -25,6 +25,7 @@ email**:
   `bob@example.org`).
 - Decentralized Diffie-Hellman key exchange enabling secure communication
   between any two email addresses.
+- **End-to-end encrypted messaging** between any two vault addresses.
 - End-to-end encryption for every secret — whether it's a password, API key, or
   crypto wallet.
 - A federated network that empowers individuals, teams, and enterprises to
@@ -65,13 +66,13 @@ multiple nodes.
 
 The **open-source KeyPears server** hosts user identities and encrypted secrets.
 
-- Stores **all secrets encrypted at rest**.
-- Servers can see minimal non-private metadata (e.g. entry name or account
-  label) for indexing/search.
-- Users who need maximum privacy can run their own node and control all
-  metadata.
+- **Zero-knowledge architecture**: All secrets and metadata are encrypted
+  client-side before reaching the server.
+- Server stores only **encrypted blobs** — it cannot see passwords, usernames,
+  domain names, or any secret content.
 - Implements a **federated identity model** — like email, users can have
   addresses across multiple nodes (`user@domain`).
+- Users can self-host for maximum control, or use hosted providers.
 
 ---
 
@@ -86,8 +87,9 @@ system**:
 - Under the hood, each email address corresponds to a **public key**, enabling
   **decentralized Diffie-Hellman key exchange** and **true end-to-end
   encryption** across domains.
-- This enables secure secret sharing, encrypted messaging, and cryptocurrency
-  wallet functionality all built on the same DH exchange foundation.
+- **Currently implemented**: Secure secret sharing and encrypted messaging.
+- **Future**: Cryptocurrency wallet functionality built on the same DH exchange
+  foundation.
 
 This makes KeyPears uniquely suited for collaboration across organizations,
 vendors, and teams — no more being locked into a single provider.
@@ -96,9 +98,9 @@ vendors, and teams — no more being locked into a single provider.
 
 ## 🏛️ Main Node: [keypears.com](https://keypears.com)
 
-- The **primary public node** will be hosted at `keypears.com`.
-- **Free tier**: 300 syncs/month, 50 shares/month, 500 secrets, 1GB storage.
-- **Premium tier**: $99/year for unlimited usage and custom domain support.
+- The **primary public node** is hosted at `keypears.com`.
+- **Freemium model**: Free tier for personal use, premium tier for power users
+  (pricing TBD).
 - Anyone can also self-host a node for private or enterprise use.
 
 ---
@@ -121,27 +123,56 @@ KeyPears is designed for a broad set of use cases:
 
 ## 🌱 Project Status
 
-This README is currently **for internal use only**.\
-Future versions will include installation instructions, developer guides, and
-contribution guidelines once the codebase is ready for public release.
+KeyPears is in **active development** with core features implemented:
+
+- ✅ Password management with cross-device sync
+- ✅ Federated Diffie-Hellman key exchange across domains
+- ✅ End-to-end encrypted messaging
+- ✅ Proof-of-work spam protection
+- 🔄 Payment system (in progress)
+
+The app is deployed at [keypears.com](https://keypears.com). Public contribution
+guidelines coming soon.
 
 ---
 
 ## 📚 Documentation
 
-- **[TODO.md](TODO.md)** — MVP task list organized by phase
-- **[AGENTS.md](AGENTS.md)** — Guide for AI agents working on KeyPears
-- **[docs/mvp.md](docs/mvp.md)** — Complete MVP requirements and success
-  criteria
-- **[docs/business.md](docs/business.md)** — Business model, pricing, and
-  strategy
-- **[docs/deployment.md](docs/deployment.md)** — AWS deployment guide
-- **[docs/code.md](docs/code.md)** — Code patterns and conventions
+### Getting Started
+
+- **[AGENTS.md](AGENTS.md)** — Guide for AI agents and developers working on
+  KeyPears
+
+### Architecture & API
+
+- **[docs/orpc.md](docs/orpc.md)** — oRPC API architecture (contract-first,
+  type-safe)
+- **[docs/dh.md](docs/dh.md)** — Diffie-Hellman key exchange protocol
+- **[docs/messages.md](docs/messages.md)** — Secure messaging protocol
+- **[docs/auth.md](docs/auth.md)** — Authentication system (session tokens)
+
+### Cryptography
+
 - **[docs/kdf.md](docs/kdf.md)** — Key derivation functions (password → keys)
 - **[docs/vault-keys.md](docs/vault-keys.md)** — Vault key architecture
   (secp256k1)
+- **[docs/pow.md](docs/pow.md)** — Proof-of-work spam protection
+- **[docs/engagement-keys.md](docs/engagement-keys.md)** — Engagement keys for
+  messaging
+
+### Development
+
+- **[docs/code.md](docs/code.md)** — Code patterns and conventions
 - **[docs/data.md](docs/data.md)** — Database and data handling patterns
 - **[docs/uiux.md](docs/uiux.md)** — UI/UX design patterns
+- **[docs/deployment.md](docs/deployment.md)** — AWS deployment guide
+
+### Business
+
+- **[docs/vision.md](docs/vision.md)** — Project vision and long-term goals
+- **[docs/mvp.md](docs/mvp.md)** — MVP requirements and success criteria
+- **[docs/business.md](docs/business.md)** — Business model and strategy
+- **[docs/audit.md](docs/audit.md)** — Security audit checklist
 
 ---
 
