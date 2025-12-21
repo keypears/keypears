@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf, generateId, publicKeyCreate } from "@keypears/lib";
-import { createClient } from "../src/client.js";
+import { createClient } from "@keypears/api-client";
 import { db } from "../src/db/index.js";
 import {
   TableVault,

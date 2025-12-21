@@ -10,7 +10,7 @@ import {
 import {
   CreateEngagementKeyRequestSchema,
   CreateEngagementKeyResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
 import { createEngagementKey } from "../db/models/engagement-key.js";

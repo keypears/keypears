@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../index.js";
 import { TableVault, type SelectVault } from "../schema.js";
-import type { VaultSettings } from "../../zod-schemas.js";
+import type { VaultSettings } from "@keypears/api-client";
 
 /**
  * Vault model interface

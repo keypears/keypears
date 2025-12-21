@@ -18,7 +18,7 @@ import { refreshSyncState } from "~app/contexts/sync-context";
 import { startBackgroundSync } from "~app/lib/sync-service";
 import { initDb } from "~app/db";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const vaultId = params.vaultId;

@@ -1,4 +1,4 @@
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { privateKeyAdd, publicKeyCreate, FixedBuf } from "@keypears/lib";
 import { getSessionToken, getVaultKey } from "./vault-store";
 

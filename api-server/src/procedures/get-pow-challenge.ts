@@ -1,7 +1,7 @@
 import {
   GetPowChallengeRequestSchema,
   GetPowChallengeResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { base } from "./base.js";
 import { createChallenge } from "../db/models/pow-challenge.js";
 import { getVaultByNameAndDomain, getVaultSettings } from "../db/models/vault.js";

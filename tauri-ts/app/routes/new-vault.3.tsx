@@ -17,7 +17,7 @@ import {
 import { createVault, updateVaultLastAccessed } from "~app/db/models/vault";
 import { initDb } from "~app/db";
 import { cn } from "~app/lib/utils";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { unlockVault, setSession } from "~app/lib/vault-store";
 import { refreshSyncState } from "~app/contexts/sync-context";

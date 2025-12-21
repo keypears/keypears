@@ -1,6 +1,6 @@
 import { FixedBuf, privateKeyAdd, sign } from "@keypears/lib";
 import { WebBuf } from "@webbuf/webbuf";
-import { createClient } from "../../src/client.js";
+import { createClient } from "@keypears/api-client";
 
 const TEST_SERVER_URL = "http://localhost:4273/api";
 

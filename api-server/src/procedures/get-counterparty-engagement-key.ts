@@ -11,7 +11,8 @@ import {
 import {
   GetCounterpartyEngagementKeyRequestSchema,
   GetCounterpartyEngagementKeyResponseSchema,
-} from "../zod-schemas.js";
+  createClientFromDomain,
+} from "@keypears/api-client";
 import { base } from "./base.js";
 import {
   getVaultByNameAndDomain,
@@ -31,7 +32,6 @@ import {
   getCurrentDerivationKeyIndex,
 } from "../derivation-keys.js";
 import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
-import { createClientFromDomain } from "../client.js";
 
 /**
  * Parse an address in the format "name@domain"

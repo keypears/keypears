@@ -10,7 +10,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { VaultSettings } from "../zod-schemas.js";
+import type { VaultSettings } from "@keypears/api-client";
 
 export const TableVault = pgTable(
   "vault",

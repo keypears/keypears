@@ -1,7 +1,7 @@
 import {
   VerifyPowProofRequestSchema,
   VerifyPowProofResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { base } from "./base.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
 

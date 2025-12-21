@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import {
   GetInboxMessagesForSyncRequestSchema,
   GetInboxMessagesForSyncResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
 import { getInboxMessagesForSync } from "../db/models/inbox-message.js";

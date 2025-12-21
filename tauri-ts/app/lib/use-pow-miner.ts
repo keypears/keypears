@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { FixedBuf } from "@keypears/lib";
 import { Pow5_64b_Wgsl, Pow5_64b_Wasm, hashMeetsTarget } from "@keypears/pow5";
 

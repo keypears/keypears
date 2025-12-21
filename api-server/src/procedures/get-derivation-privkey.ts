@@ -5,7 +5,7 @@ import { deriveDerivationPrivKey } from "@keypears/lib";
 import {
   GetDerivationPrivKeyRequestSchema,
   GetDerivationPrivKeyResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { db } from "../db/index.js";
 import { TableEngagementKey } from "../db/schema.js";

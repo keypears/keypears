@@ -9,7 +9,7 @@ import {
   estimatePowTime,
 } from "@keypears/lib";
 import { ZodError } from "zod";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 
 export default function NewVaultStep1() {
   const navigate = useNavigate();

@@ -2,7 +2,7 @@ import { difficultyForName } from "@keypears/lib";
 import {
   CheckNameAvailabilityRequestSchema,
   CheckNameAvailabilityResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { checkNameAvailability } from "../db/models/vault.js";
 import { base } from "./base.js";
 

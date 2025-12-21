@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import {
   SendMessageRequestSchema,
   SendMessageResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { base } from "./base.js";
 import { getVaultByNameAndDomain } from "../db/models/vault.js";
 import { getEngagementKeyByPubKey } from "../db/models/engagement-key.js";

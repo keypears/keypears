@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import {
   UpdateVaultSettingsRequestSchema,
   UpdateVaultSettingsResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { updateVaultSettings as updateVaultSettingsInDb } from "../db/models/vault.js";
 import { sessionAuthedProcedure } from "./base.js";
 import { MIN_USER_DIFFICULTY } from "../constants.js";

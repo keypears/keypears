@@ -4,7 +4,7 @@ import { sha256Hash, WebBuf } from "@keypears/lib";
 import {
   GetEngagementKeyByPubKeyRequestSchema,
   GetEngagementKeyByPubKeyResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { db } from "../db/index.js";
 import { TableEngagementKey } from "../db/schema.js";

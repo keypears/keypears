@@ -8,7 +8,7 @@ import {
 import {
   RegisterVaultRequestSchema,
   RegisterVaultResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { checkNameAvailability, createVault } from "../db/models/vault.js";
 import { verifyAndConsume } from "../db/models/pow-challenge.js";
 import { base } from "./base.js";

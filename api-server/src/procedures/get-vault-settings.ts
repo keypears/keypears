@@ -1,7 +1,7 @@
 import {
   GetVaultSettingsRequestSchema,
   GetVaultSettingsResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { getVaultSettings as getVaultSettingsFromDb } from "../db/models/vault.js";
 import { sessionAuthedProcedure } from "./base.js";
 

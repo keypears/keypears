@@ -1,7 +1,7 @@
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf, generateId, publicKeyCreate } from "@keypears/lib";
-import { createClient } from "../../src/client.js";
+import { createClient } from "@keypears/api-client";
 import { solvePowChallenge } from "./solve-pow.js";
 
 const TEST_SERVER_URL = "http://localhost:4273/api";

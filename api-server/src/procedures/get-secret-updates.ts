@@ -1,7 +1,7 @@
 import {
   GetSecretUpdatesRequestSchema,
   GetSecretUpdatesResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { getSecretUpdatesSince } from "../db/models/secret-update.js";
 import { sessionAuthedProcedure } from "./base.js";
 

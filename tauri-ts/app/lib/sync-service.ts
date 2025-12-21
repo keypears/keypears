@@ -1,5 +1,5 @@
 import type { FixedBuf } from "@keypears/lib";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { syncVault } from "./sync";
 import { getSession, isSessionExpiringSoon } from "./vault-store";
 

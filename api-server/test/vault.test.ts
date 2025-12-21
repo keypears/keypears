@@ -8,7 +8,7 @@ import {
   generateId,
   publicKeyCreate,
 } from "@keypears/lib";
-import { createClient } from "../src/client.js";
+import { createClient } from "@keypears/api-client";
 import { db } from "../src/db/index.js";
 import { TableVault, TablePowChallenge } from "../src/db/schema.js";
 import { solvePowChallenge } from "./helpers/solve-pow.js";

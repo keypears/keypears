@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import {
   DeleteInboxMessagesRequestSchema,
   DeleteInboxMessagesResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
 import {

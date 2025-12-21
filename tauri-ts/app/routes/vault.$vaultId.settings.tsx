@@ -14,10 +14,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { estimatePowTime } from "@keypears/lib";
 import { getUnlockedVault, getSessionToken } from "~app/lib/vault-store";
-import type { VaultSettings } from "@keypears/api-server";
+import type { VaultSettings } from "@keypears/api-client";
 
 // Difficulty presets
 const DIFFICULTY_PRESETS = [

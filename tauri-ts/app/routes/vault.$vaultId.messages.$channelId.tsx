@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "~app/components/ui/alert-dialog";
 import { useUnreadCount } from "~app/contexts/sync-context";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import {
   getUnlockedVault,
   getSessionToken,

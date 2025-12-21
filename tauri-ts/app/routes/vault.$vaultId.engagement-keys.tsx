@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Key, Plus, Copy, Eye, EyeOff, Check } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import {
   getUnlockedVault,
   getSessionToken,

@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import {
   GetSenderChannelRequestSchema,
   GetSenderChannelResponseSchema,
-} from "../zod-schemas.js";
+} from "@keypears/api-client";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
 import { getOrCreateChannelView } from "../db/models/channel.js";

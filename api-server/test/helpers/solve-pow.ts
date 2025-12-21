@@ -1,7 +1,7 @@
 import { FixedBuf, difficultyForName } from "@keypears/lib";
 import * as Pow5_64b_Wasm from "@keypears/pow5/dist/pow5-64b-wasm.js";
 import { hashMeetsTarget } from "@keypears/pow5/dist/difficulty.js";
-import { createClient } from "../../src/client.js";
+import { createClient } from "@keypears/api-client";
 
 // In test mode, messaging difficulty is set to MIN_USER_DIFFICULTY (256)
 // See api-server/src/constants.ts - test mode uses trivial difficulty

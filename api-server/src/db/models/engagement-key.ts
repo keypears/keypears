@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../index.js";
 import { TableEngagementKey } from "../schema.js";
-import type { EngagementKeyPurpose } from "../../zod-schemas.js";
+import type { EngagementKeyPurpose } from "@keypears/api-client";
 
 /**
  * Engagement key model interface

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Send, Loader2, Zap, Cpu } from "lucide-react";
 import { Button } from "~app/components/ui/button";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";

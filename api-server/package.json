@@ -1,17 +1,13 @@
 {
   "name": "@keypears/api-server",
   "version": "1.0.0",
-  "description": "KeyPears API server library - TypeScript implementation",
+  "description": "KeyPears API server library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./client": {
-      "import": "./dist/client.js",
-      "types": "./dist/client.d.ts"
     }
   },
   "keywords": [],
@@ -56,9 +52,9 @@
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.51.1",
+    "@keypears/api-client": "workspace:*",
     "@keypears/lib": "workspace:*",
     "@keypears/pow5": "workspace:*",
-    "@orpc/client": "^1.9.2",
     "@orpc/server": "^1.9.2",
     "@webbuf/fixedbuf": "^3.5.0",
     "@webbuf/sha256": "^3.5.0",

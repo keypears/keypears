@@ -15,7 +15,7 @@ import {
   getSessionToken,
 } from "~app/lib/vault-store";
 import { useServerStatus } from "~app/contexts/ServerStatusContext";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { getLatestSecret } from "~app/db/models/password";
 import { decryptSecretUpdateBlob } from "~app/lib/secret-encryption";
 import type { SecretBlobData } from "~app/lib/secret-encryption";

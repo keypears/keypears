@@ -4,7 +4,7 @@ import { Link, href, useRevalidator } from "react-router";
 import { MessageSquare, Plus, ChevronRight, Inbox } from "lucide-react";
 import { Navbar } from "~app/components/navbar";
 import { Button } from "~app/components/ui/button";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { getUnlockedVault, getSessionToken } from "~app/lib/vault-store";
 import { NewMessageDialog } from "~app/components/new-message-dialog";
 

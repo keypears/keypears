@@ -68,12 +68,8 @@ export const router = {
 // Export the router type for client usage
 export type Router = typeof router;
 
-// Re-export schemas for convenience
-export * from "./zod-schemas.js";
-
-// Re-export validation utilities for server use
-export { validateKeypearsServer } from "./validation.js";
-export type { ServerValidationResult } from "./validation.js";
+// Re-export everything from api-client for backward compatibility
+export * from "@keypears/api-client";
 
 // Re-export derivation key management (keys are loaded automatically on import)
 export {
@@ -82,3 +78,13 @@ export {
   getDerivationKey,
   getDerivationKeyCount,
 } from "./derivation-keys.js";
+
+// Re-export server-only constants that are not in api-client
+export {
+  CHALLENGE_EXPIRATION_MS,
+  HEADER_SIZE_64B,
+  NONCE_START_64B,
+  NONCE_END_64B,
+  DEFAULT_MESSAGING_DIFFICULTY,
+  MIN_USER_DIFFICULTY,
+} from "./constants.js";

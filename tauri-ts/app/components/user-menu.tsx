@@ -14,7 +14,7 @@ import {
   lockVault,
 } from "~app/lib/vault-store";
 import { useUnreadCount, clearSyncState } from "~app/contexts/sync-context";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { stopBackgroundSync } from "~app/lib/sync-service";
 
 interface UserMenuProps {

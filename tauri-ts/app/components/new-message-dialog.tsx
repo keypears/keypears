@@ -10,7 +10,7 @@ import {
 import { Button } from "~app/components/ui/button";
 import { Input } from "~app/components/ui/input";
 import { Label } from "~app/components/ui/label";
-import { createClientFromDomain } from "@keypears/api-server/client";
+import { createClientFromDomain } from "@keypears/api-client";
 import { getSessionToken, getVaultKey } from "~app/lib/vault-store";
 import { usePowMiner } from "~app/lib/use-pow-miner";
 import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";

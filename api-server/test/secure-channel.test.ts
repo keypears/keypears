@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { FixedBuf, generateId, publicKeyCreate, sign } from "@keypears/lib";
-import { createClient } from "../src/client.js";
+import { createClient } from "@keypears/api-client";
 import { db } from "../src/db/index.js";
 import {
   TableVault,

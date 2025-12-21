@@ -119,8 +119,8 @@ export default function PasswordDetail({ loaderData }: Route.ComponentProps) {
   const handleDelete = async () => {
     if (!decryptedBlob) return;
 
-    // Check server status
-    if (!status.isOnline) {
+    // Check server status and client availability
+    if (!status.isOnline || !client) {
       alert("Server is offline. Cannot delete passwords while offline.");
       setShowDeleteDialog(false);
       return;
