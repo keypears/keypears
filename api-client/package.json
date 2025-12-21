@@ -1,0 +1,39 @@
+{
+  "name": "@keypears/api-client",
+  "version": "1.0.0",
+  "description": "KeyPears API client and contract definitions",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "lint:fix": "eslint src test --fix",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "echo 'No tests yet'",
+    "build": "tsc -p tsconfig.src.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "dependencies": {
+    "@keypears/lib": "workspace:*",
+    "@orpc/client": "^1.9.2",
+    "@orpc/contract": "^1.9.2",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.37.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  }
+}
