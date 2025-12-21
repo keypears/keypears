@@ -1,7 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { sha256Hash } from "@webbuf/sha256";
-import { eq } from "drizzle-orm";
 import {
   deriveDerivationPrivKey,
   generateId,
@@ -18,11 +17,15 @@ import {
   getVaultByNameAndDomain,
   getVaultSettings,
 } from "../db/models/vault.js";
-import { getEngagementKeyForReceiving } from "../db/models/engagement-key.js";
+import {
+  getEngagementKeyForReceiving,
+  createEngagementKey,
+} from "../db/models/engagement-key.js";
 import { getChannelView } from "../db/models/channel.js";
-import { verifyAndConsume } from "../db/models/pow-challenge.js";
-import { db } from "../db/index.js";
-import { TableEngagementKey, TablePowChallenge } from "../db/schema.js";
+import {
+  verifyAndConsume,
+  setChannelBinding,
+} from "../db/models/pow-challenge.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
@@ -210,14 +213,12 @@ export const getCounterpartyEngagementKeyProcedure = base
 
     // 4. Store channel binding info on the consumed PoW challenge
     // This allows sendMessage to verify the PoW was consumed for THIS channel
-    await db
-      .update(TablePowChallenge)
-      .set({
-        senderAddress,
-        recipientAddress,
-        senderPubKey,
-      })
-      .where(eq(TablePowChallenge.id, powChallengeId));
+    await setChannelBinding(
+      powChallengeId,
+      senderAddress,
+      recipientAddress,
+      senderPubKey,
+    );
 
     // =========================================================================
     // Create a new engagement key with purpose "receive"
@@ -242,10 +243,10 @@ export const getCounterpartyEngagementKeyProcedure = base
     const engagementPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
     const engagementPubKeyHash = sha256Hash(engagementPubKey.buf);
 
-    // 6. Generate ID and insert record
+    // 6. Generate ID and create engagement key record
     const id = generateId();
 
-    await db.insert(TableEngagementKey).values({
+    await createEngagementKey({
       id,
       vaultId: vault.id,
       dbEntropy: dbEntropy.toHex(),

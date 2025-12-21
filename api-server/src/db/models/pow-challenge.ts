@@ -321,3 +321,32 @@ export async function verifyAndConsume(
     };
   }
 }
+
+/**
+ * Store channel binding info on a consumed PoW challenge.
+ *
+ * This is called by getCounterpartyEngagementKey after all three verification
+ * layers pass (PoW, signature, cross-domain). It stores the sender/recipient
+ * addresses and sender's public key to enable channel binding validation
+ * in sendMessage.
+ *
+ * @param challengeId - The consumed PoW challenge ID
+ * @param senderAddress - The sender's address (e.g., "alice@example.com")
+ * @param recipientAddress - The recipient's address (e.g., "bob@example.com")
+ * @param senderPubKey - The sender's engagement public key (66 chars hex)
+ */
+export async function setChannelBinding(
+  challengeId: string,
+  senderAddress: string,
+  recipientAddress: string,
+  senderPubKey: string,
+): Promise<void> {
+  await db
+    .update(TablePowChallenge)
+    .set({
+      senderAddress,
+      recipientAddress,
+      senderPubKey,
+    })
+    .where(eq(TablePowChallenge.id, challengeId));
+}

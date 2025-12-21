@@ -13,8 +13,7 @@ import {
 } from "../zod-schemas.js";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
-import { db } from "../db/index.js";
-import { TableEngagementKey } from "../db/schema.js";
+import { createEngagementKey } from "../db/models/engagement-key.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
@@ -79,10 +78,10 @@ export const getEngagementKeyForSendingProcedure = sessionAuthedProcedure
     const engagementPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
     const engagementPubKeyHash = sha256Hash(engagementPubKey.buf);
 
-    // 6. Generate ID and insert record
+    // 6. Generate ID and create engagement key record
     const id = generateId();
 
-    await db.insert(TableEngagementKey).values({
+    await createEngagementKey({
       id,
       vaultId,
       dbEntropy: dbEntropy.toHex(),

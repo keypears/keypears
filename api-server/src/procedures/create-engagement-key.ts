@@ -13,8 +13,7 @@ import {
 } from "../zod-schemas.js";
 import { sessionAuthedProcedure } from "./base.js";
 import { getVaultById } from "../db/models/vault.js";
-import { db } from "../db/index.js";
-import { TableEngagementKey } from "../db/schema.js";
+import { createEngagementKey } from "../db/models/engagement-key.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
@@ -87,10 +86,10 @@ export const createEngagementKeyProcedure = sessionAuthedProcedure
     const engagementPubKey = publicKeyAdd(vaultPubKey, derivationPubKey);
     const engagementPubKeyHash = sha256Hash(engagementPubKey.buf);
 
-    // 6. Generate ID and insert record
+    // 6. Generate ID and create engagement key record
     const id = generateId();
 
-    await db.insert(TableEngagementKey).values({
+    const created = await createEngagementKey({
       id,
       vaultId,
       dbEntropy: dbEntropy.toHex(),
@@ -100,23 +99,9 @@ export const createEngagementKeyProcedure = sessionAuthedProcedure
       engagementPubKey: engagementPubKey.toHex(),
       engagementPubKeyHash: engagementPubKeyHash.toHex(),
       purpose,
-      counterpartyAddress,
-      counterpartyPubKey,
+      counterpartyAddress: counterpartyAddress ?? null,
+      counterpartyPubKey: counterpartyPubKey ?? null,
     });
-
-    // Fetch the created record to get createdAt timestamp
-    const { eq } = await import("drizzle-orm");
-    const [created] = await db
-      .select()
-      .from(TableEngagementKey)
-      .where(eq(TableEngagementKey.id, id))
-      .limit(1);
-
-    if (!created) {
-      throw new ORPCError("INTERNAL_SERVER_ERROR", {
-        message: "Failed to create engagement key",
-      });
-    }
 
     return {
       id: created.id,
