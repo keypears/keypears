@@ -2,13 +2,237 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2025-12-20T23:04:51.961Z</updated>
+    <updated>2025-12-21T14:43:47.524Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
     <subtitle>Updates and insights from the KeyPears team</subtitle>
     <icon>https://keypears.com/favicon.ico</icon>
     <rights>Copyright 2025 Identellica LLC</rights>
+    <entry>
+        <title type="html"><![CDATA[Proving Who You Are: Sender Verification in Federated Messaging]]></title>
+        <id>https://keypears.com/blog/2025-12-21-sender-verification</id>
+        <link href="https://keypears.com/blog/2025-12-21-sender-verification"/>
+        <updated>2025-12-21T18:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>In our <a href="/blog/2025-12-20-dh-messaging-poc">previous post</a>, we introduced
+KeyPears' DH-based messaging system—the foundation for secure password sharing
+between users. We showed how engag...]]></summary>
+        <content type="html"><![CDATA[<p>In our <a href="/blog/2025-12-20-dh-messaging-poc">previous post</a>, we introduced
+KeyPears' DH-based messaging system—the foundation for secure password sharing
+between users. We showed how engagement keys, server-side derivation, and
+proof-of-work come together to enable private, spam-resistant messaging across
+federated servers.</p>
+<p>But there was a security gap we didn't address: <strong>sender verification</strong>. When
+Alice requests Bob's engagement key, how does Bob's server know it's actually
+Alice asking? Today, we're announcing our solution: a three-layer verification
+system that proves sender identity without requiring a central authority.</p>
+<h2>The Problem: Identity in a Federated World</h2>
+<p>In a centralized messaging system, identity is simple. WhatsApp knows who you
+are because you signed up with your phone number. Signal has your registration.
+The server is the authority.</p>
+<p>KeyPears is federated. Alice's server (<code>keypears.com</code>) and Bob's server
+(<code>example.com</code>) are completely separate—they don't share a database, they don't
+share users, they might not even know each other exists. So when someone
+contacts Bob's server claiming to be <code>alice@keypears.com</code>, how can Bob's server
+verify that claim?</p>
+<p>Without verification, an attacker could:</p>
+<ol>
+<li>Claim to be Alice when requesting Bob's engagement key</li>
+<li>Get Bob's server to create a key for "Alice" (actually the attacker)</li>
+<li>Intercept Bob's responses and read his encrypted messages</li>
+</ol>
+<p>This is classic impersonation. The attacker didn't break any cryptography—they
+just lied about who they were, and nobody checked.</p>
+<h2>Why Traditional Solutions Don't Fit</h2>
+<p><strong>Certificate Authorities?</strong> They require a centralized trust hierarchy. The
+whole point of KeyPears is that you can run your own server without asking
+permission from anyone.</p>
+<p><strong>Web of Trust?</strong> Requires users to manually verify each other's keys. Great for
+PGP power users, terrible for a password manager that needs to just work.</p>
+<p><strong>Phone number verification?</strong> Ties identity to a phone carrier. Not
+everyone has a phone number, and phone numbers can be ported or SIM-swapped.</p>
+<p>What we need is something that:</p>
+<ul>
+<li>Works across any two servers without prior coordination</li>
+<li>Proves cryptographic ownership, not just claimed identity</li>
+<li>Doesn't require user interaction beyond normal messaging</li>
+<li>Can't be bypassed by network attackers</li>
+</ul>
+<h2>The Solution: Three Layers of Trust</h2>
+<p>Our sender verification uses three independent layers, each catching different
+attack types:</p>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│ Layer 1: Proof-of-Work                                          │
+│ → Prevents DoS attacks before any verification happens          │
+├─────────────────────────────────────────────────────────────────┤
+│ Layer 2: ECDSA Signature                                        │
+│ → Proves sender owns the private key for their claimed pubkey   │
+├─────────────────────────────────────────────────────────────────┤
+│ Layer 3: Cross-Domain Verification                              │
+│ → Confirms the pubkey actually belongs to the claimed address   │
+└─────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>Each layer is necessary. PoW alone doesn't prove identity. Signatures alone
+don't prove address ownership. Cross-domain verification alone is vulnerable to
+DoS. Together, they create a verification system that's both secure and
+practical.</p>
+<h2>Layer 1: Proof-of-Work</h2>
+<p>Before any verification happens, the sender must solve a computational puzzle.
+This isn't about identity—it's about preventing resource exhaustion.</p>
+<p>Without PoW, an attacker could spam Bob's server with millions of fake
+verification requests, forcing it to make millions of cross-domain calls. The
+server would be so busy checking fake requests that legitimate users couldn't
+get through.</p>
+<p>PoW ensures every verification request costs real computational work. Attackers
+can't flood the system without burning significant resources.</p>
+<p><strong>Implementation</strong>: Same PoW system as vault registration—configurable
+difficulty at the system, vault, or channel level. Users you trust can have
+lower difficulty. Unknown senders face the full 4-million-hash default.</p>
+<h2>Layer 2: Signature Verification</h2>
+<p>After PoW, the sender provides a signature over the solved hash using their
+engagement private key. Bob's server verifies this signature against the
+sender's claimed public key.</p>
+<p>Why does this matter? Anyone can copy a public key. If Alice publishes her
+engagement pubkey somewhere, Mallory could claim to be Alice and provide Alice's
+pubkey. Without signature verification, Bob's server would have no way to
+know it wasn't actually Alice.</p>
+<p>The signature proves the sender possesses the private key corresponding to their
+claimed public key. Only Alice has her private key, so only Alice can produce
+valid signatures.</p>
+<p><strong>Implementation</strong>: Standard ECDSA signature over the 32-byte solved PoW hash.
+The signature binds the identity claim to the PoW proof—you can't solve PoW as
+yourself and then claim to be someone else.</p>
+<h2>Layer 3: Cross-Domain Verification</h2>
+<p>Here's the key innovation. Even with a valid signature, we only know the sender
+owns <em>some</em> private key. We don't know if that key actually belongs to
+<code>alice@keypears.com</code>.</p>
+<p>So Bob's server asks Alice's server directly:</p>
+<pre><code>Bob's server → Alice's server:
+"Does public key 02abc123... belong to alice@keypears.com?"
+
+Alice's server → Bob's server:
+"Yes" or "No"
+</code></pre>
+<p>This is the cross-domain verification call. It works because:</p>
+<ol>
+<li>Alice's server is the authority for <code>@keypears.com</code> addresses</li>
+<li>Alice registered her engagement key with her own server</li>
+<li>Her server can confirm the key belongs to her vault</li>
+</ol>
+<p><strong>Critical detail</strong>: Only "send" purpose keys are verified. When Alice creates
+an engagement key for messaging Bob, it's marked with <code>purpose: "send"</code>. Keys
+created by recipients (when someone requests your key) are marked <code>purpose: "receive"</code>.</p>
+<p>Why does this matter? If an attacker requested Bob's key while claiming to be
+Alice, Bob's server would create a "receive" key for this fake-Alice. If
+cross-domain verification accepted receive keys, the attacker could point to
+this key as "proof" of being Alice. By only accepting "send" keys (which the
+owner creates themselves), we ensure only Alice can prove she's Alice.</p>
+<h2>Channel Binding: Preventing Replay</h2>
+<p>After all three layers pass, Bob's server stores "channel binding" information
+on the consumed PoW challenge:</p>
+<ul>
+<li>Sender address: <code>alice@keypears.com</code></li>
+<li>Recipient address: <code>bob@example.com</code></li>
+<li>Sender public key: <code>02abc123...</code></li>
+</ul>
+<p>When Alice later sends an actual message (using <code>sendMessage</code>), the server
+verifies these fields match. This prevents replay attacks—an attacker can't
+take Alice's verified PoW proof and use it to send messages from a different
+address or with a different key.</p>
+<h2>The Complete Verification Flow</h2>
+<p>Here's what happens when Alice messages Bob for the first time:</p>
+<pre><code>Alice                      Alice's Server    Bob's Server
+  │                              │                │
+  ├─ Create engagement key ──────→                │
+  │  (purpose: "send")           │                │
+  │                              │                │
+  ├─ Request PoW challenge ──────────────────────→
+  │                              │                │
+  ├─ Solve PoW                   │                │
+  │                              │                │
+  ├─ Sign solved hash            │                │
+  │                              │                │
+  ├─ Request Bob's key ──────────────────────────→
+  │  + PoW proof                 │                │
+  │  + signature                 │                │
+  │  + claim: "I'm alice@..."    │                │
+  │                              │                │
+  │                              │   ┌────────────┤
+  │                              │   │ 1. Verify PoW
+  │                              │   │ 2. Verify signature
+  │                              │   │ 3. Cross-domain:
+  │                              │   └────────────┤
+  │                              │                │
+  │                          ←───────────────────┤
+  │                   "Does 02abc... belong       │
+  │                    to alice@keypears.com?"   │
+  │                              │                │
+  │                              ├───────────────→
+  │                              │  "Yes"         │
+  │                              │                │
+  │                              │   ┌────────────┤
+  │                              │   │ Create key
+  │                              │   │ Store binding
+  │                              │   └────────────┤
+  │                              │                │
+  │←─────────────────────────────────────────────┤
+  │          Bob's engagement pubkey             │
+</code></pre>
+<p>If any layer fails—invalid PoW, bad signature, or failed cross-domain check—the
+request is rejected and no key is created.</p>
+<h2>Security Properties</h2>
+<p><strong>What the system provides:</strong></p>
+<ul>
+<li><strong>No impersonation</strong>: Attacker must produce valid signature with sender's
+private key</li>
+<li><strong>No spoofing</strong>: Cross-domain verification confirms key belongs to claimed
+address</li>
+<li><strong>No DoS</strong>: PoW required before any verification work happens</li>
+<li><strong>No replay</strong>: Channel binding ties PoW to specific sender/recipient/pubkey</li>
+<li><strong>No storage exhaustion</strong>: Same sender+pubkey returns existing key
+(idempotent)</li>
+</ul>
+<p><strong>What the system does NOT provide:</strong></p>
+<ul>
+<li><strong>Forward secrecy per relationship</strong>: Same engagement keys can be reused
+(mitigated by using fresh keys for sensitive conversations)</li>
+<li><strong>Metadata hiding</strong>: Servers see who messages whom and when (encryption hides
+content, not metadata)</li>
+</ul>
+<h2>Implementation</h2>
+<p>The verification system required two new components:</p>
+<p><strong>New endpoint: <code>verifyEngagementKeyOwnership</code></strong></p>
+<p>A public endpoint that answers "does this pubkey belong to this address?" Returns
+only a boolean—no information leakage about non-existent keys or vaults.</p>
+<p><strong>Modified: <code>getCounterpartyEngagementKey</code></strong></p>
+<p>Now performs all three verification layers before creating any keys. The flow
+is: verify PoW → verify signature → call sender's server → store channel binding
+→ create key.</p>
+<p>We also added 21 security tests covering:</p>
+<ul>
+<li>Valid/invalid signatures</li>
+<li>Cross-domain verification edge cases</li>
+<li>Channel binding validation</li>
+<li>PoW replay prevention</li>
+<li>Idempotent key creation</li>
+</ul>
+<p>All tests pass, and the full verification system is live in the latest
+development build.</p>
+<h2>What's Next</h2>
+<p>With sender verification complete, the messaging foundation is solid. Next up:</p>
+<ol>
+<li><strong>Encrypted payloads</strong>: Attach passwords and secrets to messages</li>
+<li><strong>Secret sharing UI</strong>: Share credentials with team members</li>
+<li><strong>Cross-domain integration tests</strong>: Verify everything works between different
+KeyPears servers</li>
+</ol>
+<p>The pieces are coming together. Secure, federated messaging with cryptographic
+identity verification—no central authority required.</p>
+<p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>]]></content>
+        <author>
+            <name>KeyPears Team</name>
+        </author>
+    </entry>
     <entry>
         <title type="html"><![CDATA[A Proof-of-Concept of a Diffie-Hellman-Based Messaging System for KeyPears]]></title>
         <id>https://keypears.com/blog/2025-12-20-dh-messaging-poc</id>
