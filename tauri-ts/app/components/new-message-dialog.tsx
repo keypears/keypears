@@ -17,7 +17,7 @@ import { deriveEngagementPrivKey } from "~app/lib/engagement-key-utils";
 import { encryptMessage, createTextMessage } from "~app/lib/message-encryption";
 import { pushSecretUpdate } from "~app/lib/sync";
 import type { SecretBlobData } from "~app/lib/secret-encryption";
-import { FixedBuf } from "@keypears/lib";
+import { FixedBuf, sign } from "@keypears/lib";
 
 // Default messaging difficulty (can be overridden by recipient settings)
 const DEFAULT_MESSAGING_DIFFICULTY = 4_000_000;
@@ -116,28 +116,7 @@ export function NewMessageDialog({
         counterpartyAddress: recipientAddress,
       });
 
-      // Step 2: Get counterparty's engagement key (from their server)
-      const recipientClient = await createClientFromDomain(parsed.domain);
-      const theirKey = await recipientClient.api.getCounterpartyEngagementKey({
-        recipientAddress,
-        senderAddress: ownerAddress,
-        senderPubKey: myKey.engagementPubKey,
-      });
-
-      // Step 3: Mine PoW
-      setPhase("mining");
-      const powResult = await miner.start({
-        domain: parsed.domain,
-        difficulty,
-      });
-
-      if (!powResult) {
-        throw new Error("Mining failed or was cancelled");
-      }
-
-      // Step 4: Derive private key and encrypt message
-      setPhase("sending");
-
+      // Step 2: Derive my engagement private key (needed for signing)
       const myPrivKey = await deriveEngagementPrivKey(
         vaultId,
         vaultDomain,
@@ -145,11 +124,51 @@ export function NewMessageDialog({
         myKey.engagementPubKey,
       );
 
+      // Step 3: Get PoW challenge from recipient's server (with addresses for difficulty resolution)
+      const recipientClient = await createClientFromDomain(parsed.domain);
+      const challenge = await recipientClient.api.getPowChallenge({
+        recipientAddress,
+        senderAddress: ownerAddress,
+      });
+
+      // Step 4: Solve PoW
+      setPhase("mining");
+      const powResult = await miner.start({
+        domain: parsed.domain,
+        difficulty: challenge.difficulty,
+        challengeId: challenge.id,
+        header: challenge.header,
+        target: challenge.target,
+      });
+
+      if (!powResult) {
+        throw new Error("Mining failed or was cancelled");
+      }
+
+      // Step 5: Sign the solved hash with our engagement private key
+      const solvedHashBuf = FixedBuf.fromHex(32, powResult.hash);
+      const signatureNonce = FixedBuf.fromRandom(32);
+      const signature = sign(solvedHashBuf, myPrivKey, signatureNonce);
+
+      // Step 6: Get counterparty's engagement key (with PoW proof and signature)
+      const theirKey = await recipientClient.api.getCounterpartyEngagementKey({
+        recipientAddress,
+        senderAddress: ownerAddress,
+        senderPubKey: myKey.engagementPubKey,
+        powChallengeId: powResult.challengeId,
+        solvedHeader: powResult.solvedHeader,
+        solvedHash: powResult.hash,
+        signature: signature.toHex(),
+      });
+
+      // Step 7: Encrypt message
+      setPhase("sending");
+
       const theirPubKey = FixedBuf.fromHex(33, theirKey.engagementPubKey);
       const content = createTextMessage(messageText);
       const encryptedContent = encryptMessage(content, myPrivKey, theirPubKey);
 
-      // Step 5: Send message to recipient's server
+      // Step 8: Send message to recipient's server (PoW reference only)
       await recipientClient.api.sendMessage({
         recipientAddress,
         senderAddress: ownerAddress,
@@ -157,8 +176,6 @@ export function NewMessageDialog({
         senderEngagementPubKey: myKey.engagementPubKey,
         recipientEngagementPubKey: theirKey.engagementPubKey,
         powChallengeId: powResult.challengeId,
-        solvedHeader: powResult.solvedHeader,
-        solvedHash: powResult.hash,
       });
 
       // Step 6: Save sent message to our vault

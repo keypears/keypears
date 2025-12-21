@@ -285,6 +285,15 @@ export const TablePowChallenge = pgTable(
 
     // When the challenge was verified (null if not yet verified)
     verifiedAt: timestamp("verified_at"),
+
+    // Channel binding fields - set when PoW is consumed for getCounterpartyEngagementKey
+    // These allow sendMessage to verify the PoW was consumed for THIS specific channel
+    // Sender's address (e.g., "alice@keypears.com")
+    senderAddress: varchar("sender_address", { length: 255 }),
+    // Recipient's address (e.g., "bob@passapples.com")
+    recipientAddress: varchar("recipient_address", { length: 255 }),
+    // Sender's engagement public key (33 bytes compressed = 66 hex chars)
+    senderPubKey: varchar("sender_pub_key", { length: 66 }),
   },
   (table) => [
     // Index for looking up unused challenges (cleanup job)

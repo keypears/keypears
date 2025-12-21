@@ -36,6 +36,10 @@ export interface PowChallenge {
   createdAt: Date;
   expiresAt: Date;
   verifiedAt: Date | null;
+  // Channel binding fields - set when PoW is consumed for getCounterpartyEngagementKey
+  senderAddress: string | null;
+  recipientAddress: string | null;
+  senderPubKey: string | null;
 }
 
 /**
@@ -106,6 +110,9 @@ export async function getChallenge(id: string): Promise<PowChallenge | null> {
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     verifiedAt: row.verifiedAt,
+    senderAddress: row.senderAddress,
+    recipientAddress: row.recipientAddress,
+    senderPubKey: row.senderPubKey,
   };
 }
 

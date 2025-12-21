@@ -58,6 +58,15 @@ export interface UsePowMinerOptions {
   verifyWithServer?: boolean; // Default false - whether to call verifyPowProof after mining
 }
 
+export interface PowMinerStartOptions {
+  domain?: string;
+  difficulty?: number;
+  // Pre-fetched challenge data (if provided, skips fetching from server)
+  challengeId?: string;
+  header?: string;
+  target?: string;
+}
+
 export interface UsePowMinerReturn {
   // State
   status: PowMinerStatus;
@@ -71,10 +80,7 @@ export interface UsePowMinerReturn {
   challengeInfo: PowChallengeInfo | null;
 
   // Actions
-  start: (overrides?: {
-    domain?: string;
-    difficulty?: number;
-  }) => Promise<PowMinerResult | null>;
+  start: (overrides?: PowMinerStartOptions) => Promise<PowMinerResult | null>;
   cancel: () => void;
   reset: () => void;
 }
@@ -125,10 +131,9 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
   }, []);
 
   const start = useCallback(
-    async (overrides?: {
-      domain?: string;
-      difficulty?: number;
-    }): Promise<PowMinerResult | null> => {
+    async (
+      overrides?: PowMinerStartOptions,
+    ): Promise<PowMinerResult | null> => {
       const effectiveDomain = overrides?.domain ?? domain;
       const effectiveDifficulty = overrides?.difficulty ?? difficulty;
 
@@ -149,11 +154,35 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
         setWebGpuAvailable(browserHasWebGpu);
         const useWgsl = preferWgsl && browserHasWebGpu;
 
-        // Fetch challenge from server
-        const client = await createClientFromDomain(effectiveDomain);
-        const challenge = await client.api.getPowChallenge({
-          difficulty: effectiveDifficulty,
-        });
+        // Use pre-fetched challenge data if provided, otherwise fetch from server
+        let challenge: {
+          id: string;
+          algorithm: string;
+          difficulty: number;
+          target: string;
+          header: string;
+        };
+
+        if (
+          overrides?.challengeId &&
+          overrides?.header &&
+          overrides?.target
+        ) {
+          // Use pre-fetched challenge
+          challenge = {
+            id: overrides.challengeId,
+            algorithm: "pow5-64b",
+            difficulty: effectiveDifficulty,
+            target: overrides.target,
+            header: overrides.header,
+          };
+        } else {
+          // Fetch challenge from server
+          const client = await createClientFromDomain(effectiveDomain);
+          challenge = await client.api.getPowChallenge({
+            difficulty: effectiveDifficulty,
+          });
+        }
 
         if (cancelledRef.current) return null;
 
@@ -270,7 +299,8 @@ export function usePowMiner(options: UsePowMinerOptions): UsePowMinerReturn {
         if (verifyWithServer) {
           setStatus("verifying");
 
-          const verification = await client.api.verifyPowProof({
+          const verifyClient = await createClientFromDomain(effectiveDomain);
+          const verification = await verifyClient.api.verifyPowProof({
             challengeId: challenge.id,
             solvedHeader: solvedHeaderHex,
             hash: hashHex,

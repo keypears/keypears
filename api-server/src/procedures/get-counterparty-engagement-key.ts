@@ -1,11 +1,13 @@
 import { ORPCError } from "@orpc/server";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { sha256Hash } from "@webbuf/sha256";
+import { eq } from "drizzle-orm";
 import {
   deriveDerivationPrivKey,
   generateId,
   publicKeyCreate,
   publicKeyAdd,
+  verify,
 } from "@keypears/lib";
 import {
   GetCounterpartyEngagementKeyRequestSchema,
@@ -18,13 +20,15 @@ import {
 } from "../db/models/vault.js";
 import { getEngagementKeyForReceiving } from "../db/models/engagement-key.js";
 import { getChannelView } from "../db/models/channel.js";
+import { verifyAndConsume } from "../db/models/pow-challenge.js";
 import { db } from "../db/index.js";
-import { TableEngagementKey } from "../db/schema.js";
+import { TableEngagementKey, TablePowChallenge } from "../db/schema.js";
 import {
   getCurrentDerivationKey,
   getCurrentDerivationKeyIndex,
 } from "../derivation-keys.js";
 import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
+import { createClientFromDomain } from "../client.js";
 
 /**
  * Parse an address in the format "name@domain"
@@ -48,6 +52,11 @@ function parseAddress(
  * This is a public endpoint (no session required) that allows senders to
  * request a recipient's engagement key for DH key exchange.
  *
+ * Security: This endpoint requires three layers of verification:
+ * 1. PoW proof - prevents DoS attacks on key generation
+ * 2. Signature verification - proves sender owns the private key for senderPubKey
+ * 3. Cross-domain identity verification - confirms senderPubKey belongs to senderAddress
+ *
  * The sender provides their public key, and the recipient's server creates
  * a "receive" engagement key that stores the sender's pubkey for validation.
  *
@@ -59,18 +68,37 @@ export const getCounterpartyEngagementKeyProcedure = base
   .input(GetCounterpartyEngagementKeyRequestSchema)
   .output(GetCounterpartyEngagementKeyResponseSchema)
   .handler(async ({ input }) => {
-    const { recipientAddress, senderAddress, senderPubKey } = input;
+    const {
+      recipientAddress,
+      senderAddress,
+      senderPubKey,
+      powChallengeId,
+      solvedHeader,
+      solvedHash,
+      signature,
+    } = input;
 
     // Parse recipient address to get vault name and domain
-    const parsed = parseAddress(recipientAddress);
-    if (!parsed) {
+    const recipientParsed = parseAddress(recipientAddress);
+    if (!recipientParsed) {
       throw new ORPCError("BAD_REQUEST", {
         message: `Invalid recipient address format: ${recipientAddress}. Expected format: name@domain`,
       });
     }
 
+    // Parse sender address to get domain for cross-domain verification
+    const senderParsed = parseAddress(senderAddress);
+    if (!senderParsed) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Invalid sender address format: ${senderAddress}. Expected format: name@domain`,
+      });
+    }
+
     // Look up recipient's vault
-    const vault = await getVaultByNameAndDomain(parsed.name, parsed.domain);
+    const vault = await getVaultByNameAndDomain(
+      recipientParsed.name,
+      recipientParsed.domain,
+    );
     if (!vault) {
       throw new ORPCError("NOT_FOUND", {
         message: `Vault not found for address: ${recipientAddress}`,
@@ -82,13 +110,6 @@ export const getCounterpartyEngagementKeyProcedure = base
         message: "Recipient vault does not have a public key.",
       });
     }
-
-    // Check if engagement key already exists for this sender + pubkey (idempotent)
-    const existingKey = await getEngagementKeyForReceiving(
-      vault.id,
-      senderAddress,
-      senderPubKey,
-    );
 
     // Helper to resolve difficulty hierarchy: channel → vault → system default
     const resolveRequiredDifficulty = async (): Promise<number> => {
@@ -108,8 +129,16 @@ export const getCounterpartyEngagementKeyProcedure = base
       return DEFAULT_MESSAGING_DIFFICULTY;
     };
 
+    // Check if engagement key already exists for this sender + pubkey (idempotent)
+    const existingKey = await getEngagementKeyForReceiving(
+      vault.id,
+      senderAddress,
+      senderPubKey,
+    );
+
     if (existingKey) {
       // Return existing key (DoS prevention - same request = same response)
+      // Note: PoW was already consumed when this key was first created
       const requiredDifficulty = await resolveRequiredDifficulty();
       return {
         engagementPubKey: existingKey.engagementPubKey,
@@ -117,7 +146,82 @@ export const getCounterpartyEngagementKeyProcedure = base
       };
     }
 
+    // =========================================================================
+    // NEW: Verify PoW, signature, and cross-domain identity BEFORE creating key
+    // =========================================================================
+
+    // 1. Verify PoW proof
+    const minDifficulty = BigInt(await resolveRequiredDifficulty());
+    const powResult = await verifyAndConsume(
+      powChallengeId,
+      solvedHeader,
+      solvedHash,
+      { minDifficulty },
+    );
+
+    if (!powResult.valid) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `PoW verification failed: ${powResult.message}`,
+      });
+    }
+
+    // 2. Verify signature (signature of solvedHash using sender's engagement private key)
+    try {
+      const signatureBuf = FixedBuf.fromHex(64, signature);
+      const messageHashBuf = FixedBuf.fromHex(32, solvedHash);
+      const pubKeyBuf = FixedBuf.fromHex(33, senderPubKey);
+
+      const isValidSignature = verify(signatureBuf, messageHashBuf, pubKeyBuf);
+      if (!isValidSignature) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Invalid signature: signature does not match senderPubKey",
+        });
+      }
+    } catch (err) {
+      if (err instanceof ORPCError) throw err;
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Signature verification failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+
+    // 3. Cross-domain identity verification
+    // Call sender's server to verify "does senderPubKey belong to senderAddress?"
+    try {
+      const senderClient = await createClientFromDomain(senderParsed.domain, {
+        timeout: 10000, // 10 second timeout for cross-domain calls
+      });
+
+      const verifyResult = await senderClient.api.verifyEngagementKeyOwnership({
+        address: senderAddress,
+        engagementPubKey: senderPubKey,
+      });
+
+      if (!verifyResult.valid) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Sender identity verification failed: ${senderPubKey} does not belong to ${senderAddress}`,
+        });
+      }
+    } catch (err) {
+      if (err instanceof ORPCError) throw err;
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Cross-domain identity verification failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+
+    // 4. Store channel binding info on the consumed PoW challenge
+    // This allows sendMessage to verify the PoW was consumed for THIS channel
+    await db
+      .update(TablePowChallenge)
+      .set({
+        senderAddress,
+        recipientAddress,
+        senderPubKey,
+      })
+      .where(eq(TablePowChallenge.id, powChallengeId));
+
+    // =========================================================================
     // Create a new engagement key with purpose "receive"
+    // =========================================================================
 
     // 1. Generate random DB entropy
     const dbEntropy = FixedBuf.fromRandom(32);

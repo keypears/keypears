@@ -131,6 +131,10 @@ export type PowAlgorithm = z.infer<typeof PowAlgorithmSchema>;
 // Minimum difficulty: 1 (allows test mode with TEST_BASE_DIFFICULTY=1)
 // Default difficulty: 4,000,000
 // Note: Actual difficulty enforcement happens in registerVault via difficultyForName
+// When recipientAddress and senderAddress are provided, resolves difficulty from hierarchy:
+//   1. Channel-specific difficulty (highest priority)
+//   2. Recipient's vault messagingMinDifficulty setting
+//   3. System default (fallback)
 export const GetPowChallengeRequestSchema = z.object({
   difficulty: z
     .number()
@@ -138,6 +142,9 @@ export const GetPowChallengeRequestSchema = z.object({
     .refine((val) => val === undefined || val >= 1, {
       message: "Difficulty must be at least 1",
     }),
+  // Optional: For messaging, provide recipient context to resolve correct difficulty
+  recipientAddress: z.string().min(1).max(255).optional(),
+  senderAddress: z.string().min(1).max(255).optional(),
 });
 
 export const GetPowChallengeResponseSchema = z.object({
@@ -202,10 +209,21 @@ export const GetEngagementKeyForSendingResponseSchema = z.object({
 
 // Get counterparty engagement key - public endpoint for key exchange
 // Sender provides their pubkey, recipient's server creates a key and returns it
+// Requires PoW proof and signature for sender identity verification:
+//   1. PoW prevents DoS attacks on key generation
+//   2. Signature proves sender owns the private key for senderPubKey
+//   3. Cross-domain verification confirms senderPubKey belongs to senderAddress
 export const GetCounterpartyEngagementKeyRequestSchema = z.object({
   recipientAddress: z.string().min(1).max(255), // Who I want to message (name@domain)
   senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
   senderPubKey: z.string().length(66), // My engagement pubkey (33 bytes hex)
+  // PoW proof fields (prevents DoS on key generation)
+  powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge
+  solvedHeader: z.string(), // Hex-encoded solved PoW header
+  solvedHash: z.string().length(64), // 32 bytes hex = 64 chars
+  // Identity signature - signature of solvedHash using sender's engagement private key
+  // This proves sender owns the private key corresponding to senderPubKey
+  signature: z.string().length(128), // 64-byte secp256k1 signature (R||S format, 128 hex chars)
 });
 
 export const GetCounterpartyEngagementKeyResponseSchema = z.object({
@@ -213,7 +231,8 @@ export const GetCounterpartyEngagementKeyResponseSchema = z.object({
   requiredDifficulty: z.number(), // Difficulty sender must meet (channel → vault → system default)
 });
 
-// Send message - public endpoint authenticated via PoW
+// Send message - public endpoint, PoW already consumed during getCounterpartyEngagementKey
+// The powChallengeId is a reference to the already-consumed PoW for this channel
 export const SendMessageRequestSchema = z.object({
   recipientAddress: z.string().min(1).max(255), // Who I'm messaging (name@domain)
   senderAddress: z.string().min(1).max(255), // Who I am (name@domain)
@@ -223,9 +242,9 @@ export const SendMessageRequestSchema = z.object({
     .max(MAX_ENCRYPTED_DATA_BYTES * 2), // Encrypted message (hex, max 10KB)
   senderEngagementPubKey: z.string().length(66), // My engagement pubkey
   recipientEngagementPubKey: z.string().length(66), // Their engagement pubkey
-  powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge
-  solvedHeader: z.string(), // Hex-encoded solved PoW header
-  solvedHash: z.string().length(64), // 32 bytes hex = 64 chars
+  // Reference to PoW consumed during getCounterpartyEngagementKey
+  // Server verifies this PoW was consumed for THIS sender+recipient pair
+  powChallengeId: z.string().length(26), // UUIDv7 of the PoW challenge (already consumed)
 });
 
 export const SendMessageResponseSchema = z.object({
@@ -350,4 +369,16 @@ export const UpdateChannelMinDifficultyRequestSchema = z.object({
 export const UpdateChannelMinDifficultyResponseSchema = z.object({
   channelId: z.string().length(26),
   minDifficulty: z.number().nullable(),
+});
+
+// Verify engagement key ownership - public endpoint for cross-domain identity verification
+// Bob's server calls Alice's server to verify "does pubkey X belong to alice@domain?"
+// This confirms the sender actually owns the engagement key they claim to have
+export const VerifyEngagementKeyOwnershipRequestSchema = z.object({
+  address: z.string().min(1).max(255), // The address to verify (name@domain)
+  engagementPubKey: z.string().length(66), // The engagement pubkey to verify (33 bytes hex)
+});
+
+export const VerifyEngagementKeyOwnershipResponseSchema = z.object({
+  valid: z.boolean(), // True if the pubkey belongs to the address (has purpose="send")
 });

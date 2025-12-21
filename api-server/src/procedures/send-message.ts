@@ -4,21 +4,14 @@ import {
   SendMessageResponseSchema,
 } from "../zod-schemas.js";
 import { base } from "./base.js";
-import {
-  getVaultByNameAndDomain,
-  getVaultSettings,
-} from "../db/models/vault.js";
+import { getVaultByNameAndDomain } from "../db/models/vault.js";
 import { getEngagementKeyByPubKey } from "../db/models/engagement-key.js";
-import {
-  getOrCreateChannelView,
-  getChannelView,
-} from "../db/models/channel.js";
+import { getOrCreateChannelView } from "../db/models/channel.js";
 import { createInboxMessage } from "../db/models/inbox-message.js";
-import { verifyAndConsume } from "../db/models/pow-challenge.js";
+import { getChallenge } from "../db/models/pow-challenge.js";
 import { db } from "../db/index.js";
 import { TableChannelView } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import { DEFAULT_MESSAGING_DIFFICULTY } from "../constants.js";
 
 /**
  * Parse an address in the format "name@domain"
@@ -38,22 +31,23 @@ function parseAddress(
 }
 
 /**
- * Send message - public endpoint authenticated via PoW
+ * Send message - public endpoint, PoW already consumed in getCounterpartyEngagementKey
  *
  * This endpoint allows anyone to send a message to a recipient, provided
- * they have completed the key exchange and solved the PoW challenge.
+ * they have completed the key exchange (which consumed the PoW).
  *
  * The message flow:
- * 1. Sender gets their engagement key via getEngagementKeyForSending
- * 2. Sender gets recipient's key via getCounterpartyEngagementKey
- * 3. Sender encrypts message with ECDH shared secret
- * 4. Sender solves PoW challenge
- * 5. Sender calls sendMessage with encrypted content and PoW proof
+ * 1. Sender gets their engagement key via getEngagementKeyForSending (Alice's server)
+ * 2. Sender gets PoW challenge from Bob's server
+ * 3. Sender solves PoW challenge
+ * 4. Sender gets recipient's key via getCounterpartyEngagementKey (PoW consumed here)
+ * 5. Sender encrypts message with ECDH shared secret
+ * 6. Sender calls sendMessage with encrypted content and PoW reference
  *
  * Security:
  * - Validates engagement key metadata (purpose, counterparty, pubkey)
- * - Verifies PoW proof meets minimum difficulty
- * - Marks PoW challenge as used (prevents replay)
+ * - Verifies PoW was consumed for THIS sender+recipient pair (channel binding)
+ * - PoW prevents DoS - it was already consumed in getCounterpartyEngagementKey
  */
 export const sendMessageProcedure = base
   .input(SendMessageRequestSchema)
@@ -66,8 +60,6 @@ export const sendMessageProcedure = base
       senderEngagementPubKey,
       recipientEngagementPubKey,
       powChallengeId,
-      solvedHeader,
-      solvedHash,
     } = input;
 
     // 1. Parse recipientAddress to get vault info
@@ -125,49 +117,49 @@ export const sendMessageProcedure = base
       });
     }
 
-    // 4. Resolve minimum difficulty from hierarchy: channel → vault → system default
-    // Check for existing channel with per-channel difficulty override
-    const existingChannel = await getChannelView(
-      recipientAddress,
-      senderAddress,
-    );
-    let minDifficulty: bigint;
-
-    if (existingChannel?.minDifficulty) {
-      // Channel-specific difficulty (highest priority)
-      minDifficulty = BigInt(existingChannel.minDifficulty);
-    } else {
-      // Check vault settings
-      const settings = await getVaultSettings(vault.id);
-      if (settings?.messagingMinDifficulty) {
-        minDifficulty = BigInt(settings.messagingMinDifficulty);
-      } else {
-        // System default
-        minDifficulty = BigInt(DEFAULT_MESSAGING_DIFFICULTY);
-      }
-    }
-
-    // 5. Verify PoW challenge
-    const powResult = await verifyAndConsume(
-      powChallengeId,
-      solvedHeader,
-      solvedHash,
-      { minDifficulty },
-    );
-
-    if (!powResult.valid) {
+    // 4. Verify PoW was consumed for THIS sender+recipient pair
+    // The PoW was already consumed in getCounterpartyEngagementKey, which stored
+    // the channel binding info (senderAddress, recipientAddress, senderPubKey)
+    const powChallenge = await getChallenge(powChallengeId);
+    if (!powChallenge) {
       throw new ORPCError("BAD_REQUEST", {
-        message: `PoW verification failed: ${powResult.message}`,
+        message: "PoW challenge not found",
       });
     }
 
-    // 6. Get or create channel_view for recipient
+    // Verify the PoW was consumed (isUsed = true)
+    if (!powChallenge.isUsed) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "PoW challenge has not been consumed - call getCounterpartyEngagementKey first",
+      });
+    }
+
+    // Verify channel binding - the PoW must have been consumed for THIS channel
+    if (powChallenge.senderAddress !== senderAddress) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "PoW was consumed for a different sender",
+      });
+    }
+
+    if (powChallenge.recipientAddress !== recipientAddress) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "PoW was consumed for a different recipient",
+      });
+    }
+
+    if (powChallenge.senderPubKey !== senderEngagementPubKey) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "PoW was consumed with a different sender public key",
+      });
+    }
+
+    // 5. Get or create channel_view for recipient
     const { channel } = await getOrCreateChannelView(
       recipientAddress, // ownerAddress (recipient)
       senderAddress, // counterpartyAddress (sender)
     );
 
-    // 7. Create inbox message
+    // 6. Create inbox message
     const message = await createInboxMessage({
       channelViewId: channel.id,
       senderAddress,
@@ -177,7 +169,7 @@ export const sendMessageProcedure = base
       powChallengeId,
     });
 
-    // 8. Update channel updatedAt
+    // 7. Update channel updatedAt
     await db
       .update(TableChannelView)
       .set({ updatedAt: new Date() })
