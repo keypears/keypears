@@ -21,7 +21,7 @@ export const TableVault = pgTable(
     // Vault name (1-30 characters, alphanumeric, starts with letter)
     name: varchar("name", { length: 30 }).notNull(),
 
-    // Domain (e.g., "keypears.com", "hevybags.com", "wokerium.com")
+    // Domain (e.g., "keypears.com", "passapples.com")
     domain: varchar("domain", { length: 255 }).notNull(),
 
     // Vault public key hash (pubkeyhash) - 32-byte Blake3 hash of the vault's public key

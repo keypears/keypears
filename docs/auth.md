@@ -340,7 +340,7 @@ await db.insert(TableVault).values({
 
 **Privacy guarantee:**
 
-- Same physical MacBook accessing `alice@keypears.com` and `bob@hevybags.com`
+- Same physical MacBook accessing `alice@keypears.com` and `bob@passapples.com`
   will have:
   - Different device IDs for each vault
   - Same device description ("macOS 14.1 (aarch64)") - not sensitive
@@ -877,7 +877,7 @@ KeyPears implements **per-vault device IDs** for maximum privacy:
 
 - Same physical device gets different device IDs for each vault
 - `alice@keypears.com` vault → device ID: `01HQXYZ123...`
-- `bob@hevybags.com` vault → device ID: `01HQXAB456...` (different!)
+- `bob@passapples.com` vault → device ID: `01HQXAB456...` (different!)
 - Servers cannot correlate that these are the same physical device
 
 **What's shared vs private:**

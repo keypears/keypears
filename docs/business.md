@@ -89,7 +89,7 @@ communities: Reddit, X/Twitter, blogs, newsletters, and forums.
 
 ### Free Tier: $0/month
 
-**Hosted at**: `@keypears.com`, `@wokerium.com`, or `@hevybags.com`
+**Hosted at**: `@keypears.com` or `@passapples.com`
 
 **Generous limits based on actual server costs**:
 
@@ -667,7 +667,7 @@ wallet integration.
 
 - Become the standard for custom domain vault hosting
 - 500,000+ users, $3M ARR
-- Multiple official domains (keypears.com, wokerium.com, hevybags.com)
+- Multiple official domains (keypears.com, passapples.com)
 - White-label hosting services for enterprises
 - Future expansion into additional secure communication features
 

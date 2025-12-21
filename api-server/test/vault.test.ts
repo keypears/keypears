@@ -71,7 +71,7 @@ describe("Vault API", () => {
       expect(result.available).toBe(false);
     });
 
-    it("should be per-domain (alice@keypears.com ≠ alice@hevybags.com)", async () => {
+    it("should be per-domain (alice@keypears.com ≠ alice@passapples.com)", async () => {
       // Register alice@keypears.com
       const loginKey = sha256Hash(WebBuf.fromUtf8("test-password-key")); // In real app, this is unhashed login key
       const testPubKeyHash = sha256Hash(WebBuf.fromUtf8("test-vault-pubkey"));
@@ -97,10 +97,10 @@ describe("Vault API", () => {
       });
       expect(result1.available).toBe(false);
 
-      // Check availability for alice@hevybags.com (should be available)
+      // Check availability for alice@passapples.com (should be available)
       const result2 = await client.api.checkNameAvailability({
         name: "alice",
-        domain: "hevybags.com",
+        domain: "passapples.com",
       });
       expect(result2.available).toBe(true);
     });
@@ -196,12 +196,12 @@ describe("Vault API", () => {
         ...pow1,
       });
 
-      // Register alice@hevybags.com (should succeed)
+      // Register alice@passapples.com (should succeed)
       const pow2 = await solvePowChallenge(TEST_SERVER_URL);
       const result2 = await client.api.registerVault({
         vaultId: generateId(),
         name: "alice",
-        domain: "hevybags.com",
+        domain: "passapples.com",
         vaultPubKeyHash: testPubKeyHash2.buf.toHex(),
         vaultPubKey: testPubKey.toHex(),
         loginKey: loginKey.buf.toHex(),

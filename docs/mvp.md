@@ -6,7 +6,7 @@ KeyPears is a decentralized password manager and cryptocurrency wallet with an
 email-like architecture. Users create vaults in the format `alice@keypears.com`
 (or other domains), enabling cross-device synchronization and secure secret
 sharing between any two addresses (e.g., `alice@keypears.com` ↔
-`bob@wokerium.com`).
+`bob@passapples.com`).
 
 **MVP Goal**: Enable secure password management with cross-device sync,
 Diffie-Hellman key exchange for secret sharing, AND revenue generation through
@@ -98,8 +98,8 @@ export const TableVault = sqliteTable("vault", {
 
 1. **DH public key registration**: Each vault publishes a DH public key to
    server
-2. **Cross-domain key discovery**: Fetch public key for `bob@wokerium.com` from
-   wokerium.com server
+2. **Cross-domain key discovery**: Fetch public key for `bob@passapples.com` from
+   passapples.com server
 3. **Secret sharing API**:
    - `registerPublicKey` - Publish DH public key
    - `getPublicKey` - Fetch recipient's public key
@@ -111,17 +111,17 @@ export const TableVault = sqliteTable("vault", {
    - Decrypt received secrets
 5. **Sharing UI**:
    - "Share Secret" button on password detail page
-   - Modal: "Share with: bob@wokerium.com"
+   - Modal: "Share with: bob@passapples.com"
    - Inbox: List of received secrets
    - Accept/Reject flow
 
 **Success Criteria**:
 
 - Alice (`alice@keypears.com`) shares GitHub password with Bob
-  (`bob@wokerium.com`)
+  (`bob@passapples.com`)
 - Bob receives encrypted secret, decrypts with his vault password
 - Bob can accept secret into his vault or reject it
-- Works across different domain servers (keypears.com → wokerium.com)
+- Works across different domain servers (keypears.com → passapples.com)
 
 ### Phase 3: Multi-Domain Support
 
@@ -130,16 +130,15 @@ export const TableVault = sqliteTable("vault", {
 **Official Domains** (default options in client):
 
 1. **keypears.com** - Primary branding, main domain
-2. **wokerium.com** - Alternative branding option
-3. **hevybags.com** - Alternative branding option
+2. **passapples.com** - Alternative branding option (for demos)
 
 **Requirements**:
 
 1. **Domain discovery**: Client can connect to any KeyPears-compatible server
 2. **Protocol compatibility**: All servers implement identical orpc API
-3. **Federated sync**: `alice@keypears.com` can share with `bob@wokerium.com`
+3. **Federated sync**: `alice@keypears.com` can share with `bob@passapples.com`
 4. **Custom domain UI**:
-   - Default dropdown: keypears.com, wokerium.com, hevybags.com
+   - Default dropdown: keypears.com, passapples.com
    - "Custom domain" option for self-hosted servers
    - Domain validation and connectivity check
 5. **Open source deployment guide**: Instructions for running your own KeyPears
@@ -157,7 +156,7 @@ export const TableVault = sqliteTable("vault", {
 
 **Success Criteria**:
 
-- Client ships with keypears.com, wokerium.com, hevybags.com as default options
+- Client ships with keypears.com, passapples.com as default options
 - Users can add custom domain (e.g., `alice@mycompany.com`) and it works
 - Secrets can be shared between official domains and custom domains
 - Documentation exists for self-hosting KeyPears server
@@ -285,7 +284,7 @@ master vault key               for authentication
 - **Database**: PostgreSQL 17.5
 - **ORM**: Drizzle ORM
 - **Deployment**: AWS Fargate (Docker containers, linux/amd64)
-- **Domain**: keypears.com (primary), wokerium.com, hevybags.com (alternatives)
+- **Domain**: keypears.com (primary), passapples.com (alternative)
 
 ### Data Model
 
@@ -336,9 +335,9 @@ have a real product.
 4. ✅ User can share password with `bob@keypears.com` via DH key exchange
 5. ✅ Bob receives, decrypts, and imports shared password
 6. ✅ All features work on Windows, macOS, Linux, Android, iOS
-7. ✅ Server supports keypears.com + wokerium.com + hevybags.com domains
+7. ✅ Server supports keypears.com + passapples.com domains
 8. ✅ User can add custom domain server (with manual domain entry)
-9. ✅ Cross-domain sharing works (keypears.com ↔ wokerium.com)
+9. ✅ Cross-domain sharing works (keypears.com ↔ passapples.com)
 10. ✅ Zero-knowledge architecture verified (server cannot decrypt secrets)
 11. ✅ Free tier limits enforced (300 syncs, 50 shares, 500 secrets per month)
 12. ✅ User can purchase Premium tier ($99/year) via Stripe
@@ -351,7 +350,7 @@ have a real product.
 > Alice installs KeyPears on her MacBook, creates vault `alice@keypears.com`,
 > adds her Gmail password. She installs KeyPears on her iPhone, logs in, sees
 > Gmail password synced. She shares her Netflix password with her roommate Bob
-> (`bob@wokerium.com`). Bob receives encrypted password, accepts it into his
+> (`bob@passapples.com`). Bob receives encrypted password, accepts it into his
 > vault, logs into Netflix. Alice changes Netflix password on her phone, change
 > syncs to MacBook and Bob receives updated password.
 >

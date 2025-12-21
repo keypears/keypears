@@ -213,7 +213,7 @@ engagement keys unique to that relationship.
 
 ### Engagement Key Protocol
 
-When `bob@hevybags.com` wants to communicate with `alice@keypears.com`:
+When `bob@passapples.com` wants to communicate with `alice@keypears.com`:
 
 ```
 Bob's Side:
