@@ -7,6 +7,39 @@ organized by MVP phase as defined in `docs/mvp.md`.
 
 ## Recently Completed
 
+### Secure Channel Establishment with Sender Verification ✅
+
+**Completed**: 2025-12-21
+
+**Summary**: Implemented three-layer verification for secure channel establishment
+between users across domains, preventing sender impersonation and DoS attacks.
+
+**What was implemented:**
+
+- **PoW moved to key request**: PoW is now consumed when getting counterparty's
+  engagement key, not when sending messages
+- **Signature verification**: Sender signs PoW hash with engagement private key,
+  proving they own the claimed pubkey
+- **Cross-domain identity verification**: New `verifyEngagementKeyOwnership` API
+  allows recipient's server to verify sender's pubkey belongs to their claimed
+  address by calling sender's server
+- **Channel binding**: PoW is tied to specific sender+recipient+pubkey, preventing
+  replay attacks
+- Updated client-side code (`new-message-dialog.tsx`, `compose-box.tsx`) with new
+  flow: get key → derive privkey → get PoW → solve → sign → get counterparty key
+- Updated `getPowChallenge` to accept sender/recipient addresses for difficulty
+  resolution
+
+**Security improvements:**
+
+| Attack | Before | After |
+|--------|--------|-------|
+| Impersonate sender | ❌ Possible | ✅ Prevented (signature + cross-domain verification) |
+| DoS via key requests | ❌ Free | ✅ Requires PoW |
+| Replay PoW for different channel | N/A | ✅ PoW tied to sender pubkey via signature |
+
+---
+
 ### Third-Party API Hosting Foundation ✅
 
 **Completed**: 2025-12-01

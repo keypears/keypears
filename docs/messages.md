@@ -56,27 +56,41 @@ When Bob wants to message Alice:
    → Fetch https://example.com/.well-known/keypears.json
    → Confirm alice exists via API
 
-2. GET KEYS: Bob establishes DH relationship
-   → Get/create Bob's engagement key for Alice (from Bob's server, purpose: "send")
-   → Get Alice's engagement key for Bob (from Alice's server, purpose: "receive")
-   → Alice's server stores Bob's pubkey for later validation
-   → Compute shared secret via ECDH
+2. GET MY KEY: Bob creates his engagement key (Bob's server)
+   → Creates key with purpose: "send", counterpartyAddress: "alice@example.com"
+   → Bob derives engagement private key locally
 
-3. GET CHALLENGE: Bob requests PoW challenge from Alice's server
-   → Alice's server returns challenge with difficulty based on:
+3. GET POW CHALLENGE: Bob requests challenge from Alice's server
+   → Includes sender/recipient addresses for difficulty resolution
+   → Alice's server returns difficulty based on:
      - Per-channel setting for Bob (if exists)
      - Otherwise Alice's global messagingMinDifficulty
-   → Default difficulty: ~4 million (same as registration)
+     - Default: ~4 million (same as registration)
 
-4. SOLVE PoW: Bob's client mines the solution
+4. SOLVE POW: Bob's client mines the solution
    → WebGPU or WASM, same as registration
+   → Produces: solvedHeader, solvedHash
 
-5. SEND MESSAGE: Bob submits message to Alice's server
-   → Includes: PoW proof, both engagement pubkeys, encrypted message
-   → Alice's server validates engagement key metadata
-   → Alice's server marks engagement key as used
+5. SIGN POW: Bob signs the solved hash
+   → Signs solvedHash with his engagement private key
+   → Proves Bob owns the private key for his claimed pubkey
 
-6. STORE MESSAGE: Message is now in Alice's inbox
+6. GET RECIPIENT KEY: Bob requests Alice's engagement key (Alice's server)
+   → Alice's server performs THREE verification checks:
+     a) Verify PoW is valid (hash meets target, not expired, not used)
+     b) Verify signature matches Bob's claimed public key
+     c) Cross-domain verification: call Bob's server to confirm
+        "does this pubkey belong to bob@example2.com?"
+   → If all pass: create "receive" engagement key, consume PoW, return pubkey
+   → If any fail: reject request, do NOT consume PoW
+
+7. ENCRYPT & SEND: Bob sends the encrypted message
+   → Compute shared secret via ECDH
+   → Encrypt message content with shared secret
+   → Send to Alice's server with PoW reference (NOT re-verified)
+   → Alice's server validates channel binding (PoW was consumed for THIS pair)
+
+8. STORE MESSAGE: Message is now in Alice's inbox
    → Encrypted with shared secret
    → Alice's server cannot read content
    → Channel created if first message between Bob and Alice
@@ -91,29 +105,42 @@ When Bob wants to message Alice:
 │                                                             │
 │  1. Resolve alice@example.com                               │
 │     ↓                                                       │
-│  2. Get engagement keys (both sides)                        │
+│  2. Create Bob's engagement key (Bob's server)              │
 │     ↓                                                       │
-│  3. Compute shared secret                                   │
+│  3. Derive engagement private key locally                   │
 │     ↓                                                       │
 │  4. Get PoW challenge from Alice's server                   │
+│     (includes sender/recipient for difficulty)              │
 │     ↓                                                       │
-│  5. Solve PoW (difficulty set by Alice)                     │
+│  5. Solve PoW + Sign solvedHash                             │
 │     ↓                                                       │
-│  6. Send message with PoW proof                             │
+│  6. Request Alice's key with PoW + signature                │
 │     ────────────────────────────────────→                   │
-│                                  7. Message lands in        │
+│                                  Alice's server verifies:   │
+│                                  • PoW valid                │
+│                                  • Signature valid          │
+│                                  • Cross-domain check:      │
+│                                    Bob's server confirms    │
+│                                    pubkey belongs to bob@   │
+│     ←────────────────────────────────────                   │
+│  7. Receive Alice's engagement pubkey                       │
+│     ↓                                                       │
+│  8. Compute shared secret, encrypt, send message            │
+│     (PoW reference only - already consumed)                 │
+│     ────────────────────────────────────→                   │
+│                                  9. Message lands in        │
 │                                     Alice's inbox           │
 │                                     ↓                       │
-│                                  8. Background sync moves   │
-│                                     message to Alice's vault│
+│                                  10. Background sync moves  │
+│                                      message to Alice's vault│
 │                                     ↓                       │
-│                                  9. Alice can set low       │
-│                                     difficulty for Bob to   │
-│                                     make replies easy       │
+│                                  11. Alice can set low      │
+│                                      difficulty for Bob     │
 │     ←────────────────────────────────                       │
-│  10. Alice replies (with PoW for Bob's difficulty)          │
+│  12. Alice replies (same flow with PoW for Bob's difficulty)│
 │      ↓                                                      │
-│  [Each message requires PoW at recipient's difficulty]      │
+│  [Each NEW channel requires PoW + signature + verification] │
+│  [Subsequent messages reference consumed PoW]               │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -134,39 +161,57 @@ The engagement key infrastructure enables secure DH key exchange:
 1. CREATE SENDER KEY: Bob creates his engagement key (on Bob's server)
    → Purpose: "send"
    → counterpartyAddress: "alice@example.com"
-   → counterpartyPubKey: null (Alice's key, not known yet)
+   → Bob derives engagement private key locally
 
-2. REQUEST RECIPIENT KEY: Bob requests Alice's engagement key (from Alice's server)
-   → Bob provides: his address + his pubkey
-   → Alice's server creates engagement key:
+2. GET POW CHALLENGE: Bob requests PoW challenge (from Alice's server)
+   → Includes senderAddress + recipientAddress for difficulty resolution
+   → Alice's server returns challenge with appropriate difficulty
+
+3. SOLVE POW & SIGN: Bob solves the PoW and signs the result
+   → Mine until hash meets target
+   → Sign solvedHash with engagement private key (proves key ownership)
+
+4. REQUEST RECIPIENT KEY: Bob requests Alice's engagement key (from Alice's server)
+   → Bob provides: addresses, his pubkey, PoW proof, signature
+   → Alice's server performs THREE verification checks:
+     a) PoW verification: hash meets target, not expired, not used
+     b) Signature verification: signature valid for Bob's claimed pubkey
+     c) Cross-domain verification: call Bob's server via verifyEngagementKeyOwnership
+        to confirm the pubkey belongs to bob@example2.com
+   → If all pass: create engagement key with:
      - Purpose: "receive"
      - counterpartyAddress: "bob@example2.com"
      - counterpartyPubKey: Bob's pubkey (stored for later validation)
-   → Alice's server returns: Alice's engagement pubkey
+   → Mark PoW as consumed with channel binding (sender/recipient/pubkey)
+   → Return: Alice's engagement pubkey
 
-3. UPDATE SENDER KEY: Bob updates his engagement key (on Bob's server)
-   → counterpartyPubKey: Alice's pubkey (now known)
-
-4. COMPUTE SHARED SECRET: Both sides can compute
+5. COMPUTE SHARED SECRET: Both sides can compute
    → shared_secret = ECDH(my_privkey, their_pubkey)
 ```
 
 **Validation at message receipt:**
 
-When Alice's server receives a message, it validates the engagement key:
+When Alice's server receives a message, it validates:
 
 ```
 1. Look up engagement key by recipientEngagementPubKey
-2. Validate:
+2. Validate engagement key:
    - purpose = "receive" ✓
    - counterpartyAddress = sender's address ✓
    - counterpartyPubKey = senderEngagementPubKey ✓
-   - isUsed = false ✓
-3. Mark engagement key as used
+3. Validate PoW channel binding:
+   - Look up PoW by powChallengeId
+   - Verify isUsed = true (was consumed in getCounterpartyEngagementKey)
+   - Verify senderAddress matches
+   - Verify recipientAddress matches
+   - Verify senderPubKey matches
 4. Store message in inbox
 ```
 
-This prevents misuse - someone cannot use a key meant for a different person or purpose.
+This prevents:
+- **Impersonation**: Signature + cross-domain verification ensures sender identity
+- **DoS attacks**: PoW required before any engagement key is created
+- **Replay attacks**: PoW is tied to specific sender+recipient+pubkey
 
 ### End-to-End Encryption
 
@@ -214,26 +259,39 @@ Bob sends message to Alice:
 
 ## Spam Prevention
 
-### Per-Message Proof-of-Work
+### Per-Channel Proof-of-Work
 
-Every message requires proof-of-work. The difficulty is determined by the recipient's
-settings:
+Establishing a new channel requires proof-of-work. The PoW is consumed when the
+sender requests the recipient's engagement key, NOT when sending individual messages.
 
-1. **Global setting**: Each user has a default `messagingMinDifficulty` (default ~4M)
-2. **Per-channel override**: Can set different difficulty for specific counterparties
+**Difficulty determination:**
+
+1. **Per-channel override**: Recipient can set specific difficulty for known senders
+2. **Global setting**: Each user has a default `messagingMinDifficulty` (default ~4M)
+3. **System default**: Fallback to server's DEFAULT_MESSAGING_DIFFICULTY (~4M)
 
 **How it works:**
 
-1. Sender requests PoW challenge from recipient's server
-2. Server returns challenge with difficulty based on recipient's settings
-3. Sender solves PoW and submits message with proof
-4. Server verifies PoW before accepting message
+1. Sender requests PoW challenge from recipient's server (includes addresses)
+2. Server returns challenge with difficulty resolved from hierarchy above
+3. Sender solves PoW and signs the solved hash with engagement private key
+4. Sender requests recipient's engagement key with PoW proof + signature
+5. Server verifies PoW + signature + cross-domain identity before creating key
+6. PoW is marked as consumed with channel binding (sender/recipient/pubkey)
+7. Subsequent messages reference the consumed PoW (not re-verified)
+
+**Security properties:**
+
+- **DoS prevention**: Attackers can't spam key requests without computational work
+- **Identity verification**: Signature proves ownership; cross-domain call confirms identity
+- **Channel binding**: PoW is tied to specific sender+recipient pair, preventing replay
+- **Idempotent keys**: Same sender+pubkey returns same key (no storage exhaustion)
 
 **Enabling easy replies:**
 
 When you accept a channel from someone you trust, you can lower your per-channel
 difficulty for them. Setting difficulty to a trivial value (e.g., 256) makes their
-messages effectively free while still requiring the PoW handshake.
+channel establishment effectively free while still requiring the verification handshake.
 
 **Recipient's controls:**
 
@@ -243,8 +301,9 @@ messages effectively free while still requiring the PoW handshake.
 
 **Server-side enforcement:**
 
-- PoW verification before accepting any message
-- Difficulty lookup: per-channel override → global setting → system default
+- PoW + signature + identity verification required for `getCounterpartyEngagementKey`
+- `sendMessage` only verifies channel binding (PoW already consumed)
+- Difficulty lookup: per-channel override → vault setting → system default
 
 ## Message Format
 
@@ -587,29 +646,32 @@ most messaging apps which display chronologically (oldest at top).
 
 ### Reused Components
 
-| Component           | How It's Used                    |
-| ------------------- | -------------------------------- |
-| Engagement Keys     | Public keys for ECDH + validation|
-| PoW (pow5-64b)      | Per-message spam prevention      |
-| ACS2 encryption     | Message content encryption       |
-| Secret Updates      | Storage for saved messages       |
-| Sync infrastructure | Cross-device message sync        |
+| Component           | How It's Used                                      |
+| ------------------- | -------------------------------------------------- |
+| Engagement Keys     | Public keys for ECDH + validation + signing        |
+| PoW (pow5-64b)      | Per-channel spam prevention (at key request)       |
+| ECDSA signatures    | Sender identity proof (sign PoW hash)              |
+| ACS2 encryption     | Message content encryption                         |
+| Secret Updates      | Storage for saved messages                         |
+| Sync infrastructure | Cross-device message sync                          |
 
 ### New Components Needed (All Implemented)
 
-| Component                    | Purpose                                      | Status |
-| ---------------------------- | -------------------------------------------- | ------ |
-| `sendMessage` API            | Send messages with PoW validation            | ✅     |
-| `getChannelMessages` API     | Retrieve messages from inbox                 | ✅     |
-| `getChannels` API            | List channels for an address                 | ✅     |
-| `getSenderChannel` API       | Create sender's channel_view                 | ✅     |
-| `getInboxMessagesForSync` API| Get inbox messages for sync                  | ✅     |
-| `deleteInboxMessages` API    | Delete synced messages from inbox            | ✅     |
-| PoW challenge APIs           | Per-message spam prevention                  | ✅     |
-| Channel list UI              | Messages tab interface                       | ✅     |
-| Channel detail UI            | Message thread view                          | ✅     |
-| New message dialog           | Compose and send new messages                | ✅     |
-| Compose box                  | Reply to messages with PoW                   | ✅     |
+| Component                         | Purpose                                           | Status |
+| --------------------------------- | ------------------------------------------------- | ------ |
+| `getCounterpartyEngagementKey` API| Get recipient's key (PoW + signature + identity)  | ✅     |
+| `verifyEngagementKeyOwnership` API| Cross-domain identity verification                | ✅     |
+| `sendMessage` API                 | Send messages (channel binding verification)      | ✅     |
+| `getChannelMessages` API          | Retrieve messages from inbox                      | ✅     |
+| `getChannels` API                 | List channels for an address                      | ✅     |
+| `getSenderChannel` API            | Create sender's channel_view                      | ✅     |
+| `getInboxMessagesForSync` API     | Get inbox messages for sync                       | ✅     |
+| `deleteInboxMessages` API         | Delete synced messages from inbox                 | ✅     |
+| PoW challenge APIs                | Per-channel spam prevention                       | ✅     |
+| Channel list UI                   | Messages tab interface                            | ✅     |
+| Channel detail UI                 | Message thread view                               | ✅     |
+| New message dialog                | Compose and send new messages                     | ✅     |
+| Compose box                       | Reply to messages with PoW                        | ✅     |
 
 ## Implementation Status
 
@@ -642,10 +704,15 @@ Settings included in Phase 0:
 - [x] Create Drizzle models (`channel.ts`, `inbox-message.ts`)
 - [x] Note: NO outbox table - sent messages saved to sender's vault via secret_update
 - [x] `getEngagementKeyForSending` - Create engagement key with purpose "send"
-- [x] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
-      creates key with purpose "receive", stores sender's pubkey for validation
-- [x] `sendMessage` - Send message with PoW; validates engagement key metadata
-      (purpose, counterpartyAddress, counterpartyPubKey) before accepting
+- [x] `getCounterpartyEngagementKey` - Public endpoint with three-layer verification:
+      1) PoW verification (prevents DoS)
+      2) Signature verification (proves key ownership)
+      3) Cross-domain identity verification via `verifyEngagementKeyOwnership`
+      Creates key with purpose "receive", stores sender's pubkey for validation
+- [x] `verifyEngagementKeyOwnership` - Public endpoint for cross-domain identity
+      verification; confirms pubkey belongs to claimed address
+- [x] `sendMessage` - Send message; validates channel binding (PoW was consumed
+      for this sender+recipient pair) and engagement key metadata
 - [x] `getChannels` - List channels for an address (with pagination, reverse chronological)
 - [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
 - [x] Unit tests for channel and inbox-message models
@@ -654,11 +721,12 @@ Settings included in Phase 0:
 ### Phase 2: Client Integration - COMPLETE
 
 - [x] ECDH shared secret computation (`@keypears/lib` - `ecdhSharedSecret`)
+- [x] ECDSA signing/verification (`@keypears/lib` - `sign`, `verify`)
 - [x] Message encryption/decryption (`message-encryption.ts`)
 - [x] Channel list UI (`vault.$vaultId.messages._index.tsx`)
-- [x] New message flow with PoW (`new-message-dialog.tsx`)
+- [x] New message flow with PoW + signature (`new-message-dialog.tsx`)
 - [x] Channel detail/thread view (`vault.$vaultId.messages.$channelId.tsx`)
-- [x] Compose box with PoW mining (`compose-box.tsx`)
+- [x] Compose box with PoW mining + signature (`compose-box.tsx`)
 
 ### Phase 3: Vault Integration - COMPLETE
 

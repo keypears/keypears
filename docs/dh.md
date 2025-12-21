@@ -97,10 +97,12 @@ API.
 
 ## Protocol Flow
 
-> **Implementation Note**: The actual implementation uses Proof-of-Work (PoW)
-> for authentication instead of signatures. See [messages.md](./messages.md)
-> for the complete messaging protocol. The flow below describes the original
-> design concept; the key derivation math remains accurate.
+> **Implementation Note**: The implementation uses Proof-of-Work (PoW) for DoS
+> prevention AND ECDSA signatures for sender identity verification. See
+> [messages.md](./messages.md) for the complete messaging protocol. The sender
+> signs the PoW hash with their engagement private key, and the recipient's
+> server performs cross-domain verification to confirm the pubkey belongs to
+> the claimed sender address.
 
 ### Step 1: Alice Initiates Contact
 
@@ -126,26 +128,44 @@ Alice (`alice@1.com`) wants to send a secret to Bob (`bob@2.com`).
 
 ### Step 2: Alice Requests Bob's Engagement Key
 
-**Alice's client → Bob's server (`2.com`)**:
+**Alice gets PoW challenge from Bob's server (`2.com`)**:
 
-1. Alice's client sends a signed request to `2.com`:
-   - "I am Alice (`alice@1.com`), here is my engagement public key for Bob"
-   - Request is signed with Alice's engagement private key
-2. Bob's server needs to verify this is really Alice
+1. Alice requests a PoW challenge, including sender and recipient addresses
+2. Bob's server returns challenge with difficulty based on:
+   - Per-channel setting for Alice (if exists)
+   - Bob's global `messagingMinDifficulty` setting
+   - System default (~4 million)
 
-**Bob's server (`2.com`) → Alice's server (`1.com`)**:
+**Alice solves PoW and signs the result**:
 
-1. Bob's server asks Alice's server: "Does this public key really belong to
-   Alice for the Alice↔Bob engagement?"
-2. Alice's server verifies and responds: "Yes, this is Alice's valid engagement
-   key"
+1. Alice mines until hash meets target difficulty
+2. Alice signs the solved hash with her engagement private key
+3. This signature proves Alice owns the private key for her claimed pubkey
 
-**Bob's server generates Bob's engagement key**:
+**Alice's client → Bob's server (`2.com`)** with three-layer verification:
 
-1. Server uses the key addition property to generate a derived public key for
-   Bob
+1. Alice sends: addresses, her pubkey, PoW proof, signature
+2. Bob's server performs THREE verification checks:
+   - **PoW verification**: Hash meets target, not expired, not already used
+   - **Signature verification**: Signature is valid for Alice's claimed pubkey
+   - **Cross-domain identity verification**: See below
+
+**Bob's server (`2.com`) → Alice's server (`1.com`)** for identity verification:
+
+1. Bob's server calls Alice's server: `verifyEngagementKeyOwnership`
+2. Asks: "Does this public key belong to alice@1.com?"
+3. Alice's server checks if an engagement key exists with:
+   - Matching vault (by address)
+   - Matching pubkey
+   - Purpose = "send"
+4. Returns `{ valid: true }` if found, `{ valid: false }` otherwise
+
+**Bob's server generates Bob's engagement key** (only if ALL checks pass):
+
+1. Server uses the key addition property to generate a derived public key for Bob
 2. This derived key is specific to the Alice↔Bob relationship
-3. Server stores the mapping and returns Bob's engagement public key to Alice
+3. Server marks the PoW as consumed with channel binding (sender/recipient/pubkey)
+4. Server stores the mapping and returns Bob's engagement public key to Alice
 
 ### Step 3: Shared Secret Computation
 
@@ -624,52 +644,89 @@ plaintext = AES256_decrypt(shared_secret, encrypted_message)
 
 ## Verification Protocol
 
-> **Note**: Cross-domain key attestation is **not yet implemented**. The current
-> implementation trusts the recipient's server to manage engagement keys. PoW
-> provides spam prevention without requiring cross-domain verification.
+Cross-domain key attestation is **fully implemented**. When a sender requests a
+recipient's engagement key, the recipient's server performs three verification
+layers before creating any keys.
 
-### Cross-Domain Key Attestation (Planned)
+### Three-Layer Verification (Implemented)
 
 When `2.com` receives a request claiming to be from `alice@1.com`:
 
-**Request from Alice's client to Bob's server**:
+**Request from Alice's client to Bob's server (`getCounterpartyEngagementKey`)**:
 
 ```json
 {
-  "from": "alice@1.com",
-  "to": "bob@2.com",
-  "engagement_public_key": "02abc123...",
-  "signature": "304402...",
-  "timestamp": 1699900000
+  "recipientAddress": "bob@2.com",
+  "senderAddress": "alice@1.com",
+  "senderPubKey": "02abc123...",
+  "powChallengeId": "01JFXYZ...",
+  "solvedHeader": "...",
+  "solvedHash": "...",
+  "signature": "..." // signature of solvedHash using Alice's engagement privkey
 }
 ```
 
-**Bob's server verifies with Alice's server**:
+**Layer 1: PoW Verification**
 
-```
-GET https://1.com/api/vaults/alice/verify-engagement-key
-?for=bob@2.com
-&key=02abc123...
-```
+Bob's server verifies:
+- Challenge exists and is not expired
+- Challenge has not been used
+- Solved hash meets the target difficulty
+- Challenge bytes match (prevents header substitution)
 
-**Alice's server responds**:
+**Layer 2: Signature Verification**
+
+Bob's server verifies:
+- Signature is valid ECDSA signature over `solvedHash`
+- Signature was created with the private key corresponding to `senderPubKey`
+- This proves Alice owns the private key for her claimed pubkey
+
+**Layer 3: Cross-Domain Identity Verification**
+
+Bob's server calls Alice's server (`verifyEngagementKeyOwnership`):
 
 ```json
+// Request to alice's server
 {
-  "valid": true,
-  "registered_at": 1699900000,
-  "signature": "server_attestation_signature"
+  "address": "alice@1.com",
+  "engagementPubKey": "02abc123..."
+}
+
+// Response from alice's server
+{
+  "valid": true
 }
 ```
 
-### Signature Verification
+Alice's server checks:
+- Parse address to get vault name and domain
+- Look up vault by name/domain
+- Check if an engagement key exists with:
+  - `vaultId` matches the vault
+  - `engagementPubKey` matches the input
+  - `purpose` = "send" (keys created for sending)
 
-Alice's client signs the initial request with her engagement private key. Bob's
-server can verify:
+**Security note**: No PoW required for `verifyEngagementKeyOwnership` because:
+- Public keys are essentially random (can't enumerate)
+- No way to list someone's public keys
+- This is just a boolean lookup confirmation
 
-1. The signature is valid for the claimed engagement public key
-2. Alice's server attests this key belongs to Alice for the Alice↔Bob
-   relationship
+### Why This Works
+
+1. **Signature binds identity to PoW**: Alice signs the PoW hash with her
+   engagement private key. Only someone with Alice's key can produce this
+   signature.
+
+2. **Cross-domain verification binds pubkey to address**: Bob asks Alice's
+   server "does this pubkey belong to alice@1.com?". Only Alice's server knows
+   which pubkeys are registered to her.
+
+3. **PoW prevents spam**: Attacker must do computational work before getting any
+   engagement keys created.
+
+4. **Same key for signature and DH**: The engagement key Alice uses to prove
+   identity is the same key used for DH. This creates a cryptographic binding
+   between the verified identity and the encrypted channel.
 
 ## Privacy Properties
 
@@ -1049,26 +1106,28 @@ API, see [messages.md](./messages.md).
 
 **Key Exchange Endpoints:**
 
-| Procedure                      | Auth          | Purpose                                      |
-| ------------------------------ | ------------- | -------------------------------------------- |
-| `getEngagementKeyForSending`   | Session token | Create "send" engagement key for a counterparty |
-| `getCounterpartyEngagementKey` | Public        | Get recipient's engagement key (creates "receive" key) |
-| `getDerivationPrivKey`         | Session token | Get derivation private key to derive engagement private key |
-| `getEngagementKeyByPubKey`     | Session token | Look up engagement key ID from public key    |
+| Procedure                      | Auth                    | Purpose                                                    |
+| ------------------------------ | ----------------------- | ---------------------------------------------------------- |
+| `getEngagementKeyForSending`   | Session token           | Create "send" engagement key for a counterparty            |
+| `getCounterpartyEngagementKey` | PoW + Signature         | Get recipient's key (with three-layer verification)        |
+| `verifyEngagementKeyOwnership` | Public                  | Cross-domain identity verification (pubkey → address)      |
+| `getDerivationPrivKey`         | Session token           | Get derivation private key to derive engagement private key|
+| `getEngagementKeyByPubKey`     | Session token           | Look up engagement key ID from public key                  |
 
 **Messaging Endpoints:**
 
-| Procedure                      | Auth          | Purpose                                      |
-| ------------------------------ | ------------- | -------------------------------------------- |
-| `sendMessage`                  | PoW           | Send encrypted message to recipient          |
-| `getChannels`                  | Session token | List channels for an address                 |
-| `getChannelMessages`           | Session token | Get messages in a channel                    |
-| `getSenderChannel`             | Session token | Get/create sender's channel view             |
+| Procedure                      | Auth                    | Purpose                                                    |
+| ------------------------------ | ----------------------- | ---------------------------------------------------------- |
+| `sendMessage`                  | Channel binding         | Send encrypted message (references consumed PoW)           |
+| `getChannels`                  | Session token           | List channels for an address                               |
+| `getChannelMessages`           | Session token           | Get messages in a channel                                  |
+| `getSenderChannel`             | Session token           | Get/create sender's channel view                           |
 
-**Note**: The original design included signature-based verification and
-cross-domain key attestation. The current implementation uses PoW for
-authentication instead, which is simpler and prevents spam without requiring
-signature infrastructure.
+**Security Model**: The implementation uses:
+- **PoW** for DoS prevention (at key request time)
+- **ECDSA signatures** for sender authentication (proves key ownership)
+- **Cross-domain verification** for identity binding (confirms pubkey belongs to address)
+- **Channel binding** for message send (PoW tied to specific sender+recipient pair)
 
 ## Future Enhancements
 
@@ -1098,7 +1157,7 @@ Reduce metadata leakage through timing analysis:
 
 ## Implementation Status
 
-**Current**: ✅ Core DH key exchange is implemented
+**Current**: ✅ Core DH key exchange with full identity verification is implemented
 
 **Completed**:
 
@@ -1106,14 +1165,17 @@ Reduce metadata leakage through timing analysis:
 2. ✅ Engagement key generation on API server (server-side key derivation)
 3. ✅ Client-side key management (getEngagementKeyForSending, getDerivationPrivKey)
 4. ✅ ECDH shared secret computation (ecdhSharedSecret in @keypears/lib)
-5. ✅ Message encryption/decryption flow (ACS2 with ECDH shared secret)
-6. ✅ Messaging UI in Tauri app (channels, compose, reply)
-7. ✅ PoW-based message authentication (replaces signature verification)
+5. ✅ ECDSA signing/verification (sign, verify in @keypears/lib)
+6. ✅ Message encryption/decryption flow (ACS2 with ECDH shared secret)
+7. ✅ Messaging UI in Tauri app (channels, compose, reply)
+8. ✅ PoW-based DoS prevention (at key request time)
+9. ✅ Signature-based sender authentication (sign PoW hash with engagement key)
+10. ✅ Cross-domain identity verification (`verifyEngagementKeyOwnership` API)
+11. ✅ Channel binding (PoW tied to sender+recipient pair)
 
 **Not yet implemented**:
 
 - Vault generation / key rotation (see "Vault Rotation" section - marked as future)
-- Cross-domain key attestation API (simplified: trust recipient's server)
 - Secret/password attachments (Phase 2)
 
 ## References
