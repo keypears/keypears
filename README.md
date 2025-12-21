@@ -1,6 +1,6 @@
 # KeyPears
 
-**Federated Diffie-Hellman Key Exchange Protocol**
+**Password Manager with Federated Diffie-Hellman Key Exchange**
 
 ---
 

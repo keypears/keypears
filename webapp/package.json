@@ -1,6 +1,6 @@
 {
   "name": "@keypears/webapp",
-  "description": "KeyPears webapp - Federated Diffie-Hellman Key Exchange Protocol",
+  "description": "KeyPears webapp - Password Manager with Federated Diffie-Hellman Key Exchange",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.25.0",

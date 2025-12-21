@@ -1,7 +1,7 @@
 {
   "name": "@keypears/lib",
   "version": "1.0.0",
-  "description": "Core library for KeyPears - Federated Diffie-Hellman Key Exchange Protocol",
+  "description": "Core library for KeyPears - Password Manager with Federated Diffie-Hellman Key Exchange",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [],

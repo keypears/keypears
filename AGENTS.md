@@ -5,7 +5,7 @@
 
 ## Overview
 
-**Federated Diffie-Hellman Key Exchange Protocol**
+**Password Manager with Federated Diffie-Hellman Key Exchange**
 
 KeyPears is a decentralized Diffie-Hellman key exchange platform that enables
 secure communication between any two email addresses (e.g., `alice@example.com`
