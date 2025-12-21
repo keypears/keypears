@@ -1,5 +1,10 @@
 # KeyPears Business Plan
 
+> **Note**: This document describes the intended business model for KeyPears.
+> The payment system is not yet implemented. All revenue projections and
+> pricing details are aspirational and subject to change. The specific
+> freemium features and pricing structure are still TBD.
+
 ## Executive Summary
 
 **Decentralized Vault Hosting for the Modern Web**

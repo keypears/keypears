@@ -329,9 +329,10 @@ function recomputeEngagementKey(engagementKeyRecord: EngagementKey): FixedBuf<33
 
 ### Entropy Rotation Schedule
 
-**Recommended rotation**: Every 90 days for server operators.
+**Recommended rotation**: Every 45 days for server operators.
 
-This is longer than the 45-day vault rotation recommendation because:
+This matches the 45-day vault rotation recommendation, following Let's Encrypt's
+updated best practice for key rotation periods. Reasons:
 
 - Server entropy protects many users, so rotation is more operationally complex
 - The derivation entropy is never exposed publicly (unlike engagement keys)
@@ -416,7 +417,7 @@ KeyPears uses three sources of entropy to derive keys:
 
 **1. Server Entropy** (`DERIVATION_ENTROPY_N` from env vars)
 
-- Rotated every ~90 days
+- Rotated every ~45 days
 - Known only to the server (in memory, never in database)
 - Index is stored with each engagement key for re-derivation
 
@@ -587,7 +588,7 @@ doesn't need to contact the server every time they want to decrypt a message.
 
 **Entropy Rotation Limits Blast Radius:**
 
-- Server entropy rotates every 90 days
+- Server entropy rotates every 45 days
 - Old keys remain derivable (server_entropy_index is stored)
 - If entropy N is compromised, only keys using index N are affected
 

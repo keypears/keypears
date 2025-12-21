@@ -6,19 +6,20 @@ KeyPears is building the future of private, decentralized communication and
 identity management. We start with password management and DH key exchange, but
 our long-term vision extends far beyond.
 
-## Current MVP
+## Current State
 
-The KeyPears MVP provides:
+KeyPears currently provides:
 
-- Secure password management
-- Diffie-Hellman key exchange
+- Secure password management with cross-device sync
+- Diffie-Hellman key exchange for secret sharing
 - Email-based identity (alice@example.com)
+- End-to-end encrypted messaging between any two vault addresses
 
 This foundation is immediately useful and sets the stage for our broader vision.
 
 ## Long-Term Features
 
-### 1. End-to-End Encrypted Messaging
+### 1. End-to-End Encrypted Messaging ✅ (Implemented)
 
 A fully encrypted secret messaging system - essentially a decentralized Signal.
 
@@ -27,12 +28,10 @@ A fully encrypted secret messaging system - essentially a decentralized Signal.
 - True end-to-end encryption using DH key exchange infrastructure
 - Decentralized architecture (no central server vulnerability)
 - User experience as simple as existing messaging apps
-- Built on the same email-based identity system established in MVP
-
-**Dependencies**: Requires MVP Phase 2 (DH key exchange) as foundation.
+- Built on the same email-based identity system
 
 Users communicate securely by default, with no intermediary able to read
-messages.
+messages. This feature is now live in KeyPears.
 
 ### 2. Backwards-Compatible Email Support
 
@@ -116,14 +115,23 @@ that ensures long-term sustainability without compromising on values.
 
 We're taking a deliberate, staged approach:
 
-1. **Now**: MVP with 4 phases (sync, DH key exchange, multi-domain, payments -
-   see [mvp.md](mvp.md))
-2. **Post-MVP Phase 1**: End-to-end encrypted messaging
-3. **Post-MVP Phase 2**: Legacy email support (SMTP/IMAP compatibility)
-4. **Post-MVP Phase 3**: Cryptocurrency wallet integration
+**Completed**:
 
-The MVP establishes the foundation (15-20 days), then each post-MVP phase builds
-on it, creating a cohesive ecosystem where your email address is your universal
+- ✅ Phase 1-3: Sync, DH key exchange, multi-domain (see [mvp.md](mvp.md))
+- ✅ End-to-end encrypted messaging (DH-based secure messaging is live)
+
+**In Progress**:
+
+- 🔄 Phase 4: Payment system (freemium model TBD)
+
+**Post-MVP**:
+
+1. Legacy email support (SMTP/IMAP compatibility)
+2. Cryptocurrency wallet integration
+3. Advanced features (vault rotation, browser extensions, biometrics)
+
+The MVP establishes the foundation, then each post-MVP phase builds on it,
+creating a cohesive ecosystem where your email address is your universal
 identity for private communication and digital value transfer.
 
 ## Success Criteria

@@ -40,6 +40,12 @@ ASIC resistance.
 - **GPU optimization**: Thread ID written to bytes 28-31
 - **Hash function**: BLAKE3 with matrix multiplication operations
 
+> **Note**: The PoW system uses BLAKE3, which is separate from the SHA-256 used
+> in KeyPears' key derivation functions (see [kdf.md](./kdf.md)). BLAKE3 was
+> chosen for PoW due to its speed and ASIC-resistance properties when combined
+> with matrix multiplication. SHA-256 is used for password-to-key derivation
+> where the slower performance is actually desirable for brute-force resistance.
+
 The algorithm combines BLAKE3 hashing with matrix multiplication to create an
 ASIC-resistant proof-of-work function:
 
@@ -68,7 +74,7 @@ provide:
 
 ### Base Difficulty
 
-The base difficulty is **4,194,304** (2^22), which requires approximately:
+The base difficulty is **4,000,000** (~4 million), which requires approximately:
 
 - **GPU (WebGPU)**: ~4 seconds
 - **CPU (WASM)**: ~40 seconds
@@ -79,7 +85,7 @@ Shorter vault names are more valuable (like short domain names), so they require
 exponentially more work to register:
 
 ```
-difficulty = 4,194,304 × 2^(10 - name_length)
+difficulty = 4,000,000 × 2^(10 - name_length)
 ```
 
 For names with 10 or more characters, the base difficulty applies.
@@ -96,6 +102,9 @@ For names with 10 or more characters, the base difficulty applies.
 | 8 chars     | 16M        | ~16 sec  | ~3 min   |
 | 9 chars     | 8M         | ~8 sec   | ~80 sec  |
 | 10+ chars   | 4M         | ~4 sec   | ~40 sec  |
+
+> **Note**: The difficulty table values are approximate. The base difficulty is
+> exactly 4,000,000 (a round number for simplicity), not 2^22 (4,194,304).
 
 This ensures that:
 
@@ -302,7 +311,7 @@ KeyPears will use PoW to throttle cross-domain messaging:
 
 | Constant                       | Value     | Location                            | Description                      |
 | ------------------------------ | --------- | ----------------------------------- | -------------------------------- |
-| `BASE_REGISTRATION_DIFFICULTY` | 4,194,304 | `lib/src/index.ts`                  | Base difficulty (2^22)           |
+| `BASE_REGISTRATION_DIFFICULTY` | 4,000,000 | `lib/src/index.ts`                  | Base difficulty (~4M)            |
 | `TEST_BASE_DIFFICULTY`         | 1         | `lib/src/index.ts`                  | Test environment base difficulty |
 | `CHALLENGE_EXPIRATION_MS`      | 900,000   | `api-server/src/constants.ts`       | 15 minutes in milliseconds       |
 | `GPU_WORKGROUP_SIZE`           | 256       | `tauri-ts/app/lib/use-pow-miner.ts` | Threads per GPU workgroup        |

@@ -151,13 +151,14 @@ phase milestone).
 ### 3.1 Cryptography
 
 - [ ] **Algorithm choices**: Are industry-standard algorithms used?
-  - Blake3 for hashing/KDF
-  - AES-256-CBC for symmetric encryption
-  - secp256k1 for key derivation (DH not yet implemented)
+  - SHA-256 for KDF (PBKDF with 100k rounds)
+  - BLAKE3 for PoW (in pow5 algorithm only)
+  - AES-256-CBC + SHA-256-HMAC for symmetric encryption (ACS2)
+  - secp256k1 for DH key exchange (implemented)
 - [ ] **Key derivation**: Is the three-tier key derivation correct?
-  - Password + vaultId → passwordKey (100k Blake3 rounds)
-  - passwordKey → encryptionKey (Blake3 derive)
-  - passwordKey → loginKey (Blake3 derive)
+  - Password + vaultId → passwordKey (100k SHA-256 PBKDF rounds)
+  - passwordKey → encryptionKey (100k SHA-256 PBKDF rounds)
+  - passwordKey → loginKey (100k SHA-256 PBKDF rounds)
   - encryptionKey and loginKey are cryptographically separate?
 - [ ] **Random number generation**: Is `crypto.getRandomValues()` used for all
       randomness?
@@ -174,7 +175,7 @@ phase milestone).
       entropy)?
 - [ ] **Token storage**: Are session tokens stored securely (hashed on server)?
 - [ ] **Token expiration**: Do sessions expire appropriately?
-- [ ] **Login key handling**: Is the login key properly KDF'd server-side (1k
+- [ ] **Login key handling**: Is the login key properly KDF'd server-side (100k
       rounds)?
 - [ ] **Rate limiting**: Are login attempts rate-limited to prevent brute force?
 - [ ] **Logout**: Does logout properly invalidate sessions?
@@ -440,4 +441,49 @@ for later.
 
 ---
 
-**Last Updated**: 2025-12-06
+## 7. Security Findings & Recommendations
+
+This section documents security findings from documentation audits and code
+reviews.
+
+### December 2025 Documentation Audit
+
+**Key Rotation Recommendation:**
+
+Following Let's Encrypt's announcement of reducing TLS certificate validity from
+90 to 45 days, KeyPears adopts **45-day rotation periods** for:
+
+- **Server derivation entropy**: Rotate `DERIVATION_ENTROPY_N` every 45 days
+- **Vault keys**: Recommend users rotate vault keys every 45 days (not yet
+  implemented in UI)
+
+**Rationale**: While KeyPears doesn't use TLS certificates directly for key
+material, the 45-day period represents industry consensus on balancing security
+(limiting exposure window) with operational practicality.
+
+**Message Size Limits:**
+
+The 10KB message size limit serves as DOS mitigation. Large messages could
+exhaust server resources. This limit is appropriate for the current use case
+(sharing passwords and small secrets).
+
+**Session Token Security:**
+
+Session tokens are:
+
+- 32 bytes of cryptographically random data (256 bits entropy)
+- Stored hashed (SHA-256) in database
+- Per-device, enabling individual revocation
+- Transmitted only over HTTPS
+
+This design follows password manager industry best practices.
+
+**Not Yet Implemented (Planned):**
+
+- Vault key rotation UI/UX
+- Session token expiration enforcement
+- Rate limiting on authentication endpoints
+
+---
+
+**Last Updated**: 2025-12-21

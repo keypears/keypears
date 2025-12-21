@@ -375,25 +375,22 @@ Security guarantee: Even with full database access, attacker cannot:
 
 ### API Authentication (For Secret Operations)
 
-**Current implementation (MVP)**:
+**Current implementation**:
 
-- Each API request includes login key in header: `X-KeyPears-Auth: <loginKey>`
-- Server validates by computing: `sha256Pbkdf(loginKey, serverLoginSalt, 100k)`
-  and comparing with stored `hashedLoginKey`
-- Login key is the same across all devices for the same vault
-- 100k rounds provides maximum security for authentication
+- Login sends login key once, server returns a session token
+- Session token is 64-character hex (32 bytes of cryptographically random data)
+- Session token is stored hashed in database (SHA-256)
+- API requests include session token in header: `X-Vault-Session-Token: <token>`
+- Server validates by hashing the token and comparing with stored hash
+- Session tokens are per-device and can be revoked individually
 
-**TODO - Future improvement**:
+**Security benefits**:
 
-- Replace login key with per-device session tokens
-- On login, server generates unique session token for that device
-- Session token stored in client memory and server database
-- API requests use session token instead of login key
-- Benefits:
-  - Can revoke individual devices without changing password
-  - Audit log shows which device made which changes
-  - More granular security (session expiration, device limits)
-- For now, we use login key directly to get prototype working
+- Login key is only transmitted once (during login), reducing exposure
+- Session tokens can be revoked without changing password
+- Per-device tokens enable audit logs showing which device made changes
+- Token expiration provides automatic session cleanup
+- 100k rounds on login key still applies during initial authentication
 
 ---
 
