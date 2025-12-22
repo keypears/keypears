@@ -1,5 +1,5 @@
 import { Link, href } from "react-router";
-import { ExternalLink, KeyRound, Lock, Link2, ShieldCheck } from "lucide-react";
+import { ExternalLink, Sun, Moon, Link2, ShieldCheck } from "lucide-react";
 
 export function ExplainerCard() {
   return (
@@ -24,10 +24,10 @@ export function ExplainerCard() {
             <div className="font-semibold">Alice</div>
             <div className="text-muted-foreground mt-1 space-y-1 text-xs">
               <div className="flex items-center justify-center gap-1">
-                <Lock className="h-3 w-3" /> private key
+                <Moon className="h-3 w-3" /> private key
               </div>
               <div className="flex items-center justify-center gap-1">
-                <KeyRound className="h-3 w-3" /> public key
+                <Sun className="h-3 w-3" /> public key
               </div>
             </div>
           </div>
@@ -37,10 +37,10 @@ export function ExplainerCard() {
             <div className="font-semibold">Bob</div>
             <div className="text-muted-foreground mt-1 space-y-1 text-xs">
               <div className="flex items-center justify-center gap-1">
-                <Lock className="h-3 w-3" /> private key
+                <Moon className="h-3 w-3" /> private key
               </div>
               <div className="flex items-center justify-center gap-1">
-                <KeyRound className="h-3 w-3" /> public key
+                <Sun className="h-3 w-3" /> public key
               </div>
             </div>
           </div>
@@ -49,12 +49,12 @@ export function ExplainerCard() {
         {/* Multiplication row */}
         <div className="text-muted-foreground mt-3 grid grid-cols-2 gap-4 text-center text-xs">
           <div className="flex items-center justify-center gap-1">
-            Alice&apos;s <Lock className="h-3 w-3" /> × Bob&apos;s{" "}
-            <KeyRound className="h-3 w-3" />
+            Alice&apos;s <Moon className="h-3 w-3" /> × Bob&apos;s{" "}
+            <Sun className="h-3 w-3" />
           </div>
           <div className="flex items-center justify-center gap-1">
-            Bob&apos;s <Lock className="h-3 w-3" /> × Alice&apos;s{" "}
-            <KeyRound className="h-3 w-3" />
+            Bob&apos;s <Moon className="h-3 w-3" /> × Alice&apos;s{" "}
+            <Sun className="h-3 w-3" />
           </div>
         </div>
 
