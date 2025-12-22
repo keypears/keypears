@@ -1,7 +1,7 @@
 # KeyPears Code Patterns
 
 This document captures the code organization, structure, and React patterns for
-the KeyPears project. These patterns apply to both the Tauri app and the webapp
+the KeyPears project. These patterns apply to both the Tauri app and the web-kp
 to ensure consistency across all platforms.
 
 ## File Structure

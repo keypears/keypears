@@ -2,7 +2,7 @@
 
 This document captures the data handling patterns for the KeyPears project,
 including validation, database operations, performance optimizations, and error
-handling. These patterns apply to both the Tauri app and the webapp to ensure
+handling. These patterns apply to both the Tauri app and the web-kp to ensure
 consistency across all platforms.
 
 ## Validation Patterns

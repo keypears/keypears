@@ -59,8 +59,8 @@ Five main packages:
   server) using orpc
 - **`@keypears/tauri`** (Rust + TypeScript): Cross-platform native app (Mac,
   Windows, Linux, Android, iOS)
-- **`@keypears/webapp`** (TypeScript): Landing page, blog, and production webapp
-  with integrated API server
+- **`@keypears/web-kp`** (TypeScript): Landing page, blog, and production webapp
+  for keypears.com with integrated API server
 
 All TypeScript projects are managed with `pnpm` in a monorepo workspace
 (`pnpm-workspace.yaml`). All Rust projects are managed with `cargo` in a
@@ -75,8 +75,8 @@ api-server/         - @keypears/api-server source (TypeScript API server using o
 tauri-rs/           - @keypears/tauri source (Rust backend)
 tauri-ts/           - @keypears/tauri source (TypeScript frontend)
   └── src-tauri/    - Symlink to ../tauri-rs (for Tauri CLI compatibility)
-webapp/             - @keypears/webapp source (TypeScript)
-  └── start.sh      - Production startup script (runs webapp with integrated API)
+web-kp/             - @keypears/web-kp source (TypeScript, serves keypears.com)
+  └── start.sh      - Production startup script (runs web-kp with integrated API)
 docs/               - Documentation
 whitepaper/         - Technical whitepaper (Typst format)
   └── keypears.typ  - Main whitepaper document
@@ -84,7 +84,7 @@ scripts/            - Build and deployment scripts
 Cargo.toml          - Rust workspace configuration
 Dockerfile          - Production Docker build (multi-stage, monorepo-aware, linux/amd64)
 docker-compose.yml  - Docker Compose config (platform: linux/amd64 for Apple Silicon)
-package.json        - Root-level pnpm scripts (build, webapp, deployment)
+package.json        - Root-level pnpm scripts (build, web-kp, deployment)
 pnpm-workspace.yaml - TypeScript monorepo workspace configuration
 ```
 
@@ -152,7 +152,7 @@ The TypeScript packages must be built before deployment:
 
 1. **Build TypeScript packages**: `pnpm run build:packages` (builds lib and
    api-server)
-2. **Build webapp**: Built automatically during Docker image creation
+2. **Build web-kp**: Built automatically during Docker image creation
 3. **Build all**: `pnpm run build:all` (builds TypeScript packages + Docker
    image)
 
@@ -161,7 +161,7 @@ needed.
 
 ## Programming Languages
 
-- **TypeScript**: Frontend, API server, and webapp (runtime: Node.js)
+- **TypeScript**: Frontend, API server, and web-kp (runtime: Node.js)
 - **Rust**: Tauri native app backend only
 
 ### Backend Architecture
@@ -303,9 +303,9 @@ KeyPears has comprehensive business strategy documentation:
 - **`pnpm deploy:update`** - Force ECS redeployment without rebuilding
 - **`pnpm build:all`** - Build everything: TypeScript packages + Docker image
 - **`pnpm build:packages`** - Build TypeScript packages only (lib + api-server)
-- **`pnpm webapp:up`** - Test production build locally with Docker Compose
-- **`pnpm webapp:down`** - Stop local Docker container
-- **`pnpm webapp:logs`** - View local container logs
+- **`pnpm web-kp:up`** - Test production build locally with Docker Compose
+- **`pnpm web-kp:down`** - Stop local Docker container
+- **`pnpm web-kp:logs`** - View local container logs
 
 ### Database Commands (Development)
 
@@ -324,17 +324,17 @@ databases and don't need migration history. Post-launch, this workflow will be
 refined for production data safety.
 
 **Schema location**: All database schemas are defined in
-`api-server/src/db/schema.ts`. The webapp references this schema via
+`api-server/src/db/schema.ts`. The web-kp references this schema via
 `node_modules/@keypears/api-server/src/db/schema.ts`.
 
-**Development workflow** (from `webapp/` directory):
+**Development workflow** (from `web-kp/` directory):
 
 1. Update schema in `api-server/src/db/schema.ts`
 2. Build api-server: `pnpm --filter @keypears/api-server build` (from root)
 3. Clear database: `pnpm db:dev:clear` (pushes empty schema, wipes all data)
 4. Push schema: `pnpm db:dev:push` (pushes full schema to empty database)
 
-**Staging workflow** (from `webapp/` directory):
+**Staging workflow** (from `web-kp/` directory):
 
 1. Ensure `.env.staging` has correct `DATABASE_URL`
 2. Clear staging: `pnpm db:staging:clear`
@@ -352,7 +352,7 @@ refined for production data safety.
 
 **Important notes**:
 
-- **Always use webapp scripts**: Run all `db:*` commands from `webapp/`
+- **Always use web-kp scripts**: Run all `db:*` commands from `web-kp/`
   directory or via root `package.json`. Never run drizzle-kit directly from
   `api-server/`.
 - **Clear vs Push**: `db:dev:clear` wipes data by pushing an empty schema.
@@ -369,11 +369,11 @@ refined for production data safety.
 - **Platform**: linux/amd64 (required for Fargate, configured in
   docker-compose.yml)
 - **Resources**: 0.5 vCPU, 1 GB memory (prevents OOM errors during deployment)
-- **Integrated API**: Production webapp has integrated orpc API server - single
-  Express server handles both webapp routes and `/api/*` endpoints via
+- **Integrated API**: Production web-kp has integrated orpc API server - single
+  Express server handles both web-kp routes and `/api/*` endpoints via
   `RPCHandler`
-- **Port**: Webapp runs on port 4273 with integrated API
-- **orpc Integration**: Webapp imports router from `@keypears/api-server` and
+- **Port**: Web-kp runs on port 4273 with integrated API
+- **orpc Integration**: Web-kp imports router from `@keypears/api-server` and
   mounts it at `/api` using `RPCHandler` from `@orpc/server/node`
 - **Canonical URL**: Express middleware redirects `http://keypears.com`,
   `http://www.keypears.com`, and `https://www.keypears.com` to
@@ -430,11 +430,11 @@ Source PNGs in `raw-icons/` folders. Run `pnpm run build:icons` to generate
 multiple sizes/formats to `public/images/` with type-safe paths in
 `app/util/aicons.ts`.
 
-### Markdown Content (Webapp Only)
+### Markdown Content (Web-kp Only)
 
-All webapp markdown content is in `webapp/markdown/`:
+All web-kp markdown content is in `web-kp/markdown/`:
 
-- **Blog posts**: `webapp/markdown/blog/` as Markdown with TOML front-matter
+- **Blog posts**: `web-kp/markdown/blog/` as Markdown with TOML front-matter
   - **Filename**: `YYYY-MM-DD-slug.md`
   - **Front-matter**: TOML with `title`, `date`, `author`
     - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am

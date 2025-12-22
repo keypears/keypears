@@ -56,7 +56,7 @@ have their KeyPears API hosted by a provider like `keypears.com`.
 **What was implemented:**
 
 - `KeypearsJsonSchema` Zod schema in `@keypears/lib`
-- Dynamic `.well-known/keypears.json` route in webapp
+- Dynamic `.well-known/keypears.json` route in web-kp
 - Updated `validateKeypearsServer()` to return `apiUrl`
 - Updated Tauri app to fetch and cache API URLs from `keypears.json`
 
@@ -152,10 +152,10 @@ design - server only sees encrypted data.
   - [x] Set up `DATABASE_URL` and other secrets via dotenvx
   - [x] Attach environment variables to ECS Fargate service
   - [x] Verify database connectivity from production container
-- [x] Deploy latest webapp to production
+- [x] Deploy latest web-kp to production
   - [x] Build and push Docker image to ECR
   - [x] Deploy to ECS Fargate with no errors
-  - [x] Verify webapp loads at keypears.com
+  - [x] Verify web-kp loads at keypears.com
 - [x] Test dev app → production server sync
   - [x] Configure dev Tauri app to connect to production API
   - [x] Create vault on dev app, verify it syncs to production database
@@ -253,7 +253,7 @@ For each file, verify:
 - [x] 2.5 UI/UX Consistency
 - [x] 2.6 File-Specific Checks
 
-#### 3. @keypears/webapp (webapp/)
+#### 3. @keypears/web-kp (web-kp/)
 
 **Files to review:**
 

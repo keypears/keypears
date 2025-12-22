@@ -37,7 +37,7 @@ This separation enables:
 **Dependency graph:**
 
 - `tauri-ts` → `@keypears/api-client` (no server deps like `pg`, `drizzle`)
-- `webapp` → `@keypears/api-server` → `@keypears/api-client`
+- `web-kp` → `@keypears/api-server` → `@keypears/api-client`
 
 ## Contract Definition
 

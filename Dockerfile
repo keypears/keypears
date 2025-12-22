@@ -7,7 +7,7 @@ COPY lib/package.json /app/lib/
 COPY pow5-ts/package.json /app/pow5-ts/
 COPY api-client/package.json /app/api-client/
 COPY api-server/package.json /app/api-server/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.25.0
@@ -24,7 +24,7 @@ COPY pow5-ts /app/pow5-ts/
 COPY lib/package.json /app/lib/
 COPY api-client/package.json /app/api-client/
 COPY api-server/package.json /app/api-server/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/pow5-ts/node_modules /app/pow5-ts/node_modules
@@ -44,7 +44,7 @@ COPY lib /app/lib/
 COPY pow5-ts/package.json /app/pow5-ts/
 COPY api-client/package.json /app/api-client/
 COPY api-server/package.json /app/api-server/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 # Copy node_modules from dependencies stage
 COPY --from=dependencies-env /app/node_modules /app/node_modules
 COPY --from=dependencies-env /app/lib/node_modules /app/lib/node_modules
@@ -65,7 +65,7 @@ COPY lib/package.json /app/lib/
 # Copy other package.json files for workspace resolution
 COPY pow5-ts/package.json /app/pow5-ts/
 COPY api-server/package.json /app/api-server/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 # Copy built lib from previous stage
 COPY --from=build-lib /app/lib/dist /app/lib/dist/
 # Copy node_modules from dependencies stage
@@ -84,11 +84,11 @@ FROM node:24-alpine AS build-api-server
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
 # Copy api-server source code
 COPY api-server /app/api-server/
-# Copy lib, pow5, api-client, and webapp package.json for workspace resolution
+# Copy lib, pow5, api-client, and web-kp package.json for workspace resolution
 COPY lib/package.json /app/lib/
 COPY pow5-ts/package.json /app/pow5-ts/
 COPY api-client/package.json /app/api-client/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 # Copy built lib, pow5, and api-client from previous stages
 COPY --from=build-lib /app/lib/dist /app/lib/dist/
 COPY --from=build-pow5 /app/pow5-ts/dist /app/pow5-ts/dist/
@@ -105,12 +105,12 @@ RUN npm install -g pnpm@10.25.0
 # Build api-server package
 RUN pnpm --filter @keypears/api-server build
 
-# Stage 6: Build webapp
-FROM node:24-alpine AS build-webapp
+# Stage 6: Build web-kp
+FROM node:24-alpine AS build-web-kp
 # Copy workspace files
 COPY pnpm-workspace.yaml pnpm-lock.yaml /app/
-# Copy webapp source code
-COPY webapp /app/webapp/
+# Copy web-kp source code
+COPY web-kp /app/web-kp/
 # Copy package.json files for workspace resolution
 COPY lib/package.json /app/lib/
 COPY pow5-ts/package.json /app/pow5-ts/
@@ -127,12 +127,12 @@ COPY --from=dependencies-env /app/lib/node_modules /app/lib/node_modules
 COPY --from=dependencies-env /app/pow5-ts/node_modules /app/pow5-ts/node_modules
 COPY --from=dependencies-env /app/api-client/node_modules /app/api-client/node_modules
 COPY --from=dependencies-env /app/api-server/node_modules /app/api-server/node_modules
-COPY --from=dependencies-env /app/webapp/node_modules /app/webapp/node_modules
+COPY --from=dependencies-env /app/web-kp/node_modules /app/web-kp/node_modules
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.25.0
-# Build webapp
-RUN pnpm --filter @keypears/webapp build
+# Build web-kp
+RUN pnpm --filter @keypears/web-kp build
 
 # Stage 7: Install production dependencies only
 FROM node:24-alpine AS production-dependencies-env
@@ -143,7 +143,7 @@ COPY lib/package.json /app/lib/
 COPY pow5-ts/package.json /app/pow5-ts/
 COPY api-client/package.json /app/api-client/
 COPY api-server/package.json /app/api-server/
-COPY webapp/package.json /app/webapp/
+COPY web-kp/package.json /app/web-kp/
 WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@10.25.0
@@ -166,26 +166,26 @@ COPY --from=build-api-client /app/api-client/dist /app/api-client/dist/
 # Copy api-server package files
 COPY api-server/package.json /app/api-server/
 COPY --from=build-api-server /app/api-server/dist /app/api-server/dist/
-# Copy webapp package and server files
-COPY webapp/package.json webapp/server.ts /app/webapp/
+# Copy web-kp package and server files
+COPY web-kp/package.json web-kp/server.ts /app/web-kp/
 # Copy encrypted .env.production (decrypted at runtime via dotenvx + DOTENV_PRIVATE_KEY_PRODUCTION)
-COPY webapp/.env.production /app/webapp/
-# Copy webapp markdown files (needed for blog at runtime)
-COPY webapp/markdown /app/webapp/markdown/
-# Copy webapp public directory (needed for .well-known at runtime)
-COPY webapp/public /app/webapp/public/
-# Copy webapp build output
-COPY --from=build-webapp /app/webapp/build /app/webapp/build/
+COPY web-kp/.env.production /app/web-kp/
+# Copy web-kp markdown files (needed for blog at runtime)
+COPY web-kp/markdown /app/web-kp/markdown/
+# Copy web-kp public directory (needed for .well-known at runtime)
+COPY web-kp/public /app/web-kp/public/
+# Copy web-kp build output
+COPY --from=build-web-kp /app/web-kp/build /app/web-kp/build/
 # Copy production node_modules
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=production-dependencies-env /app/lib/node_modules /app/lib/node_modules
 COPY --from=production-dependencies-env /app/pow5-ts/node_modules /app/pow5-ts/node_modules
 COPY --from=production-dependencies-env /app/api-client/node_modules /app/api-client/node_modules
 COPY --from=production-dependencies-env /app/api-server/node_modules /app/api-server/node_modules
-COPY --from=production-dependencies-env /app/webapp/node_modules /app/webapp/node_modules
-# Set working directory to webapp
-WORKDIR /app/webapp
+COPY --from=production-dependencies-env /app/web-kp/node_modules /app/web-kp/node_modules
+# Set working directory to web-kp
+WORKDIR /app/web-kp
 # Install pnpm globally for the start command
 RUN npm install -g pnpm@10.25.0
-# Start webapp with integrated API
+# Start web-kp with integrated API
 CMD ["pnpm", "start"]

@@ -1,9 +1,9 @@
-# Webapp Deployment Guide
+# Web-kp Deployment Guide
 
-## 1. Containerize Your Webapp ✅ COMPLETED
+## 1. Containerize Your Web-kp ✅ COMPLETED
 
-The webapp has been successfully containerized using Docker with a multi-stage
-build process optimized for the TypeScript monorepo structure (webapp with
+The web-kp has been successfully containerized using Docker with a multi-stage
+build process optimized for the TypeScript monorepo structure (web-kp with
 integrated orpc API).
 
 ### Architecture
@@ -11,7 +11,7 @@ integrated orpc API).
 The production container runs a single Express server on port 4273:
 
 - **Integrated Server (Node.js)**: Port 4273 - Express server serving the React
-  Router 7 webapp with integrated orpc API at `/api/*`
+  Router 7 web-kp with integrated orpc API at `/api/*`
 
 The server runs in a Docker container and is load-balanced through AWS ALB.
 
@@ -24,17 +24,17 @@ Before building the Docker image, you must build the TypeScript packages:
 pnpm run build:all
 ```
 
-Then test the production webapp locally:
+Then test the production web-kp locally:
 
 ```bash
-# Start the webapp container (builds and runs in background)
-pnpm webapp:up
+# Start the web-kp container (builds and runs in background)
+pnpm web-kp:up
 
 # View live logs (you should see the Express server starting)
-pnpm webapp:logs
+pnpm web-kp:logs
 
 # Stop and remove the container
-pnpm webapp:down
+pnpm web-kp:down
 ```
 
 These scripts use Docker Compose (configured in `docker-compose.yml` at the
@@ -50,14 +50,14 @@ The build process follows these steps:
 
 1. **Build TypeScript packages**: `pnpm run build:packages` builds
    `@keypears/lib` and `@keypears/api-server`
-2. **Build Docker image**: `pnpm run build:webapp` creates the Docker image
+2. **Build Docker image**: `pnpm run build:web-kp` creates the Docker image
    (linux/amd64)
 
 The deployment command `pnpm run deploy:all` runs all these steps automatically.
 
-### Verifying the Webapp
+### Verifying the Web-kp
 
-Once started with `pnpm webapp:up`, test the endpoints:
+Once started with `pnpm web-kp:up`, test the endpoints:
 
 ```bash
 # Test the homepage
@@ -81,10 +81,10 @@ If you prefer to use Docker commands directly:
 
 ```bash
 # Build the image (for linux/amd64 platform, required for Fargate)
-docker buildx build --platform linux/amd64 -t keypears-webapp:latest .
+docker buildx build --platform linux/amd64 -t keypears-web-kp:latest .
 
 # Run the container
-docker run -d -p 4273:4273 --name keypears-app keypears-webapp:latest
+docker run -d -p 4273:4273 --name keypears-app keypears-web-kp:latest
 
 # Check logs
 docker logs keypears-app
@@ -99,7 +99,7 @@ handles:
 
 - Building `@keypears/lib` package (TypeScript)
 - Building `@keypears/api-server` package (TypeScript)
-- Building `webapp` with React Router (TypeScript)
+- Building `web-kp` with React Router (TypeScript)
 - Installing production dependencies only in the final image
 - Copying markdown content files for blog posts and static pages
 
@@ -107,10 +107,10 @@ handles:
 
 The production container uses the following environment variables:
 
-- `PORT` - Webapp server port (default: 4273)
+- `PORT` - Web-kp server port (default: 4273)
 - `NODE_ENV` - Set to `production` in Docker (automatic)
 
-The Express server handles both webapp routes and integrated orpc API at
+The Express server handles both web-kp routes and integrated orpc API at
 `/api/*`.
 
 ## 2. Push Your Container Image to AWS ECR ✅ COMPLETED
@@ -160,7 +160,7 @@ pnpm deploy:login
 pnpm build:packages
 
 # 3. Build the Docker image
-pnpm build:webapp
+pnpm build:web-kp
 
 # 4. Tag the image for ECR
 pnpm deploy:tag
@@ -553,7 +553,7 @@ curl https://www.keypears.com
 
 ## 7.1. Canonical URL Redirects
 
-The webapp includes Express middleware that automatically redirects all traffic
+The web-kp includes Express middleware that automatically redirects all traffic
 to the canonical URL `https://keypears.com`. This ensures:
 
 - Consistent URLs for SEO
@@ -562,7 +562,7 @@ to the canonical URL `https://keypears.com`. This ensures:
 
 ### How It Works:
 
-The redirect logic in `webapp/server.ts` only redirects these specific URLs:
+The redirect logic in `web-kp/server.ts` only redirects these specific URLs:
 
 - `http://keypears.com` → `https://keypears.com`
 - `http://www.keypears.com` → `https://keypears.com`
@@ -620,7 +620,7 @@ ECS will:
 
 1. Pull the new `latest` image from ECR
 2. Start a new task with the new image
-3. Wait for health checks to pass on the webapp (port 4273)
+3. Wait for health checks to pass on the web-kp (port 4273)
 4. Stop the old task (zero-downtime deployment)
 
 ### Alternative Commands
@@ -644,7 +644,7 @@ If you only changed TypeScript code:
 ```bash
 # Rebuild TypeScript packages and redeploy
 pnpm build:packages
-pnpm build:webapp
+pnpm build:web-kp
 pnpm deploy:tag
 pnpm deploy:push
 pnpm deploy:update
@@ -666,7 +666,7 @@ which is appropriate for pre-MVP development.
 
 ### Schema Location
 
-All database schemas are defined in `api-server/src/db/schema.ts`. The webapp
+All database schemas are defined in `api-server/src/db/schema.ts`. The web-kp
 references this via `node_modules/@keypears/api-server/src/db/schema.ts`.
 
 ### Development Database
@@ -697,7 +697,7 @@ When you modify `api-server/src/db/schema.ts`:
 pnpm --filter @keypears/api-server build
 ```
 
-**Step 2: Update development database** (from `webapp/` directory):
+**Step 2: Update development database** (from `web-kp/` directory):
 
 ```bash
 # Clear database (wipes all data by pushing empty schema)
@@ -707,7 +707,7 @@ pnpm db:dev:clear
 pnpm db:dev:push
 ```
 
-**Step 3: Update staging database** (from `webapp/` directory):
+**Step 3: Update staging database** (from `web-kp/` directory):
 
 ```bash
 # Ensure .env.staging has correct DATABASE_URL
@@ -727,7 +727,7 @@ pnpm db:staging:push
 
 ### Important Notes
 
-- **Always use webapp scripts**: Run all `db:*` commands from `webapp/` directory
+- **Always use web-kp scripts**: Run all `db:*` commands from `web-kp/` directory
   or via root `package.json`. Never run drizzle-kit directly from `api-server/`.
 - **Clear vs Push**: `db:dev:clear` wipes data by pushing an empty schema.
   `db:dev:push` applies the full schema. Always run clear before push when
@@ -741,7 +741,7 @@ pnpm db:staging:push
 
 ### Database Connection
 
-The webapp connects to PostgreSQL using the `DATABASE_URL` environment variable:
+The web-kp connects to PostgreSQL using the `DATABASE_URL` environment variable:
 
 - **Development**: `postgresql://keypears:keypears_dev@localhost:5432/keypears_main`
 - **Staging**: Configured in `.env.staging` (PlanetScale connection string)

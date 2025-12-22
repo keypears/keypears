@@ -6,7 +6,7 @@ import { CORSPlugin } from "@orpc/server/plugins";
 // Importing router automatically loads derivation keys from environment variables
 import { router } from "../src/index.js";
 
-const PORT = 4273; // Same port as webapp - can't run both simultaneously
+const PORT = 4273; // Same port as web-kp - can't run both simultaneously
 
 /**
  * Create and start the test server programmatically.

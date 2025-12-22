@@ -190,13 +190,13 @@ The system combines three entropy sources:
 
 ### Step 7: Database Migration
 
-- [x] Run `pnpm db:dev:clear` in webapp directory
-- [x] Run `pnpm db:dev:push` in webapp directory
+- [x] Run `pnpm db:dev:clear` in web-kp directory
+- [x] Run `pnpm db:dev:push` in web-kp directory
 - [x] Verify schema is correct in database
 
 ### Step 8: Integration Testing
 
-- [ ] Start webapp with `pnpm run dev`
+- [ ] Start web-kp with `pnpm run dev`
 - [ ] Create a new vault (verify public key is stored)
 - [ ] Navigate to Engagement Keys page
 - [ ] Generate 3-5 engagement keys

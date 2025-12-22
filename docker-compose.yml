@@ -13,14 +13,14 @@ services:
       - postgres-main-data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  webapp:
+  web-kp:
     platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
       platforms:
         - linux/amd64
-    image: keypears-webapp:latest
+    image: keypears-web-kp:latest
     container_name: keypears-app
     ports:
       - "4273:4273"

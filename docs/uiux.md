@@ -1,7 +1,7 @@
 # KeyPears UI/UX Design Patterns
 
 This document captures the UI and UX design patterns for the KeyPears project.
-These patterns apply to both the Tauri app and the webapp to ensure consistency
+These patterns apply to both the Tauri app and the web-kp to ensure consistency
 across all platforms.
 
 ## Visual Design System
