@@ -47,15 +47,10 @@ export function ExplainerCard() {
         </div>
 
         {/* Multiplication row */}
-        <div className="text-muted-foreground mt-3 grid grid-cols-2 gap-4 text-center text-xs">
-          <div className="flex items-center justify-center gap-1">
-            Alice&apos;s <Moon className="h-3 w-3" /> × Bob&apos;s{" "}
-            <Sun className="h-3 w-3" />
-          </div>
-          <div className="flex items-center justify-center gap-1">
-            Bob&apos;s <Moon className="h-3 w-3" /> × Alice&apos;s{" "}
-            <Sun className="h-3 w-3" />
-          </div>
+        <div className="text-muted-foreground mt-3 flex flex-wrap items-center justify-center gap-1 text-xs">
+          Alice&apos;s <Moon className="h-3 w-3" /> × Bob&apos;s{" "}
+          <Sun className="h-3 w-3" /> = Bob&apos;s <Moon className="h-3 w-3" /> ×
+          Alice&apos;s <Sun className="h-3 w-3" />
         </div>
 
         {/* Arrows down */}
