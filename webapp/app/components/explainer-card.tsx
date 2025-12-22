@@ -1,5 +1,5 @@
 import { Link, href } from "react-router";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, KeyRound, Lock, Link2, ShieldCheck } from "lucide-react";
 
 export function ExplainerCard() {
   return (
@@ -13,6 +13,64 @@ export function ExplainerCard() {
       <div className="text-primary mb-4 text-center font-mono text-lg">
         alice@keypears.com <span className="text-muted-foreground">↔</span>{" "}
         bob@example.com
+      </div>
+
+      {/* DH Illustration */}
+      <div className="bg-muted/30 mb-4 rounded-lg p-4 text-sm">
+        {/* Two-column: Alice and Bob */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Alice */}
+          <div className="text-center">
+            <div className="font-semibold">Alice</div>
+            <div className="text-muted-foreground mt-1 space-y-1 text-xs">
+              <div className="flex items-center justify-center gap-1">
+                <Lock className="h-3 w-3" /> private key
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <KeyRound className="h-3 w-3" /> public key
+              </div>
+            </div>
+          </div>
+
+          {/* Bob */}
+          <div className="text-center">
+            <div className="font-semibold">Bob</div>
+            <div className="text-muted-foreground mt-1 space-y-1 text-xs">
+              <div className="flex items-center justify-center gap-1">
+                <Lock className="h-3 w-3" /> private key
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <KeyRound className="h-3 w-3" /> public key
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Multiplication row */}
+        <div className="text-muted-foreground mt-3 grid grid-cols-2 gap-4 text-center text-xs">
+          <div className="flex items-center justify-center gap-1">
+            Alice&apos;s <Lock className="h-3 w-3" /> × Bob&apos;s{" "}
+            <KeyRound className="h-3 w-3" />
+          </div>
+          <div className="flex items-center justify-center gap-1">
+            Bob&apos;s <Lock className="h-3 w-3" /> × Alice&apos;s{" "}
+            <KeyRound className="h-3 w-3" />
+          </div>
+        </div>
+
+        {/* Arrows down */}
+        <div className="text-muted-foreground mt-2 text-center">↓</div>
+
+        {/* Shared secret */}
+        <div className="text-primary mt-1 flex items-center justify-center gap-1 text-sm font-medium">
+          <Link2 className="h-4 w-4" /> same shared secret
+        </div>
+
+        {/* Encrypted message */}
+        <div className="text-muted-foreground mt-2 text-center">↓</div>
+        <div className="mt-1 flex items-center justify-center gap-1 text-sm">
+          <ShieldCheck className="h-4 w-4" /> encrypted messages
+        </div>
       </div>
 
       {/* Explanation */}
