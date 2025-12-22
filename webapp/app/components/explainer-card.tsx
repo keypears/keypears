@@ -12,7 +12,7 @@ export function ExplainerCard() {
       {/* Identity visual */}
       <div className="text-primary mb-4 text-center font-mono text-lg">
         alice@keypears.com <span className="text-muted-foreground">↔</span>{" "}
-        bob@example.com
+        bob@passapples.com
       </div>
 
       {/* DH Illustration */}
@@ -41,8 +41,8 @@ export function ExplainerCard() {
         {/* Multiplication row */}
         <div className="text-muted-foreground mt-3 flex flex-wrap items-center justify-center gap-1 text-xs">
           Alice&apos;s <Moon className="h-3 w-3" /> × Bob&apos;s{" "}
-          <Sun className="h-3 w-3" /> = Bob&apos;s <Moon className="h-3 w-3" /> ×
-          Alice&apos;s <Sun className="h-3 w-3" />
+          <Sun className="h-3 w-3" /> = Bob&apos;s <Moon className="h-3 w-3" />{" "}
+          × Alice&apos;s <Sun className="h-3 w-3" />
         </div>
 
         {/* Arrows down */}
