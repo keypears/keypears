@@ -22,26 +22,18 @@ export function ExplainerCard() {
           {/* Alice */}
           <div className="text-center">
             <div className="font-semibold">Alice</div>
-            <div className="text-muted-foreground mt-1 space-y-1 text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Moon className="h-3 w-3" /> private key
-              </div>
-              <div className="flex items-center justify-center gap-1">
-                <Sun className="h-3 w-3" /> public key
-              </div>
+            <div className="text-muted-foreground mt-1 flex items-center justify-center gap-1 text-xs">
+              <Moon className="h-3 w-3" /> private / <Sun className="h-3 w-3" />{" "}
+              public
             </div>
           </div>
 
           {/* Bob */}
           <div className="text-center">
             <div className="font-semibold">Bob</div>
-            <div className="text-muted-foreground mt-1 space-y-1 text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Moon className="h-3 w-3" /> private key
-              </div>
-              <div className="flex items-center justify-center gap-1">
-                <Sun className="h-3 w-3" /> public key
-              </div>
+            <div className="text-muted-foreground mt-1 flex items-center justify-center gap-1 text-xs">
+              <Moon className="h-3 w-3" /> private / <Sun className="h-3 w-3" />{" "}
+              public
             </div>
           </div>
         </div>
