@@ -77,8 +77,8 @@ export function ExplainerCard() {
       <p className="text-muted-foreground mb-4 text-sm">
         KeyPears enables secure secret sharing between any two email addresses
         across different domains. Your passwords and keys stay encrypted
-        end-to-end — only you and your recipient can decrypt them. The fully
-        open source and anyone can run a server, just like email.
+        end-to-end — only you and your recipient can decrypt them. The software
+        is open source and anyone can run a server, just like email.
       </p>
 
       {/* Links */}
