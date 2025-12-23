@@ -1,0 +1,20 @@
+{
+    "version": "https://jsonfeed.org/version/1",
+    "title": "PassApples Blog",
+    "home_page_url": "https://passapples.com",
+    "feed_url": "https://passapples.com/blog/feed.json",
+    "description": "Updates and insights from the PassApples team",
+    "items": [
+        {
+            "id": "https://passapples.com/blog/2025-12-23-introducing-passapples",
+            "content_html": "<p>We're excited to announce the launch of PassApples, the first alternate node in the KeyPears network. Based in London, England, PassApples provides a fully KeyPears-compatible password management service for users who prefer a European data center.</p>\n<h2>What is PassApples?</h2>\n<p>PassApples is a KeyPears-compatible node running on AWS infrastructure in London. This means:</p>\n<ul>\n<li><strong>Full interoperability</strong>: Users on PassApples can securely exchange keys and messages with users on keypears.com or any other KeyPears-compatible node</li>\n<li><strong>Same security guarantees</strong>: We use the same cryptographic protocols and key derivation functions as KeyPears</li>\n<li><strong>European data residency</strong>: All vault data is stored in the EU-West-2 (London) AWS region</li>\n</ul>\n<h2>Why Multiple Nodes?</h2>\n<p>The KeyPears protocol is designed for federation. Just like email, where users on gmail.com can communicate with users on outlook.com, KeyPears users can perform Diffie-Hellman key exchanges across different nodes.</p>\n<p>This architecture provides:</p>\n<ol>\n<li><strong>Geographic diversity</strong>: Choose a node closer to you for better performance</li>\n<li><strong>Data sovereignty</strong>: Select where your encrypted data is stored</li>\n<li><strong>Resilience</strong>: The network doesn't depend on a single provider</li>\n<li><strong>Choice</strong>: Users can pick the provider that best fits their needs</li>\n</ol>\n<h2>Getting Started</h2>\n<p>PassApples is fully compatible with the KeyPears Tauri app. Simply create an account at passapples.com and your vault will sync across all your devices.</p>\n<p>If you already have a KeyPears account on keypears.com, you can exchange encrypted messages with PassApples users using the standard Diffie-Hellman key exchange - no extra setup required.</p>\n<h2>Open Source</h2>\n<p>Like KeyPears, PassApples runs on the open-source KeyPears codebase licensed under Apache 2.0. You can review the code, run your own node, or contribute to the project at <a href=\"https://github.com/keypears/keypears\">github.com/keypears/keypears</a>.</p>\n<p>Welcome to the federated future of password management.</p>",
+            "url": "https://passapples.com/blog/2025-12-23-introducing-passapples",
+            "title": "Introducing PassApples: The First Alternate KeyPears Node",
+            "summary": "<p>We're excited to announce the launch of PassApples, the first alternate node in the KeyPears network. Based in London, England, PassApples provides a fully KeyPears-compatible password management s...",
+            "date_modified": "2025-12-23T12:00:00.000Z",
+            "author": {
+                "name": "PassApples Team"
+            }
+        }
+    ]
+}
