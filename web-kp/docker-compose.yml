@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    container_name: keypears-postgres
+    ports:
+      - "4275:5432"
+    environment:
+      POSTGRES_USER: keypears
+      POSTGRES_PASSWORD: keypears_dev
+      POSTGRES_DB: keypears
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
