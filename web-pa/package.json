@@ -5,6 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@10.25.0",
   "scripts": {
+    "db:up": "docker compose up postgres -d",
+    "db:down": "docker compose stop postgres",
+    "db:reset": "docker compose down postgres -v",
     "db:prod:clear": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle-clear.config.ts",
     "db:prod:push": "dotenvx run -f .env.production -- drizzle-kit push --config=drizzle.config.ts",
     "db:staging:clear": "dotenvx run -f .env.staging -- drizzle-kit push --config=drizzle-clear.config.ts",

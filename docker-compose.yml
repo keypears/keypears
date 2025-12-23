@@ -1,32 +1,4 @@
 services:
-  # PostgreSQL database for development (KeyPears)
-  postgres-main:
-    image: postgres:17.5-alpine
-    container_name: keypears-postgres-main
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: keypears
-      POSTGRES_PASSWORD: keypears_dev
-      POSTGRES_DB: keypears_main
-    volumes:
-      - postgres-main-data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # PostgreSQL database for development (PassApples)
-  postgres-passapples:
-    image: postgres:17.5-alpine
-    container_name: passapples-postgres
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_USER: passapples
-      POSTGRES_PASSWORD: passapples_dev
-      POSTGRES_DB: passapples_main
-    volumes:
-      - postgres-passapples-data:/var/lib/postgresql/data
-    restart: unless-stopped
-
   web-kp:
     platform: linux/amd64
     build:
@@ -41,7 +13,3 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4273
-
-volumes:
-  postgres-main-data:
-  postgres-passapples-data:
