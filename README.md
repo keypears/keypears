@@ -96,12 +96,19 @@ vendors, and teams — no more being locked into a single provider.
 
 ---
 
-## 🏛️ Main Node: [keypears.com](https://keypears.com)
+## 🏛️ Public Nodes
 
-- The **primary public node** is hosted at `keypears.com`.
-- **Freemium model**: Free tier for personal use, premium tier for power users
-  (pricing TBD).
-- Anyone can also self-host a node for private or enterprise use.
+KeyPears operates multiple public nodes to demonstrate the federated protocol:
+
+- **[keypears.com](https://keypears.com)** — Primary node, US-based
+- **[passapples.com](https://passapples.com)** — Secondary node, UK-based
+
+Users at different nodes can exchange keys securely (e.g.,
+`alice@keypears.com` ↔ `bob@passapples.com`), demonstrating the federated
+architecture works across domains.
+
+**Freemium model**: Free tier for personal use, premium tier for power users
+(pricing TBD). Anyone can also self-host a node for private or enterprise use.
 
 ---
 

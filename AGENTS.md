@@ -49,7 +49,7 @@ manager", or "digital vault".
 
 ## Project Structure
 
-Five main packages:
+Six main packages:
 
 - **`@keypears/lib`** (TypeScript): Core TypeScript library (data structures,
   cryptography utilities)
@@ -61,6 +61,8 @@ Five main packages:
   Windows, Linux, Android, iOS)
 - **`@keypears/web-kp`** (TypeScript): Landing page, blog, and production webapp
   for keypears.com with integrated API server
+- **`@keypears/web-pa`** (TypeScript): Landing page, blog, and production webapp
+  for passapples.com with integrated API server (demonstrates federated protocol)
 
 All TypeScript projects are managed with `pnpm` in a monorepo workspace
 (`pnpm-workspace.yaml`). All Rust projects are managed with `cargo` in a
@@ -76,7 +78,7 @@ tauri-rs/           - @keypears/tauri source (Rust backend)
 tauri-ts/           - @keypears/tauri source (TypeScript frontend)
   └── src-tauri/    - Symlink to ../tauri-rs (for Tauri CLI compatibility)
 web-kp/             - @keypears/web-kp source (TypeScript, serves keypears.com)
-  └── start.sh      - Production startup script (runs web-kp with integrated API)
+web-pa/             - @keypears/web-pa source (TypeScript, serves passapples.com)
 docs/               - Documentation
 whitepaper/         - Technical whitepaper (Typst format)
   └── keypears.typ  - Main whitepaper document
@@ -309,12 +311,22 @@ KeyPears has comprehensive business strategy documentation:
 
 ### Database Commands (Development)
 
-- **`pnpm db:up`** - Start Postgres 17.5 database in Docker
-- **`pnpm db:down`** - Stop Postgres database
-- **`pnpm db:reset`** - Reset database (deletes Docker volume and all data)
+Each webapp has its own PostgreSQL database with self-contained scripts:
 
-The development database runs on `localhost:5432` with credentials
-`keypears/keypears_dev` and database name `keypears_main`.
+**KeyPears (web-kp):**
+- `pnpm --filter @keypears/web-kp db:up` - Start Postgres on port 4275
+- `pnpm --filter @keypears/web-kp db:down` - Stop Postgres
+- `pnpm --filter @keypears/web-kp db:reset` - Reset database
+
+**PassApples (web-pa):**
+- `pnpm --filter @keypears/web-pa db:up` - Start Postgres on port 4285
+- `pnpm --filter @keypears/web-pa db:down` - Stop Postgres
+- `pnpm --filter @keypears/web-pa db:reset` - Reset database
+
+| App | Web Port | HMR Port | DB Port | Credentials |
+|-----|----------|----------|---------|-------------|
+| KeyPears | 4273 | 4274 | 4275 | keypears/keypears_dev |
+| PassApples | 4283 | 4284 | 4285 | passapples/passapples_dev |
 
 ### Database Schema Management
 
@@ -430,19 +442,24 @@ Source PNGs in `raw-icons/` folders. Run `pnpm run build:icons` to generate
 multiple sizes/formats to `public/images/` with type-safe paths in
 `app/util/aicons.ts`.
 
-### Markdown Content (Web-kp Only)
+### Markdown Content (Webapps)
 
-All web-kp markdown content is in `web-kp/markdown/`:
+Each webapp has its own markdown content:
 
-- **Blog posts**: `web-kp/markdown/blog/` as Markdown with TOML front-matter
-  - **Filename**: `YYYY-MM-DD-slug.md`
-  - **Front-matter**: TOML with `title`, `date`, `author`
-    - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am
-      Central Time)
-  - **Content**: Never include title as H1 (auto-rendered from front-matter)
-  - **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
-- **Static pages**: `about.md`, `privacy.md`, `terms.md` - loaded at runtime by
-  their respective routes
+- **web-kp/markdown/** - KeyPears blog and static pages (keypears.com)
+- **web-pa/markdown/** - PassApples blog and static pages (passapples.com)
+
+Blog post format (same for both):
+
+- **Filename**: `YYYY-MM-DD-slug.md`
+- **Front-matter**: TOML with `title`, `date`, `author`
+  - `date` must be ISO 8601 with timezone: `"2025-10-25T06:00:00-05:00"` (6am
+    Central Time)
+- **Content**: Never include title as H1 (auto-rendered from front-matter)
+- **Build**: `pnpm run build:blog` generates RSS, Atom, and JSON feeds
+
+Static pages (`about.md`, `privacy.md`, `terms.md`) are loaded at runtime by
+their respective routes.
 
 ## Company
 
