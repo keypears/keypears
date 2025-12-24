@@ -8,7 +8,7 @@ const { Pool } = pg;
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgresql://keypears:keypears_dev@localhost:5432/keypears_main",
+    "postgresql://keypears:keypears_dev@localhost:4275/keypears",
 });
 
 // Create Drizzle instance with schema
