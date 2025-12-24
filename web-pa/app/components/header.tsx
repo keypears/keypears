@@ -6,7 +6,7 @@ export function Header() {
     <header className="mb-12 text-center">
       <Link to={href("/")} className="inline-block">
         <img
-          src={$aicon("/images/passapples-1-300.webp")}
+          src={$aicon("/images/passapples-2-300.webp")}
           alt="PassApples"
           className="mx-auto mb-6 h-[150px] w-[150px] transition-opacity hover:opacity-80"
         />

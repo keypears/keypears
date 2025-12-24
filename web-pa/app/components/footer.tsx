@@ -12,7 +12,7 @@ export function Footer() {
           className="inline-block transition-opacity hover:opacity-80"
         >
           <img
-            src={$aicon("/images/passapples-1-96.webp")}
+            src={$aicon("/images/passapples-2-96.webp")}
             alt="PassApples"
             className="h-8 w-8"
           />
