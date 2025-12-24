@@ -73,7 +73,12 @@ if (DEVELOPMENT) {
   console.log("Starting development server");
   const viteDevServer = await import("vite").then((vite) =>
     vite.createServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: {
+          port: PORT + 1,
+        },
+      },
     }),
   );
   app.use(viteDevServer.middlewares);
