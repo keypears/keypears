@@ -13,8 +13,7 @@ export function Header() {
       </Link>
       <h1 className="text-3xl font-bold">PassApples</h1>
       <p className="text-muted-foreground mt-2 text-lg">
-        Password Manager &middot; Encrypted Messaging &middot; Cryptocurrency
-        Wallet
+        KeyPears Node in London, England
       </p>
     </header>
   );
