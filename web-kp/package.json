@@ -21,7 +21,18 @@
     "start": "dotenvx run -f .env.production -- tsx server.ts",
     "format": "prettier --write .",
     "lint": "eslint .",
-    "typecheck": "react-router typegen && tsc -b"
+    "typecheck": "react-router typegen && tsc -b",
+    "build:docker": "docker compose build web-kp",
+    "docker:up": "docker compose up web-kp --build -d",
+    "docker:down": "docker compose down web-kp",
+    "docker:logs": "docker compose logs -f web-kp",
+    "deploy:login": "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 299190761597.dkr.ecr.us-east-1.amazonaws.com",
+    "deploy:tag": "docker tag keypears-web-kp:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
+    "deploy:push": "docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears-webapp:latest",
+    "deploy:verify": "aws ecr describe-images --repository-name keypears-webapp --region us-east-1",
+    "deploy:build": "pnpm deploy:login && pnpm build:docker && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:verify",
+    "deploy:update": "aws ecs update-service --cluster keypears-cluster --service keypears-webapp-task-service-2hw3gtif --force-new-deployment --region us-east-1",
+    "deploy:all": "pnpm deploy:login && pnpm build:docker && pnpm deploy:tag && pnpm deploy:push && pnpm deploy:update"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.51.1",

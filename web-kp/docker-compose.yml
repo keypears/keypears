@@ -12,5 +12,20 @@ services:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  web-kp:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: web-kp/Dockerfile
+      platforms:
+        - linux/amd64
+    image: keypears-web-kp:latest
+    container_name: keypears-app
+    ports:
+      - "4273:4273"
+    environment:
+      - NODE_ENV=production
+      - PORT=4273
+
 volumes:
   postgres-data:
