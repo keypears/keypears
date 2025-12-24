@@ -238,7 +238,7 @@
   --card-foreground: hsl(234 16.02% 35.49%); /* text */
   --popover: hsl(220 23.08% 94.9%); /* base */
   --popover-foreground: hsl(234 16.02% 35.49%); /* text */
-  --primary: var(--green-500);
+  --primary: var(--red-500);
   --primary-foreground: hsl(220 23.08% 94.9%); /* base */
   --secondary: hsl(223 15.91% 82.75%); /* surface0 */
   --secondary-foreground: hsl(234 16.02% 35.49%); /* text */
@@ -261,7 +261,7 @@
 
   --sidebar: hsl(218 25.1% 93.73%); /* mantle */
   --sidebar-foreground: hsl(234 16.02% 35.49%); /* text */
-  --sidebar-primary: var(--green-500);
+  --sidebar-primary: var(--red-500);
   --sidebar-primary-foreground: hsl(220 23.08% 94.9%); /* base */
   --sidebar-accent: hsl(220 23.08% 94.9%); /* surface0 */
   --sidebar-accent-foreground: hsl(234 16.02% 35.49%); /* text */
@@ -375,7 +375,7 @@
   --card-foreground: hsl(226 63.93% 88.04%); /* text */
   --popover: hsl(240 21.05% 14.9%); /* base */
   --popover-foreground: hsl(226 63.93% 88.04%); /* text */
-  --primary: var(--green-500);
+  --primary: var(--red-500);
   --primary-foreground: hsl(240 21.05% 14.9%); /* base */
   --secondary: hsl(237 16.24% 22.94%); /* surface0 */
   --secondary-foreground: hsl(226 63.93% 88.04%); /* text */
@@ -398,7 +398,7 @@
 
   --sidebar: hsl(240 21.18% 14.12%); /* mantle */
   --sidebar-foreground: hsl(226 63.93% 88.04%); /* text */
-  --sidebar-primary: var(--green-500);
+  --sidebar-primary: var(--red-500);
   --sidebar-primary-foreground: hsl(240 21.05% 14.9%); /* base */
   --sidebar-accent: hsl(240 21.05% 14.9%); /* surface0 */
   --sidebar-accent-foreground: hsl(226 63.93% 88.04%); /* text */
