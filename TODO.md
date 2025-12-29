@@ -552,10 +552,9 @@ specification.
 - [x] Integration tests: API procedures with vitest globalSetup
 - [x] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
 - [x] Manual: cross-domain messaging (alice@keypears.com → bob@passapples.com)
-- [ ] Manual: verify sent messages appear on all sender's devices
-- [ ] Manual: verify saved channel messages sync across recipient's devices
-- [ ] Manual: verify auto-save on reply works correctly
-- [ ] Manual: verify inbox messages deleted after sync to vault
+- [x] Manual: verify sent messages appear on all sender's devices
+- [x] Manual: verify saved channel messages sync across recipient's devices
+- [x] Manual: verify auto-save on reply works correctly
 
 ---
 
