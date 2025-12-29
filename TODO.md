@@ -551,7 +551,7 @@ specification.
 - [x] Unit tests: channel and inbox-message models
 - [x] Integration tests: API procedures with vitest globalSetup
 - [x] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
-- [ ] Manual: cross-domain messaging (alice@keypears.com → bob@passapples.com)
+- [x] Manual: cross-domain messaging (alice@keypears.com → bob@passapples.com)
 - [ ] Manual: verify sent messages appear on all sender's devices
 - [ ] Manual: verify saved channel messages sync across recipient's devices
 - [ ] Manual: verify auto-save on reply works correctly
