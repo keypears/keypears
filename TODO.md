@@ -11,8 +11,9 @@ organized by MVP phase as defined in `docs/mvp.md`.
 
 **Completed**: 2025-12-21
 
-**Summary**: Implemented three-layer verification for secure channel establishment
-between users across domains, preventing sender impersonation and DoS attacks.
+**Summary**: Implemented three-layer verification for secure channel
+establishment between users across domains, preventing sender impersonation and
+DoS attacks.
 
 **What was implemented:**
 
@@ -23,20 +24,21 @@ between users across domains, preventing sender impersonation and DoS attacks.
 - **Cross-domain identity verification**: New `verifyEngagementKeyOwnership` API
   allows recipient's server to verify sender's pubkey belongs to their claimed
   address by calling sender's server
-- **Channel binding**: PoW is tied to specific sender+recipient+pubkey, preventing
-  replay attacks
-- Updated client-side code (`new-message-dialog.tsx`, `compose-box.tsx`) with new
-  flow: get key → derive privkey → get PoW → solve → sign → get counterparty key
+- **Channel binding**: PoW is tied to specific sender+recipient+pubkey,
+  preventing replay attacks
+- Updated client-side code (`new-message-dialog.tsx`, `compose-box.tsx`) with
+  new flow: get key → derive privkey → get PoW → solve → sign → get counterparty
+  key
 - Updated `getPowChallenge` to accept sender/recipient addresses for difficulty
   resolution
 
 **Security improvements:**
 
-| Attack | Before | After |
-|--------|--------|-------|
-| Impersonate sender | ❌ Possible | ✅ Prevented (signature + cross-domain verification) |
-| DoS via key requests | ❌ Free | ✅ Requires PoW |
-| Replay PoW for different channel | N/A | ✅ PoW tied to sender pubkey via signature |
+| Attack                           | Before      | After                                                |
+| -------------------------------- | ----------- | ---------------------------------------------------- |
+| Impersonate sender               | ❌ Possible | ✅ Prevented (signature + cross-domain verification) |
+| DoS via key requests             | ❌ Free     | ✅ Requires PoW                                      |
+| Replay PoW for different channel | N/A         | ✅ PoW tied to sender pubkey via signature           |
 
 ---
 
@@ -355,8 +357,8 @@ Uses elliptic curve addition property: `(a + b) * G = A + B`
 - [x] **@keypears/lib**: Export `privateKeyAdd`, `publicKeyAdd` from secp256k1
 - [x] **@keypears/api-server schema**: Add `vaultPubKey` to vault table, create
       `engagement_key` table
-- [x] **@keypears/api-server procedures**: `createEngagementKey`, `getEngagementKeys`,
-      `getDerivationPrivKey`
+- [x] **@keypears/api-server procedures**: `createEngagementKey`,
+      `getEngagementKeys`, `getDerivationPrivKey`
 - [x] **@keypears/tauri-ts**: Update vault creation to send `vaultPubKey`
 - [x] **@keypears/tauri-ts**: Create Keys page route with key list and private
       key derivation UI
@@ -436,14 +438,17 @@ specification.
   - [x] `status` ("pending" | "saved" | "ignored") - "saved" means in vault
   - [x] `minDifficulty` (per-channel PoW override, nullable = use global)
   - [x] `createdAt`, `updatedAt`
-  - [x] Note: NO public keys or role - channels are between addresses, keys go in messages
+  - [x] Note: NO public keys or role - channels are between addresses, keys go
+        in messages
 - [x] Add `inbox_message` table (messages I received)
   - [x] `id`, `channelViewId`, `senderAddress`, `orderInChannel`
   - [x] `encryptedContent`
-  - [x] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for decryption)
+  - [x] `senderEngagementPubKey`, `recipientEngagementPubKey` (both needed for
+        decryption)
   - [x] `powChallengeId` (proves sender did work for this message)
   - [x] `isRead`, `createdAt`, `expiresAt`
-  - [x] Note: NO outbox table - sent messages saved to sender's vault via secret_update
+  - [x] Note: NO outbox table - sent messages saved to sender's vault via
+        secret_update
 - [x] Update `engagement_key` table
   - [x] Add `purpose` field ("send" | "receive" | "manual")
   - [x] Add `counterpartyPubKey` field (other party's pubkey, for validation)
@@ -454,13 +459,17 @@ specification.
 
 #### API Procedures ✅ COMPLETED
 
-- [x] `getEngagementKeyForSending` - Create engagement key for sending (purpose: "send")
-- [x] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey, creates
-      key with purpose "receive", stores sender's pubkey for later validation
-- [x] `sendMessage` - Send message with PoW proof; validates engagement key metadata
-      (purpose, counterpartyAddress, counterpartyPubKey) before accepting
+- [x] `getEngagementKeyForSending` - Create engagement key for sending (purpose:
+      "send")
+- [x] `getCounterpartyEngagementKey` - Public endpoint; accepts sender's pubkey,
+      creates key with purpose "receive", stores sender's pubkey for later
+      validation
+- [x] `sendMessage` - Send message with PoW proof; validates engagement key
+      metadata (purpose, counterpartyAddress, counterpartyPubKey) before
+      accepting
 - [x] `getChannels` - List channels for an address (with pagination)
-- [x] `getChannelMessages` - Get messages in a channel (reverse chronological order)
+- [x] `getChannelMessages` - Get messages in a channel (reverse chronological
+      order)
 - [x] `updateChannelStatus` - Accept/ignore channel
 
 #### Zod Schemas ✅ COMPLETED
@@ -519,10 +528,13 @@ specification.
 
 ### Vault Integration ✅ COMPLETED
 
-- [x] Messages page queries server API for channels (pending/ignored) or local vault (saved)
+- [x] Messages page queries server API for channels (pending/ignored) or local
+      vault (saved)
 - [x] Passwords page filters out `type: "message"` from secrets
-- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for saved channels
-- [x] Server-generated `secretId` in `channel_view` ensures consistency across devices
+- [x] Auto-sync: `syncInboxMessages()` moves inbox messages to vault for saved
+      channels
+- [x] Server-generated `secretId` in `channel_view` ensures consistency across
+      devices
 - [x] `getSenderChannel` API creates sender's channel_view with status "saved"
 - [x] `getInboxMessagesForSync` / `deleteInboxMessages` APIs for sync process
 - [x] Sent messages saved to vault immediately after sending
@@ -538,7 +550,7 @@ specification.
 
 - [x] Unit tests: channel and inbox-message models
 - [x] Integration tests: API procedures with vitest globalSetup
-- [ ] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
+- [x] Manual: same-domain messaging (alice@keypears.com → bob@keypears.com)
 - [ ] Manual: cross-domain messaging (alice@keypears.com → bob@passapples.com)
 - [ ] Manual: verify sent messages appear on all sender's devices
 - [ ] Manual: verify saved channel messages sync across recipient's devices
