@@ -17,13 +17,13 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 
 # Web framework (for API)
-axum = "0.8.6"
+axum = "0.8.8"
 utoipa = "5.4.0"
 utoipa-axum = "0.2.0"
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
 # Cryptography
-blake3 = "1.5"
+blake3 = "1.8"
 hex = "0.4"
 base64 = "0.22"
 

@@ -12,9 +12,19 @@ import type { Route } from "./+types/root";
 import { runMigrations } from "./db/migrate";
 import { ServerStatusProvider } from "./contexts/ServerStatusContext";
 import { SyncProvider } from "./contexts/sync-context";
+import { loadStateFromRust } from "./lib/vault-store";
+import { startPollingService } from "./lib/sync-service";
 
 export async function clientLoader() {
+  // Run database migrations
   await runMigrations();
+
+  // Load vault state from Rust backend (survives webview reloads)
+  await loadStateFromRust();
+
+  // Start the unified polling service (syncs all unlocked vaults)
+  startPollingService();
+
   return null;
 }
 

@@ -1,202 +1,183 @@
-import type { FixedBuf } from "@keypears/lib";
 import { createClientFromDomain } from "@keypears/api-client";
 import { syncVault } from "./sync";
-import { getSession, isSessionExpiringSoon } from "./vault-store";
+import {
+  loadStateFromRust,
+  getAllUnlockedVaults,
+  getSession,
+  getSessionToken,
+  isSessionExpiringSoon,
+  isSessionExpired,
+  getUnlockedVault,
+  setSession,
+  type UnlockedVault,
+} from "./vault-store";
+import { refreshSyncState } from "../contexts/sync-context";
 
 /**
- * Background sync service that runs independently of React rendering.
- * Supports multiple vaults syncing simultaneously.
- * Each vault polls its server every 500ms and syncs data to local SQLite database.
- */
-
-interface VaultSyncConfig {
-  vaultId: string;
-  vaultDomain: string;
-  vaultKey: FixedBuf<32>;
-  onSyncComplete?: () => void;
-}
-
-interface VaultSyncState {
-  config: VaultSyncConfig;
-  intervalId: number;
-  consecutiveServerErrors: number;
-  lastErrorStatus: number | null;
-  lastErrorMessage: string | null;
-}
-
-// Sync state management - Maps keyed by vaultId
-const vaultSyncStates: Map<string, VaultSyncState> = new Map();
-
-// Constants for sync intervals
-const NORMAL_SYNC_INTERVAL = 500; // 500ms for near-realtime messaging
-const MAX_BACKOFF_INTERVAL = 20000; // 20 seconds
-
-/**
- * Start background sync polling for a vault.
- * Multiple vaults can sync simultaneously.
+ * Unified background sync service.
  *
- * @param onSyncComplete - Optional callback called after each successful sync
+ * A single polling service that:
+ * - Always runs (started on app init)
+ * - Loads state from Rust on each tick
+ * - Processes all unlocked vaults in batches
+ * - Auto-refreshes sessions when expired
  */
-export function startBackgroundSync(
-  vaultId: string,
-  vaultDomain: string,
-  vaultKey: FixedBuf<32>,
-  onSyncComplete?: () => void,
-): void {
-  // Stop any existing sync for this vault
-  stopBackgroundSync(vaultId);
 
-  const config: VaultSyncConfig = {
-    vaultId,
-    vaultDomain,
-    vaultKey,
-    onSyncComplete,
-  };
+// Constants
+const POLL_INTERVAL = 500; // 500ms for near-realtime messaging
+const BATCH_SIZE = 10; // Process 10 vaults per tick
 
-  // Start polling every 5 seconds
-  const intervalId = window.setInterval(() => {
-    performSync(vaultId);
-  }, NORMAL_SYNC_INTERVAL);
+// Polling state
+let pollIntervalId: number | null = null;
 
-  // Store sync state
-  vaultSyncStates.set(vaultId, {
-    config,
-    intervalId,
-    consecutiveServerErrors: 0,
-    lastErrorStatus: null,
-    lastErrorMessage: null,
+// Track errors per vault to avoid log spam
+const lastErrorMessages: Map<string, string> = new Map();
+
+/**
+ * Start the unified polling service.
+ * Should be called once on app initialization.
+ * Idempotent - safe to call multiple times.
+ */
+export function startPollingService(): void {
+  if (pollIntervalId !== null) {
+    return; // Already running
+  }
+
+  pollIntervalId = window.setInterval(() => {
+    pollTick().catch((error) => {
+      console.error("Poll tick error:", error);
+    });
+  }, POLL_INTERVAL);
+
+  // Perform initial tick immediately
+  pollTick().catch((error) => {
+    console.error("Initial poll tick error:", error);
   });
-
-  // Perform initial sync immediately
-  performSync(vaultId);
 }
 
 /**
- * Stop background sync polling for a specific vault.
+ * Stop the polling service.
+ * Generally not needed - service runs for app lifetime.
  */
-export function stopBackgroundSync(vaultId: string): void {
-  const state = vaultSyncStates.get(vaultId);
-  if (state) {
-    clearInterval(state.intervalId);
-    vaultSyncStates.delete(vaultId);
+export function stopPollingService(): void {
+  if (pollIntervalId !== null) {
+    clearInterval(pollIntervalId);
+    pollIntervalId = null;
   }
 }
 
 /**
- * Stop background sync polling for all vaults.
+ * Check if the polling service is running.
  */
-export function stopAllBackgroundSync(): void {
-  for (const [vaultId] of vaultSyncStates) {
-    stopBackgroundSync(vaultId);
+export function isPollingServiceRunning(): boolean {
+  return pollIntervalId !== null;
+}
+
+/**
+ * Single poll tick - runs every POLL_INTERVAL ms.
+ */
+async function pollTick(): Promise<void> {
+  // 1. Load fresh state from Rust
+  await loadStateFromRust();
+
+  // 2. Get all unlocked vaults
+  const vaults = getAllUnlockedVaults();
+  if (vaults.length === 0) {
+    return; // Nothing to sync
+  }
+
+  // 3. Process in batches - use allSettled so one failure doesn't stop others
+  for (let i = 0; i < vaults.length; i += BATCH_SIZE) {
+    const batch = vaults.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(batch.map((vault) => syncVaultIfNeeded(vault)));
+    // allSettled never rejects - every vault in batch is attempted
+    // Individual failures are logged inside syncVaultIfNeeded
   }
 }
 
 /**
- * Check if a vault is currently syncing.
+ * Sync a single vault if it has a valid session.
+ * Handles session refresh automatically.
  */
-export function isVaultSyncing(vaultId: string): boolean {
-  return vaultSyncStates.has(vaultId);
-}
-
-/**
- * Trigger an immediate manual sync for a specific vault.
- * Returns a promise that resolves when sync completes.
- */
-export async function triggerManualSync(vaultId: string): Promise<void> {
-  await performSync(vaultId);
-}
-
-/**
- * Calculate backoff delay based on consecutive errors for a vault.
- */
-function getBackoffDelay(vaultId: string): number {
-  const state = vaultSyncStates.get(vaultId);
-  if (!state || state.consecutiveServerErrors === 0) {
-    return NORMAL_SYNC_INTERVAL;
-  }
-  // Exponential backoff: 5s -> 10s -> 20s -> 20s (capped)
-  const delay = Math.min(
-    NORMAL_SYNC_INTERVAL * Math.pow(2, state.consecutiveServerErrors),
-    MAX_BACKOFF_INTERVAL,
-  );
-  return delay;
-}
-
-/**
- * Internal function that performs the actual sync operation for a vault.
- */
-async function performSync(vaultId: string): Promise<void> {
-  const state = vaultSyncStates.get(vaultId);
-  if (!state) {
-    return;
-  }
-
-  const { config } = state;
+async function syncVaultIfNeeded(vault: UnlockedVault): Promise<void> {
+  const vaultId = vault.vaultId;
 
   try {
-    // Get current session for this vault from vault-store
     const session = getSession(vaultId);
-    if (!session) {
-      // No session token available, skip sync
-      if (state.lastErrorMessage !== "no-session") {
-        console.warn(
-          `Background sync skipped for vault ${vaultId}: no session token`,
-        );
-        state.lastErrorMessage = "no-session";
+
+    // No session or session expired - try to refresh
+    if (!session || isSessionExpired(session)) {
+      const refreshed = await refreshSessionForVault(vaultId);
+      if (!refreshed) {
+        logOnce(vaultId, "no-session", "No valid session, skipping sync");
+        return; // Can't sync without session
       }
-      return;
     }
 
-    // Check if session is expiring soon
+    // Session expiring soon - proactively refresh
     if (isSessionExpiringSoon(vaultId)) {
-      if (state.lastErrorMessage !== "session-expiring") {
-        console.warn(
-          `Background sync skipped for vault ${vaultId}: session expiring soon (expires at ${new Date(
-            session.expiresAt,
-          ).toISOString()})`,
-        );
-        state.lastErrorMessage = "session-expiring";
-      }
+      await refreshSessionForVault(vaultId);
+    }
+
+    // Get session token (may have been refreshed)
+    const sessionToken = getSessionToken(vaultId);
+    if (!sessionToken) {
+      logOnce(vaultId, "no-token", "No session token after refresh, skipping");
       return;
     }
 
-    // Create authenticated API client
-    const authedClient = await createClientFromDomain(config.vaultDomain, {
-      sessionToken: session.sessionToken,
+    // Sync the vault
+    const client = await createClientFromDomain(vault.vaultDomain, {
+      sessionToken,
     });
+    await syncVault(vaultId, vault.vaultKey, client);
 
-    // Sync vault (updates SQLite database)
-    await syncVault(config.vaultId, config.vaultKey, authedClient);
+    // Refresh UI state (unread counts)
+    await refreshSyncState(vaultId);
 
-    // Sync completed successfully - reset error tracking
-    if (state.consecutiveServerErrors > 0 || state.lastErrorStatus !== null) {
-      console.log(
-        `Background sync recovered successfully for vault ${vaultId}`,
-      );
-    }
-    state.consecutiveServerErrors = 0;
-    state.lastErrorStatus = null;
-    state.lastErrorMessage = null;
-
-    // Notify listeners that sync completed
-    if (config.onSyncComplete) {
-      config.onSyncComplete();
-    }
+    // Clear any previous error state for this vault
+    lastErrorMessages.delete(vaultId);
   } catch (error) {
-    handleSyncError(vaultId, error);
+    await handleSyncError(vaultId, error);
   }
 }
 
 /**
- * Handle sync errors with appropriate logging and backoff strategy.
+ * Refresh session for a vault using stored loginKey.
+ * No password re-entry needed.
  */
-function handleSyncError(vaultId: string, error: unknown): void {
-  const state = vaultSyncStates.get(vaultId);
-  if (!state) {
-    return;
+async function refreshSessionForVault(vaultId: string): Promise<boolean> {
+  const vault = getUnlockedVault(vaultId);
+  if (!vault) {
+    return false;
   }
 
-  // Extract error details
+  try {
+    const client = await createClientFromDomain(vault.vaultDomain);
+    const response = await client.api.login({
+      vaultId,
+      loginKey: vault.loginKey.buf.toHex(),
+      deviceId: vault.deviceId,
+      clientDeviceDescription: vault.deviceDescription ?? undefined,
+    });
+
+    await setSession(vaultId, response.sessionToken, response.expiresAt);
+    console.log(`Session refreshed for vault ${vaultId}`);
+    return true;
+  } catch (error) {
+    console.error(`Session refresh failed for vault ${vaultId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Handle sync errors with appropriate logging.
+ * Attempts session refresh on 401.
+ */
+async function handleSyncError(
+  vaultId: string,
+  error: unknown,
+): Promise<void> {
   const errorObj = error as {
     status?: number;
     response?: { status?: number };
@@ -205,78 +186,94 @@ function handleSyncError(vaultId: string, error: unknown): void {
   const status = errorObj?.status || errorObj?.response?.status || null;
   const message = errorObj?.message || "Unknown error";
 
-  // Determine error type and handle appropriately
+  // 401 - Session invalid, try to refresh
   if (status === 401) {
-    // Session invalid/expired - stop syncing this vault
-    console.error(
-      `Background sync stopped for vault ${vaultId}: Session invalid or expired (401)`,
-    );
-    stopBackgroundSync(vaultId);
-    // Could emit an event here for UI to handle re-authentication
+    logOnce(vaultId, "401", "Session expired, attempting refresh");
+    const refreshed = await refreshSessionForVault(vaultId);
+    if (!refreshed) {
+      logOnce(
+        vaultId,
+        "401-failed",
+        "Session refresh failed after 401, will retry next tick",
+      );
+    }
     return;
   }
 
+  // Server errors (5xx)
   if (status !== null && status >= 500 && status <= 599) {
-    // Server error - apply exponential backoff
-    state.consecutiveServerErrors++;
-    const backoffDelay = getBackoffDelay(vaultId);
-
-    if (state.lastErrorStatus !== status) {
-      console.error(
-        `Background sync server error for vault ${vaultId} (${status}): ${message}. ` +
-          `Backing off to ${backoffDelay / 1000}s interval.`,
-      );
-      state.lastErrorStatus = status;
-    }
-
-    // Reschedule with backoff if needed
-    if (backoffDelay > NORMAL_SYNC_INTERVAL) {
-      clearInterval(state.intervalId);
-      state.intervalId = window.setInterval(() => {
-        performSync(vaultId);
-      }, backoffDelay);
-    }
+    logOnce(vaultId, `server-${status}`, `Server error (${status}): ${message}`);
     return;
   }
 
+  // Client errors (4xx, not 401)
   if (status !== null && status >= 400 && status < 500) {
-    // Client error (not 401) - log but continue with normal interval
-    if (state.lastErrorStatus !== status) {
-      console.error(
-        `Background sync client error for vault ${vaultId} (${status}): ${message}. ` +
-          `Continuing with normal sync interval.`,
-      );
-      state.lastErrorStatus = status;
-    }
+    logOnce(vaultId, `client-${status}`, `Client error (${status}): ${message}`);
     return;
   }
 
-  // Network or other error - log but continue
-  if (status === null) {
-    if (state.lastErrorMessage !== message) {
-      console.error(
-        `Background sync network error for vault ${vaultId}: ${message}. ` +
-          `Will retry at normal interval.`,
-      );
-      state.lastErrorMessage = message;
-    }
-  } else {
-    // Unknown error with status
-    console.error(
-      `Background sync error for vault ${vaultId} (${status}): ${message}`,
-    );
+  // Network or other error
+  logOnce(vaultId, "network", `Sync error: ${message}`);
+}
+
+/**
+ * Log a message only if it's different from the last one for this vault.
+ * Prevents log spam when the same error occurs repeatedly.
+ */
+function logOnce(vaultId: string, errorKey: string, message: string): void {
+  const key = `${vaultId}:${errorKey}`;
+  if (lastErrorMessages.get(vaultId) !== key) {
+    console.warn(`[Sync ${vaultId}] ${message}`);
+    lastErrorMessages.set(vaultId, key);
   }
+}
 
-  // For non-server errors, reset consecutive error count
-  if (status === null || status < 500 || status > 599) {
-    state.consecutiveServerErrors = 0;
+// ============================================================================
+// Legacy API (for backward compatibility during migration)
+// ============================================================================
 
-    // Reset to normal interval if we had backoff
-    if (getBackoffDelay(vaultId) > NORMAL_SYNC_INTERVAL) {
-      clearInterval(state.intervalId);
-      state.intervalId = window.setInterval(() => {
-        performSync(vaultId);
-      }, NORMAL_SYNC_INTERVAL);
-    }
+/**
+ * @deprecated Use startPollingService() instead.
+ * The unified polling service handles all vaults automatically.
+ */
+export function startBackgroundSync(
+  _vaultId: string,
+  _vaultDomain: string,
+  _vaultKey: unknown,
+  _onSyncComplete?: () => void,
+): void {
+  // No-op: unified polling service handles all vaults
+  // Just ensure the polling service is running
+  startPollingService();
+}
+
+/**
+ * @deprecated No longer needed with unified polling service.
+ */
+export function stopBackgroundSync(_vaultId: string): void {
+  // No-op: unified polling service handles all vaults
+}
+
+/**
+ * @deprecated No longer needed with unified polling service.
+ */
+export function stopAllBackgroundSync(): void {
+  // No-op: use stopPollingService() if needed
+}
+
+/**
+ * @deprecated Use isPollingServiceRunning() instead.
+ */
+export function isVaultSyncing(_vaultId: string): boolean {
+  return isPollingServiceRunning();
+}
+
+/**
+ * Trigger an immediate manual sync for a specific vault.
+ */
+export async function triggerManualSync(vaultId: string): Promise<void> {
+  const vault = getUnlockedVault(vaultId);
+  if (vault) {
+    await syncVaultIfNeeded(vault);
   }
 }

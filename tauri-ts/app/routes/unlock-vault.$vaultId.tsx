@@ -15,7 +15,6 @@ import {
 import { verifyVaultPassword } from "~app/lib/vault-crypto";
 import { unlockVault, setSession, isVaultUnlocked } from "~app/lib/vault-store";
 import { refreshSyncState } from "~app/contexts/sync-context";
-import { startBackgroundSync } from "~app/lib/sync-service";
 import { initDb } from "~app/db";
 import { generateDeviceId, detectDeviceDescription } from "~app/lib/device";
 import { createClientFromDomain } from "@keypears/api-client";
@@ -121,10 +120,10 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
       });
 
       // Step 4: Set session token in vault store (now requires vaultId)
-      setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
+      await setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
 
       // Step 5: Unlock vault in vault store
-      unlockVault({
+      await unlockVault({
         vaultId: vault.id,
         vaultName: vault.name,
         vaultDomain: vault.domain,
@@ -142,18 +141,10 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
       // Step 6: Refresh sync state for this vault
       await refreshSyncState(vault.id);
 
-      // Step 7: Start background sync for this vault
-      startBackgroundSync(
-        vault.id,
-        vault.domain,
-        result.vaultKey,
-        () => refreshSyncState(vault.id), // onSyncComplete callback
-      );
-
-      // Step 8: Update last accessed timestamp
+      // Step 7: Update last accessed timestamp
       await updateVaultLastAccessed(vault.id);
 
-      // Step 9: Navigate to vault passwords page
+      // Step 8: Navigate to vault passwords page
       navigate(href("/vault/:vaultId/passwords", { vaultId: vault.id }));
     } catch (err) {
       console.error("Error unlocking vault:", err);
