@@ -24,15 +24,15 @@
   ],
   "dependencies": {
     "@keypears/lib": "workspace:*",
-    "@orpc/client": "^1.9.2",
-    "@orpc/contract": "^1.9.2",
-    "zod": "^4.1.11"
+    "@orpc/client": "^1.13.2",
+    "@orpc/contract": "^1.13.2",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.37.0",
-    "@types/node": "^22.10.2",
-    "eslint": "^9.37.0",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.18.0"
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.19.3",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.51.0"
   }
 }
