@@ -1,6 +1,6 @@
 #!/bin/bash
 # Wrapper script to run Tauri dev with configurable PORT
-# Usage: PORT=3010 ./tauri-dev.sh -- -- --db-path ./keypears-1.db
+# Usage: PORT=3010 ./tauri-dev.sh -- -- --db-file ./keypears-1.db
 
 set -e
 

@@ -13,14 +13,14 @@ function isSelectQuery(sql: string): boolean {
   return sql.trim().toLowerCase().startsWith("select");
 }
 
-// Get database path from Rust (either custom via --db-path or default)
+// Get database path from Rust (either custom via --db-file or default)
 async function getDbPath(): Promise<string> {
   if (resolvedDbPath) {
     return resolvedDbPath;
   }
 
   try {
-    const customPath = await invoke<string>("get_db_path");
+    const customPath = await invoke<string>("get_db_file");
     if (customPath && customPath.trim() !== "") {
       resolvedDbPath = `sqlite:${customPath}`;
     } else {

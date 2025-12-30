@@ -9,9 +9,9 @@ use std::path::PathBuf;
 #[command(version = "0.1.0")]
 #[command(about = "KeyPears - Federated Diffie-Hellman Key Exchange System", long_about = None)]
 struct CliArgs {
-    /// Custom database file path
-    #[arg(long, value_name = "PATH")]
-    db_path: Option<String>,
+    /// Custom database file
+    #[arg(long, value_name = "FILE")]
+    db_file: Option<String>,
 }
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
     let cwd = std::env::current_dir().ok();
 
     // Resolve the full database path if provided
-    let db_path = if let Some(custom) = args.db_path {
+    let db_file = if let Some(custom) = args.db_file {
         // Expand ~ to home directory
         let expanded = shellexpand::tilde(&custom);
         let path = PathBuf::from(expanded.as_ref());
@@ -45,5 +45,5 @@ fn main() {
         String::new()
     };
 
-    keypears_tauri_lib::run(db_path)
+    keypears_tauri_lib::run(db_file)
 }
