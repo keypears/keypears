@@ -251,7 +251,8 @@ phase milestone).
 
 - [ ] **Incremental sync**: Does sync only fetch new updates (not full resync)?
 - [ ] **Batch operations**: Are bulk operations batched?
-- [ ] **Polling frequency**: Is 5-second polling appropriate?
+- [ ] **Polling frequency**: Currently 500ms. See [Polling Service](polling.md)
+      for rationale.
 - [ ] **Exponential backoff**: Do errors trigger backoff to prevent thundering
       herd?
 

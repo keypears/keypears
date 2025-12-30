@@ -436,6 +436,9 @@ See [`docs/uiux.md`](docs/uiux.md) for complete UI patterns.
 - **Sync protocol**: Servers are dumb coordinators, all intelligence in clients
 - **Architecture**: Email-like decentralized model
 
+See [`docs/polling.md`](docs/polling.md) for Tauri polling service implementation
+details.
+
 ### Icons
 
 Source PNGs in `raw-icons/` folders. Run `pnpm run build:icons` to generate

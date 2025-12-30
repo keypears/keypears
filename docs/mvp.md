@@ -77,7 +77,8 @@ export const TableVault = sqliteTable("vault", {
    - `pushSecretUpdates` - Upload local changes to server
    - `pullSecretUpdates` - Download server changes since last sync
 4. **Client sync service**: Background sync with conflict resolution
-   (last-write-wins)
+   (last-write-wins). See [Polling Service](polling.md) for Tauri implementation
+   details.
 5. **Sync UI indicators**:
    - ☁️ Synced
    - 🔄 Syncing...

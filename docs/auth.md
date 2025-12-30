@@ -92,11 +92,20 @@ await validateVaultAuth(context.loginKey, vaultId);
 - No ability to audit which device made which change
 - Cannot implement rate limiting per device
 
-### 5. **Sync Service Holds Login Key Forever**
+### 5. **Sync Service Holds Login Key Forever** (RESOLVED)
 
-- Background sync stores `loginKey` in memory indefinitely
-- Increases attack surface (memory dump could expose key)
-- No automatic credential rotation
+> **Status:** This issue has been addressed. The sync service now uses
+> session-based authentication with auto-refresh. See [Polling
+> Service](polling.md) for current implementation.
+
+- ~~Background sync stores `loginKey` in memory indefinitely~~
+- ~~Increases attack surface (memory dump could expose key)~~
+- ~~No automatic credential rotation~~
+
+**Current behavior:** Session tokens are used for API calls. When sessions
+expire, the stored `loginKey` is used once to refresh the session, then
+discarded from the request. Keys are stored in Rust memory (not JavaScript)
+for additional security.
 
 ---
 
@@ -500,7 +509,8 @@ if (sessionExpiresAt - Date.now() < 60 * 60 * 1000) {
 
 **When to renew:**
 
-- Every 5 seconds, background sync checks if renewal needed
+- Every 500ms, the unified polling service checks if renewal needed. See
+  [Polling Service](polling.md) for details.
 - Before any user-initiated action (create/edit secret)
 - On app resume (mobile) or tab focus (web)
 
