@@ -1,6 +1,11 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { login, createUser, getMyUser } from "~/server/user.functions";
+import { getPowChallenge } from "~/server/pow.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -30,6 +35,7 @@ function LandingPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [miningStatus, setMiningStatus] = useState("");
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -55,13 +61,72 @@ function LandingPage() {
 
   async function handleCreate() {
     setCreating(true);
+    setError("");
+    setMiningStatus("Getting challenge...");
     try {
-      await createUser();
+      // 1. Get challenge from server (no DB write)
+      const challenge = await getPowChallenge();
+
+      // 2. Mine the solution (client-side)
+      setMiningStatus("Computing proof of work...");
+      const { Pow5_64b_Wasm } = await import("@keypears/pow5");
+      const { FixedBuf } = await import("@webbuf/fixedbuf");
+      const { WebBuf } = await import("@webbuf/webbuf");
+
+      const headerBuf = FixedBuf.fromHex(64, challenge.header);
+      const targetBuf = FixedBuf.fromHex(32, challenge.target);
+
+      let solvedHeader: FixedBuf<64> | null = null;
+      let nonce = 0;
+
+      while (!solvedHeader) {
+        // Insert nonce into header
+        const nonceBuf = WebBuf.alloc(32);
+        let remaining = BigInt(nonce);
+        for (let i = 31; i >= 0; i--) {
+          nonceBuf[i] = Number(remaining & 0xffn);
+          remaining = remaining >> 8n;
+        }
+        const testHeader = FixedBuf.fromBuf(
+          64,
+          WebBuf.from([...nonceBuf, ...headerBuf.buf.slice(32)]),
+        );
+        const hash = Pow5_64b_Wasm.elementaryIteration(testHeader);
+
+        const { hashMeetsTarget } = await import("@keypears/pow5");
+        if (hashMeetsTarget(hash, targetBuf)) {
+          solvedHeader = testHeader;
+        }
+
+        nonce++;
+        // Yield to UI every 10,000 iterations
+        if (nonce % 10000 === 0) {
+          setMiningStatus(
+            `Computing proof of work... (${(nonce / 1000).toFixed(0)}k hashes)`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      // 3. Create account with proof
+      setMiningStatus("Creating account...");
+      await createUser({
+        data: {
+          solvedHeader: solvedHeader.buf.toHex(),
+          target: challenge.target,
+          expiresAt: challenge.expiresAt,
+          signature: challenge.signature,
+        },
+      });
+
       navigate({ to: "/welcome" });
-    } catch {
-      setError("Failed to create account.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create account.",
+      );
     } finally {
       setCreating(false);
+      setMiningStatus("");
     }
   }
 
@@ -113,7 +178,7 @@ function LandingPage() {
               disabled={creating}
               className="text-accent hover:text-accent/80 cursor-pointer text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {creating ? "Creating..." : "Create a new account"}
+              {creating ? miningStatus || "Creating..." : "Create a new account"}
             </button>
           </div>
         </div>

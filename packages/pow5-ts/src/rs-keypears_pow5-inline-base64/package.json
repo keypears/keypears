@@ -1,0 +1,22 @@
+{
+  "name": "keypears_pow5",
+  "type": "module",
+  "collaborators": [
+    "Identellica LLC"
+  ],
+  "description": "KeyPears Proof-of-Work (PoW) Algorithm",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "files": [
+    "keypears_pow5_bg.wasm",
+    "keypears_pow5.js",
+    "keypears_pow5_bg.js",
+    "keypears_pow5.d.ts"
+  ],
+  "main": "keypears_pow5.js",
+  "types": "keypears_pow5.d.ts",
+  "sideEffects": [
+    "./keypears_pow5.js",
+    "./snippets/*"
+  ]
+}

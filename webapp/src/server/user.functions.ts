@@ -13,6 +13,7 @@ import {
   insertKey,
   getRecentKeys,
 } from "./user.server";
+import { verifyPowSolution } from "./pow.server";
 
 const COOKIE_NAME = "user_id";
 const ONE_DAY = 60 * 60 * 24;
@@ -28,13 +29,29 @@ function cookieOpts(maxAge: number) {
   };
 }
 
-export const createUser = createServerFn({ method: "POST" }).handler(
-  async () => {
+export const createUser = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      solvedHeader: string;
+      target: string;
+      expiresAt: number;
+      signature: string;
+    }) => data,
+  )
+  .handler(async ({ data: pow }) => {
+    const powResult = verifyPowSolution(
+      pow.solvedHeader,
+      pow.target,
+      pow.expiresAt,
+      pow.signature,
+    );
+    if (!powResult.valid) {
+      throw new Error(`Invalid proof of work: ${powResult.message}`);
+    }
     const result = await insertUser();
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
     return result;
-  },
-);
+  });
 
 export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
   const id = getCookie(COOKIE_NAME);

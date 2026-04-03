@@ -1,0 +1,62 @@
+{
+  "name": "@keypears/pow5",
+  "version": "1.0.0",
+  "description": "KeyPears Proof-of-Work (PoW) Algorithm",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:check": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "sync:from-rust": "cp -r ../pow5-rs/build/bundler/* src/rs-keypears_pow5-bundler/",
+    "build": "pnpm run build:wasm && pnpm run build:cp-wgsl && pnpm run build:typescript",
+    "build:cp-wgsl": "mkdir -p dist && cp src/*.wgsl dist/",
+    "build:bundler-to-inline-base64": "cp -r src/rs-keypears_pow5-bundler/* src/rs-keypears_pow5-inline-base64/",
+    "build:inline-wasm": "tsx build-inline-wasm.ts",
+    "build:wasm": "pnpm run build:bundler-to-inline-base64 && pnpm run build:inline-wasm",
+    "build:typescript": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "engines": {
+    "node": ">=20.8.0"
+  },
+  "packageManager": "pnpm@10.25.0",
+  "keywords": [
+    "pow"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@playwright/browser-chromium": "^1.57.0",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.51.0",
+    "@typescript-eslint/parser": "^8.51.0",
+    "@vitest/browser": "^4.0.16",
+    "@vitest/browser-playwright": "^4.0.16",
+    "@webgpu/types": "^0.1.68",
+    "buffer": "^6.0.3",
+    "eslint": "^9.39.2",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.23.1",
+    "eslint-plugin-promise": "^7.2.1",
+    "rimraf": "^6.1.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-string-plugin": "^1.4.9",
+    "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "@webbuf/blake3": "^3.5.0",
+    "@webbuf/fixedbuf": "^3.5.0",
+    "@webbuf/webbuf": "^3.5.0"
+  }
+}
