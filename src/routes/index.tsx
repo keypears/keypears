@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { login, createUser, getMyUser } from "~/server/user.functions";
 import {
@@ -12,7 +12,8 @@ import { $icon } from "~/lib/icons";
 export const Route = createFileRoute("/")({
   loader: async () => {
     const user = await getMyUser();
-    return { user };
+    if (user?.hasPassword) throw redirect({ to: "/inbox" });
+    if (user) throw redirect({ to: "/welcome" });
   },
   component: LandingPage,
 });
@@ -23,20 +24,6 @@ function parseKeypearAddress(input: string): number | null {
 }
 
 function LandingPage() {
-  const { user } = Route.useLoaderData();
-
-  // Already logged in with password — go to inbox
-  if (user?.hasPassword) {
-    window.location.href = "/inbox";
-    return null;
-  }
-
-  // Already logged in without password — go to welcome/save page
-  if (user) {
-    window.location.href = "/welcome";
-    return null;
-  }
-
   const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -119,9 +106,7 @@ function LandingPage() {
             </button>
           </form>
           <div className="border-border/30 mt-6 border-t pt-6">
-            <p className="text-muted-foreground mb-3 text-sm">
-              New here?
-            </p>
+            <p className="text-muted-foreground mb-3 text-sm">New here?</p>
             <button
               onClick={handleCreate}
               disabled={creating}
