@@ -119,7 +119,7 @@ export async function insertKey(
         : 0;
     if (count >= MAX_KEYS_PER_USER) {
       throw new Error(
-        `Maximum of ${MAX_KEYS_PER_USER} keys reached. Create a new account to continue.`,
+        `Maximum of ${MAX_KEYS_PER_USER} keys reached.`,
       );
     }
 
