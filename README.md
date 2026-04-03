@@ -1,18 +1,19 @@
 # KeyPears
 
-**Private Account Manager**
+**Secret sharing system.**
 
-A private account manager where your user ID is your keypear number. Visit the app, get a number, save it with a password.
+KeyPears is an end-to-end encrypted secret sharing system built on federated
+Diffie-Hellman key exchange. Your identity is a KeyPears address
+(e.g. `1@keypears.com`) tied to a secp256k1 public key. Discover anyone's
+public key by their address, derive a shared secret, and communicate securely.
 
 ## How it works
 
-1. Visit the app
-2. Click "Begin Your Journey"
-3. Get your keypear number
-4. Save your number with a password
-5. Your keypear number is your identity
+1. Create an account (requires proof-of-work, no email needed)
+2. Set a password to save your address
+3. Your address is your identity — share it with anyone
 
-If you don't save your number within 24 hours, it expires and gets recycled to someone else.
+Unsaved accounts expire after 24 hours and the address is recycled.
 
 ## Development
 
@@ -20,7 +21,11 @@ Requires [Bun](https://bun.sh) and MySQL.
 
 ```bash
 bun install
-bun dev
+cd webapp
+bun run db:push    # push schema to MySQL
+bun dev            # starts on port 3001
+bun run test       # run tests
+bun run lint       # run linter
 ```
 
 ## License
