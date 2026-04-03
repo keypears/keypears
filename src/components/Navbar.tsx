@@ -17,7 +17,7 @@ export function Navbar({ keypearId }: { keypearId: number }) {
   return (
     <nav className="border-border/30 flex items-center justify-between border-b px-6 py-3">
       <a
-        href="/home"
+        href="/"
         className="flex items-center gap-2 font-sans text-lg font-bold no-underline"
       >
         <img

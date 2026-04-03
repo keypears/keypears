@@ -23,7 +23,7 @@ function SavePage() {
         if (!result) {
           window.location.href = "/";
         } else if (result.hasPassword) {
-          window.location.href = "/home";
+          window.location.href = "/";
         } else {
           setKeypearId(result.id);
         }
@@ -54,7 +54,7 @@ function SavePage() {
       await saveMyKeypear({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
-      window.location.href = "/home";
+      window.location.href = "/";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {

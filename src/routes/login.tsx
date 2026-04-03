@@ -21,7 +21,7 @@ function LoginPage() {
     try {
       const loginKey = deriveLoginKey(password);
       await login({ data: { id: Number(id), loginKey } });
-      window.location.href = "/home";
+      window.location.href = "/";
     } catch {
       setError("Invalid keypear number or password.");
     } finally {
