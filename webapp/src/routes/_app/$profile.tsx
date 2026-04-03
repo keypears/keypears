@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, getProfile } from "~/server/user.functions";
-import { CircleUser } from "lucide-react";
+import { CircleUser, Cpu } from "lucide-react";
 
 export const Route = createFileRoute("/_app/$profile")({
   loader: async ({ params }) => {
@@ -23,13 +23,14 @@ export const Route = createFileRoute("/_app/$profile")({
       myId: me.id,
       profileId,
       publicKey: profileData?.publicKey ?? null,
+      powTotal: profileData?.powTotal ?? "0",
     };
   },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { profileId, publicKey } = Route.useLoaderData();
+  const { profileId, publicKey, powTotal } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -58,6 +59,14 @@ function ProfilePage() {
         >
           {copied ? "Copied!" : truncatedKey}
         </button>
+      )}
+      {BigInt(powTotal) > 0n && (
+        <div className="text-muted-foreground mt-6 flex items-center gap-2 text-sm">
+          <Cpu className="h-4 w-4" />
+          <span>
+            {new Intl.NumberFormat().format(BigInt(powTotal))} proof-of-work
+          </span>
+        </div>
       )}
     </div>
   );

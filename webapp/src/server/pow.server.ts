@@ -8,7 +8,7 @@ import {
 } from "@keypears/pow5";
 
 const CHALLENGE_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
-const REGISTRATION_DIFFICULTY = 700_000n;
+export const REGISTRATION_DIFFICULTY = 700_000n;
 const NONCE_SIZE = 32; // bytes 0-31 are nonce
 const HEADER_SIZE = 64;
 

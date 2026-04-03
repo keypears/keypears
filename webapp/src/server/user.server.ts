@@ -1,5 +1,5 @@
 import { db, pool } from "~/db";
-import { users, keys } from "~/db/schema";
+import { users, keys, powLog } from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -181,4 +181,51 @@ export async function verifyLogin(id: number, loginKeyHex: string) {
   }
 
   return { id: saved.id };
+}
+
+export async function insertPowLog(
+  userId: number,
+  algorithm: string,
+  difficulty: bigint,
+) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT cumulative_difficulty FROM pow_log
+       WHERE user_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+      [userId],
+    );
+
+    const prev =
+      Array.isArray(rows) && rows.length > 0
+        ? BigInt((rows[0] as any).cumulative_difficulty)
+        : 0n;
+    const cumulative = prev + difficulty;
+
+    await conn.query(
+      `INSERT INTO pow_log (user_id, algorithm, difficulty, cumulative_difficulty, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [userId, algorithm, difficulty.toString(), cumulative.toString()],
+    );
+
+    await conn.commit();
+    return { cumulativeDifficulty: cumulative };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+export async function getUserPowTotal(userId: number): Promise<bigint> {
+  const [row] = await db
+    .select({ cumulativeDifficulty: powLog.cumulativeDifficulty })
+    .from(powLog)
+    .where(eq(powLog.userId, userId))
+    .orderBy(desc(powLog.id))
+    .limit(1);
+  return row?.cumulativeDifficulty ?? 0n;
 }

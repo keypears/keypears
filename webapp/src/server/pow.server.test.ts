@@ -102,18 +102,7 @@ describe("PoW verification", () => {
   });
 
   it("rejects a hash that does not meet target", () => {
-    // Create a challenge with very high difficulty
-    const challenge = createPowChallenge(1n);
-    // Submit the unsolved header (random nonce, unlikely to meet any target)
-    const result = verifyPowSolution(
-      challenge.header, // unsolved — original random header
-      challenge.target,
-      challenge.expiresAt,
-      challenge.signature,
-    );
-    // This could theoretically pass if the random header happens to solve it,
-    // but with difficulty 1 the original header likely passes too.
-    // Instead, use high difficulty to guarantee failure.
+    // Use high difficulty to guarantee the unsolved header fails.
     const hardChallenge = createPowChallenge(
       1_000_000_000_000_000_000_000_000n,
     );

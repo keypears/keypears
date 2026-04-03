@@ -13,8 +13,13 @@ import {
   insertKey,
   getRecentKeys,
   deleteUnsavedUser,
+  insertPowLog,
+  getUserPowTotal,
 } from "./user.server";
-import { verifyPowSolution } from "./pow.server";
+import {
+  verifyPowSolution,
+  REGISTRATION_DIFFICULTY,
+} from "./pow.server";
 
 const COOKIE_NAME = "user_id";
 const ONE_DAY = 60 * 60 * 24;
@@ -50,6 +55,7 @@ export const createUser = createServerFn({ method: "POST" })
       throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
     const result = await insertUser();
+    await insertPowLog(result.id, "pow5-64b", REGISTRATION_DIFFICULTY);
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
     return result;
   });
@@ -154,10 +160,14 @@ export const getProfile = createServerFn({ method: "GET" })
   .handler(async ({ data: id }) => {
     const row = await getUserById(id);
     if (!row) return null;
-    const activeKey = await getActiveKey(id);
+    const [activeKey, powTotal] = await Promise.all([
+      getActiveKey(id),
+      getUserPowTotal(id),
+    ]);
     return {
       id: row.id,
       publicKey: activeKey?.publicKey ?? null,
+      powTotal: powTotal.toString(),
       createdAt: row.createdAt,
     };
   });
