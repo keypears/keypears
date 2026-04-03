@@ -1,0 +1,25 @@
+export function Footer() {
+  return (
+    <footer className="border-border text-muted-foreground mt-12 flex flex-col items-center gap-2 border-t pt-4 pb-6 text-xs">
+      <a
+        href="https://astrohacker.com"
+        className="hover:text-accent flex items-center gap-2 no-underline"
+      >
+        <picture>
+          <source
+            srcSet="/images/astrohacker-5-dark-32.webp 1x, /images/astrohacker-5-dark-64.webp 2x"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img
+            src="/images/astrohacker-5-light-32.webp"
+            srcSet="/images/astrohacker-5-light-32.webp 1x, /images/astrohacker-5-light-64.webp 2x"
+            alt="Astrohacker logo"
+            className="h-5 w-5"
+          />
+        </picture>
+        An Astrohacker Project
+      </a>
+      <p>&copy; {new Date().getFullYear()} Astrohacker. All rights reserved.</p>
+    </footer>
+  );
+}

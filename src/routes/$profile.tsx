@@ -1,50 +1,33 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getMyKeypear, getProfile } from "~/server/keypears.functions";
 import { Navbar } from "~/components/Navbar";
 import { CircleUser } from "lucide-react";
 
 export const Route = createFileRoute("/$profile")({
-  ssr: false,
+  loader: async ({ params }) => {
+    if (!params.profile.startsWith("@")) {
+      throw notFound();
+    }
+    const profileId = Number(params.profile.slice(1));
+    if (Number.isNaN(profileId)) {
+      throw notFound();
+    }
+    const [me, profileData] = await Promise.all([
+      getMyKeypear(),
+      getProfile({ data: profileId }),
+    ]);
+    if (!me) {
+      throw notFound();
+    }
+    return { myId: me.id, profileId, publicKey: profileData?.publicKey ?? null };
+  },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { profile } = Route.useParams();
-
-  if (!profile.startsWith("@")) {
-    throw notFound();
-  }
-
-  const profileId = Number(profile.slice(1));
-  if (Number.isNaN(profileId)) {
-    throw notFound();
-  }
-
-  const [myId, setMyId] = useState<number | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const { myId, profileId, publicKey } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    Promise.all([getMyKeypear(), getProfile({ data: profileId })]).then(
-      ([me, profileData]) => {
-        if (!me) {
-          window.location.href = "/";
-          return;
-        }
-        setMyId(me.id);
-        if (profileData?.publicKey) {
-          setPublicKey(profileData.publicKey);
-        }
-        setChecking(false);
-      },
-    );
-  }, [profileId]);
-
-  if (checking || myId == null) {
-    return <div className="bg-background min-h-screen" />;
-  }
 
   function handleCopy() {
     if (publicKey) {
@@ -59,7 +42,7 @@ function ProfilePage() {
     : null;
 
   return (
-    <div className="bg-background min-h-screen font-sans">
+    <div className="font-sans">
       <Navbar keypearId={myId} />
       <div className="flex flex-col items-center pt-32">
         <CircleUser className="text-muted-foreground h-24 w-24" />

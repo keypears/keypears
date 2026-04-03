@@ -5,6 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import "../globals.css";
+import { Footer } from "~/components/Footer";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -24,8 +25,11 @@ function RootComponent() {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-background text-foreground m-0 overflow-hidden p-0">
-        <Outlet />
+      <body className="bg-background text-foreground m-0 flex min-h-screen flex-col p-0">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <Footer />
         <Scripts />
       </body>
     </html>

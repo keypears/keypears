@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  getMyKeypear,
-  createKeypear,
+  getOrCreateKeypear,
   saveMyKeypear,
 } from "~/server/keypears.functions";
 import { deriveLoginKey, generateAndEncryptKeyPair } from "~/lib/auth";
 import { Navbar } from "~/components/Navbar";
 
 export const Route = createFileRoute("/")({
-  ssr: false,
+  loader: () => getOrCreateKeypear(),
   component: HomePage,
 });
 
@@ -18,9 +17,8 @@ function keypearAddress(id: number) {
 }
 
 function HomePage() {
-  const [keypearId, setKeypearId] = useState<number | null>(null);
-  const [hasPassword, setHasPassword] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const data = Route.useLoaderData();
+  const [hasPassword, setHasPassword] = useState(data.hasPassword);
 
   const [addressInput, setAddressInput] = useState("");
   const [password, setPassword] = useState("");
@@ -28,34 +26,10 @@ function HomePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function init() {
-      try {
-        const existing = await getMyKeypear();
-        if (existing) {
-          setKeypearId(existing.id);
-          setHasPassword(existing.hasPassword);
-        } else {
-          const created = await createKeypear();
-          setKeypearId(created.id);
-        }
-      } catch (err) {
-        console.error("Failed to initialize keypear:", err);
-      } finally {
-        setChecking(false);
-      }
-    }
-    init();
-  }, []);
-
-  if (checking || keypearId == null) {
-    return <div className="bg-background min-h-screen" />;
-  }
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (addressInput !== keypearAddress(keypearId!)) {
+    if (addressInput !== keypearAddress(data.id)) {
       setError("KeyPears address does not match.");
       return;
     }
@@ -80,15 +54,15 @@ function HomePage() {
   }
 
   return (
-    <div className="bg-background min-h-screen font-sans">
-      <Navbar keypearId={keypearId} />
+    <div className="font-sans">
+      <Navbar keypearId={data.id} />
       <div className="flex flex-1 items-center justify-center pt-32">
         <div className="text-center">
           <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
           <p className="text-foreground-dark mt-2">
             Your KeyPears address is{" "}
             <span className="text-accent font-bold">
-              {keypearAddress(keypearId)}
+              {keypearAddress(data.id)}
             </span>
           </p>
           {!hasPassword && (

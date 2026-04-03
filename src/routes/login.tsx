@@ -4,7 +4,6 @@ import { login } from "~/server/keypears.functions";
 import { deriveLoginKey } from "~/lib/auth";
 
 export const Route = createFileRoute("/login")({
-  ssr: false,
   component: LoginPage,
 });
 
@@ -40,7 +39,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center font-sans">
+    <div className="flex flex-1 items-center justify-center font-sans">
       <div className="w-full max-w-sm">
         <h1 className="text-foreground mb-6 text-center text-3xl font-bold">
           Log In

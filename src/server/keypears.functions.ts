@@ -45,6 +45,21 @@ export const getMyKeypear = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const getOrCreateKeypear = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const id = getCookie(COOKIE_NAME);
+    if (id) {
+      const row = await getKeypearById(Number(id));
+      if (row && (!row.expiresAt || row.expiresAt >= new Date())) {
+        return { id: row.id, hasPassword: row.passwordHash != null };
+      }
+    }
+    const result = await insertKeypear();
+    setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
+    return { id: result.id, hasPassword: false };
+  },
+);
+
 export const saveMyKeypear = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
