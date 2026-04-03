@@ -4,8 +4,9 @@ import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
-  generateAndEncryptKeyPairFromPasswordKey,
-  cachePasswordKey,
+  deriveEncryptionKeyFromPasswordKey,
+  generateAndEncryptKeyPairFromEncryptionKey,
+  cacheEncryptionKey,
 } from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
 
@@ -48,9 +49,10 @@ function WelcomePage() {
     try {
       const passwordKey = derivePasswordKey(password);
       const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
+      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromPasswordKey(passwordKey);
-      cachePasswordKey(passwordKey);
+        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
+      cacheEncryptionKey(encryptionKey);
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });

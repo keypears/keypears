@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
 } from "~/components/ui/dropdown-menu";
 import { logout } from "~/server/user.functions";
-import { clearCachedPasswordKey } from "~/lib/auth";
+import { clearCachedEncryptionKey } from "~/lib/auth";
 import { $icon } from "~/lib/icons";
 import {
   Inbox,
@@ -30,7 +30,7 @@ const navItems = [
 
 function UserDropdown({ keypearId }: { keypearId: number }) {
   async function handleLogout() {
-    clearCachedPasswordKey();
+    clearCachedEncryptionKey();
     await logout();
     window.location.href = "/";
   }

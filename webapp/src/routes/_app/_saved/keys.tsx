@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyKeys, rotateKey } from "~/server/user.functions";
 import {
-  getCachedPasswordKey,
+  getCachedEncryptionKey,
   derivePasswordKey,
-  generateAndEncryptKeyPairFromPasswordKey,
-  cachePasswordKey,
+  deriveEncryptionKeyFromPasswordKey,
+  generateAndEncryptKeyPairFromEncryptionKey,
+  cacheEncryptionKey,
 } from "~/lib/auth";
 import { KeyRound, RotateCw } from "lucide-react";
 
@@ -26,9 +27,9 @@ function KeysPage() {
     if (e) e.preventDefault();
     setError("");
 
-    let passwordKey = getCachedPasswordKey();
+    let encryptionKey = getCachedEncryptionKey();
 
-    if (!passwordKey) {
+    if (!encryptionKey) {
       if (!needsPassword) {
         setNeedsPassword(true);
         return;
@@ -37,14 +38,15 @@ function KeysPage() {
         setError("Password is required.");
         return;
       }
-      passwordKey = derivePasswordKey(password);
-      cachePasswordKey(passwordKey);
+      const passwordKey = derivePasswordKey(password);
+      encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      cacheEncryptionKey(encryptionKey);
     }
 
     setRotating(true);
     try {
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromPasswordKey(passwordKey);
+        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       const result = await rotateKey({
         data: { publicKey, encryptedPrivateKey },
       });

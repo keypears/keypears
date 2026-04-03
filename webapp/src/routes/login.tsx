@@ -4,7 +4,8 @@ import { login } from "~/server/user.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
-  cachePasswordKey,
+  deriveEncryptionKeyFromPasswordKey,
+  cacheEncryptionKey,
 } from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
@@ -38,7 +39,8 @@ function LoginPage() {
       const passwordKey = derivePasswordKey(password);
       const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       await login({ data: { id, loginKey } });
-      cachePasswordKey(passwordKey);
+      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      cacheEncryptionKey(encryptionKey);
       navigate({ to: "/inbox" });
     } catch {
       setError("Invalid KeyPears address or password.");
