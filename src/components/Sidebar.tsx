@@ -12,17 +12,18 @@ import {
   Inbox,
   Send,
   Lock,
-  KeyRound,
   Menu,
   X,
   CircleUser,
+  Settings,
+  LogOut,
+  User,
 } from "lucide-react";
 
 const navItems = [
   { name: "Inbox", path: "/inbox", icon: Inbox },
   { name: "Send", path: "/send", icon: Send },
   { name: "Vault", path: "/vault", icon: Lock },
-  { name: "Keys", path: "/keys", icon: KeyRound },
 ];
 
 function UserDropdown({ keypearId }: { keypearId: number }) {
@@ -41,10 +42,18 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
           <a href={`/@${keypearId}`} className="cursor-pointer no-underline">
+            <User className="mr-2 h-4 w-4" />
             Profile
           </a>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/settings" className="cursor-pointer no-underline">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+          <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
