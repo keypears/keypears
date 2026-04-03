@@ -5,8 +5,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "~/components/ui/dropdown-menu";
 import { logout } from "~/server/user.functions";
+import { clearCachedPasswordKey } from "~/lib/auth";
 import { $icon } from "~/lib/icons";
 import {
   Inbox,
@@ -28,6 +30,7 @@ const navItems = [
 
 function UserDropdown({ keypearId }: { keypearId: number }) {
   async function handleLogout() {
+    clearCachedPasswordKey();
     await logout();
     window.location.href = "/";
   }
@@ -52,6 +55,7 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
             Settings
           </a>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           Log out
@@ -168,10 +172,12 @@ export function Sidebar({ keypearId }: { keypearId: number }) {
           <Logo />
         </div>
         <NavItems />
-        <div className="mt-auto mb-6">
-          <UserDropdown keypearId={keypearId} />
-        </div>
       </nav>
+
+      {/* Desktop top-right user dropdown */}
+      <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:block">
+        <UserDropdown keypearId={keypearId} />
+      </div>
     </>
   );
 }

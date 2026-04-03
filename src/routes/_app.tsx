@@ -14,7 +14,7 @@ function AppLayout() {
   return (
     <>
       <Sidebar keypearId={data.id} />
-      <main className="flex min-h-screen flex-col lg:ml-56">
+      <main className="flex flex-1 flex-col lg:ml-56">
         <div className="flex-1">
           <Outlet />
         </div>

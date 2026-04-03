@@ -4,7 +4,12 @@ import {
   getOrCreateUser,
   saveMyUser,
 } from "~/server/user.functions";
-import { deriveLoginKey, generateAndEncryptKeyPair } from "~/lib/auth";
+import {
+  derivePasswordKey,
+  deriveLoginKeyFromPasswordKey,
+  generateAndEncryptKeyPairFromPasswordKey,
+  cachePasswordKey,
+} from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
@@ -40,9 +45,11 @@ function HomePage() {
     }
     setSaving(true);
     try {
-      const loginKey = deriveLoginKey(password);
+      const passwordKey = derivePasswordKey(password);
+      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPair(password);
+        generateAndEncryptKeyPairFromPasswordKey(passwordKey);
+      cachePasswordKey(passwordKey);
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });

@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyKeys, rotateKey } from "~/server/user.functions";
-import { generateAndEncryptKeyPair } from "~/lib/auth";
+import {
+  getCachedPasswordKey,
+  derivePasswordKey,
+  generateAndEncryptKeyPairFromPasswordKey,
+  cachePasswordKey,
+} from "~/lib/auth";
 import { KeyRound, RotateCw } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings")({
@@ -15,19 +20,31 @@ function SettingsPage() {
   const [rotating, setRotating] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [showRotateForm, setShowRotateForm] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
 
-  async function handleRotate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRotate(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     setError("");
-    if (!password) {
-      setError("Password is required to rotate keys.");
-      return;
+
+    let passwordKey = getCachedPasswordKey();
+
+    if (!passwordKey) {
+      if (!needsPassword) {
+        setNeedsPassword(true);
+        return;
+      }
+      if (!password) {
+        setError("Password is required.");
+        return;
+      }
+      passwordKey = derivePasswordKey(password);
+      cachePasswordKey(passwordKey);
     }
+
     setRotating(true);
     try {
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPair(password);
+        generateAndEncryptKeyPairFromPasswordKey(passwordKey);
       const result = await rotateKey({
         data: { publicKey, encryptedPrivateKey },
       });
@@ -40,7 +57,7 @@ function SettingsPage() {
         ...keyList.slice(0, 9),
       ]);
       setPassword("");
-      setShowRotateForm(false);
+      setNeedsPassword(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to rotate key.");
     } finally {
@@ -55,24 +72,25 @@ function SettingsPage() {
       <section className="mt-8">
         <div className="flex items-center justify-between">
           <h2 className="text-foreground text-lg font-semibold">Keys</h2>
-          {!showRotateForm && keyList.length > 0 && (
+          {keyList.length > 0 && !needsPassword && (
             <button
-              onClick={() => setShowRotateForm(true)}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-all duration-300"
+              onClick={() => handleRotate()}
+              disabled={rotating}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-all duration-300 disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
-              Rotate Key
+              {rotating ? "Rotating..." : "Rotate Key"}
             </button>
           )}
         </div>
 
-        {showRotateForm && (
+        {needsPassword && (
           <form
             onSubmit={handleRotate}
             className="border-border/30 mt-4 rounded border p-4"
           >
             <p className="text-foreground-dark mb-3 text-sm">
-              Enter your password to generate a new key pair.
+              Enter your password to continue.
             </p>
             <div className="flex gap-3">
               <input
@@ -93,7 +111,7 @@ function SettingsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowRotateForm(false);
+                  setNeedsPassword(false);
                   setPassword("");
                   setError("");
                 }}
@@ -104,6 +122,10 @@ function SettingsPage() {
             </div>
             {error && <p className="text-danger mt-2 text-sm">{error}</p>}
           </form>
+        )}
+
+        {!needsPassword && error && (
+          <p className="text-danger mt-4 text-sm">{error}</p>
         )}
 
         {keyList.length === 0 ? (

@@ -24,7 +24,7 @@ function RootComponent() {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-background text-foreground m-0 p-0">
+      <body className="bg-background text-foreground m-0 flex min-h-screen flex-col p-0">
         <Outlet />
         <Scripts />
       </body>

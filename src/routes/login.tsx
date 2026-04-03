@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { login } from "~/server/user.functions";
-import { deriveLoginKey } from "~/lib/auth";
+import {
+  derivePasswordKey,
+  deriveLoginKeyFromPasswordKey,
+  cachePasswordKey,
+} from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/login")({
@@ -29,8 +33,10 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const loginKey = deriveLoginKey(password);
+      const passwordKey = derivePasswordKey(password);
+      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       await login({ data: { id, loginKey } });
+      cachePasswordKey(passwordKey);
       window.location.href = "/";
     } catch {
       setError("Invalid KeyPears address or password.");
