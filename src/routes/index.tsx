@@ -6,6 +6,7 @@ import {
 } from "~/server/keypears.functions";
 import { deriveLoginKey, generateAndEncryptKeyPair } from "~/lib/auth";
 import { Navbar } from "~/components/Navbar";
+import { Copy, Check } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   loader: () => getOrCreateKeypear(),
@@ -20,6 +21,7 @@ function HomePage() {
   const data = Route.useLoaderData();
   const [hasPassword, setHasPassword] = useState(data.hasPassword);
 
+  const [copied, setCopied] = useState(false);
   const [addressInput, setAddressInput] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -63,6 +65,17 @@ function HomePage() {
           <p className="text-accent mt-1 font-bold">
             {keypearAddress(data.id)}
           </p>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(keypearAddress(data.id));
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="text-muted-foreground hover:text-foreground mt-1 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors"
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
           {!hasPassword && (
             <div className="mt-8 w-full max-w-sm">
               <p className="text-foreground-dark mb-4 text-sm">
