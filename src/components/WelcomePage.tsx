@@ -315,7 +315,7 @@ export function WelcomePage() {
       <div className="bg-background flex min-h-screen items-center justify-center font-sans">
         <div className="text-center">
           <p className="text-foreground-dark m-0 text-lg">
-            Welcome to Keypears.
+            Welcome to KeyPears.
           </p>
           <p className="text-foreground-dark mt-4">You are keypear number</p>
           <p className="text-accent mt-2 text-5xl font-bold">

@@ -22,10 +22,10 @@ export function Navbar({ keypearId }: { keypearId: number }) {
       >
         <img
           src={$icon("/images/keypears-64.webp")}
-          alt="Keypears"
+          alt="KeyPears"
           className="h-8 w-8"
         />
-        <span className="text-foreground">Keypears</span>
+        <span className="text-foreground">KeyPears</span>
       </a>
 
       <DropdownMenu>

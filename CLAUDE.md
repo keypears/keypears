@@ -1,4 +1,4 @@
-# Keypears
+# KeyPears
 
 A private account manager where your user ID is your keypear number.
 
