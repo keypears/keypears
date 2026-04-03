@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { login, createUser, getMyUser } from "~/server/user.functions";
 import {
@@ -24,6 +24,7 @@ function parseKeypearAddress(input: string): number | null {
 }
 
 function LandingPage() {
+  const navigate = useNavigate();
   const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +45,7 @@ function LandingPage() {
       const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       await login({ data: { id, loginKey } });
       cachePasswordKey(passwordKey);
-      window.location.href = "/inbox";
+      navigate({ to: "/inbox" });
     } catch {
       setError("Invalid KeyPears address or password.");
     } finally {
@@ -56,7 +57,7 @@ function LandingPage() {
     setCreating(true);
     try {
       await createUser();
-      window.location.href = "/welcome";
+      navigate({ to: "/welcome" });
     } catch {
       setError("Failed to create account.");
     } finally {

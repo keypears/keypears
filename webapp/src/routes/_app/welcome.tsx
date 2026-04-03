@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, saveMyUser } from "~/server/user.functions";
 import {
@@ -24,6 +24,7 @@ function keypearAddress(id: number) {
 
 function WelcomePage() {
   const data = Route.useLoaderData();
+  const navigate = useNavigate();
 
   const [copied, setCopied] = useState(false);
   const [addressInput, setAddressInput] = useState("");
@@ -53,7 +54,7 @@ function WelcomePage() {
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
-      window.location.href = "/inbox";
+      navigate({ to: "/inbox" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {

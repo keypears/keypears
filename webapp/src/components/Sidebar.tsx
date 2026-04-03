@@ -120,9 +120,12 @@ function Logo() {
 
 function Address({ keypearId }: { keypearId: number }) {
   return (
-    <span className="text-muted-foreground text-sm">
+    <a
+      href={`/@${keypearId}`}
+      className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
+    >
       {keypearId}@keypears.com
-    </span>
+    </a>
   );
 }
 
