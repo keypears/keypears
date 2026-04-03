@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": null,
+  "categories": {},
+  "rules": {},
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": ["dist", "node_modules", ".astro", ".tanstack"]
+}

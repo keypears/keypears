@@ -1,0 +1,6 @@
+dist
+node_modules
+.tanstack
+public/helvetiker_bold.typeface.json
+src/routeTree.gen.ts
+src/lib/icons.ts
