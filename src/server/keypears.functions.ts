@@ -5,13 +5,13 @@ import {
   deleteCookie,
 } from "@tanstack/react-start/server";
 import {
-  insertRickroll,
-  getRickrollById,
-  saveRickroll,
+  insertKeypear,
+  getKeypearById,
+  saveKeypear,
   verifyLogin,
-} from "./rickroll.server";
+} from "./keypears.server";
 
-const COOKIE_NAME = "rickroll_id";
+const COOKIE_NAME = "keypear_id";
 const ONE_DAY = 60 * 60 * 24;
 const TWO_YEARS = 60 * 60 * 24 * 365 * 2;
 
@@ -25,19 +25,19 @@ function cookieOpts(maxAge: number) {
   };
 }
 
-export const createRickroll = createServerFn({ method: "POST" }).handler(
+export const createKeypear = createServerFn({ method: "POST" }).handler(
   async () => {
-    const result = await insertRickroll();
+    const result = await insertKeypear();
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
     return result;
   },
 );
 
-export const getMyRickroll = createServerFn({ method: "GET" }).handler(
+export const getMyKeypear = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) return null;
-    const row = await getRickrollById(Number(id));
+    const row = await getKeypearById(Number(id));
     if (!row) return null;
     // Check if expired
     if (row.expiresAt && row.expiresAt < new Date()) return null;
@@ -45,7 +45,7 @@ export const getMyRickroll = createServerFn({ method: "GET" }).handler(
   },
 );
 
-export const saveMyRickroll = createServerFn({ method: "POST" })
+export const saveMyKeypear = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       loginKey: string;
@@ -56,10 +56,10 @@ export const saveMyRickroll = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    const row = await getRickrollById(Number(id));
-    if (!row) throw new Error("Rick Roll not found");
+    const row = await getKeypearById(Number(id));
+    if (!row) throw new Error("Keypear not found");
     if (row.passwordHash) throw new Error("Already saved");
-    await saveRickroll(
+    await saveKeypear(
       row.id,
       input.loginKey,
       input.publicKey,
@@ -85,7 +85,7 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)
   .handler(async ({ data: id }) => {
-    const row = await getRickrollById(id);
+    const row = await getKeypearById(id);
     if (!row) return null;
     return {
       id: row.id,

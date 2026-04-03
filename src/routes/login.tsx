@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { login } from "~/server/rickroll.functions";
+import { login } from "~/server/keypears.functions";
 import { deriveLoginKey } from "~/lib/auth";
 
 export const Route = createFileRoute("/login")({
@@ -23,7 +23,7 @@ function LoginPage() {
       await login({ data: { id: Number(id), loginKey } });
       window.location.href = "/home";
     } catch {
-      setError("Invalid Rick Roll number or password.");
+      setError("Invalid keypear number or password.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="number"
-            placeholder="Rick Roll #"
+            placeholder="Keypear #"
             value={id}
             onChange={(e) => setId(e.target.value)}
             className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
@@ -64,7 +64,7 @@ function LoginPage() {
         <p className="text-foreground-dark mt-6 text-center text-sm">
           Don&apos;t have an account?{" "}
           <a href="/" className="text-accent no-underline">
-            Get Rick Rolled!
+            Get started
           </a>
         </p>
       </div>

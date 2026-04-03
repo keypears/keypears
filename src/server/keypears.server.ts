@@ -1,5 +1,5 @@
 import { db, pool } from "~/db";
-import { rickrolls } from "~/db/schema";
+import { keypears } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -22,14 +22,9 @@ function sha256Pbkdf(
 }
 
 function deriveServerSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Rickbait server login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
 }
 
-/**
- * Hash the login key received from the client (SERVER-SIDE ONLY).
- * The client sends a login key (64-char hex). The server hashes it
- * with 100k rounds of PBKDF before storing in the database.
- */
 function hashLoginKey(loginKeyHex: string): string {
   const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
   const salt = deriveServerSalt();
@@ -37,7 +32,7 @@ function hashLoginKey(loginKeyHex: string): string {
   return hashed.buf.toHex();
 }
 
-export async function insertRickroll() {
+export async function insertKeypear() {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + EXPIRY_MS);
 
@@ -46,7 +41,7 @@ export async function insertRickroll() {
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      `SELECT id FROM rickrolls
+      `SELECT id FROM keypears
        WHERE expires_at < NOW() AND password_hash IS NULL
        ORDER BY id ASC LIMIT 1 FOR UPDATE`,
     );
@@ -56,12 +51,12 @@ export async function insertRickroll() {
     if (Array.isArray(rows) && rows.length > 0) {
       id = (rows[0] as any).id;
       await conn.query(
-        `UPDATE rickrolls SET created_at = ?, expires_at = ?, password_hash = NULL WHERE id = ?`,
+        `UPDATE keypears SET created_at = ?, expires_at = ?, password_hash = NULL WHERE id = ?`,
         [now, expiresAt, id],
       );
     } else {
       const [result] = await conn.query(
-        `INSERT INTO rickrolls (created_at, expires_at) VALUES (?, ?)`,
+        `INSERT INTO keypears (created_at, expires_at) VALUES (?, ?)`,
         [now, expiresAt],
       );
       id = (result as any).insertId;
@@ -77,16 +72,16 @@ export async function insertRickroll() {
   }
 }
 
-export async function getRickrollById(id: number) {
+export async function getKeypearById(id: number) {
   const [row] = await db
     .select()
-    .from(rickrolls)
-    .where(eq(rickrolls.id, id))
+    .from(keypears)
+    .where(eq(keypears.id, id))
     .limit(1);
   return row ?? null;
 }
 
-export async function saveRickroll(
+export async function saveKeypear(
   id: number,
   loginKeyHex: string,
   publicKey: string,
@@ -94,16 +89,16 @@ export async function saveRickroll(
 ) {
   const passwordHash = hashLoginKey(loginKeyHex);
   await db
-    .update(rickrolls)
+    .update(keypears)
     .set({ passwordHash, publicKey, encryptedPrivateKey, expiresAt: null })
-    .where(eq(rickrolls.id, id));
+    .where(eq(keypears.id, id));
 }
 
 export async function verifyLogin(id: number, loginKeyHex: string) {
   const [saved] = await db
     .select()
-    .from(rickrolls)
-    .where(eq(rickrolls.id, id))
+    .from(keypears)
+    .where(eq(keypears.id, id))
     .limit(1);
 
   if (!saved || !saved.passwordHash) {

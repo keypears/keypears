@@ -1,6 +1,6 @@
-# Rickbait
+# Keypears
 
-A social network where your user ID is your Rick Roll number.
+A private account manager where your user ID is your keypear number.
 
 ## Tech stack
 
@@ -37,18 +37,18 @@ src/
     __root.tsx      # root layout
     index.tsx       # 3D welcome page (ssr: false)
     home.tsx        # authenticated dashboard
-    login.tsx       # login form (RRN + password)
-    save.tsx        # save RRN (set password + generate key pair)
+    login.tsx       # login form (keypear # + password)
+    save.tsx        # save keypear (set password + generate key pair)
     $profile.tsx    # profile page (/@N), catch-all with @ prefix check
   components/
-    WelcomePage.tsx # Three.js 3D scene + Rick Roll modal
+    WelcomePage.tsx # Three.js 3D scene
     Navbar.tsx      # top nav with avatar dropdown menu
     ui/             # shadcn components (avatar, button, dropdown-menu)
   server/
-    rickroll.functions.ts  # createServerFn wrappers (safe to import from client)
-    rickroll.server.ts     # DB logic (server-only, never imported by client)
+    keypears.functions.ts  # createServerFn wrappers (safe to import from client)
+    keypears.server.ts     # DB logic (server-only, never imported by client)
   db/
-    schema.ts       # Drizzle schema (rickrolls table)
+    schema.ts       # Drizzle schema (keypears table)
     index.ts        # MySQL connection pool
   lib/
     auth.ts         # client-side KDF (deriveLoginKey, generateAndEncryptKeyPair)
@@ -60,7 +60,6 @@ public/images/      # generated WebP images
 
 ## Key conventions
 
-- Always capitalize "Rick Roll" in user-facing text. Never "rick roll" or just "roll".
 - Use a single `DATABASE_URL` env var for database connections, not separate DB_* vars.
 - Use `dotenvx run -f .env.dev --` to wrap commands that need env vars.
 - Server functions follow the two-file pattern:
@@ -200,9 +199,9 @@ Run `bash scripts/build-issues-index.sh` to regenerate `issues/README.md`.
 
 ## Auth flow
 
-1. User clicks "Begin Your Journey" → Rick Rolled → assigned a number (auto-increment MySQL ID) → cookie set (24h expiry)
+1. User clicks "Begin Your Journey" → assigned a keypear number (auto-increment MySQL ID) → cookie set (24h expiry)
 2. User can save their number by setting a password on `/save`
 3. On save: client derives login key (SHA-256 PBKDF, 200k rounds), generates secp256k1 key pair, encrypts private key with ACS2 → sends login key + public key + encrypted private key to server
 4. Server hashes login key (another 100k rounds), stores everything, sets cookie to 2-year expiry
 5. Unclaimed numbers expire after 24 hours and are recycled to new users
-6. Login via `/login` with Rick Roll number + password
+6. Login via `/login` with keypear number + password

@@ -5,10 +5,10 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
-import { logout } from "~/server/rickroll.functions";
+import { logout } from "~/server/keypears.functions";
 import { $icon } from "~/lib/icons";
 
-export function Navbar({ rickrollId }: { rickrollId: number }) {
+export function Navbar({ keypearId }: { keypearId: number }) {
   async function handleLogout() {
     await logout();
     window.location.href = "/";
@@ -21,11 +21,11 @@ export function Navbar({ rickrollId }: { rickrollId: number }) {
         className="flex items-center gap-2 font-sans text-lg font-bold no-underline"
       >
         <img
-          src={$icon("/images/rickbait-64.webp")}
-          alt="Rickbait"
+          src={$icon("/images/keypears-64.webp")}
+          alt="Keypears"
           className="h-8 w-8"
         />
-        <span className="text-foreground">Rickbait</span>
+        <span className="text-foreground">Keypears</span>
       </a>
 
       <DropdownMenu>
@@ -33,14 +33,14 @@ export function Navbar({ rickrollId }: { rickrollId: number }) {
           <button className="cursor-pointer rounded-full">
             <Avatar>
               <AvatarFallback className="bg-accent/20 text-accent text-sm">
-                {rickrollId}
+                {keypearId}
               </AvatarFallback>
             </Avatar>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
-            <a href={`/@${rickrollId}`} className="cursor-pointer no-underline">
+            <a href={`/@${keypearId}`} className="cursor-pointer no-underline">
               Profile
             </a>
           </DropdownMenuItem>

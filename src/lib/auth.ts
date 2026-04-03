@@ -19,16 +19,16 @@ function sha256Pbkdf(
 }
 
 function derivePasswordSalt(password: string): FixedBuf<32> {
-  const context = sha256Hash(WebBuf.fromUtf8("Rickbait password salt v1"));
+  const context = sha256Hash(WebBuf.fromUtf8("Keypears password salt v1"));
   return sha256Hmac(context.buf, WebBuf.fromUtf8(password));
 }
 
 function deriveLoginSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Rickbait login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears login salt v1"));
 }
 
 function deriveEncryptionSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Rickbait encryption salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
 }
 
 function derivePasswordKey(password: string): FixedBuf<32> {

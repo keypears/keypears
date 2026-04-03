@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { getMyRickroll, getProfile } from "~/server/rickroll.functions";
+import { getMyKeypear, getProfile } from "~/server/keypears.functions";
 import { Navbar } from "~/components/Navbar";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 
@@ -27,7 +27,7 @@ function ProfilePage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    Promise.all([getMyRickroll(), getProfile({ data: profileId })]).then(
+    Promise.all([getMyKeypear(), getProfile({ data: profileId })]).then(
       ([me, profileData]) => {
         if (!me) {
           window.location.href = "/";
@@ -60,7 +60,7 @@ function ProfilePage() {
 
   return (
     <div className="bg-background min-h-screen font-sans">
-      <Navbar rickrollId={myId} />
+      <Navbar keypearId={myId} />
       <div className="flex flex-col items-center pt-32">
         <Avatar className="h-24 w-24">
           <AvatarFallback className="bg-accent/20 text-accent text-3xl">
@@ -68,7 +68,7 @@ function ProfilePage() {
           </AvatarFallback>
         </Avatar>
         <h1 className="text-foreground mt-6 text-2xl font-bold">
-          Rick Roll #{new Intl.NumberFormat().format(profileId)}
+          Keypear #{new Intl.NumberFormat().format(profileId)}
         </h1>
         {truncatedKey && (
           <button

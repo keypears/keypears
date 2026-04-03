@@ -2,21 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
-import { createRickroll, getMyRickroll } from "~/server/rickroll.functions";
+import { createKeypear, getMyKeypear } from "~/server/keypears.functions";
 
 export function WelcomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [rickrollId, setRickrollId] = useState<number | null>(null);
+  const [keypearId, setKeypearId] = useState<number | null>(null);
   const [hasPassword, setHasPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    getMyRickroll()
+    getMyKeypear()
       .then((result) => {
         if (result) {
-          setRickrollId(result.id);
+          setKeypearId(result.id);
           setHasPassword(result.hasPassword);
         }
       })
@@ -24,7 +23,7 @@ export function WelcomePage() {
   }, []);
 
   useEffect(() => {
-    if (checking || rickrollId != null) return;
+    if (checking || keypearId != null) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -187,8 +186,8 @@ export function WelcomePage() {
       welcomeMesh.position.y = 2.5;
       scene.add(welcomeMesh);
 
-      // "THE INTERNET" — big, 3D, spinning
-      const internetGeo = new TextGeometry("THE INTERNET", {
+      // "KEYPEARS" — big, 3D, spinning
+      const internetGeo = new TextGeometry("KEYPEARS", {
         font,
         size: 1.2,
         depth: 0.6,
@@ -214,15 +213,12 @@ export function WelcomePage() {
       scene.add(internetMesh);
 
       // Subtitle — small, below
-      const subtitleGeo = new TextGeometry(
-        "ADVANCED COMMUNICATIONS NETWORK FOR PLANET EARTH",
-        {
-          font,
-          size: 0.22,
-          depth: 0.02,
-          curveSegments: 12,
-        },
-      );
+      const subtitleGeo = new TextGeometry("PRIVATE ACCOUNT MANAGER", {
+        font,
+        size: 0.22,
+        depth: 0.02,
+        curveSegments: 12,
+      });
       subtitleGeo.computeBoundingBox();
       subtitleGeo.center();
 
@@ -304,13 +300,13 @@ export function WelcomePage() {
       renderer.dispose();
       container.removeChild(renderer.domElement);
     };
-  }, [checking, rickrollId]);
+  }, [checking, keypearId]);
 
   if (checking) {
     return <div className="bg-background min-h-screen" />;
   }
 
-  if (rickrollId != null && !showModal) {
+  if (keypearId != null) {
     if (hasPassword) {
       window.location.href = "/home";
       return <div className="bg-background min-h-screen" />;
@@ -319,11 +315,11 @@ export function WelcomePage() {
       <div className="bg-background flex min-h-screen items-center justify-center font-sans">
         <div className="text-center">
           <p className="text-foreground-dark m-0 text-lg">
-            You have been Rick Rolled. Welcome to the Internet.
+            Welcome to Keypears.
           </p>
-          <p className="text-foreground-dark mt-4">You are Rick Roll number</p>
+          <p className="text-foreground-dark mt-4">You are keypear number</p>
           <p className="text-accent mt-2 text-5xl font-bold">
-            {new Intl.NumberFormat().format(rickrollId)}
+            {new Intl.NumberFormat().format(keypearId)}
           </p>
           <p className="text-muted mt-2 text-sm">
             If you don&apos;t save your number, it will expire and be given to
@@ -342,90 +338,32 @@ export function WelcomePage() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
-      {!showModal && (
-        <span className="text-foreground-dark/50 fixed top-4 right-4 z-20 font-sans text-sm">
-          Already have an RRN?{" "}
-          <a
-            href="/login"
-            className="text-accent/70 hover:text-accent no-underline transition-colors"
-          >
-            Log in
-          </a>
-        </span>
-      )}
+      <span className="text-foreground-dark/50 fixed top-4 right-4 z-20 font-sans text-sm">
+        Already have an account?{" "}
+        <a
+          href="/login"
+          className="text-accent/70 hover:text-accent no-underline transition-colors"
+        >
+          Log in
+        </a>
+      </span>
       <div ref={containerRef} className="h-full w-full" />
-      {!showModal && (
-        <button
-          onClick={async () => {
-            setLoading(true);
-            try {
-              const result = await createRickroll();
-              setRickrollId(result.id);
-            } catch (err) {
-              console.error("createRickroll failed:", err);
-            }
-            setShowModal(true);
-            setLoading(false);
-          }}
-          disabled={loading}
-          className="bg-accent/15 border-accent/50 hover:bg-accent/30 hover:border-accent/80 absolute bottom-[12%] left-1/2 -translate-x-1/2 cursor-pointer rounded border px-10 py-3.5 font-sans text-base tracking-widest text-white uppercase transition-all duration-300 hover:shadow-[0_0_20px_rgba(125,207,255,0.3)] disabled:cursor-wait disabled:opacity-50"
-        >
-          {loading ? "Loading..." : "Begin Your Journey"}
-        </button>
-      )}
-
-      {showModal && (
-        <div
-          className="absolute inset-0 z-10 flex min-h-full flex-col items-center overflow-y-auto bg-black py-12 font-sans"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="my-auto flex w-[90%] max-w-[640px] flex-col items-center gap-6"
-          >
-            <iframe
-              width="560"
-              height="315"
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
-              title="Welcome to the Internet"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              className="border-accent/30 max-w-full rounded-lg border"
-            />
-
-            <p className="text-foreground-dark m-0 text-center text-lg leading-relaxed">
-              You have been Rick Rolled.
-              <br />
-              Everybody gets Rick Rolled.
-              <br />
-              <span className="text-accent font-bold">
-                Welcome to the Internet.
-              </span>
-            </p>
-
-            {rickrollId != null && (
-              <>
-                <p className="text-foreground-dark m-0">
-                  You are Rick Roll number
-                </p>
-                <p className="text-accent m-0 text-5xl font-bold">
-                  {new Intl.NumberFormat().format(rickrollId)}
-                </p>
-                <p className="text-muted m-0 text-sm">
-                  If you don&apos;t save your number, it will expire and be
-                  given to someone else.
-                </p>
-                <a
-                  href="/save"
-                  className="bg-accent/15 border-accent/50 hover:bg-accent/30 hover:border-accent/80 inline-block cursor-pointer rounded border px-10 py-3.5 font-sans text-base tracking-widest text-white uppercase no-underline transition-all duration-300 hover:shadow-[0_0_20px_rgba(125,207,255,0.3)]"
-                >
-                  Save Your Number
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <button
+        onClick={async () => {
+          setLoading(true);
+          try {
+            const result = await createKeypear();
+            setKeypearId(result.id);
+          } catch (err) {
+            console.error("createKeypear failed:", err);
+          }
+          setLoading(false);
+        }}
+        disabled={loading}
+        className="bg-accent/15 border-accent/50 hover:bg-accent/30 hover:border-accent/80 absolute bottom-[12%] left-1/2 -translate-x-1/2 cursor-pointer rounded border px-10 py-3.5 font-sans text-base tracking-widest text-white uppercase transition-all duration-300 hover:shadow-[0_0_20px_rgba(125,207,255,0.3)] disabled:cursor-wait disabled:opacity-50"
+      >
+        {loading ? "Loading..." : "Begin Your Journey"}
+      </button>
     </div>
   );
 }

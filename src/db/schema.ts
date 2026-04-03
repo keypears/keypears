@@ -6,7 +6,7 @@ import {
   timestamp,
 } from "drizzle-orm/mysql-core";
 
-export const rickrolls = mysqlTable("rickrolls", {
+export const keypears = mysqlTable("keypears", {
   id: int("id").primaryKey().autoincrement(),
   passwordHash: varchar("password_hash", { length: 255 }),
   publicKey: varchar("public_key", { length: 66 }),

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { getMyRickroll } from "~/server/rickroll.functions";
+import { getMyKeypear } from "~/server/keypears.functions";
 import { Navbar } from "~/components/Navbar";
 
 export const Route = createFileRoute("/home")({
@@ -9,35 +9,35 @@ export const Route = createFileRoute("/home")({
 });
 
 function HomePage() {
-  const [rickrollId, setRickrollId] = useState<number | null>(null);
+  const [keypearId, setKeypearId] = useState<number | null>(null);
   const [hasPassword, setHasPassword] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    getMyRickroll()
+    getMyKeypear()
       .then((result) => {
         if (!result) {
           window.location.href = "/";
         } else {
-          setRickrollId(result.id);
+          setKeypearId(result.id);
           setHasPassword(result.hasPassword);
         }
       })
       .finally(() => setChecking(false));
   }, []);
 
-  if (checking || rickrollId == null) {
+  if (checking || keypearId == null) {
     return <div className="bg-background min-h-screen" />;
   }
 
   return (
     <div className="bg-background min-h-screen font-sans">
-      <Navbar rickrollId={rickrollId} />
+      <Navbar keypearId={keypearId} />
       <div className="flex flex-1 items-center justify-center pt-32">
         <div className="text-center">
           <h1 className="text-accent text-4xl font-bold">Welcome</h1>
           <p className="text-foreground-dark mt-2">
-            You are Rick Roll #{new Intl.NumberFormat().format(rickrollId)}
+            You are keypear #{new Intl.NumberFormat().format(keypearId)}
           </p>
           {!hasPassword && (
             <a

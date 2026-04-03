@@ -1,16 +1,16 @@
-# Rickbait
+# Keypears
 
-**Front Page of the Internet**
+**Private Account Manager**
 
-A social network where your user ID is your Rick Roll number. Get Rick Rolled, save your number, join the community.
+A private account manager where your user ID is your keypear number. Visit the app, get a number, save it with a password.
 
 ## How it works
 
-1. Visit [rickbait.com](https://rickbait.com)
+1. Visit the app
 2. Click "Begin Your Journey"
-3. Get Rick Rolled
-4. Save your Rick Roll number with a password
-5. Your Rick Roll number is your identity
+3. Get your keypear number
+4. Save your number with a password
+5. Your keypear number is your identity
 
 If you don't save your number within 24 hours, it expires and gets recycled to someone else.
 

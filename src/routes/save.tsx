@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { getMyRickroll, saveMyRickroll } from "~/server/rickroll.functions";
+import { getMyKeypear, saveMyKeypear } from "~/server/keypears.functions";
 import { deriveLoginKey, generateAndEncryptKeyPair } from "~/lib/auth";
 
 export const Route = createFileRoute("/save")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/save")({
 });
 
 function SavePage() {
-  const [rickrollId, setRickrollId] = useState<number | null>(null);
+  const [keypearId, setKeypearId] = useState<number | null>(null);
   const [numberInput, setNumberInput] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -18,28 +18,28 @@ function SavePage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    getMyRickroll()
+    getMyKeypear()
       .then((result) => {
         if (!result) {
           window.location.href = "/";
         } else if (result.hasPassword) {
           window.location.href = "/home";
         } else {
-          setRickrollId(result.id);
+          setKeypearId(result.id);
         }
       })
       .finally(() => setChecking(false));
   }, []);
 
-  if (checking || rickrollId == null) {
+  if (checking || keypearId == null) {
     return <div className="bg-background min-h-screen" />;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (Number(numberInput) !== rickrollId) {
-      setError("Rick Roll number does not match.");
+    if (Number(numberInput) !== keypearId) {
+      setError("Keypear number does not match.");
       return;
     }
     if (password !== confirm) {
@@ -51,7 +51,7 @@ function SavePage() {
       const loginKey = deriveLoginKey(password);
       const { publicKey, encryptedPrivateKey } =
         generateAndEncryptKeyPair(password);
-      await saveMyRickroll({
+      await saveMyKeypear({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
       window.location.href = "/home";
@@ -69,13 +69,13 @@ function SavePage() {
           Save Your Number
         </h1>
         <p className="text-foreground-dark mb-6 text-center text-sm">
-          Set a password to keep Rick Roll #
-          {new Intl.NumberFormat().format(rickrollId)} forever.
+          Set a password to keep keypear #
+          {new Intl.NumberFormat().format(keypearId)} forever.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="number"
-            placeholder="Your Rick Roll number"
+            placeholder="Your keypear number"
             value={numberInput}
             onChange={(e) => setNumberInput(e.target.value)}
             className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
