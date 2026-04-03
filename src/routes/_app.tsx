@@ -1,10 +1,14 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { getOrCreateUser } from "~/server/user.functions";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { getMyUser } from "~/server/user.functions";
 import { Sidebar } from "~/components/Sidebar";
 import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/_app")({
-  loader: () => getOrCreateUser(),
+  loader: async () => {
+    const user = await getMyUser();
+    if (!user) throw redirect({ to: "/" });
+    return user;
+  },
   component: AppLayout,
 });
 

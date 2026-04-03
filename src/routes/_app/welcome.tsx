@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  getOrCreateUser,
-  saveMyUser,
-} from "~/server/user.functions";
+import { getMyUser, saveMyUser } from "~/server/user.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -12,18 +9,21 @@ import {
 } from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
 
-export const Route = createFileRoute("/_app/")({
-  loader: () => getOrCreateUser(),
-  component: HomePage,
+export const Route = createFileRoute("/_app/welcome")({
+  loader: async () => {
+    const user = await getMyUser();
+    if (!user) throw new Error("Not logged in");
+    return user;
+  },
+  component: WelcomePage,
 });
 
 function keypearAddress(id: number) {
   return `${id}@keypears.com`;
 }
 
-function HomePage() {
+function WelcomePage() {
   const data = Route.useLoaderData();
-  const [hasPassword, setHasPassword] = useState(data.hasPassword);
 
   const [copied, setCopied] = useState(false);
   const [addressInput, setAddressInput] = useState("");
@@ -77,10 +77,14 @@ function HomePage() {
           }}
           className="text-muted-foreground hover:text-foreground mt-1 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors"
         >
-          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
           {copied ? "Copied!" : "Copy"}
         </button>
-        {!hasPassword && (
+        {!data.hasPassword && (
           <div className="mt-8 w-full max-w-sm">
             <p className="text-foreground-dark mb-4 text-sm">
               Set a password to keep your address forever.
