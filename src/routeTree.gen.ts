@@ -9,16 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SaveRouteImport } from './routes/save'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/$profile'
 import { Route as IndexRouteImport } from './routes/index'
 
-const SaveRoute = SaveRouteImport.update({
-  id: '/save',
-  path: '/save',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -39,45 +33,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$profile': typeof ProfileRoute
   '/login': typeof LoginRoute
-  '/save': typeof SaveRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$profile': typeof ProfileRoute
   '/login': typeof LoginRoute
-  '/save': typeof SaveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$profile': typeof ProfileRoute
   '/login': typeof LoginRoute
-  '/save': typeof SaveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$profile' | '/login' | '/save'
+  fullPaths: '/' | '/$profile' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$profile' | '/login' | '/save'
-  id: '__root__' | '/' | '/$profile' | '/login' | '/save'
+  to: '/' | '/$profile' | '/login'
+  id: '__root__' | '/' | '/$profile' | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProfileRoute: typeof ProfileRoute
   LoginRoute: typeof LoginRoute
-  SaveRoute: typeof SaveRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/save': {
-      id: '/save'
-      path: '/save'
-      fullPath: '/save'
-      preLoaderRoute: typeof SaveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -106,7 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProfileRoute: ProfileRoute,
   LoginRoute: LoginRoute,
-  SaveRoute: SaveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
