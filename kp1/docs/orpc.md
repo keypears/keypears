@@ -204,7 +204,8 @@ The server uses middleware stacking for authentication:
 import { os, ORPCError } from "@orpc/server";
 
 // Layer 1: Extract auth headers from request
-const executionContextBase = os.$context<{ headers: IncomingHttpHeaders }>()
+const executionContextBase = os
+  .$context<{ headers: IncomingHttpHeaders }>()
   .use(async ({ context, next }) => {
     const sessionToken = context.headers["x-vault-session-token"];
     return next({ context: { ...context, sessionToken } });
@@ -242,7 +243,10 @@ export const checkNameAvailabilityProcedure = base
   .handler(async ({ input }) => {
     const { name, domain } = input;
     const available = await checkNameAvailability(name, domain);
-    return { available, difficulty: available ? getDifficulty(name) : undefined };
+    return {
+      available,
+      difficulty: available ? getDifficulty(name) : undefined,
+    };
   });
 
 // Authenticated endpoint
@@ -339,39 +343,39 @@ Common error codes: `UNAUTHORIZED`, `BAD_REQUEST`, `NOT_FOUND`, `CONFLICT`,
 
 ### Public Endpoints (No Authentication)
 
-| Procedure                      | Description                          |
-| ------------------------------ | ------------------------------------ |
-| `checkNameAvailability`        | Check if vault name is available     |
-| `registerVault`                | Register a new vault (requires PoW)  |
-| `login`                        | Create a session                     |
-| `logout`                       | Invalidate a session                 |
-| `getVaultInfoPublic`           | Get public vault info (for import)   |
-| `getPowChallenge`              | Get a proof-of-work challenge        |
-| `verifyPowProof`               | Verify a PoW solution                |
-| `getCounterpartyEngagementKey` | Get engagement key for key exchange  |
+| Procedure                      | Description                            |
+| ------------------------------ | -------------------------------------- |
+| `checkNameAvailability`        | Check if vault name is available       |
+| `registerVault`                | Register a new vault (requires PoW)    |
+| `login`                        | Create a session                       |
+| `logout`                       | Invalidate a session                   |
+| `getVaultInfoPublic`           | Get public vault info (for import)     |
+| `getPowChallenge`              | Get a proof-of-work challenge          |
+| `verifyPowProof`               | Verify a PoW solution                  |
+| `getCounterpartyEngagementKey` | Get engagement key for key exchange    |
 | `sendMessage`                  | Send encrypted message to another user |
-| `verifyEngagementKeyOwnership` | Verify key ownership across domains  |
+| `verifyEngagementKeyOwnership` | Verify key ownership across domains    |
 
 ### Authenticated Endpoints (Require Session Token)
 
-| Procedure                  | Description                              |
-| -------------------------- | ---------------------------------------- |
-| `getVaultInfo`             | Get vault info (authenticated)           |
-| `createSecretUpdate`       | Create/update a secret                   |
-| `getSecretUpdates`         | Fetch secret updates (for sync)          |
-| `createEngagementKey`      | Create engagement key for messaging      |
-| `getEngagementKeys`        | List engagement keys (paginated)         |
-| `getDerivationPrivKey`     | Get derivation key for key derivation    |
-| `getVaultSettings`         | Get vault settings                       |
-| `updateVaultSettings`      | Update vault settings                    |
-| `getEngagementKeyForSending` | Get/create key for outgoing messages   |
-| `getChannels`              | List message channels                    |
-| `getChannelMessages`       | Get messages in a channel                |
-| `getEngagementKeyByPubKey` | Lookup key by public key (for decryption)|
-| `getSenderChannel`         | Get channel for sent messages            |
-| `getInboxMessagesForSync`  | Get inbox messages for sync              |
-| `deleteInboxMessages`      | Delete synced inbox messages             |
-| `updateChannelMinDifficulty` | Update channel spam protection         |
+| Procedure                    | Description                               |
+| ---------------------------- | ----------------------------------------- |
+| `getVaultInfo`               | Get vault info (authenticated)            |
+| `createSecretUpdate`         | Create/update a secret                    |
+| `getSecretUpdates`           | Fetch secret updates (for sync)           |
+| `createEngagementKey`        | Create engagement key for messaging       |
+| `getEngagementKeys`          | List engagement keys (paginated)          |
+| `getDerivationPrivKey`       | Get derivation key for key derivation     |
+| `getVaultSettings`           | Get vault settings                        |
+| `updateVaultSettings`        | Update vault settings                     |
+| `getEngagementKeyForSending` | Get/create key for outgoing messages      |
+| `getChannels`                | List message channels                     |
+| `getChannelMessages`         | Get messages in a channel                 |
+| `getEngagementKeyByPubKey`   | Lookup key by public key (for decryption) |
+| `getSenderChannel`           | Get channel for sent messages             |
+| `getInboxMessagesForSync`    | Get inbox messages for sync               |
+| `deleteInboxMessages`        | Delete synced inbox messages              |
+| `updateChannelMinDifficulty` | Update channel spam protection            |
 
 ### Schema Reference
 

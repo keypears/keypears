@@ -104,11 +104,7 @@ export function ComponentName({ ...props }: Props) {
   if (!data) return null;
 
   // 3f. JSX
-  return (
-    <div>
-      {/* ... */}
-    </div>
-  );
+  return <div>{/* ... */}</div>;
 }
 
 // 4. Metadata (for routes)
@@ -189,7 +185,7 @@ const getEnabledCount = () => {
     if (!checked && getEnabledCount() <= 1) return;
     setLowercase(checked === true);
   }}
-/>
+/>;
 ```
 
 ## Multi-Step Wizards

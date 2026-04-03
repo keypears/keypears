@@ -66,9 +66,7 @@ function WelcomePage() {
       <div className="text-center">
         <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
         <p className="text-foreground-dark mt-2">Your KeyPears address is</p>
-        <p className="text-accent mt-1 font-bold">
-          {keypearAddress(data.id)}
-        </p>
+        <p className="text-accent mt-1 font-bold">{keypearAddress(data.id)}</p>
         <button
           onClick={() => {
             navigator.clipboard.writeText(keypearAddress(data.id));

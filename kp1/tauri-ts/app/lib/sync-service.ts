@@ -174,10 +174,7 @@ async function refreshSessionForVault(vaultId: string): Promise<boolean> {
  * Handle sync errors with appropriate logging.
  * Attempts session refresh on 401.
  */
-async function handleSyncError(
-  vaultId: string,
-  error: unknown,
-): Promise<void> {
+async function handleSyncError(vaultId: string, error: unknown): Promise<void> {
   const errorObj = error as {
     status?: number;
     response?: { status?: number };
@@ -202,13 +199,21 @@ async function handleSyncError(
 
   // Server errors (5xx)
   if (status !== null && status >= 500 && status <= 599) {
-    logOnce(vaultId, `server-${status}`, `Server error (${status}): ${message}`);
+    logOnce(
+      vaultId,
+      `server-${status}`,
+      `Server error (${status}): ${message}`,
+    );
     return;
   }
 
   // Client errors (4xx, not 401)
   if (status !== null && status >= 400 && status < 500) {
-    logOnce(vaultId, `client-${status}`, `Client error (${status}): ${message}`);
+    logOnce(
+      vaultId,
+      `client-${status}`,
+      `Client error (${status}): ${message}`,
+    );
     return;
   }
 

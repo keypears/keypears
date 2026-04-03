@@ -110,9 +110,8 @@ export async function loadStateFromRust(): Promise<void> {
     const vaults = await invoke<Record<string, SerializedVault>>(
       "get_all_unlocked_vaults",
     );
-    const storedSessions = await invoke<Record<string, SessionState>>(
-      "get_all_sessions",
-    );
+    const storedSessions =
+      await invoke<Record<string, SessionState>>("get_all_sessions");
 
     unlockedVaults.clear();
     sessions.clear();

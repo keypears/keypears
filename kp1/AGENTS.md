@@ -314,19 +314,21 @@ KeyPears has comprehensive business strategy documentation:
 Each webapp has its own PostgreSQL database with self-contained scripts:
 
 **KeyPears (web-kp):**
+
 - `pnpm --filter @keypears/web-kp db:up` - Start Postgres on port 4275
 - `pnpm --filter @keypears/web-kp db:down` - Stop Postgres
 - `pnpm --filter @keypears/web-kp db:reset` - Reset database
 
 **PassApples (web-pa):**
+
 - `pnpm --filter @keypears/web-pa db:up` - Start Postgres on port 4285
 - `pnpm --filter @keypears/web-pa db:down` - Stop Postgres
 - `pnpm --filter @keypears/web-pa db:reset` - Reset database
 
-| App | Web Port | HMR Port | DB Port | Credentials |
-|-----|----------|----------|---------|-------------|
-| KeyPears | 4273 | 4274 | 4275 | keypears/keypears_dev |
-| PassApples | 4283 | 4284 | 4285 | passapples/passapples_dev |
+| App        | Web Port | HMR Port | DB Port | Credentials               |
+| ---------- | -------- | -------- | ------- | ------------------------- |
+| KeyPears   | 4273     | 4274     | 4275    | keypears/keypears_dev     |
+| PassApples | 4283     | 4284     | 4285    | passapples/passapples_dev |
 
 ### Database Schema Management
 

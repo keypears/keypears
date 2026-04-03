@@ -19,7 +19,11 @@ export const Route = createFileRoute("/_app/$profile")({
     if (!me) {
       throw notFound();
     }
-    return { myId: me.id, profileId, publicKey: profileData?.publicKey ?? null };
+    return {
+      myId: me.id,
+      profileId,
+      publicKey: profileData?.publicKey ?? null,
+    };
   },
   component: ProfilePage,
 });

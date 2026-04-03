@@ -73,11 +73,7 @@ export async function insertUser() {
 }
 
 export async function getUserById(id: number) {
-  const [row] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+  const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return row ?? null;
 }
 

@@ -1,9 +1,9 @@
 packages:
-  - '*'
+  - "*"
 
 onlyBuiltDependencies:
-  - '@playwright/browser-chromium'
-  - '@tailwindcss/oxide'
+  - "@playwright/browser-chromium"
+  - "@tailwindcss/oxide"
   - better-sqlite3
   - esbuild
   - sharp

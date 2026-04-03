@@ -50,7 +50,7 @@ const entropy = calculatePasswordEntropy(password.length, {
   )}
 >
   {entropy.toFixed(1)} bits
-</span>
+</span>;
 ```
 
 ## Database Patterns

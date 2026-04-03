@@ -505,13 +505,13 @@ community)
 
 ### Indirect Competitors (Crypto Wallets)
 
-| Feature                 | KeyPears | MetaMask | Ledger    | Coinbase Wallet |
-| ----------------------- | -------- | -------- | --------- | --------------- |
-| **Self-Custody**        | ✅ Yes   | ✅ Yes   | ✅ Yes    | ⚠️ Partial       |
-| **Password Manager**    | ✅ Yes   | ❌ No    | ❌ No     | ❌ No           |
-| **Secret Sharing (DH)** | ✅ Yes   | ❌ No    | ❌ No     | ❌ No           |
-| **Multi-Device Sync**   | ✅ Yes   | ⚠️ Manual | ❌ No     | ✅ Yes          |
-| **Open Source**         | ✅ Yes   | ✅ Yes   | ⚠️ Partial | ❌ No           |
+| Feature                 | KeyPears | MetaMask  | Ledger     | Coinbase Wallet |
+| ----------------------- | -------- | --------- | ---------- | --------------- |
+| **Self-Custody**        | ✅ Yes   | ✅ Yes    | ✅ Yes     | ⚠️ Partial      |
+| **Password Manager**    | ✅ Yes   | ❌ No     | ❌ No      | ❌ No           |
+| **Secret Sharing (DH)** | ✅ Yes   | ❌ No     | ❌ No      | ❌ No           |
+| **Multi-Device Sync**   | ✅ Yes   | ⚠️ Manual | ❌ No      | ✅ Yes          |
+| **Open Source**         | ✅ Yes   | ✅ Yes    | ⚠️ Partial | ❌ No           |
 
 **KeyPears Advantages**:
 

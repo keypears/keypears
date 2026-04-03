@@ -173,7 +173,7 @@ export function Sidebar({
 
       {/* Mobile drawer */}
       <div
-        className={`bg-background fixed top-0 left-0 z-40 flex h-full w-64 transform flex-col border-r border-border/30 p-6 shadow-lg transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`bg-background border-border/30 fixed top-0 left-0 z-40 flex h-full w-64 transform flex-col border-r p-6 shadow-lg transition-transform duration-300 ease-in-out lg:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

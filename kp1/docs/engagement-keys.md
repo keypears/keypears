@@ -61,20 +61,20 @@ The system combines three entropy sources:
 
 - [x] Create `TableEngagementKey` in `api-server/src/db/schema.ts`:
 
-| Column                 | Type         | Description                         |
-| ---------------------- | ------------ | ----------------------------------- |
-| `id`                   | varchar(26)  | UUIDv7 primary key                  |
-| `vault_id`             | varchar(26)  | FK to vault                         |
-| `db_entropy`           | varchar(64)  | 32 bytes hex                        |
-| `db_entropy_hash`      | varchar(64)  | SHA256(db_entropy)                  |
-| `server_entropy_index` | integer      | Which DERIVATION_ENTROPY_N          |
-| `derivation_pubkey`    | varchar(66)  | 33 bytes hex - addend public key    |
-| `engagement_pubkey`    | varchar(66)  | 33 bytes hex - final public key     |
-| `engagement_pubkey_hash` | varchar(64) | SHA256(engagement_pubkey)          |
-| `counterparty_address` | varchar(255) | nullable - for future DH use        |
-| `vault_generation`     | integer      | default 1                           |
-| `created_at`           | timestamp    | when generated                      |
-| `is_used`              | boolean      | default false                       |
+| Column                   | Type         | Description                      |
+| ------------------------ | ------------ | -------------------------------- |
+| `id`                     | varchar(26)  | UUIDv7 primary key               |
+| `vault_id`               | varchar(26)  | FK to vault                      |
+| `db_entropy`             | varchar(64)  | 32 bytes hex                     |
+| `db_entropy_hash`        | varchar(64)  | SHA256(db_entropy)               |
+| `server_entropy_index`   | integer      | Which DERIVATION_ENTROPY_N       |
+| `derivation_pubkey`      | varchar(66)  | 33 bytes hex - addend public key |
+| `engagement_pubkey`      | varchar(66)  | 33 bytes hex - final public key  |
+| `engagement_pubkey_hash` | varchar(64)  | SHA256(engagement_pubkey)        |
+| `counterparty_address`   | varchar(255) | nullable - for future DH use     |
+| `vault_generation`       | integer      | default 1                        |
+| `created_at`             | timestamp    | when generated                   |
+| `is_used`                | boolean      | default false                    |
 
 - [x] Add unique index on `engagement_pubkey_hash`
 - [x] Add index on `(vault_id, created_at DESC)`

@@ -14,7 +14,10 @@ export function elementary_iteration_217a(header: Uint8Array): Uint8Array;
 /**
  * Insert 4-byte nonce into 217-byte header at bytes 117-121.
  */
-export function insert_nonce_217a(header: Uint8Array, nonce: number): Uint8Array;
+export function insert_nonce_217a(
+  header: Uint8Array,
+  nonce: number,
+): Uint8Array;
 /**
  * Matmul work computation for 64-byte input.
  * Same ASIC-resistant algorithm as 217a, just with different input size.
@@ -34,4 +37,7 @@ export function insert_nonce_64b(header: Uint8Array, nonce: number): Uint8Array;
 /**
  * Set the full 32-byte nonce (bytes 0-31).
  */
-export function set_nonce_64b(header: Uint8Array, nonce: Uint8Array): Uint8Array;
+export function set_nonce_64b(
+  header: Uint8Array,
+  nonce: Uint8Array,
+): Uint8Array;

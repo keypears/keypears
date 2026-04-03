@@ -49,14 +49,14 @@ struct AppState {
 
 **Tauri Commands:**
 
-| Command                   | Purpose                              |
-| ------------------------- | ------------------------------------ |
-| `store_unlocked_vault`    | Add vault to unlocked state          |
-| `remove_unlocked_vault`   | Remove vault from unlocked state     |
-| `get_all_unlocked_vaults` | Get all unlocked vaults              |
-| `store_session`           | Store session token for a vault      |
-| `remove_session`          | Remove session for a vault           |
-| `get_all_sessions`        | Get all sessions                     |
+| Command                   | Purpose                          |
+| ------------------------- | -------------------------------- |
+| `store_unlocked_vault`    | Add vault to unlocked state      |
+| `remove_unlocked_vault`   | Remove vault from unlocked state |
+| `get_all_unlocked_vaults` | Get all unlocked vaults          |
+| `store_session`           | Store session token for a vault  |
+| `remove_session`          | Remove session for a vault       |
+| `get_all_sessions`        | Get all sessions                 |
 
 **Key storage format:**
 
@@ -78,15 +78,15 @@ const sessions: Map<string, SessionState> = new Map();
 
 **Key functions:**
 
-| Function             | Type  | Purpose                               |
-| -------------------- | ----- | ------------------------------------- |
-| `loadStateFromRust`  | async | Populate local cache from Rust        |
-| `unlockVault`        | async | Store vault in Rust + local cache     |
-| `lockVault`          | async | Remove vault from Rust + local cache  |
-| `setSession`         | async | Store session in Rust + local cache   |
-| `getUnlockedVault`   | sync  | Read from local cache                 |
-| `isVaultUnlocked`    | sync  | Check local cache                     |
-| `getAllUnlockedVaults` | sync | Get all vaults from local cache     |
+| Function               | Type  | Purpose                              |
+| ---------------------- | ----- | ------------------------------------ |
+| `loadStateFromRust`    | async | Populate local cache from Rust       |
+| `unlockVault`          | async | Store vault in Rust + local cache    |
+| `lockVault`            | async | Remove vault from Rust + local cache |
+| `setSession`           | async | Store session in Rust + local cache  |
+| `getUnlockedVault`     | sync  | Read from local cache                |
+| `isVaultUnlocked`      | sync  | Check local cache                    |
+| `getAllUnlockedVaults` | sync  | Get all vaults from local cache      |
 
 **Design principle:** Async setters persist to Rust (source of truth), sync
 getters read from local cache for performance.
@@ -98,8 +98,8 @@ getters read from local cache for performance.
 A single polling service handles all vault synchronization:
 
 ```typescript
-const POLL_INTERVAL = 500;  // 500ms for near-realtime messaging
-const BATCH_SIZE = 10;      // Process 10 vaults per tick
+const POLL_INTERVAL = 500; // 500ms for near-realtime messaging
+const BATCH_SIZE = 10; // Process 10 vaults per tick
 ```
 
 **Key characteristics:**
@@ -117,9 +117,9 @@ const BATCH_SIZE = 10;      // Process 10 vaults per tick
 
 ```typescript
 export async function clientLoader() {
-  await runMigrations();       // Run database migrations
-  await loadStateFromRust();   // Restore vault state from Rust
-  startPollingService();       // Start unified polling
+  await runMigrations(); // Run database migrations
+  await loadStateFromRust(); // Restore vault state from Rust
+  startPollingService(); // Start unified polling
   return null;
 }
 ```
@@ -161,7 +161,7 @@ Sessions are stored per-vault and include expiry times:
 ```typescript
 interface SessionState {
   sessionToken: string;
-  expiresAt: number;  // Unix timestamp (ms)
+  expiresAt: number; // Unix timestamp (ms)
 }
 ```
 
@@ -194,13 +194,13 @@ async function refreshSessionForVault(vaultId: string): Promise<boolean> {
 
 ## Behavior Summary
 
-| Scenario        | Behavior                                        |
-| --------------- | ----------------------------------------------- |
-| App starts      | Load state from Rust, start polling             |
-| Webview reload  | State persists, polling continues automatically |
-| Unlock vault    | Store in Rust → next poll tick picks it up      |
-| Lock vault      | Remove from Rust → polling ignores it           |
-| Session expires | Auto-refresh using stored `loginKey`            |
+| Scenario        | Behavior                                           |
+| --------------- | -------------------------------------------------- |
+| App starts      | Load state from Rust, start polling                |
+| Webview reload  | State persists, polling continues automatically    |
+| Unlock vault    | Store in Rust → next poll tick picks it up         |
+| Lock vault      | Remove from Rust → polling ignores it              |
+| Session expires | Auto-refresh using stored `loginKey`               |
 | App restart     | State cleared (Rust memory cleared), vaults locked |
 
 ## Security Considerations

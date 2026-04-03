@@ -192,7 +192,7 @@ export const TableVault = sqliteTable(
 **Device description detection:**
 
 ```typescript
-import { platform, version, arch } from '@tauri-apps/plugin-os';
+import { platform, version, arch } from "@tauri-apps/plugin-os";
 
 // Auto-detect device description
 function detectDeviceDescription(): string {
@@ -227,50 +227,54 @@ function detectDeviceDescription(): string {
 
 ```typescript
 export const TableDeviceSession = pgTable(
-  'device_session',
+  "device_session",
   {
     // Primary key - UUIDv7
-    id: varchar('id', { length: 26 }).primaryKey(),
+    id: varchar("id", { length: 26 }).primaryKey(),
 
     // Foreign key to vault
-    vaultId: varchar('vault_id', { length: 26 })
+    vaultId: varchar("vault_id", { length: 26 })
       .notNull()
-      .references(() => TableVault.id, { onDelete: 'cascade' }),
+      .references(() => TableVault.id, { onDelete: "cascade" }),
 
     // Device identifier (client-generated UUIDv7, unique per vault per device)
-    deviceId: varchar('device_id', { length: 26 }).notNull(),
+    deviceId: varchar("device_id", { length: 26 }).notNull(),
 
     // Device metadata for user-facing identification
     // Auto-detected by client, sent during login (read-only)
-    clientDeviceDescription: varchar('client_device_description', { length: 100 }), // e.g., "macOS 14.1 (aarch64)"
+    clientDeviceDescription: varchar("client_device_description", {
+      length: 100,
+    }), // e.g., "macOS 14.1 (aarch64)"
 
     // User-editable device name (set by vault owner via UI)
-    serverDeviceName: varchar('server_device_name', { length: 100 }), // e.g., "Ryan's MacBook Pro"
+    serverDeviceName: varchar("server_device_name", { length: 100 }), // e.g., "Ryan's MacBook Pro"
 
     // Hashed session token (SHA-256 hash of 32-byte random token)
     // Server NEVER stores raw session token - only SHA-256 hash
     // Client sends raw token, server hashes and compares
-    hashedSessionToken: varchar('hashed_session_token', { length: 64 }).notNull(), // SHA-256 hex = 64 chars
+    hashedSessionToken: varchar("hashed_session_token", {
+      length: 64,
+    }).notNull(), // SHA-256 hex = 64 chars
 
     // Session expiration (Unix milliseconds)
-    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 
     // Last activity timestamp for session management
-    lastActivityAt: timestamp('last_activity_at').defaultNow().notNull(),
+    lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
 
     // Tracking
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ([
+  (table) => [
     // Index for looking up active sessions by vault + device
-    index('idx_vault_device').on(table.vaultId, table.deviceId),
+    index("idx_vault_device").on(table.vaultId, table.deviceId),
 
     // Index for token lookup (used on every authenticated request)
-    index('idx_session_token').on(table.sessionToken),
+    index("idx_session_token").on(table.sessionToken),
 
     // Unique: one active session per vault + device combination
     unique().on(table.vaultId, table.deviceId),
-  ]),
+  ],
 );
 ```
 
@@ -304,7 +308,7 @@ export const TableDeviceSession = pgTable(
 
 ```typescript
 import { uuidv7 } from "@keypears/lib";
-import { platform, version, arch } from '@tauri-apps/plugin-os';
+import { platform, version, arch } from "@tauri-apps/plugin-os";
 
 // Generate NEW device ID for this vault
 const deviceId = uuidv7(); // Fresh UUIDv7 for this specific vault
@@ -319,8 +323,8 @@ await db.insert(TableVault).values({
   domain,
   encryptedVaultKey,
   vaultPubKeyHash,
-  deviceId,              // NEW: Per-vault device ID
-  deviceDescription,      // NEW: Auto-detected OS info
+  deviceId, // NEW: Per-vault device ID
+  deviceDescription, // NEW: Auto-detected OS info
   // ... other fields ...
 });
 ```
@@ -336,13 +340,13 @@ const deviceDescription = detectDeviceDescription();
 
 // Store in vault record
 await db.insert(TableVault).values({
-  id: importedVaultId,    // From server
-  name: importedName,     // From server
+  id: importedVaultId, // From server
+  name: importedName, // From server
   domain: importedDomain, // From server
-  encryptedVaultKey,      // From server
-  vaultPubKeyHash,        // From server
-  deviceId,               // NEW: Unique to this device+vault combination
-  deviceDescription,      // NEW: Auto-detected for this device
+  encryptedVaultKey, // From server
+  vaultPubKeyHash, // From server
+  deviceId, // NEW: Unique to this device+vault combination
+  deviceDescription, // NEW: Auto-detected for this device
   // ... other fields ...
 });
 ```
@@ -455,13 +459,15 @@ if (!session[0]) {
 
 // Check expiration
 if (Date.now() > session[0].expiresAt) {
-  await db.delete(TableDeviceSession)
+  await db
+    .delete(TableDeviceSession)
     .where(eq(TableDeviceSession.id, session[0].id));
   throw new ORPCError("UNAUTHORIZED", "Session expired");
 }
 
 // Update last activity
-await db.update(TableDeviceSession)
+await db
+  .update(TableDeviceSession)
   .set({ lastActivityAt: new Date() })
   .where(eq(TableDeviceSession.id, session[0].id));
 
@@ -615,11 +621,11 @@ database only stores hashes
 
 **Token storage security:**
 
-| Token Type     | Client Storage | Server Storage                        | Database Breach Impact                                                                                             |
-| -------------- | -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Token Type     | Client Storage | Server Storage                           | Database Breach Impact                                                                                               |
+| -------------- | -------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Login Key      | Memory only    | SHA-256 hash (vaultId MAC + 100k rounds) | Cannot use directly (needs vaultId + 100k rounds reversal + 100k rounds reversal + rainbow table for 32-byte random) |
-| Session Token  | Memory only    | SHA-256 hash (single round)            | Cannot use directly (32-byte random, no rainbow table)                                                             |
-| Encryption Key | Memory only    | Never sent to server                  | N/A - server never sees this                                                                                       |
+| Session Token  | Memory only    | SHA-256 hash (single round)              | Cannot use directly (32-byte random, no rainbow table)                                                               |
+| Encryption Key | Memory only    | Never sent to server                     | N/A - server never sees this                                                                                         |
 
 **Why hashing session tokens matters:**
 

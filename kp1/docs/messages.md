@@ -592,15 +592,15 @@ Both sent and received messages use `type: "message"` in the existing
 interface MessageSecretBlob {
   type: "message";
   direction: "sent" | "received";
-  counterpartyAddress: string;  // e.g., "bob@example.com"
+  counterpartyAddress: string; // e.g., "bob@example.com"
 
   // For decryption
-  myEngagementPubKey: string;     // My pubkey used in this exchange
-  theirEngagementPubKey: string;  // Their pubkey used in this exchange
+  myEngagementPubKey: string; // My pubkey used in this exchange
+  theirEngagementPubKey: string; // Their pubkey used in this exchange
 
   // Message content
-  content: MessageContent;  // The actual message (text, etc.)
-  timestamp: number;        // When sent/received
+  content: MessageContent; // The actual message (text, etc.)
+  timestamp: number; // When sent/received
 }
 ```
 

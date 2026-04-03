@@ -143,7 +143,7 @@ component's `inline-flex`:
     value={password}
     className="pr-10"
   />
-  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+  <div className="absolute top-1/2 right-2 -translate-y-1/2">
     <Button
       variant="ghost"
       size="icon-sm"
@@ -163,8 +163,10 @@ component's `inline-flex`:
   value={value}
   onChange={(e) => setValue(e.target.value)}
   className={error ? "border-destructive" : ""}
-/>
-{error && <p className="text-destructive text-xs">{error}</p>}
+/>;
+{
+  error && <p className="text-destructive text-xs">{error}</p>;
+}
 ```
 
 #### Input with Metadata Display
@@ -246,7 +248,7 @@ const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
-</AlertDialog>
+</AlertDialog>;
 ```
 
 ## Layout Patterns
@@ -261,9 +263,7 @@ export default function PageName() {
     <div className="bg-background flex min-h-screen flex-col">
       <Navbar />
       <div className="flex flex-1 flex-col px-4 py-8">
-        <div className="mx-auto w-full max-w-2xl">
-          {/* Page content */}
-        </div>
+        <div className="mx-auto w-full max-w-2xl">{/* Page content */}</div>
       </div>
       <Footer />
     </div>
@@ -380,8 +380,10 @@ const handleChange = (newValue: string) => {
   value={value}
   onChange={(e) => handleChange(e.target.value)}
   className={error ? "border-destructive" : ""}
-/>
-{error && <p className="text-destructive text-xs">{error}</p>}
+/>;
+{
+  error && <p className="text-destructive text-xs">{error}</p>;
+}
 ```
 
 **Debounced async validation (e.g., checking uniqueness):**
@@ -445,7 +447,7 @@ const [copied, setCopied] = useState(false);
       </div>
     </div>
   )}
-</div>
+</div>;
 ```
 
 ## Accessibility Patterns

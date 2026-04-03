@@ -303,28 +303,28 @@ phase milestone).
 
 ## 6. File-Specific Checks
 
-### 6.1 For Route Files (*.tsx)
+### 6.1 For Route Files (\*.tsx)
 
 - [ ] Does the route have proper TypeScript types from `Route.ComponentProps`?
 - [ ] Is the `clientLoader` validating auth and redirecting if needed?
 - [ ] Are loader errors handled gracefully?
 - [ ] Is the component focused on rendering (logic in loader/hooks)?
 
-### 6.2 For Component Files (*.tsx)
+### 6.2 For Component Files (\*.tsx)
 
 - [ ] Is the component single-purpose?
 - [ ] Are props properly typed?
 - [ ] Are side effects in useEffect?
 - [ ] Is state minimal and co-located?
 
-### 6.3 For Library Files (*.ts)
+### 6.3 For Library Files (\*.ts)
 
 - [ ] Are functions pure where possible?
 - [ ] Are dependencies explicit (no global state where avoidable)?
 - [ ] Are errors thrown with clear messages?
 - [ ] Is the module's public API minimal?
 
-### 6.4 For Database Files (*.ts)
+### 6.4 For Database Files (\*.ts)
 
 - [ ] Are queries efficient?
 - [ ] Are indexes defined for common queries?

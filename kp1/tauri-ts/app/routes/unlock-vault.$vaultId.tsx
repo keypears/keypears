@@ -120,7 +120,11 @@ export default function UnlockVault({ loaderData }: Route.ComponentProps) {
       });
 
       // Step 4: Set session token in vault store (now requires vaultId)
-      await setSession(vault.id, loginResponse.sessionToken, loginResponse.expiresAt);
+      await setSession(
+        vault.id,
+        loginResponse.sessionToken,
+        loginResponse.expiresAt,
+      );
 
       // Step 5: Unlock vault in vault store
       await unlockVault({

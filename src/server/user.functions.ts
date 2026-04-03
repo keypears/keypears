@@ -36,16 +36,14 @@ export const createUser = createServerFn({ method: "POST" }).handler(
   },
 );
 
-export const getMyUser = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) return null;
-    const row = await getUserById(Number(id));
-    if (!row) return null;
-    if (row.expiresAt && row.expiresAt < new Date()) return null;
-    return { id: row.id, hasPassword: row.passwordHash != null };
-  },
-);
+export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
+  const id = getCookie(COOKIE_NAME);
+  if (!id) return null;
+  const row = await getUserById(Number(id));
+  if (!row) return null;
+  if (row.expiresAt && row.expiresAt < new Date()) return null;
+  return { id: row.id, hasPassword: row.passwordHash != null };
+});
 
 export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -117,13 +115,11 @@ export const rotateKey = createServerFn({ method: "POST" })
     return { keyNumber: result.keyNumber };
   });
 
-export const getMyKeys = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) return [];
-    return getRecentKeys(Number(id), 10);
-  },
-);
+export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
+  const id = getCookie(COOKIE_NAME);
+  if (!id) return [];
+  return getRecentKeys(Number(id), 10);
+});
 
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)

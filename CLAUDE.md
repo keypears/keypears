@@ -60,7 +60,7 @@ public/images/      # generated WebP images
 
 ## Key conventions
 
-- Use a single `DATABASE_URL` env var for database connections, not separate DB_* vars.
+- Use a single `DATABASE_URL` env var for database connections, not separate DB\_\* vars.
 - Use `dotenvx run -f .env.dev --` to wrap commands that need env vars.
 - Server functions follow the two-file pattern:
   - `*.functions.ts` — `createServerFn` wrappers, safe to import from client code

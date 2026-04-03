@@ -318,10 +318,16 @@ When re-deriving (e.g., Bob retrieves his engagement private key), the server
 uses the same derivation entropy index that was originally used:
 
 ```typescript
-function recomputeEngagementKey(engagementKeyRecord: EngagementKey): FixedBuf<33> {
-  const entropy = derivationEntropy.get(engagementKeyRecord.derivation_entropy_index);
+function recomputeEngagementKey(
+  engagementKeyRecord: EngagementKey,
+): FixedBuf<33> {
+  const entropy = derivationEntropy.get(
+    engagementKeyRecord.derivation_entropy_index,
+  );
   if (!entropy) {
-    throw new Error(`Missing derivation entropy ${engagementKeyRecord.derivation_entropy_index}`);
+    throw new Error(
+      `Missing derivation entropy ${engagementKeyRecord.derivation_entropy_index}`,
+    );
   }
   // Use entropy to recompute...
 }
@@ -356,13 +362,17 @@ function validateDerivationEntropy(entropy: Map<number, FixedBuf<32>>): void {
   const indices = [...entropy.keys()].sort((a, b) => a - b);
   for (let i = 0; i < indices.length; i++) {
     if (indices[i] !== i + 1) {
-      throw new Error(`Gap in derivation entropy: missing DERIVATION_ENTROPY_${i + 1}`);
+      throw new Error(
+        `Gap in derivation entropy: missing DERIVATION_ENTROPY_${i + 1}`,
+      );
     }
   }
 
   // Warn if only one entropy value (rotation overdue)
   if (entropy.size === 1) {
-    console.warn("Only one derivation entropy configured. Consider adding a rotation.");
+    console.warn(
+      "Only one derivation entropy configured. Consider adding a rotation.",
+    );
   }
 }
 ```
@@ -670,6 +680,7 @@ When `2.com` receives a request claiming to be from `alice@1.com`:
 **Layer 1: PoW Verification**
 
 Bob's server verifies:
+
 - Challenge exists and is not expired
 - Challenge has not been used
 - Solved hash meets the target difficulty
@@ -678,6 +689,7 @@ Bob's server verifies:
 **Layer 2: Signature Verification**
 
 Bob's server verifies:
+
 - Signature is valid ECDSA signature over `solvedHash`
 - Signature was created with the private key corresponding to `senderPubKey`
 - This proves Alice owns the private key for her claimed pubkey
@@ -700,6 +712,7 @@ Bob's server calls Alice's server (`verifyEngagementKeyOwnership`):
 ```
 
 Alice's server checks:
+
 - Parse address to get vault name and domain
 - Look up vault by name/domain
 - Check if an engagement key exists with:
@@ -708,6 +721,7 @@ Alice's server checks:
   - `purpose` = "send" (keys created for sending)
 
 **Security note**: No PoW required for `verifyEngagementKeyOwnership` because:
+
 - Public keys are essentially random (can't enumerate)
 - No way to list someone's public keys
 - This is just a boolean lookup confirmation
@@ -1107,24 +1121,25 @@ API, see [messages.md](./messages.md).
 
 **Key Exchange Endpoints:**
 
-| Procedure                      | Auth                    | Purpose                                                    |
-| ------------------------------ | ----------------------- | ---------------------------------------------------------- |
-| `getEngagementKeyForSending`   | Session token           | Create "send" engagement key for a counterparty            |
-| `getCounterpartyEngagementKey` | PoW + Signature         | Get recipient's key (with three-layer verification)        |
-| `verifyEngagementKeyOwnership` | Public                  | Cross-domain identity verification (pubkey → address)      |
-| `getDerivationPrivKey`         | Session token           | Get derivation private key to derive engagement private key|
-| `getEngagementKeyByPubKey`     | Session token           | Look up engagement key ID from public key                  |
+| Procedure                      | Auth            | Purpose                                                     |
+| ------------------------------ | --------------- | ----------------------------------------------------------- |
+| `getEngagementKeyForSending`   | Session token   | Create "send" engagement key for a counterparty             |
+| `getCounterpartyEngagementKey` | PoW + Signature | Get recipient's key (with three-layer verification)         |
+| `verifyEngagementKeyOwnership` | Public          | Cross-domain identity verification (pubkey → address)       |
+| `getDerivationPrivKey`         | Session token   | Get derivation private key to derive engagement private key |
+| `getEngagementKeyByPubKey`     | Session token   | Look up engagement key ID from public key                   |
 
 **Messaging Endpoints:**
 
-| Procedure                      | Auth                    | Purpose                                                    |
-| ------------------------------ | ----------------------- | ---------------------------------------------------------- |
-| `sendMessage`                  | Channel binding         | Send encrypted message (references consumed PoW)           |
-| `getChannels`                  | Session token           | List channels for an address                               |
-| `getChannelMessages`           | Session token           | Get messages in a channel                                  |
-| `getSenderChannel`             | Session token           | Get/create sender's channel view                           |
+| Procedure            | Auth            | Purpose                                          |
+| -------------------- | --------------- | ------------------------------------------------ |
+| `sendMessage`        | Channel binding | Send encrypted message (references consumed PoW) |
+| `getChannels`        | Session token   | List channels for an address                     |
+| `getChannelMessages` | Session token   | Get messages in a channel                        |
+| `getSenderChannel`   | Session token   | Get/create sender's channel view                 |
 
 **Security Model**: The implementation uses:
+
 - **PoW** for DoS prevention (at key request time)
 - **ECDSA signatures** for sender authentication (proves key ownership)
 - **Cross-domain verification** for identity binding (confirms pubkey belongs to address)

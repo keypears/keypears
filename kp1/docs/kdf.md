@@ -103,12 +103,14 @@ const hashedLoginKey = deriveHashedLoginKey(saltedLoginKey);
 ```
 
 **Why per-vault salting?**
+
 - Prevents password reuse detection across vaults
 - Two vaults with same password have different `hashedLoginKey` values
 - Vault ID is immutable (unlike vault name), safe to use as long-term salt
 - No information leakage about password patterns across vaults
 
 **Why 100,000 rounds on server?**
+
 - Maximum security: matches client-side 100k rounds for consistent protection
 - Login key has already undergone 100,000 rounds of KDF client-side
 - Server-side KDF prevents storing raw login key in database
@@ -205,7 +207,7 @@ after a configurable time period, requiring full password re-entry.
   reliable background execution)
 - On app resume/foreground, check if
   `current_time - last_auth_time >
-  expiration_duration`
+expiration_duration`
 - If expired: clear PIN key from memory, require full password
 - If not expired: allow PIN unlock
 
@@ -250,12 +252,14 @@ the client's **100,000 rounds** for all its key derivations.
 ### Why Match Client Round Counts?
 
 **Client-side (100k rounds)**:
+
 - Primary security barrier against brute-force attacks
 - Derives password key from user's password (protects weak passwords)
 - Derives encryption key and login key from password key
 - Must be computationally expensive to prevent password guessing
 
 **Server-side (100k rounds)**:
+
 - Maximum security: matches client-side protection level
 - Login key has already undergone 100k rounds client-side
 - Purpose is to avoid storing raw login key in database
