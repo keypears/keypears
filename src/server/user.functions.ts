@@ -5,13 +5,14 @@ import {
   deleteCookie,
 } from "@tanstack/react-start/server";
 import {
-  insertKeypear,
-  getKeypearById,
-  saveKeypear,
+  insertUser,
+  getUserById,
+  saveUser,
   verifyLogin,
-} from "./keypears.server";
+  getActiveKey,
+} from "./user.server";
 
-const COOKIE_NAME = "keypear_id";
+const COOKIE_NAME = "user_id";
 const ONE_DAY = 60 * 60 * 24;
 const TWO_YEARS = 60 * 60 * 24 * 365 * 2;
 
@@ -25,42 +26,41 @@ function cookieOpts(maxAge: number) {
   };
 }
 
-export const createKeypear = createServerFn({ method: "POST" }).handler(
+export const createUser = createServerFn({ method: "POST" }).handler(
   async () => {
-    const result = await insertKeypear();
+    const result = await insertUser();
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
     return result;
   },
 );
 
-export const getMyKeypear = createServerFn({ method: "GET" }).handler(
+export const getMyUser = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) return null;
-    const row = await getKeypearById(Number(id));
+    const row = await getUserById(Number(id));
     if (!row) return null;
-    // Check if expired
     if (row.expiresAt && row.expiresAt < new Date()) return null;
     return { id: row.id, hasPassword: row.passwordHash != null };
   },
 );
 
-export const getOrCreateKeypear = createServerFn({ method: "GET" }).handler(
+export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (id) {
-      const row = await getKeypearById(Number(id));
+      const row = await getUserById(Number(id));
       if (row && (!row.expiresAt || row.expiresAt >= new Date())) {
         return { id: row.id, hasPassword: row.passwordHash != null };
       }
     }
-    const result = await insertKeypear();
+    const result = await insertUser();
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
     return { id: result.id, hasPassword: false };
   },
 );
 
-export const saveMyKeypear = createServerFn({ method: "POST" })
+export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       loginKey: string;
@@ -71,10 +71,10 @@ export const saveMyKeypear = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    const row = await getKeypearById(Number(id));
-    if (!row) throw new Error("Keypear not found");
+    const row = await getUserById(Number(id));
+    if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
-    await saveKeypear(
+    await saveUser(
       row.id,
       input.loginKey,
       input.publicKey,
@@ -100,11 +100,12 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)
   .handler(async ({ data: id }) => {
-    const row = await getKeypearById(id);
+    const row = await getUserById(id);
     if (!row) return null;
+    const activeKey = await getActiveKey(id);
     return {
       id: row.id,
-      publicKey: row.publicKey,
+      publicKey: activeKey?.publicKey ?? null,
       createdAt: row.createdAt,
     };
   });

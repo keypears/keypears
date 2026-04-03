@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { logout } from "~/server/keypears.functions";
+import { logout } from "~/server/user.functions";
 import { $icon } from "~/lib/icons";
 import {
   Inbox,

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { login } from "~/server/keypears.functions";
+import { login } from "~/server/user.functions";
 import { deriveLoginKey } from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 

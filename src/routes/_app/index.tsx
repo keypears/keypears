@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  getOrCreateKeypear,
-  saveMyKeypear,
-} from "~/server/keypears.functions";
+  getOrCreateUser,
+  saveMyUser,
+} from "~/server/user.functions";
 import { deriveLoginKey, generateAndEncryptKeyPair } from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
-  loader: () => getOrCreateKeypear(),
+  loader: () => getOrCreateUser(),
   component: HomePage,
 });
 
@@ -43,7 +43,7 @@ function HomePage() {
       const loginKey = deriveLoginKey(password);
       const { publicKey, encryptedPrivateKey } =
         generateAndEncryptKeyPair(password);
-      await saveMyKeypear({
+      await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
       setHasPassword(true);

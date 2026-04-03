@@ -1,6 +1,6 @@
 import { db, pool } from "~/db";
-import { keypears } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { users, keys } from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -32,7 +32,7 @@ function hashLoginKey(loginKeyHex: string): string {
   return hashed.buf.toHex();
 }
 
-export async function insertKeypear() {
+export async function insertUser() {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + EXPIRY_MS);
 
@@ -41,7 +41,7 @@ export async function insertKeypear() {
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      `SELECT id FROM keypears
+      `SELECT id FROM users
        WHERE expires_at < NOW() AND password_hash IS NULL
        ORDER BY id ASC LIMIT 1 FOR UPDATE`,
     );
@@ -51,12 +51,12 @@ export async function insertKeypear() {
     if (Array.isArray(rows) && rows.length > 0) {
       id = (rows[0] as any).id;
       await conn.query(
-        `UPDATE keypears SET created_at = ?, expires_at = ?, password_hash = NULL WHERE id = ?`,
+        `UPDATE users SET created_at = ?, expires_at = ?, password_hash = NULL WHERE id = ?`,
         [now, expiresAt, id],
       );
     } else {
       const [result] = await conn.query(
-        `INSERT INTO keypears (created_at, expires_at) VALUES (?, ?)`,
+        `INSERT INTO users (created_at, expires_at) VALUES (?, ?)`,
         [now, expiresAt],
       );
       id = (result as any).insertId;
@@ -72,16 +72,26 @@ export async function insertKeypear() {
   }
 }
 
-export async function getKeypearById(id: number) {
+export async function getUserById(id: number) {
   const [row] = await db
     .select()
-    .from(keypears)
-    .where(eq(keypears.id, id))
+    .from(users)
+    .where(eq(users.id, id))
     .limit(1);
   return row ?? null;
 }
 
-export async function saveKeypear(
+export async function getActiveKey(userId: number) {
+  const [row] = await db
+    .select()
+    .from(keys)
+    .where(eq(keys.userId, userId))
+    .orderBy(desc(keys.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function saveUser(
   id: number,
   loginKeyHex: string,
   publicKey: string,
@@ -89,16 +99,17 @@ export async function saveKeypear(
 ) {
   const passwordHash = hashLoginKey(loginKeyHex);
   await db
-    .update(keypears)
-    .set({ passwordHash, publicKey, encryptedPrivateKey, expiresAt: null })
-    .where(eq(keypears.id, id));
+    .update(users)
+    .set({ passwordHash, expiresAt: null })
+    .where(eq(users.id, id));
+  await db.insert(keys).values({ userId: id, publicKey, encryptedPrivateKey });
 }
 
 export async function verifyLogin(id: number, loginKeyHex: string) {
   const [saved] = await db
     .select()
-    .from(keypears)
-    .where(eq(keypears.id, id))
+    .from(users)
+    .where(eq(users.id, id))
     .limit(1);
 
   if (!saved || !saved.passwordHash) {

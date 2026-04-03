@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { getOrCreateKeypear } from "~/server/keypears.functions";
+import { getOrCreateUser } from "~/server/user.functions";
 import { Sidebar } from "~/components/Sidebar";
 import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/_app")({
-  loader: () => getOrCreateKeypear(),
+  loader: () => getOrCreateUser(),
   component: AppLayout,
 });
 

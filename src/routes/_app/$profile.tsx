@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { getMyKeypear, getProfile } from "~/server/keypears.functions";
+import { getMyUser, getProfile } from "~/server/user.functions";
 import { CircleUser } from "lucide-react";
 
 export const Route = createFileRoute("/_app/$profile")({
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/$profile")({
       throw notFound();
     }
     const [me, profileData] = await Promise.all([
-      getMyKeypear(),
+      getMyUser(),
       getProfile({ data: profileId }),
     ]);
     if (!me) {
