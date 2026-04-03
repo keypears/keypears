@@ -77,6 +77,17 @@ export async function getUserById(id: number) {
   return row ?? null;
 }
 
+export async function deleteUnsavedUser(id: number) {
+  const user = await getUserById(id);
+  if (!user) throw new Error("User not found");
+  if (user.passwordHash) throw new Error("Cannot delete a saved account");
+  // Set expires_at to the past so the row is immediately recyclable
+  await db
+    .update(users)
+    .set({ expiresAt: new Date(0) })
+    .where(eq(users.id, id));
+}
+
 export async function getActiveKey(userId: number) {
   const [row] = await db
     .select()

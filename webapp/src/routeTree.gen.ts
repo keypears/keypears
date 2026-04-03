@@ -13,11 +13,12 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
-import { Route as AppVaultRouteImport } from './routes/_app/vault'
-import { Route as AppSendRouteImport } from './routes/_app/send'
-import { Route as AppKeysRouteImport } from './routes/_app/keys'
-import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppSavedRouteImport } from './routes/_app/_saved'
 import { Route as AppProfileRouteImport } from './routes/_app/$profile'
+import { Route as AppSavedVaultRouteImport } from './routes/_app/_saved/vault'
+import { Route as AppSavedSendRouteImport } from './routes/_app/_saved/send'
+import { Route as AppSavedKeysRouteImport } from './routes/_app/_saved/keys'
+import { Route as AppSavedInboxRouteImport } from './routes/_app/_saved/inbox'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -38,24 +39,8 @@ const AppWelcomeRoute = AppWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => AppRoute,
 } as any)
-const AppVaultRoute = AppVaultRouteImport.update({
-  id: '/vault',
-  path: '/vault',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSendRoute = AppSendRouteImport.update({
-  id: '/send',
-  path: '/send',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppKeysRoute = AppKeysRouteImport.update({
-  id: '/keys',
-  path: '/keys',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInboxRoute = AppInboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
+const AppSavedRoute = AppSavedRouteImport.update({
+  id: '/_saved',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -63,26 +48,46 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/$profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSavedVaultRoute = AppSavedVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => AppSavedRoute,
+} as any)
+const AppSavedSendRoute = AppSavedSendRouteImport.update({
+  id: '/send',
+  path: '/send',
+  getParentRoute: () => AppSavedRoute,
+} as any)
+const AppSavedKeysRoute = AppSavedKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => AppSavedRoute,
+} as any)
+const AppSavedInboxRoute = AppSavedInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppSavedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
-  '/inbox': typeof AppInboxRoute
-  '/keys': typeof AppKeysRoute
-  '/send': typeof AppSendRoute
-  '/vault': typeof AppVaultRoute
   '/welcome': typeof AppWelcomeRoute
+  '/inbox': typeof AppSavedInboxRoute
+  '/keys': typeof AppSavedKeysRoute
+  '/send': typeof AppSavedSendRoute
+  '/vault': typeof AppSavedVaultRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
-  '/inbox': typeof AppInboxRoute
-  '/keys': typeof AppKeysRoute
-  '/send': typeof AppSendRoute
-  '/vault': typeof AppVaultRoute
   '/welcome': typeof AppWelcomeRoute
+  '/inbox': typeof AppSavedInboxRoute
+  '/keys': typeof AppSavedKeysRoute
+  '/send': typeof AppSavedSendRoute
+  '/vault': typeof AppSavedVaultRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -90,11 +95,12 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/$profile': typeof AppProfileRoute
-  '/_app/inbox': typeof AppInboxRoute
-  '/_app/keys': typeof AppKeysRoute
-  '/_app/send': typeof AppSendRoute
-  '/_app/vault': typeof AppVaultRoute
+  '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
+  '/_app/_saved/inbox': typeof AppSavedInboxRoute
+  '/_app/_saved/keys': typeof AppSavedKeysRoute
+  '/_app/_saved/send': typeof AppSavedSendRoute
+  '/_app/_saved/vault': typeof AppSavedVaultRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -102,32 +108,33 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/$profile'
+    | '/welcome'
     | '/inbox'
     | '/keys'
     | '/send'
     | '/vault'
-    | '/welcome'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/$profile'
+    | '/welcome'
     | '/inbox'
     | '/keys'
     | '/send'
     | '/vault'
-    | '/welcome'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
     | '/_app/$profile'
-    | '/_app/inbox'
-    | '/_app/keys'
-    | '/_app/send'
-    | '/_app/vault'
+    | '/_app/_saved'
     | '/_app/welcome'
+    | '/_app/_saved/inbox'
+    | '/_app/_saved/keys'
+    | '/_app/_saved/send'
+    | '/_app/_saved/vault'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -166,32 +173,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWelcomeRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/vault': {
-      id: '/_app/vault'
-      path: '/vault'
-      fullPath: '/vault'
-      preLoaderRoute: typeof AppVaultRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/send': {
-      id: '/_app/send'
-      path: '/send'
-      fullPath: '/send'
-      preLoaderRoute: typeof AppSendRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/keys': {
-      id: '/_app/keys'
-      path: '/keys'
-      fullPath: '/keys'
-      preLoaderRoute: typeof AppKeysRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/inbox': {
-      id: '/_app/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof AppInboxRouteImport
+    '/_app/_saved': {
+      id: '/_app/_saved'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppSavedRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/$profile': {
@@ -201,24 +187,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/_saved/vault': {
+      id: '/_app/_saved/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof AppSavedVaultRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
+    '/_app/_saved/send': {
+      id: '/_app/_saved/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof AppSavedSendRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
+    '/_app/_saved/keys': {
+      id: '/_app/_saved/keys'
+      path: '/keys'
+      fullPath: '/keys'
+      preLoaderRoute: typeof AppSavedKeysRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
+    '/_app/_saved/inbox': {
+      id: '/_app/_saved/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppSavedInboxRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
   }
 }
 
+interface AppSavedRouteChildren {
+  AppSavedInboxRoute: typeof AppSavedInboxRoute
+  AppSavedKeysRoute: typeof AppSavedKeysRoute
+  AppSavedSendRoute: typeof AppSavedSendRoute
+  AppSavedVaultRoute: typeof AppSavedVaultRoute
+}
+
+const AppSavedRouteChildren: AppSavedRouteChildren = {
+  AppSavedInboxRoute: AppSavedInboxRoute,
+  AppSavedKeysRoute: AppSavedKeysRoute,
+  AppSavedSendRoute: AppSavedSendRoute,
+  AppSavedVaultRoute: AppSavedVaultRoute,
+}
+
+const AppSavedRouteWithChildren = AppSavedRoute._addFileChildren(
+  AppSavedRouteChildren,
+)
+
 interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
-  AppInboxRoute: typeof AppInboxRoute
-  AppKeysRoute: typeof AppKeysRoute
-  AppSendRoute: typeof AppSendRoute
-  AppVaultRoute: typeof AppVaultRoute
+  AppSavedRoute: typeof AppSavedRouteWithChildren
   AppWelcomeRoute: typeof AppWelcomeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
-  AppInboxRoute: AppInboxRoute,
-  AppKeysRoute: AppKeysRoute,
-  AppSendRoute: AppSendRoute,
-  AppVaultRoute: AppVaultRoute,
+  AppSavedRoute: AppSavedRouteWithChildren,
   AppWelcomeRoute: AppWelcomeRoute,
 }
 

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { getMyUser, saveMyUser } from "~/server/user.functions";
+import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -122,6 +122,15 @@ function WelcomePage() {
                 {saving ? "Saving..." : "Save"}
               </button>
             </form>
+            <button
+              onClick={async () => {
+                await deleteMyUser();
+                navigate({ to: "/" });
+              }}
+              className="text-muted-foreground hover:text-destructive mt-4 cursor-pointer text-xs transition-colors"
+            >
+              Delete my account
+            </button>
           </div>
         )}
       </div>

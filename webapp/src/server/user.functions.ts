@@ -12,6 +12,7 @@ import {
   getActiveKey,
   insertKey,
   getRecentKeys,
+  deleteUnsavedUser,
 } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
 
@@ -100,6 +101,16 @@ export const saveMyUser = createServerFn({ method: "POST" })
     setCookie(COOKIE_NAME, String(row.id), cookieOpts(TWO_YEARS));
     return { success: true };
   });
+
+export const deleteMyUser = createServerFn({ method: "POST" }).handler(
+  async () => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+    await deleteUnsavedUser(Number(id));
+    deleteCookie(COOKIE_NAME);
+    return { success: true };
+  },
+);
 
 export const login = createServerFn({ method: "POST" })
   .inputValidator((data: { id: number; loginKey: string }) => data)
