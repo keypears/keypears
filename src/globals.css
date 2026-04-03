@@ -99,18 +99,18 @@
 /* Tokyo Night (dark) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1b26;
-    --background-dark: #16161e;
-    --background-highlight: #292e42;
+    --background: #151a16;
+    --background-dark: #111614;
+    --background-highlight: #252e28;
     --foreground: #c0caf5;
     --foreground-dark: #a9b1d6;
     --primary: #7aa2f7;
-    --primary-foreground: #1a1b26;
+    --primary-foreground: #151a16;
     --secondary: #bb9af7;
-    --secondary-foreground: #1a1b26;
+    --secondary-foreground: #151a16;
     --accent: hsl(115 54% 76%);
-    --accent-foreground: #1a1b26;
-    --muted: #292e42;
+    --accent-foreground: #151a16;
+    --muted: #252e28;
     --muted-foreground: #565f89;
     --success: #9ece6a;
     --warning: #e0af68;
@@ -118,20 +118,20 @@
     --border: #3b4261;
     --input: #3b4261;
     --ring: #7aa2f7;
-    --card: #1a1b26;
+    --card: #151a16;
     --card-foreground: #c0caf5;
-    --popover: #16161e;
+    --popover: #111614;
     --popover-foreground: #c0caf5;
     --chart-1: #7aa2f7;
     --chart-2: #bb9af7;
     --chart-3: #7dcfff;
     --chart-4: #9ece6a;
     --chart-5: #e0af68;
-    --sidebar: #16161e;
+    --sidebar: #111614;
     --sidebar-foreground: #c0caf5;
     --sidebar-primary: #7aa2f7;
-    --sidebar-primary-foreground: #1a1b26;
-    --sidebar-accent: #292e42;
+    --sidebar-primary-foreground: #151a16;
+    --sidebar-accent: #252e28;
     --sidebar-accent-foreground: #c0caf5;
     --sidebar-border: #3b4261;
     --sidebar-ring: #7aa2f7;
