@@ -62,7 +62,7 @@ function ProfilePage() {
     <div className="bg-background min-h-screen font-sans">
       <Navbar keypearId={myId} />
       <div className="flex flex-col items-center pt-32">
-        <CircleUser className="text-accent h-24 w-24" />
+        <CircleUser className="text-muted-foreground h-24 w-24" />
         <h1 className="text-foreground mt-6 text-2xl font-bold">
           {profileId}@keypears.com
         </h1>

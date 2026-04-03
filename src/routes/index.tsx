@@ -84,7 +84,7 @@ function HomePage() {
       <Navbar keypearId={keypearId} />
       <div className="flex flex-1 items-center justify-center pt-32">
         <div className="text-center">
-          <h1 className="text-accent text-4xl font-bold">Welcome</h1>
+          <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
           <p className="text-foreground-dark mt-2">
             Your KeyPears address is{" "}
             <span className="text-accent font-bold">
@@ -125,7 +125,7 @@ function HomePage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-accent/15 border-accent/50 hover:bg-accent/30 text-accent rounded border px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
+                  className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save"}
                 </button>

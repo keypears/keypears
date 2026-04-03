@@ -31,7 +31,7 @@ export function Navbar({ keypearId }: { keypearId: number }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="cursor-pointer rounded-full">
-            <CircleUser className="text-accent h-8 w-8" />
+            <CircleUser className="text-muted-foreground h-8 w-8" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

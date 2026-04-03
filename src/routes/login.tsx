@@ -42,7 +42,7 @@ function LoginPage() {
   return (
     <div className="bg-background flex min-h-screen items-center justify-center font-sans">
       <div className="w-full max-w-sm">
-        <h1 className="text-accent mb-6 text-center text-3xl font-bold">
+        <h1 className="text-foreground mb-6 text-center text-3xl font-bold">
           Log In
         </h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -66,7 +66,7 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-accent/15 border-accent/50 hover:bg-accent/30 text-accent rounded border px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
+            className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Log In"}
           </button>
