@@ -59,11 +59,9 @@ function HomePage() {
       <div className="flex flex-1 items-center justify-center pt-32">
         <div className="text-center">
           <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
-          <p className="text-foreground-dark mt-2">
-            Your KeyPears address is{" "}
-            <span className="text-accent font-bold">
-              {keypearAddress(data.id)}
-            </span>
+          <p className="text-foreground-dark mt-2">Your KeyPears address is</p>
+          <p className="text-accent mt-1 text-2xl font-bold">
+            {keypearAddress(data.id)}
           </p>
           {!hasPassword && (
             <div className="mt-8 w-full max-w-sm">
