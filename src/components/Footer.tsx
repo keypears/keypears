@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="border-border text-muted-foreground mt-12 flex flex-col items-center gap-2 border-t pt-4 pb-6 text-xs">
+    <footer className="border-border/30 text-muted-foreground mt-12 flex flex-col items-center gap-2 border-t pt-4 pb-6 text-xs">
       <a
         href="https://astrohacker.com"
         className="hover:text-accent flex items-center gap-2 no-underline"
