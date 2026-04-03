@@ -3,16 +3,12 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { useState } from "react";
-import { login, createUser, getMyUser } from "~/server/user.functions";
+import { useState, useRef } from "react";
+import { createUser, getMyUser } from "~/server/user.functions";
 import { getPowChallenge } from "~/server/pow.functions";
-import {
-  derivePasswordKey,
-  deriveLoginKeyFromPasswordKey,
-  cachePasswordKey,
-} from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -23,64 +19,49 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-function parseKeypearAddress(input: string): number | null {
-  const match = input.match(/^(\d+)@keypears\.com$/);
-  return match ? Number(match[1]) : null;
+function formatTime(seconds: number): string {
+  if (seconds < 1) return "less than a second";
+  if (seconds < 60) return `~${Math.ceil(seconds)} seconds`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.ceil(seconds % 60);
+  return secs > 0 ? `~${mins}m ${secs}s` : `~${mins}m`;
 }
 
 function LandingPage() {
   const navigate = useNavigate();
-  const [address, setAddress] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [miningStatus, setMiningStatus] = useState("");
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    const id = parseKeypearAddress(address);
-    if (id == null) {
-      setError("Enter a valid KeyPears address (e.g. 1@keypears.com).");
-      return;
-    }
-    setLoading(true);
-    try {
-      const passwordKey = derivePasswordKey(password);
-      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
-      await login({ data: { id, loginKey } });
-      cachePasswordKey(passwordKey);
-      navigate({ to: "/inbox" });
-    } catch {
-      setError("Invalid KeyPears address or password.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [phase, setPhase] = useState<
+    "idle" | "fetching" | "mining" | "solved" | "creating"
+  >("idle");
+  const [hashCount, setHashCount] = useState(0);
+  const [difficulty, setDifficulty] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState("");
+  const [progress, setProgress] = useState(0);
+  const startTimeRef = useRef(0);
 
   async function handleCreate() {
-    setCreating(true);
+    setPhase("fetching");
     setError("");
-    setMiningStatus("Getting challenge...");
     try {
-      // 1. Get challenge from server (no DB write)
       const challenge = await getPowChallenge();
+      setDifficulty(challenge.difficulty);
 
-      // 2. Mine the solution (client-side)
-      setMiningStatus("Computing proof of work...");
-      const { Pow5_64b_Wasm } = await import("@keypears/pow5");
+      setPhase("mining");
+      startTimeRef.current = performance.now();
+
+      const { Pow5_64b_Wasm, hashMeetsTarget } = await import(
+        "@keypears/pow5"
+      );
       const { FixedBuf } = await import("@webbuf/fixedbuf");
       const { WebBuf } = await import("@webbuf/webbuf");
 
       const headerBuf = FixedBuf.fromHex(64, challenge.header);
       const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
-      let solvedHeader: FixedBuf<64> | null = null;
+      let solvedHeaderHex: string | null = null;
       let nonce = 0;
 
-      while (!solvedHeader) {
-        // Insert nonce into header
+      while (!solvedHeaderHex) {
         const nonceBuf = WebBuf.alloc(32);
         let remaining = BigInt(nonce);
         for (let i = 31; i >= 0; i--) {
@@ -93,26 +74,33 @@ function LandingPage() {
         );
         const hash = Pow5_64b_Wasm.elementaryIteration(testHeader);
 
-        const { hashMeetsTarget } = await import("@keypears/pow5");
         if (hashMeetsTarget(hash, targetBuf)) {
-          solvedHeader = testHeader;
+          solvedHeaderHex = testHeader.buf.toHex();
         }
 
         nonce++;
-        // Yield to UI every 10,000 iterations
-        if (nonce % 10000 === 0) {
-          setMiningStatus(
-            `Computing proof of work... (${(nonce / 1000).toFixed(0)}k hashes)`,
+        if (nonce % 1000 === 0) {
+          const elapsed = (performance.now() - startTimeRef.current) / 1000;
+          const hashRate = nonce / elapsed;
+          const expectedRemaining =
+            hashRate > 0 ? challenge.difficulty / hashRate : 0;
+          setHashCount(nonce);
+          setProgress(
+            (elapsed / (elapsed + expectedRemaining)) * 100,
           );
+          setTimeRemaining(formatTime(expectedRemaining));
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
 
-      // 3. Create account with proof
-      setMiningStatus("Creating account...");
+      setPhase("solved");
+      setProgress(100);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      setPhase("creating");
       await createUser({
         data: {
-          solvedHeader: solvedHeader.buf.toHex(),
+          solvedHeader: solvedHeaderHex,
           target: challenge.target,
           expiresAt: challenge.expiresAt,
           signature: challenge.signature,
@@ -124,63 +112,107 @@ function LandingPage() {
       setError(
         err instanceof Error ? err.message : "Failed to create account.",
       );
-    } finally {
-      setCreating(false);
-      setMiningStatus("");
+      setPhase("idle");
     }
   }
 
   return (
     <div className="flex min-h-screen flex-col font-sans">
-      <div className="flex flex-1 items-center justify-center">
-        <div className="w-full max-w-sm text-center">
-          <div className="mb-8 flex items-center justify-center gap-3">
-            <img
-              src={$icon("/images/keypears-64.webp")}
-              alt="KeyPears"
-              className="h-10 w-10"
-            />
-            <h1 className="text-foreground text-3xl font-bold">KeyPears</h1>
-          </div>
-          <form
-            onSubmit={handleLogin}
-            className="flex flex-col gap-4 text-left"
+      {/* Top-right login link */}
+      <div className="flex justify-end px-6 py-4">
+        <span className="text-muted-foreground text-sm">
+          Already have an account?{" "}
+          <a
+            href="/login"
+            className="text-accent hover:text-accent/80 no-underline"
           >
-            <input
-              type="text"
-              placeholder="KeyPears address (e.g. 1@keypears.com)"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-              required
+            Log in
+          </a>
+        </span>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center">
+        <div className="w-full max-w-md text-center">
+          <div className="mb-6 flex items-center justify-center gap-3">
+            <img
+              src={$icon("/images/keypears-200.webp")}
+              alt="KeyPears"
+              className="h-12 w-12"
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-              required
-            />
-            {error && <p className="text-danger text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
-            >
-              {loading ? "Logging in..." : "Log In"}
-            </button>
-          </form>
-          <div className="border-border/30 mt-6 border-t pt-6">
-            <p className="text-muted-foreground mb-3 text-sm">New here?</p>
-            <button
-              onClick={handleCreate}
-              disabled={creating}
-              className="text-accent hover:text-accent/80 cursor-pointer text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {creating ? miningStatus || "Creating..." : "Create a new account"}
-            </button>
+            <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
+          <p className="text-muted-foreground mb-8">
+            Secret sharing system.
+          </p>
+
+          {phase === "idle" && (
+            <>
+              <button
+                onClick={handleCreate}
+                className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-8 py-3 font-sans text-lg transition-all duration-300"
+              >
+                Create an Account
+              </button>
+              {error && <p className="text-danger mt-4 text-sm">{error}</p>}
+            </>
+          )}
+
+          {phase === "fetching" && (
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="text-accent h-8 w-8 animate-spin" />
+              <p className="text-muted-foreground text-sm">
+                Preparing your account...
+              </p>
+            </div>
+          )}
+
+          {phase === "mining" && (
+            <div className="mx-auto max-w-sm">
+              <div className="mb-4 flex flex-col items-center gap-3">
+                <Loader2 className="text-accent h-8 w-8 animate-spin" />
+                <p className="text-foreground text-sm font-medium">
+                  Proving you&apos;re not a bot...
+                </p>
+              </div>
+              <p className="text-muted-foreground mb-4 text-xs">
+                KeyPears uses a short proof-of-work computation instead of
+                CAPTCHAs or email verification. This protects the network from
+                spam while keeping your identity private.
+              </p>
+              {/* Progress bar */}
+              <div className="bg-background-dark mb-3 h-2 w-full overflow-hidden rounded-full">
+                <div
+                  className="bg-accent h-full rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="text-muted-foreground flex justify-between text-xs">
+                <span>
+                  {(hashCount / 1000).toFixed(0)}k /{" "}
+                  {(difficulty / 1000).toFixed(0)}k hashes
+                </span>
+                <span>{timeRemaining} remaining</span>
+              </div>
+            </div>
+          )}
+
+          {phase === "solved" && (
+            <div className="flex flex-col items-center gap-3">
+              <CheckCircle2 className="text-accent h-8 w-8" />
+              <p className="text-accent text-sm font-medium">
+                Proof of work complete!
+              </p>
+            </div>
+          )}
+
+          {phase === "creating" && (
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="text-accent h-8 w-8 animate-spin" />
+              <p className="text-muted-foreground text-sm">
+                Creating your account...
+              </p>
+            </div>
+          )}
         </div>
       </div>
       <Footer />

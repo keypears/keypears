@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
@@ -18,6 +19,11 @@ import { Route as AppKeysRouteImport } from './routes/_app/keys'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppProfileRouteImport } from './routes/_app/$profile'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -60,6 +66,7 @@ const AppProfileRoute = AppProfileRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
   '/inbox': typeof AppInboxRoute
   '/keys': typeof AppKeysRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
   '/inbox': typeof AppInboxRoute
   '/keys': typeof AppKeysRoute
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
   '/_app/$profile': typeof AppProfileRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/keys': typeof AppKeysRoute
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/$profile'
     | '/inbox'
     | '/keys'
@@ -98,11 +108,20 @@ export interface FileRouteTypes {
     | '/vault'
     | '/welcome'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$profile' | '/inbox' | '/keys' | '/send' | '/vault' | '/welcome'
+  to:
+    | '/'
+    | '/login'
+    | '/$profile'
+    | '/inbox'
+    | '/keys'
+    | '/send'
+    | '/vault'
+    | '/welcome'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/login'
     | '/_app/$profile'
     | '/_app/inbox'
     | '/_app/keys'
@@ -114,10 +133,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -200,6 +227,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
