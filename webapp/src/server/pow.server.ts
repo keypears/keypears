@@ -32,9 +32,10 @@ function signChallenge(
   return sha256Hmac(secret.buf, payload);
 }
 
-export function createPowChallenge() {
+export function createPowChallenge(difficulty?: bigint) {
+  const diff = difficulty ?? REGISTRATION_DIFFICULTY;
   const header = FixedBuf.fromRandom(HEADER_SIZE);
-  const target = targetFromDifficulty(REGISTRATION_DIFFICULTY);
+  const target = targetFromDifficulty(diff);
   const expiresAt = Date.now() + CHALLENGE_EXPIRY_MS;
   const signature = signChallenge(header.buf, target.buf, expiresAt);
 
@@ -42,7 +43,7 @@ export function createPowChallenge() {
     header: header.buf.toHex(),
     target: target.buf.toHex(),
     expiresAt,
-    difficulty: Number(REGISTRATION_DIFFICULTY),
+    difficulty: Number(diff),
     signature: signature.buf.toHex(),
   };
 }
