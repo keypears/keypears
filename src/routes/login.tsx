@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { login } from "~/server/keypears.functions";
 import { deriveLoginKey } from "~/lib/auth";
+import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -39,8 +40,9 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center font-sans">
-      <div className="w-full max-w-sm">
+    <div className="flex min-h-screen flex-col font-sans">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="w-full max-w-sm">
         <h1 className="text-foreground mb-6 text-center text-3xl font-bold">
           Log In
         </h1>
@@ -76,7 +78,9 @@ function LoginPage() {
             Get started
           </a>
         </p>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

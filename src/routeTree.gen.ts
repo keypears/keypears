@@ -10,52 +10,109 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ProfileRouteImport } from './routes/$profile'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppVaultRouteImport } from './routes/_app/vault'
+import { Route as AppSendRouteImport } from './routes/_app/send'
+import { Route as AppKeysRouteImport } from './routes/_app/keys'
+import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppProfileRouteImport } from './routes/_app/$profile'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/$profile',
-  path: '/$profile',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVaultRoute = AppVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSendRoute = AppSendRouteImport.update({
+  id: '/send',
+  path: '/send',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppKeysRoute = AppKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/$profile',
+  path: '/$profile',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$profile': typeof ProfileRoute
+  '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/$profile': typeof AppProfileRoute
+  '/inbox': typeof AppInboxRoute
+  '/keys': typeof AppKeysRoute
+  '/send': typeof AppSendRoute
+  '/vault': typeof AppVaultRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$profile': typeof ProfileRoute
   '/login': typeof LoginRoute
+  '/$profile': typeof AppProfileRoute
+  '/inbox': typeof AppInboxRoute
+  '/keys': typeof AppKeysRoute
+  '/send': typeof AppSendRoute
+  '/vault': typeof AppVaultRoute
+  '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$profile': typeof ProfileRoute
+  '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/$profile': typeof AppProfileRoute
+  '/_app/inbox': typeof AppInboxRoute
+  '/_app/keys': typeof AppKeysRoute
+  '/_app/send': typeof AppSendRoute
+  '/_app/vault': typeof AppVaultRoute
+  '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$profile' | '/login'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/$profile'
+    | '/inbox'
+    | '/keys'
+    | '/send'
+    | '/vault'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$profile' | '/login'
-  id: '__root__' | '/' | '/$profile' | '/login'
+  to: '/login' | '/$profile' | '/inbox' | '/keys' | '/send' | '/vault' | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/login'
+    | '/_app/$profile'
+    | '/_app/inbox'
+    | '/_app/keys'
+    | '/_app/send'
+    | '/_app/vault'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ProfileRoute: typeof ProfileRoute
+  AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -68,26 +125,80 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$profile': {
-      id: '/$profile'
-      path: '/$profile'
-      fullPath: '/$profile'
-      preLoaderRoute: typeof ProfileRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vault': {
+      id: '/_app/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof AppVaultRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/send': {
+      id: '/_app/send'
+      path: '/send'
+      fullPath: '/send'
+      preLoaderRoute: typeof AppSendRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/keys': {
+      id: '/_app/keys'
+      path: '/keys'
+      fullPath: '/keys'
+      preLoaderRoute: typeof AppKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/$profile': {
+      id: '/_app/$profile'
+      path: '/$profile'
+      fullPath: '/$profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppProfileRoute: typeof AppProfileRoute
+  AppInboxRoute: typeof AppInboxRoute
+  AppKeysRoute: typeof AppKeysRoute
+  AppSendRoute: typeof AppSendRoute
+  AppVaultRoute: typeof AppVaultRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppProfileRoute: AppProfileRoute,
+  AppInboxRoute: AppInboxRoute,
+  AppKeysRoute: AppKeysRoute,
+  AppSendRoute: AppSendRoute,
+  AppVaultRoute: AppVaultRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ProfileRoute: ProfileRoute,
+  AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,10 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyKeypear, getProfile } from "~/server/keypears.functions";
-import { Navbar } from "~/components/Navbar";
 import { CircleUser } from "lucide-react";
 
-export const Route = createFileRoute("/$profile")({
+export const Route = createFileRoute("/_app/$profile")({
   loader: async ({ params }) => {
     if (!params.profile.startsWith("@")) {
       throw notFound();
@@ -26,7 +25,7 @@ export const Route = createFileRoute("/$profile")({
 });
 
 function ProfilePage() {
-  const { myId, profileId, publicKey } = Route.useLoaderData();
+  const { profileId, publicKey } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -42,23 +41,20 @@ function ProfilePage() {
     : null;
 
   return (
-    <div className="font-sans">
-      <Navbar keypearId={myId} />
-      <div className="flex flex-col items-center pt-32">
-        <CircleUser className="text-muted-foreground h-24 w-24" />
-        <h1 className="text-foreground mt-6 text-2xl font-bold">
-          {profileId}@keypears.com
-        </h1>
-        {truncatedKey && (
-          <button
-            onClick={handleCopy}
-            className="text-muted-foreground hover:text-foreground mt-4 cursor-pointer font-mono text-sm transition-colors"
-            title={publicKey!}
-          >
-            {copied ? "Copied!" : truncatedKey}
-          </button>
-        )}
-      </div>
+    <div className="flex flex-col items-center pt-32 font-sans">
+      <CircleUser className="text-muted-foreground h-24 w-24" />
+      <h1 className="text-foreground mt-6 text-2xl font-bold">
+        {profileId}@keypears.com
+      </h1>
+      {truncatedKey && (
+        <button
+          onClick={handleCopy}
+          className="text-muted-foreground hover:text-foreground mt-4 cursor-pointer font-mono text-sm transition-colors"
+          title={publicKey!}
+        >
+          {copied ? "Copied!" : truncatedKey}
+        </button>
+      )}
     </div>
   );
 }
