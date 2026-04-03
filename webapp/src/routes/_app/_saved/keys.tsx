@@ -147,7 +147,7 @@ function KeysPage() {
                 />
                 <div className="flex-1">
                   <span className="text-foreground text-sm font-medium">
-                    Key #{key.keyNumber}
+                    Key #{key.keyNumber}/100
                   </span>
                   {i === 0 && (
                     <span className="text-accent ml-2 text-xs">Active</span>
