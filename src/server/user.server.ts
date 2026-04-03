@@ -91,6 +91,40 @@ export async function getActiveKey(userId: number) {
   return row ?? null;
 }
 
+export async function insertKey(
+  userId: number,
+  publicKey: string,
+  encryptedPrivateKey: string,
+) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT MAX(key_number) AS max_num FROM user_keys WHERE user_id = ? FOR UPDATE`,
+      [userId],
+    );
+    const maxNum =
+      Array.isArray(rows) && rows.length > 0
+        ? ((rows[0] as any).max_num ?? 0)
+        : 0;
+    const keyNumber = maxNum + 1;
+
+    await conn.query(
+      `INSERT INTO user_keys (user_id, key_number, public_key, encrypted_private_key, created_at) VALUES (?, ?, ?, ?, NOW())`,
+      [userId, keyNumber, publicKey, encryptedPrivateKey],
+    );
+
+    await conn.commit();
+    return { keyNumber };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 export async function saveUser(
   id: number,
   loginKeyHex: string,
@@ -102,7 +136,20 @@ export async function saveUser(
     .update(users)
     .set({ passwordHash, expiresAt: null })
     .where(eq(users.id, id));
-  await db.insert(keys).values({ userId: id, publicKey, encryptedPrivateKey });
+  await insertKey(id, publicKey, encryptedPrivateKey);
+}
+
+export async function getRecentKeys(userId: number, limit = 10) {
+  return db
+    .select({
+      keyNumber: keys.keyNumber,
+      publicKey: keys.publicKey,
+      createdAt: keys.createdAt,
+    })
+    .from(keys)
+    .where(eq(keys.userId, userId))
+    .orderBy(desc(keys.createdAt))
+    .limit(limit);
 }
 
 export async function verifyLogin(id: number, loginKeyHex: string) {

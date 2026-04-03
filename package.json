@@ -9,6 +9,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:push": "dotenvx run -f .env.dev -- drizzle-kit push",
+    "db:clear": "dotenvx run -f .env.dev -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:generate": "dotenvx run -f .env.dev -- drizzle-kit generate",
     "build:icons": "bun run process-icons.ts"
   },

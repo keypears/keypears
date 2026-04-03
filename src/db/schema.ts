@@ -13,9 +13,10 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const keys = mysqlTable("keys", {
+export const keys = mysqlTable("user_keys", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id").notNull(),
+  keyNumber: int("key_number").notNull(),
   publicKey: varchar("public_key", { length: 66 }).notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

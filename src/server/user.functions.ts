@@ -10,6 +10,8 @@ import {
   saveUser,
   verifyLogin,
   getActiveKey,
+  insertKey,
+  getRecentKeys,
 } from "./user.server";
 
 const COOKIE_NAME = "user_id";
@@ -96,6 +98,32 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
   deleteCookie(COOKIE_NAME);
   return { success: true };
 });
+
+export const rotateKey = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { publicKey: string; encryptedPrivateKey: string }) => data,
+  )
+  .handler(async ({ data: input }) => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+    const row = await getUserById(Number(id));
+    if (!row) throw new Error("User not found");
+    if (!row.passwordHash) throw new Error("Account not saved");
+    const result = await insertKey(
+      row.id,
+      input.publicKey,
+      input.encryptedPrivateKey,
+    );
+    return { keyNumber: result.keyNumber };
+  });
+
+export const getMyKeys = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) return [];
+    return getRecentKeys(Number(id), 10);
+  },
+);
 
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator((id: number) => id)
