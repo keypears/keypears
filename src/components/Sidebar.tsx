@@ -65,8 +65,16 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
   );
 }
 
-function NavItems({ onClick }: { onClick?: () => void }) {
+function NavItems({
+  onClick,
+  hasPassword,
+}: {
+  onClick?: () => void;
+  hasPassword: boolean;
+}) {
   const location = useLocation();
+
+  if (!hasPassword) return null;
 
   return (
     <div className="flex flex-col gap-1">
@@ -110,7 +118,21 @@ function Logo() {
   );
 }
 
-export function Sidebar({ keypearId }: { keypearId: number }) {
+function Address({ keypearId }: { keypearId: number }) {
+  return (
+    <span className="text-muted-foreground text-sm">
+      {keypearId}@keypears.com
+    </span>
+  );
+}
+
+export function Sidebar({
+  keypearId,
+  hasPassword,
+}: {
+  keypearId: number;
+  hasPassword: boolean;
+}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -118,20 +140,25 @@ export function Sidebar({ keypearId }: { keypearId: number }) {
       {/* Mobile top bar */}
       <nav className="border-border/30 flex items-center justify-between border-b px-4 py-3 lg:hidden">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
+          {hasPassword && (
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          )}
           <Logo />
         </div>
-        <UserDropdown keypearId={keypearId} />
+        <div className="flex items-center gap-3">
+          <Address keypearId={keypearId} />
+          <UserDropdown keypearId={keypearId} />
+        </div>
       </nav>
 
       {/* Backdrop */}
@@ -160,22 +187,28 @@ export function Sidebar({ keypearId }: { keypearId: number }) {
         <div className="mb-6">
           <Logo />
         </div>
-        <NavItems onClick={() => setIsMenuOpen(false)} />
+        <NavItems
+          onClick={() => setIsMenuOpen(false)}
+          hasPassword={hasPassword}
+        />
         <div className="mt-auto">
           <UserDropdown keypearId={keypearId} />
         </div>
       </div>
 
       {/* Desktop sidebar */}
-      <nav className="border-border/30 bg-background hidden lg:fixed lg:top-0 lg:left-0 lg:flex lg:h-screen lg:w-56 lg:flex-col lg:border-r lg:px-4 lg:pt-8">
-        <div className="mb-8">
-          <Logo />
-        </div>
-        <NavItems />
-      </nav>
+      {hasPassword && (
+        <nav className="border-border/30 bg-background hidden lg:fixed lg:top-0 lg:left-0 lg:flex lg:h-screen lg:w-56 lg:flex-col lg:border-r lg:px-4 lg:pt-8">
+          <div className="mb-8">
+            <Logo />
+          </div>
+          <NavItems hasPassword={hasPassword} />
+        </nav>
+      )}
 
-      {/* Desktop top-right user dropdown */}
-      <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:block">
+      {/* Desktop top-right: address + user dropdown */}
+      <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
+        <Address keypearId={keypearId} />
         <UserDropdown keypearId={keypearId} />
       </div>
     </>

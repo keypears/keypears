@@ -13,8 +13,10 @@ function AppLayout() {
 
   return (
     <>
-      <Sidebar keypearId={data.id} />
-      <main className="flex flex-1 flex-col lg:ml-56">
+      <Sidebar keypearId={data.id} hasPassword={data.hasPassword} />
+      <main
+        className={`flex flex-1 flex-col ${data.hasPassword ? "lg:ml-56" : ""}`}
+      >
         <div className="flex-1">
           <Outlet />
         </div>

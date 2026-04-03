@@ -53,7 +53,7 @@ function HomePage() {
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
-      setHasPassword(true);
+      window.location.href = "/inbox";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {
