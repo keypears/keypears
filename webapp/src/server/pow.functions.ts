@@ -1,9 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createPowChallenge, verifyPowSolution } from "./pow.server";
+import {
+  createPowChallenge,
+  verifyPowSolution,
+  LOGIN_DIFFICULTY,
+} from "./pow.server";
 
 export const getPowChallenge = createServerFn({ method: "GET" }).handler(
   async () => {
     return createPowChallenge();
+  },
+);
+
+export const getLoginPowChallenge = createServerFn({ method: "GET" }).handler(
+  async () => {
+    return createPowChallenge(LOGIN_DIFFICULTY);
   },
 );
 

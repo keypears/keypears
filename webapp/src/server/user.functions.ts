@@ -119,8 +119,26 @@ export const deleteMyUser = createServerFn({ method: "POST" }).handler(
 );
 
 export const login = createServerFn({ method: "POST" })
-  .inputValidator((data: { id: number; loginKey: string }) => data)
+  .inputValidator(
+    (data: {
+      id: number;
+      loginKey: string;
+      solvedHeader: string;
+      target: string;
+      expiresAt: number;
+      signature: string;
+    }) => data,
+  )
   .handler(async ({ data: input }) => {
+    const powResult = verifyPowSolution(
+      input.solvedHeader,
+      input.target,
+      input.expiresAt,
+      input.signature,
+    );
+    if (!powResult.valid) {
+      throw new Error(`Invalid proof of work: ${powResult.message}`);
+    }
     const result = await verifyLogin(input.id, input.loginKey);
     setCookie(COOKIE_NAME, String(result.id), cookieOpts(TWO_YEARS));
     return { id: result.id };
