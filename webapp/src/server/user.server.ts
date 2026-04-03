@@ -98,6 +98,8 @@ export async function getActiveKey(userId: number) {
   return row ?? null;
 }
 
+const MAX_KEYS_PER_USER = 100;
+
 export async function insertKey(
   userId: number,
   publicKey: string,
@@ -106,6 +108,20 @@ export async function insertKey(
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+
+    const [countRows] = await conn.query(
+      `SELECT COUNT(*) AS cnt FROM user_keys WHERE user_id = ?`,
+      [userId],
+    );
+    const count =
+      Array.isArray(countRows) && countRows.length > 0
+        ? (countRows[0] as any).cnt
+        : 0;
+    if (count >= MAX_KEYS_PER_USER) {
+      throw new Error(
+        `Maximum of ${MAX_KEYS_PER_USER} keys reached. Create a new account to continue.`,
+      );
+    }
 
     const [rows] = await conn.query(
       `SELECT MAX(key_number) AS max_num FROM user_keys WHERE user_id = ? FOR UPDATE`,
@@ -157,6 +173,49 @@ export async function getRecentKeys(userId: number, limit = 10) {
     .where(eq(keys.userId, userId))
     .orderBy(desc(keys.createdAt))
     .limit(limit);
+}
+
+export async function getAllEncryptedKeys(userId: number) {
+  return db
+    .select({
+      id: keys.id,
+      keyNumber: keys.keyNumber,
+      encryptedPrivateKey: keys.encryptedPrivateKey,
+    })
+    .from(keys)
+    .where(eq(keys.userId, userId))
+    .orderBy(keys.keyNumber);
+}
+
+export async function changePassword(
+  userId: number,
+  newLoginKeyHex: string,
+  reEncryptedKeys: { id: number; encryptedPrivateKey: string }[],
+) {
+  const newPasswordHash = hashLoginKey(newLoginKeyHex);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [
+      newPasswordHash,
+      userId,
+    ]);
+
+    for (const key of reEncryptedKeys) {
+      await conn.query(
+        `UPDATE user_keys SET encrypted_private_key = ? WHERE id = ? AND user_id = ?`,
+        [key.encryptedPrivateKey, key.id, userId],
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 export async function verifyLogin(id: number, loginKeyHex: string) {

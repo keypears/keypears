@@ -18,6 +18,7 @@ import {
   X,
   CircleUser,
   KeyRound,
+  LockKeyhole,
   LogOut,
   User,
 } from "lucide-react";
@@ -53,6 +54,12 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
           <a href="/keys" className="cursor-pointer no-underline">
             <KeyRound className="mr-2 h-4 w-4" />
             Key Rotation
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/password" className="cursor-pointer no-underline">
+            <LockKeyhole className="mr-2 h-4 w-4" />
+            Change Password
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

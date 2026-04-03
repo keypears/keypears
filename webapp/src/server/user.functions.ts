@@ -15,6 +15,8 @@ import {
   deleteUnsavedUser,
   insertPowLog,
   getUserPowTotal,
+  getAllEncryptedKeys,
+  changePassword,
 } from "./user.server";
 import {
   verifyPowSolution,
@@ -188,4 +190,29 @@ export const getProfile = createServerFn({ method: "GET" })
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
     };
+  });
+
+export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+    return getAllEncryptedKeys(Number(id));
+  },
+);
+
+export const changeMyPassword = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      newLoginKey: string;
+      reEncryptedKeys: { id: number; encryptedPrivateKey: string }[];
+    }) => data,
+  )
+  .handler(async ({ data: input }) => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+    const row = await getUserById(Number(id));
+    if (!row) throw new Error("User not found");
+    if (!row.passwordHash) throw new Error("Account not saved");
+    await changePassword(row.id, input.newLoginKey, input.reEncryptedKeys);
+    return { success: true };
   });
