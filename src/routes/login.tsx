@@ -8,8 +8,13 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+function parseKeypearAddress(input: string): number | null {
+  const match = input.match(/^(\d+)@keypears\.com$/);
+  return match ? Number(match[1]) : null;
+}
+
 function LoginPage() {
-  const [id, setId] = useState("");
+  const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,13 +22,18 @@ function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const id = parseKeypearAddress(address);
+    if (id == null) {
+      setError("Enter a valid KeyPears address (e.g. 1@keypears.com).");
+      return;
+    }
     setLoading(true);
     try {
       const loginKey = deriveLoginKey(password);
-      await login({ data: { id: Number(id), loginKey } });
+      await login({ data: { id, loginKey } });
       window.location.href = "/";
     } catch {
-      setError("Invalid keypear number or password.");
+      setError("Invalid KeyPears address or password.");
     } finally {
       setLoading(false);
     }
@@ -37,10 +47,10 @@ function LoginPage() {
         </h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
-            type="number"
-            placeholder="Keypear #"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
+            type="text"
+            placeholder="KeyPears address (e.g. 1@keypears.com)"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
             className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
             required
           />

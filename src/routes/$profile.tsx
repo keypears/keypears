@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getMyKeypear, getProfile } from "~/server/keypears.functions";
 import { Navbar } from "~/components/Navbar";
-import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { CircleUser } from "lucide-react";
 
 export const Route = createFileRoute("/$profile")({
   ssr: false,
@@ -62,13 +62,9 @@ function ProfilePage() {
     <div className="bg-background min-h-screen font-sans">
       <Navbar keypearId={myId} />
       <div className="flex flex-col items-center pt-32">
-        <Avatar className="h-24 w-24">
-          <AvatarFallback className="bg-accent/20 text-accent text-3xl">
-            {profileId}
-          </AvatarFallback>
-        </Avatar>
+        <CircleUser className="text-accent h-24 w-24" />
         <h1 className="text-foreground mt-6 text-2xl font-bold">
-          Keypear #{new Intl.NumberFormat().format(profileId)}
+          {profileId}@keypears.com
         </h1>
         {truncatedKey && (
           <button

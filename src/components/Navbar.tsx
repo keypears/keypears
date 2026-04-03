@@ -4,9 +4,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { logout } from "~/server/keypears.functions";
 import { $icon } from "~/lib/icons";
+import { CircleUser } from "lucide-react";
 
 export function Navbar({ keypearId }: { keypearId: number }) {
   async function handleLogout() {
@@ -31,11 +31,7 @@ export function Navbar({ keypearId }: { keypearId: number }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="cursor-pointer rounded-full">
-            <Avatar>
-              <AvatarFallback className="bg-accent/20 text-accent text-sm">
-                {keypearId}
-              </AvatarFallback>
-            </Avatar>
+            <CircleUser className="text-accent h-8 w-8" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
