@@ -9,12 +9,12 @@ import {
 } from "~/lib/auth";
 import { KeyRound, RotateCw } from "lucide-react";
 
-export const Route = createFileRoute("/_app/settings")({
+export const Route = createFileRoute("/_app/keys")({
   loader: () => getMyKeys(),
-  component: SettingsPage,
+  component: KeysPage,
 });
 
-function SettingsPage() {
+function KeysPage() {
   const initialKeys = Route.useLoaderData();
   const [keyList, setKeyList] = useState(initialKeys);
   const [rotating, setRotating] = useState(false);
@@ -67,11 +67,10 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-8 font-sans">
-      <h1 className="text-foreground text-2xl font-bold">Settings</h1>
+      <h1 className="text-foreground text-2xl font-bold">Key Rotation</h1>
 
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-foreground text-lg font-semibold">Keys</h2>
           {keyList.length > 0 && !needsPassword && (
             <button
               onClick={() => handleRotate()}

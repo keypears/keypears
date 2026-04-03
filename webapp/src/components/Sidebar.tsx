@@ -17,7 +17,7 @@ import {
   Menu,
   X,
   CircleUser,
-  Settings,
+  KeyRound,
   LogOut,
   User,
 } from "lucide-react";
@@ -50,9 +50,9 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/settings" className="cursor-pointer no-underline">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
+          <a href="/keys" className="cursor-pointer no-underline">
+            <KeyRound className="mr-2 h-4 w-4" />
+            Key Rotation
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

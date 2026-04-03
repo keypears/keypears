@@ -13,8 +13,8 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppVaultRouteImport } from './routes/_app/vault'
-import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSendRouteImport } from './routes/_app/send'
+import { Route as AppKeysRouteImport } from './routes/_app/keys'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppProfileRouteImport } from './routes/_app/$profile'
 
@@ -37,14 +37,14 @@ const AppVaultRoute = AppVaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppSendRoute = AppSendRouteImport.update({
   id: '/send',
   path: '/send',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppKeysRoute = AppKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -62,8 +62,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$profile': typeof AppProfileRoute
   '/inbox': typeof AppInboxRoute
+  '/keys': typeof AppKeysRoute
   '/send': typeof AppSendRoute
-  '/settings': typeof AppSettingsRoute
   '/vault': typeof AppVaultRoute
   '/welcome': typeof AppWelcomeRoute
 }
@@ -71,8 +71,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$profile': typeof AppProfileRoute
   '/inbox': typeof AppInboxRoute
+  '/keys': typeof AppKeysRoute
   '/send': typeof AppSendRoute
-  '/settings': typeof AppSettingsRoute
   '/vault': typeof AppVaultRoute
   '/welcome': typeof AppWelcomeRoute
 }
@@ -82,8 +82,8 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/$profile': typeof AppProfileRoute
   '/_app/inbox': typeof AppInboxRoute
+  '/_app/keys': typeof AppKeysRoute
   '/_app/send': typeof AppSendRoute
-  '/_app/settings': typeof AppSettingsRoute
   '/_app/vault': typeof AppVaultRoute
   '/_app/welcome': typeof AppWelcomeRoute
 }
@@ -93,27 +93,20 @@ export interface FileRouteTypes {
     | '/'
     | '/$profile'
     | '/inbox'
+    | '/keys'
     | '/send'
-    | '/settings'
     | '/vault'
     | '/welcome'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/$profile'
-    | '/inbox'
-    | '/send'
-    | '/settings'
-    | '/vault'
-    | '/welcome'
+  to: '/' | '/$profile' | '/inbox' | '/keys' | '/send' | '/vault' | '/welcome'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/_app/$profile'
     | '/_app/inbox'
+    | '/_app/keys'
     | '/_app/send'
-    | '/_app/settings'
     | '/_app/vault'
     | '/_app/welcome'
   fileRoutesById: FileRoutesById
@@ -153,18 +146,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVaultRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/send': {
       id: '/_app/send'
       path: '/send'
       fullPath: '/send'
       preLoaderRoute: typeof AppSendRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/keys': {
+      id: '/_app/keys'
+      path: '/keys'
+      fullPath: '/keys'
+      preLoaderRoute: typeof AppKeysRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox': {
@@ -187,8 +180,8 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppKeysRoute: typeof AppKeysRoute
   AppSendRoute: typeof AppSendRoute
-  AppSettingsRoute: typeof AppSettingsRoute
   AppVaultRoute: typeof AppVaultRoute
   AppWelcomeRoute: typeof AppWelcomeRoute
 }
@@ -196,8 +189,8 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppInboxRoute: AppInboxRoute,
+  AppKeysRoute: AppKeysRoute,
   AppSendRoute: AppSendRoute,
-  AppSettingsRoute: AppSettingsRoute,
   AppVaultRoute: AppVaultRoute,
   AppWelcomeRoute: AppWelcomeRoute,
 }
