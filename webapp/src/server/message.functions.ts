@@ -11,6 +11,8 @@ import {
 } from "./message.server";
 import { getUserById, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
+import { PowSolutionSchema } from "./schemas";
+import { z } from "zod";
 
 const COOKIE_NAME = "user_id";
 
@@ -20,7 +22,7 @@ function parseAddress(address: string): number | null {
 }
 
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
-  .inputValidator((address: string) => address)
+  .inputValidator(z.string())
   .handler(async ({ data: address }) => {
     const id = parseAddress(address);
     if (id == null) return null;
@@ -33,18 +35,13 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
 
 export const sendMessage = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      recipientAddress: string;
-      encryptedContent: string;
-      senderPubKey: string;
-      recipientPubKey: string;
-      pow?: {
-        solvedHeader: string;
-        target: string;
-        expiresAt: number;
-        signature: string;
-      };
-    }) => data,
+    z.object({
+      recipientAddress: z.string(),
+      encryptedContent: z.string(),
+      senderPubKey: z.string(),
+      recipientPubKey: z.string(),
+      pow: PowSolutionSchema.optional(),
+    }),
   )
   .handler(async ({ data: input }) => {
     const senderId = getCookie(COOKIE_NAME);
@@ -64,7 +61,8 @@ export const sendMessage = createServerFn({ method: "POST" })
     // Check if channel exists — if not, require PoW
     const alreadyExists = await channelExists(senderUser.id, recipientId);
     if (!alreadyExists) {
-      if (!input.pow) throw new Error("Proof of work required for new channel");
+      if (!input.pow)
+        throw new Error("Proof of work required for new channel");
       const powResult = verifyPowSolution(
         input.pow.solvedHeader,
         input.pow.target,
@@ -105,7 +103,6 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
     if (!id) return [];
     const channelList = await getUserChannels(Number(id));
 
-    // Resolve counterparty addresses
     const results = await Promise.all(
       channelList.map(async (ch) => ({
         id: ch.id,
@@ -118,12 +115,11 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 );
 
 export const getMessagesForChannel = createServerFn({ method: "GET" })
-  .inputValidator((channelId: number) => channelId)
+  .inputValidator(z.number())
   .handler(async ({ data: channelId }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
 
-    // Verify channel belongs to user
     const channel = await getChannelById(channelId);
     if (!channel || channel.ownerId !== Number(id))
       throw new Error("Channel not found");
@@ -132,7 +128,12 @@ export const getMessagesForChannel = createServerFn({ method: "GET" })
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
-  .inputValidator((data: { channelId: number; afterId: number }) => data)
+  .inputValidator(
+    z.object({
+      channelId: z.number(),
+      afterId: z.number(),
+    }),
+  )
   .handler(async ({ data }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");

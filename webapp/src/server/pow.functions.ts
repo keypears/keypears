@@ -4,6 +4,7 @@ import {
   verifyPowSolution,
   LOGIN_DIFFICULTY,
 } from "./pow.server";
+import { PowSolutionSchema } from "./schemas";
 
 export const getPowChallenge = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -18,14 +19,7 @@ export const getLoginPowChallenge = createServerFn({ method: "GET" }).handler(
 );
 
 export const verifyPow = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      solvedHeader: string;
-      target: string;
-      expiresAt: number;
-      signature: string;
-    }) => data,
-  )
+  .inputValidator(PowSolutionSchema)
   .handler(async ({ data }) => {
     return verifyPowSolution(
       data.solvedHeader,

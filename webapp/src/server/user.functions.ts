@@ -18,10 +18,9 @@ import {
   getAllEncryptedKeys,
   changePassword,
 } from "./user.server";
-import {
-  verifyPowSolution,
-  REGISTRATION_DIFFICULTY,
-} from "./pow.server";
+import { verifyPowSolution, REGISTRATION_DIFFICULTY } from "./pow.server";
+import { PowSolutionSchema } from "./schemas";
+import { z } from "zod";
 
 const COOKIE_NAME = "user_id";
 const ONE_DAY = 60 * 60 * 24;
@@ -38,14 +37,7 @@ function cookieOpts(maxAge: number) {
 }
 
 export const createUser = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      solvedHeader: string;
-      target: string;
-      expiresAt: number;
-      signature: string;
-    }) => data,
-  )
+  .inputValidator(PowSolutionSchema)
   .handler(async ({ data: pow }) => {
     const powResult = verifyPowSolution(
       pow.solvedHeader,
@@ -88,11 +80,11 @@ export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
 
 export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      loginKey: string;
-      publicKey: string;
-      encryptedPrivateKey: string;
-    }) => data,
+    z.object({
+      loginKey: z.string(),
+      publicKey: z.string(),
+      encryptedPrivateKey: z.string(),
+    }),
   )
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
@@ -122,14 +114,10 @@ export const deleteMyUser = createServerFn({ method: "POST" }).handler(
 
 export const login = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      id: number;
-      loginKey: string;
-      solvedHeader: string;
-      target: string;
-      expiresAt: number;
-      signature: string;
-    }) => data,
+    z.object({
+      id: z.number(),
+      loginKey: z.string(),
+    }).and(PowSolutionSchema),
   )
   .handler(async ({ data: input }) => {
     const powResult = verifyPowSolution(
@@ -153,7 +141,10 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 
 export const rotateKey = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: { publicKey: string; encryptedPrivateKey: string }) => data,
+    z.object({
+      publicKey: z.string(),
+      encryptedPrivateKey: z.string(),
+    }),
   )
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
@@ -176,7 +167,7 @@ export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const getProfile = createServerFn({ method: "GET" })
-  .inputValidator((id: number) => id)
+  .inputValidator(z.number())
   .handler(async ({ data: id }) => {
     const row = await getUserById(id);
     if (!row) return null;
@@ -202,10 +193,15 @@ export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(
 
 export const changeMyPassword = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      newLoginKey: string;
-      reEncryptedKeys: { id: number; encryptedPrivateKey: string }[];
-    }) => data,
+    z.object({
+      newLoginKey: z.string(),
+      reEncryptedKeys: z.array(
+        z.object({
+          id: z.number(),
+          encryptedPrivateKey: z.string(),
+        }),
+      ),
+    }),
   )
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
