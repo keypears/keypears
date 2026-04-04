@@ -1,6 +1,6 @@
-import { db, pool } from "~/db";
+import { db } from "~/db";
 import { users, keys, powLog } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, lt, isNull, max, count, sql } from "drizzle-orm";
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -36,40 +36,27 @@ export async function insertUser() {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + EXPIRY_MS);
 
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
+  return db.transaction(async (tx) => {
+    // Find an expired, unsaved user to recycle
+    const [expired] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(lt(users.expiresAt, sql`NOW()`), isNull(users.passwordHash)))
+      .orderBy(users.id)
+      .limit(1)
+      .for("update");
 
-    const [rows] = await conn.query(
-      `SELECT id FROM users
-       WHERE expires_at < NOW() AND password_hash IS NULL
-       ORDER BY id ASC LIMIT 1 FOR UPDATE`,
-    );
-
-    let id: number;
-
-    if (Array.isArray(rows) && rows.length > 0) {
-      id = (rows[0] as any).id;
-      await conn.query(
-        `UPDATE users SET created_at = ?, expires_at = ?, password_hash = NULL WHERE id = ?`,
-        [now, expiresAt, id],
-      );
-    } else {
-      const [result] = await conn.query(
-        `INSERT INTO users (created_at, expires_at) VALUES (?, ?)`,
-        [now, expiresAt],
-      );
-      id = (result as any).insertId;
+    if (expired) {
+      await tx
+        .update(users)
+        .set({ createdAt: now, expiresAt, passwordHash: null })
+        .where(eq(users.id, expired.id));
+      return { id: expired.id };
     }
 
-    await conn.commit();
-    return { id };
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
+    const [result] = await tx.insert(users).values({ createdAt: now, expiresAt }).$returningId();
+    return { id: result.id };
+  });
 }
 
 export async function getUserById(id: number) {
@@ -81,7 +68,6 @@ export async function deleteUnsavedUser(id: number) {
   const user = await getUserById(id);
   if (!user) throw new Error("User not found");
   if (user.passwordHash) throw new Error("Cannot delete a saved account");
-  // Set expires_at to the past so the row is immediately recyclable
   await db
     .update(users)
     .set({ expiresAt: new Date(0) })
@@ -105,47 +91,31 @@ export async function insertKey(
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [countRows] = await conn.query(
-      `SELECT COUNT(*) AS cnt FROM user_keys WHERE user_id = ?`,
-      [userId],
-    );
-    const count =
-      Array.isArray(countRows) && countRows.length > 0
-        ? (countRows[0] as any).cnt
-        : 0;
-    if (count >= MAX_KEYS_PER_USER) {
-      throw new Error(
-        `Maximum of ${MAX_KEYS_PER_USER} keys reached.`,
-      );
+  return db.transaction(async (tx) => {
+    const [countResult] = await tx
+      .select({ cnt: count() })
+      .from(keys)
+      .where(eq(keys.userId, userId));
+    if (countResult.cnt >= MAX_KEYS_PER_USER) {
+      throw new Error(`Maximum of ${MAX_KEYS_PER_USER} keys reached.`);
     }
 
-    const [rows] = await conn.query(
-      `SELECT MAX(key_number) AS max_num FROM user_keys WHERE user_id = ? FOR UPDATE`,
-      [userId],
-    );
-    const maxNum =
-      Array.isArray(rows) && rows.length > 0
-        ? ((rows[0] as any).max_num ?? 0)
-        : 0;
-    const keyNumber = maxNum + 1;
+    const [maxResult] = await tx
+      .select({ maxNum: max(keys.keyNumber) })
+      .from(keys)
+      .where(eq(keys.userId, userId))
+      .for("update");
+    const keyNumber = (maxResult.maxNum ?? 0) + 1;
 
-    await conn.query(
-      `INSERT INTO user_keys (user_id, key_number, public_key, encrypted_private_key, created_at) VALUES (?, ?, ?, ?, NOW())`,
-      [userId, keyNumber, publicKey, encryptedPrivateKey],
-    );
+    await tx.insert(keys).values({
+      userId,
+      keyNumber,
+      publicKey,
+      encryptedPrivateKey,
+    });
 
-    await conn.commit();
     return { keyNumber };
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
+  });
 }
 
 export async function saveUser(
@@ -193,29 +163,19 @@ export async function changePassword(
   reEncryptedKeys: { id: number; encryptedPrivateKey: string }[],
 ) {
   const newPasswordHash = hashLoginKey(newLoginKeyHex);
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    await conn.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [
-      newPasswordHash,
-      userId,
-    ]);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ passwordHash: newPasswordHash })
+      .where(eq(users.id, userId));
 
     for (const key of reEncryptedKeys) {
-      await conn.query(
-        `UPDATE user_keys SET encrypted_private_key = ? WHERE id = ? AND user_id = ?`,
-        [key.encryptedPrivateKey, key.id, userId],
-      );
+      await tx
+        .update(keys)
+        .set({ encryptedPrivateKey: key.encryptedPrivateKey })
+        .where(and(eq(keys.id, key.id), eq(keys.userId, userId)));
     }
-
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
+  });
 }
 
 export async function verifyLogin(id: number, loginKeyHex: string) {
@@ -247,36 +207,26 @@ export async function insertPowLog(
   algorithm: string,
   difficulty: bigint,
 ) {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
+  return db.transaction(async (tx) => {
+    const [prev] = await tx
+      .select({ cumulativeDifficulty: powLog.cumulativeDifficulty })
+      .from(powLog)
+      .where(eq(powLog.userId, userId))
+      .orderBy(desc(powLog.id))
+      .limit(1)
+      .for("update");
 
-    const [rows] = await conn.query(
-      `SELECT cumulative_difficulty FROM pow_log
-       WHERE user_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-      [userId],
-    );
+    const cumulative = (prev?.cumulativeDifficulty ?? 0n) + difficulty;
 
-    const prev =
-      Array.isArray(rows) && rows.length > 0
-        ? BigInt((rows[0] as any).cumulative_difficulty)
-        : 0n;
-    const cumulative = prev + difficulty;
+    await tx.insert(powLog).values({
+      userId,
+      algorithm,
+      difficulty,
+      cumulativeDifficulty: cumulative,
+    });
 
-    await conn.query(
-      `INSERT INTO pow_log (user_id, algorithm, difficulty, cumulative_difficulty, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [userId, algorithm, difficulty.toString(), cumulative.toString()],
-    );
-
-    await conn.commit();
     return { cumulativeDifficulty: cumulative };
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
+  });
 }
 
 export async function getUserPowTotal(userId: number): Promise<bigint> {
