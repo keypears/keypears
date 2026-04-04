@@ -3,13 +3,16 @@
   "type": "module",
   "scripts": {
     "dev": "dotenvx run -f .env.dev -- vite",
+    "dev:passapples": "dotenvx run -f .env.dev.passapples -- vite --port 3002",
     "build": "vite build",
     "start": "bun dist/server/server.js",
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:push": "dotenvx run -f .env.dev -- drizzle-kit push",
+    "db:push:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push",
     "db:clear": "dotenvx run -f .env.dev -- drizzle-kit push --config drizzle.clear.config.ts",
+    "db:clear:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:generate": "dotenvx run -f .env.dev -- drizzle-kit generate",
     "build:icons": "bun run process-icons.ts",
     "test": "vitest run"

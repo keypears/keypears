@@ -7,7 +7,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   server: {
     port: 3001,
-    allowedHosts: ["keypears.test"],
+    allowedHosts: ["keypears.test", "passapples.test"],
   },
   plugins: [tsConfigPaths(), tanstackStart(), react(), tailwindcss()],
 });

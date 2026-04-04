@@ -15,6 +15,7 @@ import {
   cacheEntropyTier,
 } from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
+import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/_app/welcome")({
   loader: async () => {
@@ -74,8 +75,9 @@ function WelcomePage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center pt-32 font-sans">
-      <div className="text-center">
+    <div className="flex flex-1 flex-col font-sans">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center">
         <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
         <p className="text-foreground-dark mt-2">Your KeyPears address is</p>
         <p className="text-accent mt-1 font-bold">{keypearAddress(data.id, data.domain)}</p>
@@ -163,7 +165,9 @@ function WelcomePage() {
             </button>
           </div>
         )}
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
