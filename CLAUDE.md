@@ -65,6 +65,12 @@ keypears/
 - **Package manager**: Bun
 - **Runtime**: Bun
 
+## Documentation
+
+- [docs/dev-setup.md](docs/dev-setup.md) — Local HTTPS via Caddy + dnsmasq
+- [docs/federation.md](docs/federation.md) — Federation model and cross-domain messaging
+- [webapp/docs/kdf.md](webapp/docs/kdf.md) — Key derivation system
+
 ## Development
 
 Local HTTPS via Caddy reverse proxy — see [docs/dev-setup.md](docs/dev-setup.md).
