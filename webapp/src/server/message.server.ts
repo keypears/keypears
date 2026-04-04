@@ -153,7 +153,7 @@ export async function getUserChannels(userId: number) {
 
 export async function getChannelMessages(
   channelId: number,
-  limit = 50,
+  limit = 20,
   beforeId?: number,
 ) {
   const conditions = beforeId

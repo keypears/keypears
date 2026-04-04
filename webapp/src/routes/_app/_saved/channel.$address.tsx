@@ -29,7 +29,7 @@ function ChannelPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [hasMore, setHasMore] = useState(initialMessages.length >= 50);
+  const [hasMore, setHasMore] = useState(initialMessages.length >= 20);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -97,7 +97,7 @@ function ChannelPage() {
       const older = await getOlderMessages({
         data: { counterpartyAddress: address, beforeId: oldestId },
       });
-      if (older.length < 50) setHasMore(false);
+      if (older.length < 20) setHasMore(false);
       if (older.length > 0) {
         const container = messagesContainerRef.current;
         const prevHeight = container?.scrollHeight ?? 0;

@@ -149,7 +149,7 @@ export const getOlderMessages = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const channel = await resolveChannel(data.counterpartyAddress);
-    return getChannelMessages(channel.id, 50, data.beforeId);
+    return getChannelMessages(channel.id, undefined, data.beforeId);
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
