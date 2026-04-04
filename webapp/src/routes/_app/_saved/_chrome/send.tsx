@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   sendMessage,
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_app/_saved/_chrome/send")({
 });
 
 function SendPage() {
+  const navigate = useNavigate();
   const [recipient, setRecipient] = useState("");
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -85,10 +86,7 @@ function SendPage() {
         }
       }
 
-      setText("");
-      setRecipient("");
-      setStatus("Message sent!");
-      setTimeout(() => setStatus(""), 2000);
+      navigate({ to: `/channel/${recipient}` });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send message.");
     } finally {
