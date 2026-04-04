@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
+  getOlderMessages,
   sendMessage,
   getMyActiveEncryptedKey,
   pollNewMessages,
@@ -10,7 +11,7 @@ import {
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { Send as SendIcon, ArrowLeft, LockKeyhole } from "lucide-react";
+import { Send as SendIcon, ArrowLeft, LockKeyhole, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
@@ -27,7 +28,10 @@ function ChannelPage() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(initialMessages.length >= 50);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const encryptionKey = getCachedEncryptionKey();
 
@@ -83,6 +87,41 @@ function ChannelPage() {
       active = false;
     };
   }, [address]);
+
+  // Reverse infinite scroll — load older messages when scrolling to top
+  async function loadOlder() {
+    if (loadingOlder || !hasMore || messageList.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      const oldestId = messageList[0].id;
+      const older = await getOlderMessages({
+        data: { counterpartyAddress: address, beforeId: oldestId },
+      });
+      if (older.length < 50) setHasMore(false);
+      if (older.length > 0) {
+        const container = messagesContainerRef.current;
+        const prevHeight = container?.scrollHeight ?? 0;
+        setMessageList((prev) => [...older, ...prev]);
+        // Restore scroll position after prepend
+        requestAnimationFrame(() => {
+          if (container) {
+            const newHeight = container.scrollHeight;
+            container.scrollTop = newHeight - prevHeight;
+          }
+        });
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    if (e.currentTarget.scrollTop === 0) {
+      loadOlder();
+    }
+  }
 
   type DecryptResult =
     | { ok: true; text: string }
@@ -171,8 +210,22 @@ function ChannelPage() {
       </div>
 
       {/* Scrollable messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4"
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
+          {loadingOlder && (
+            <div className="flex justify-center py-2">
+              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+            </div>
+          )}
+          {!hasMore && messageList.length > 0 && (
+            <p className="text-muted-foreground text-center text-xs">
+              Beginning of conversation
+            </p>
+          )}
           {messageList.map((msg) => {
             const isMine = msg.senderPubKey === myKeyData?.publicKey;
             const result = tryDecrypt(msg);

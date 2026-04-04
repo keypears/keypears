@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
-import { eq, desc, and, gt, count } from "drizzle-orm";
+import { eq, desc, and, gt, lt, count } from "drizzle-orm";
 
 export async function getOrCreateChannelPair(
   userId: number,
@@ -151,13 +151,24 @@ export async function getUserChannels(userId: number) {
     .orderBy(desc(channels.updatedAt));
 }
 
-export async function getChannelMessages(channelId: number, limit = 50) {
-  return db
+export async function getChannelMessages(
+  channelId: number,
+  limit = 50,
+  beforeId?: number,
+) {
+  const conditions = beforeId
+    ? and(eq(messages.channelId, channelId), lt(messages.id, beforeId))
+    : eq(messages.channelId, channelId);
+
+  // Fetch newest N messages (or newest N before beforeId), then reverse for chronological order
+  const rows = await db
     .select()
     .from(messages)
-    .where(eq(messages.channelId, channelId))
-    .orderBy(messages.createdAt)
+    .where(conditions)
+    .orderBy(desc(messages.id))
     .limit(limit);
+
+  return rows.toReversed();
 }
 
 export async function getNewMessages(channelId: number, afterId: number) {

@@ -140,6 +140,18 @@ export const getMessagesForChannel = createServerFn({ method: "GET" })
     return getChannelMessages(channel.id);
   });
 
+export const getOlderMessages = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      counterpartyAddress: z.string(),
+      beforeId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const channel = await resolveChannel(data.counterpartyAddress);
+    return getChannelMessages(channel.id, 50, data.beforeId);
+  });
+
 export const pollNewMessages = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
