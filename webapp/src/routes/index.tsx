@@ -118,19 +118,6 @@ function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col font-sans">
-      {/* Top-right login link */}
-      <div className="flex justify-end px-6 py-4">
-        <span className="text-muted-foreground text-sm">
-          Already have an account?{" "}
-          <a
-            href="/login"
-            className="text-accent hover:text-accent/80 no-underline"
-          >
-            Log in
-          </a>
-        </span>
-      </div>
-
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-md text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
@@ -154,6 +141,15 @@ function LandingPage() {
                 Create an Account
               </button>
               {error && <p className="text-danger mt-4 text-sm">{error}</p>}
+              <p className="text-muted-foreground mt-4 text-sm">
+                Already have an account?{" "}
+                <a
+                  href="/login"
+                  className="text-accent hover:text-accent/80 no-underline"
+                >
+                  Log in
+                </a>
+              </p>
             </>
           )}
 
