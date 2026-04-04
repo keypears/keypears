@@ -9,19 +9,20 @@ import {
   uniqueIndex,
   customType,
 } from "drizzle-orm/mysql-core";
+import { UUID } from "uuidv7";
 
 // --- Custom column types ---
 
-/** binary(16) stored as hex string in TypeScript for easy handling */
+/** binary(16) in MySQL, formatted UUIDv7 string in TypeScript */
 const binaryId = customType<{ data: string }>({
   dataType() {
     return "binary(16)";
   },
   toDriver(data: string) {
-    return Buffer.from(data, "hex");
+    return Buffer.from(UUID.parse(data).bytes);
   },
   fromDriver(data) {
-    return Buffer.from(data as Buffer).toString("hex");
+    return UUID.ofInner(new Uint8Array(data as Buffer)).toString();
   },
 });
 

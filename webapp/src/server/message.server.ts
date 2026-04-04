@@ -1,10 +1,10 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
-import { uuidv7obj } from "uuidv7";
+import { uuidv7 } from "uuidv7";
 
 function newId(): string {
-  return Buffer.from(uuidv7obj().bytes).toString("hex");
+  return uuidv7();
 }
 
 export async function getOrCreateChannel(

@@ -5,10 +5,10 @@ import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
-import { uuidv7obj } from "uuidv7";
+import { uuidv7 } from "uuidv7";
 
 function newId(): string {
-  return Buffer.from(uuidv7obj().bytes).toString("hex");
+  return uuidv7();
 }
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
