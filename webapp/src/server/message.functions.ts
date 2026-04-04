@@ -16,18 +16,14 @@ import { getUserById, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
+import { parseLocalAddress, makeAddress } from "~/lib/config";
 
 const COOKIE_NAME = "user_id";
-
-function parseAddress(address: string): number | null {
-  const match = address.match(/^(\d+)@keypears\.com$/);
-  return match ? Number(match[1]) : null;
-}
 
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())
   .handler(async ({ data: address }) => {
-    const id = parseAddress(address);
+    const id = parseLocalAddress(address);
     if (id == null) return null;
     const user = await getUserById(id);
     if (!user || !user.passwordHash) return null;
@@ -53,7 +49,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
 
-    const recipientId = parseAddress(input.recipientAddress);
+    const recipientId = parseLocalAddress(input.recipientAddress);
     if (recipientId == null) throw new Error("Invalid recipient address");
     if (recipientId === senderUser.id)
       throw new Error("Cannot message yourself");
@@ -75,7 +71,7 @@ export const sendMessage = createServerFn({ method: "POST" })
         throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
 
-    const senderAddress = `${senderUser.id}@keypears.com`;
+    const senderAddress = makeAddress(senderUser.id);
 
     // Create channels for both sides and insert message into both
     const { senderChannelId, recipientChannelId } =
@@ -116,7 +112,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 
     return channelList.map((ch) => ({
       id: ch.id,
-      counterpartyAddress: `${ch.counterpartyId}@keypears.com`,
+      counterpartyAddress: makeAddress(ch.counterpartyId),
       updatedAt: ch.updatedAt,
       unreadCount: unreadMap.get(ch.id) ?? 0,
     }));
@@ -126,7 +122,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 async function resolveChannel(counterpartyAddress: string) {
   const id = getCookie(COOKIE_NAME);
   if (!id) throw new Error("Not logged in");
-  const counterpartyId = parseAddress(counterpartyAddress);
+  const counterpartyId = parseLocalAddress(counterpartyAddress);
   if (counterpartyId == null) throw new Error("Invalid address");
   const channel = await getChannelByCounterparty(Number(id), counterpartyId);
   if (!channel) throw new Error("Channel not found");

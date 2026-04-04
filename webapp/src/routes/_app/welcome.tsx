@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
+import { getServerDomain } from "~/server/config.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -19,13 +20,14 @@ export const Route = createFileRoute("/_app/welcome")({
   loader: async () => {
     const user = await getMyUser();
     if (!user) throw new Error("Not logged in");
-    return user;
+    const domain = await getServerDomain();
+    return { ...user, domain };
   },
   component: WelcomePage,
 });
 
-function keypearAddress(id: number) {
-  return `${id}@keypears.com`;
+function keypearAddress(id: number, domain: string) {
+  return `${id}@${domain}`;
 }
 
 function WelcomePage() {
@@ -41,7 +43,7 @@ function WelcomePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (addressInput !== keypearAddress(data.id)) {
+    if (addressInput !== keypearAddress(data.id, data.domain)) {
       setError("KeyPears address does not match.");
       return;
     }
@@ -76,10 +78,10 @@ function WelcomePage() {
       <div className="text-center">
         <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
         <p className="text-foreground-dark mt-2">Your KeyPears address is</p>
-        <p className="text-accent mt-1 font-bold">{keypearAddress(data.id)}</p>
+        <p className="text-accent mt-1 font-bold">{keypearAddress(data.id, data.domain)}</p>
         <button
           onClick={() => {
-            navigator.clipboard.writeText(keypearAddress(data.id));
+            navigator.clipboard.writeText(keypearAddress(data.id, data.domain));
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}

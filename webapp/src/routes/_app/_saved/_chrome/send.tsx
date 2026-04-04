@@ -106,7 +106,7 @@ function SendPage() {
       <form onSubmit={handleSend} className="mt-6 flex flex-col gap-4">
         <input
           type="text"
-          placeholder="Recipient address (e.g. 5@keypears.com)"
+          placeholder="Recipient address (e.g. 5@domain.com)"
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
           className="bg-background-dark border-border text-foreground rounded border px-4 py-2"

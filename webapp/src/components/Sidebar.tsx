@@ -144,13 +144,19 @@ function Logo() {
   );
 }
 
-function Address({ keypearId }: { keypearId: number }) {
+function Address({
+  keypearId,
+  domain,
+}: {
+  keypearId: number;
+  domain: string;
+}) {
   return (
     <a
       href={`/@${keypearId}`}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
-      {keypearId}@keypears.com
+      {keypearId}@{domain}
     </a>
   );
 }
@@ -158,9 +164,11 @@ function Address({ keypearId }: { keypearId: number }) {
 export function Sidebar({
   keypearId,
   hasPassword,
+  domain,
 }: {
   keypearId: number;
   hasPassword: boolean;
+  domain: string;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -185,7 +193,7 @@ export function Sidebar({
           <Logo />
         </div>
         <div className="flex items-center gap-3">
-          <Address keypearId={keypearId} />
+          <Address keypearId={keypearId} domain={domain} />
           <UserDropdown keypearId={keypearId} />
         </div>
       </nav>
@@ -237,7 +245,7 @@ export function Sidebar({
 
       {/* Desktop top-right: address + user dropdown */}
       <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
-        <Address keypearId={keypearId} />
+        <Address keypearId={keypearId} domain={domain} />
         <UserDropdown keypearId={keypearId} />
       </div>
     </>

@@ -13,20 +13,18 @@ import {
 } from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
+import { getServerDomain } from "~/server/config.functions";
 import { usePowMiner } from "~/lib/use-pow-miner";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
+  loader: () => getServerDomain(),
   component: LoginPage,
 });
 
-function parseKeypearAddress(input: string): number | null {
-  const match = input.match(/^(\d+)@keypears\.com$/);
-  return match ? Number(match[1]) : null;
-}
-
 function LoginPage() {
+  const domain = Route.useLoaderData();
   const navigate = useNavigate();
   const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
@@ -39,11 +37,12 @@ function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const id = parseKeypearAddress(address);
-    if (id == null) {
-      setError("Enter a valid KeyPears address (e.g. 1@keypears.com).");
+    const match = address.match(new RegExp(`^(\\d+)@${domain.replace(".", "\\.")}$`));
+    if (!match) {
+      setError(`Enter a valid KeyPears address (e.g. 1@${domain}).`);
       return;
     }
+    const id = Number(match[1]);
 
     setPagePhase("mining");
     try {
@@ -95,7 +94,7 @@ function LoginPage() {
             >
               <input
                 type="text"
-                placeholder="KeyPears address (e.g. 1@keypears.com)"
+                placeholder={`KeyPears address (e.g. 1@${domain})`}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="bg-background-dark border-border text-foreground rounded border px-4 py-2"

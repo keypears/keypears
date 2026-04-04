@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, getProfile } from "~/server/user.functions";
+import { getServerDomain } from "~/server/config.functions";
 import { CircleUser, Cpu } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
@@ -12,9 +13,10 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
     if (Number.isNaN(profileId)) {
       throw notFound();
     }
-    const [me, profileData] = await Promise.all([
+    const [me, profileData, domain] = await Promise.all([
       getMyUser(),
       getProfile({ data: profileId }),
+      getServerDomain(),
     ]);
     if (!me) {
       throw notFound();
@@ -24,13 +26,14 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
       profileId,
       publicKey: profileData?.publicKey ?? null,
       powTotal: profileData?.powTotal ?? "0",
+      domain,
     };
   },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { profileId, publicKey, powTotal } = Route.useLoaderData();
+  const { profileId, publicKey, powTotal, domain } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -49,7 +52,7 @@ function ProfilePage() {
     <div className="flex flex-col items-center pt-32 font-sans">
       <CircleUser className="text-muted-foreground h-24 w-24" />
       <h1 className="text-foreground mt-6 text-2xl font-bold">
-        {profileId}@keypears.com
+        {profileId}@{domain}
       </h1>
       {truncatedKey && (
         <button
