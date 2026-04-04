@@ -8,7 +8,11 @@ import {
   DropdownMenuSeparator,
 } from "~/components/ui/dropdown-menu";
 import { logout } from "~/server/user.functions";
-import { clearCachedEncryptionKey } from "~/lib/auth";
+import {
+  clearCachedEncryptionKey,
+  clearCachedEntropyTier,
+  getCachedEntropyTier,
+} from "~/lib/auth";
 import { $icon } from "~/lib/icons";
 import {
   Inbox,
@@ -30,8 +34,13 @@ const navItems = [
 ];
 
 function UserDropdown({ keypearId }: { keypearId: number }) {
+  const tier = typeof window !== "undefined" ? getCachedEntropyTier() : null;
+  const showWarning = tier === "red" || tier === "yellow";
+  const dotColor = tier === "red" ? "bg-destructive" : "bg-yellow-500";
+
   async function handleLogout() {
     clearCachedEncryptionKey();
+    clearCachedEntropyTier();
     await logout();
     window.location.href = "/";
   }
@@ -57,9 +66,17 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/password" className="cursor-pointer no-underline">
+          <a
+            href="/password"
+            className="cursor-pointer no-underline"
+          >
             <LockKeyhole className="mr-2 h-4 w-4" />
             Change Password
+            {showWarning && (
+              <span
+                className={`${dotColor} ml-auto h-2 w-2 rounded-full`}
+              />
+            )}
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -7,6 +7,9 @@ import {
   deriveLoginKeyFromPasswordKey,
   deriveEncryptionKeyFromPasswordKey,
   cacheEncryptionKey,
+  calculatePasswordEntropy,
+  entropyTier,
+  cacheEntropyTier,
 } from "~/lib/auth";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
@@ -112,6 +115,7 @@ function LoginPage() {
       });
       const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
+      cacheEntropyTier(entropyTier(calculatePasswordEntropy(password)));
       navigate({ to: "/inbox" });
     } catch {
       setError("Invalid KeyPears address or password.");

@@ -6,6 +6,61 @@ import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
 
 const CLIENT_KDF_ROUNDS = 100_000;
 const ENCRYPTION_KEY_STORAGE_KEY = "keypears_encryption_key";
+const ENTROPY_TIER_STORAGE_KEY = "keypears_entropy_tier";
+
+// --- Password entropy ---
+
+const LOWERCASE_SIZE = 26;
+const UPPERCASE_SIZE = 26;
+const NUMBERS_SIZE = 10;
+const SYMBOLS_SIZE = 28;
+
+export type EntropyTier = "red" | "yellow" | "green";
+
+export function calculatePasswordEntropy(password: string): number {
+  if (password.length === 0) return 0;
+
+  let charsetSize = 0;
+  if (/[a-z]/.test(password)) charsetSize += LOWERCASE_SIZE;
+  if (/[A-Z]/.test(password)) charsetSize += UPPERCASE_SIZE;
+  if (/[0-9]/.test(password)) charsetSize += NUMBERS_SIZE;
+  if (/[^a-zA-Z0-9]/.test(password)) charsetSize += SYMBOLS_SIZE;
+
+  if (charsetSize === 0) return 0;
+  return password.length * Math.log2(charsetSize);
+}
+
+export function entropyTier(entropy: number): EntropyTier {
+  if (entropy < 50) return "red";
+  if (entropy < 75) return "yellow";
+  return "green";
+}
+
+export function entropyLabel(tier: EntropyTier): string {
+  if (tier === "red") return "Weak";
+  if (tier === "yellow") return "Fair";
+  return "Strong";
+}
+
+export function entropyColor(tier: EntropyTier): string {
+  if (tier === "red") return "text-destructive";
+  if (tier === "yellow") return "text-yellow-500";
+  return "text-green-500";
+}
+
+export function cacheEntropyTier(tier: EntropyTier): void {
+  localStorage.setItem(ENTROPY_TIER_STORAGE_KEY, tier);
+}
+
+export function getCachedEntropyTier(): EntropyTier | null {
+  const tier = localStorage.getItem(ENTROPY_TIER_STORAGE_KEY);
+  if (tier === "red" || tier === "yellow" || tier === "green") return tier;
+  return null;
+}
+
+export function clearCachedEntropyTier(): void {
+  localStorage.removeItem(ENTROPY_TIER_STORAGE_KEY);
+}
 
 function sha256Pbkdf(
   password: WebBuf,

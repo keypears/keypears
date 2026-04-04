@@ -7,6 +7,11 @@ import {
   deriveEncryptionKeyFromPasswordKey,
   generateAndEncryptKeyPairFromEncryptionKey,
   cacheEncryptionKey,
+  calculatePasswordEntropy,
+  entropyTier,
+  entropyLabel,
+  entropyColor,
+  cacheEntropyTier,
 } from "~/lib/auth";
 import { Copy, Check } from "lucide-react";
 
@@ -53,6 +58,8 @@ function WelcomePage() {
       const { publicKey, encryptedPrivateKey } =
         generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       cacheEncryptionKey(encryptionKey);
+      const entropy = calculatePasswordEntropy(password);
+      cacheEntropyTier(entropyTier(entropy));
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
@@ -99,14 +106,33 @@ function WelcomePage() {
                 className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
                 required
               />
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-                required
-              />
+              <div>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
+                  required
+                />
+                {password.length > 0 && (
+                  <div className="mt-1 flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {password.length} characters
+                    </span>
+                    <span
+                      className={entropyColor(
+                        entropyTier(calculatePasswordEntropy(password)),
+                      )}
+                    >
+                      {calculatePasswordEntropy(password).toFixed(1)} bits —{" "}
+                      {entropyLabel(
+                        entropyTier(calculatePasswordEntropy(password)),
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
               <input
                 type="password"
                 placeholder="Confirm password"

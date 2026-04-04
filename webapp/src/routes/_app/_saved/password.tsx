@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   getMyEncryptedKeys,
@@ -11,6 +11,12 @@ import {
   getCachedEncryptionKey,
   cacheEncryptionKey,
   decryptPrivateKey,
+  calculatePasswordEntropy,
+  entropyTier,
+  entropyLabel,
+  entropyColor,
+  cacheEntropyTier,
+  getCachedEntropyTier,
 } from "~/lib/auth";
 import { acs2Encrypt } from "@webbuf/acs2";
 
@@ -19,7 +25,6 @@ export const Route = createFileRoute("/_app/_saved/password")({
 });
 
 function PasswordPage() {
-  const navigate = useNavigate();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -84,10 +89,12 @@ function PasswordPage() {
         },
       });
 
-      // 5. Cache new encryption key
+      // 5. Cache new encryption key and entropy tier
       cacheEncryptionKey(newEncryptionKey);
+      cacheEntropyTier(entropyTier(calculatePasswordEntropy(newPassword)));
 
-      navigate({ to: "/inbox" });
+      // Full reload so the sidebar re-reads the updated entropy tier from localStorage
+      window.location.href = "/inbox";
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to change password.",
@@ -104,6 +111,23 @@ function PasswordPage() {
       <p className="text-muted-foreground mt-2 text-sm">
         All your encrypted keys will be re-encrypted with your new password.
       </p>
+      {(() => {
+        const currentTier =
+          typeof window !== "undefined" ? getCachedEntropyTier() : null;
+        if (currentTier === "red")
+          return (
+            <p className="text-destructive mt-3 text-sm font-medium">
+              Your current password is weak. Choose a stronger one.
+            </p>
+          );
+        if (currentTier === "yellow")
+          return (
+            <p className="text-yellow-500 mt-3 text-sm font-medium">
+              Your current password is fair. Consider a stronger one.
+            </p>
+          );
+        return null;
+      })()}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <input
@@ -114,14 +138,33 @@ function PasswordPage() {
           className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
           required
         />
-        <input
-          type="password"
-          placeholder="New password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-          required
-        />
+        <div>
+          <input
+            type="password"
+            placeholder="New password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
+            required
+          />
+          {newPassword.length > 0 && (
+            <div className="mt-1 flex justify-between text-xs">
+              <span className="text-muted-foreground">
+                {newPassword.length} characters
+              </span>
+              <span
+                className={entropyColor(
+                  entropyTier(calculatePasswordEntropy(newPassword)),
+                )}
+              >
+                {calculatePasswordEntropy(newPassword).toFixed(1)} bits —{" "}
+                {entropyLabel(
+                  entropyTier(calculatePasswordEntropy(newPassword)),
+                )}
+              </span>
+            </div>
+          )}
+        </div>
         <input
           type="password"
           placeholder="Confirm new password"
