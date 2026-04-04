@@ -48,7 +48,7 @@ async function main() {
   }
 
   const typeContent = `export type Icon =\n  ${outputPaths
-    .sort()
+    .toSorted()
     .map((p) => `| "${p}"`)
     .join("\n  ")};\n\nexport const $icon = (icon: Icon) => icon;\n`;
 
