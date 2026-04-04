@@ -1,18 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
   sendMessage,
   getMyActiveEncryptedKey,
 } from "~/server/message.functions";
+import { getMyUser } from "~/server/user.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon, ArrowLeft } from "lucide-react";
 
-
-export const Route = createFileRoute("/_app/_saved/channel/$id")({
+export const Route = createFileRoute("/channel/$id")({
+  ssr: false,
   loader: async ({ params }) => {
+    const user = await getMyUser();
+    if (!user || !user.hasPassword) throw redirect({ to: "/" });
     const channelId = Number(params.id);
     const msgs = await getMessagesForChannel({ data: channelId });
     return { channelId, messages: msgs };
@@ -26,10 +29,10 @@ function ChannelPage() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const encryptionKey = getCachedEncryptionKey();
 
-  // Determine counterparty from first message
   const myKeyData = useMyKey();
   const myAddress =
     myKeyData?.publicKey
@@ -48,6 +51,15 @@ function ChannelPage() {
     return data;
   }
 
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  // Scroll to bottom on initial load and when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView();
+  }, [messageList.length]);
+
   function tryDecrypt(msg: {
     encryptedContent: string;
     senderPubKey: string;
@@ -59,8 +71,6 @@ function ChannelPage() {
         myKeyData.encryptedPrivateKey,
         encryptionKey,
       );
-      // If I'm the sender, I need the recipient's pub key for ECDH
-      // If I'm the recipient, I need the sender's pub key
       const isSender = msg.senderPubKey === myKeyData.publicKey;
       const theirPubKeyHex = isSender
         ? msg.recipientPubKey
@@ -72,19 +82,10 @@ function ChannelPage() {
     }
   }
 
-  // Find counterparty address
-  const counterpartyAddress =
-    messageList.length > 0
-      ? messageList[0].senderAddress === myAddress
-        ? `recipient` // We don't have it directly, derive from channel
-        : messageList[0].senderAddress
-      : "Unknown";
-
-  // Better: look at messages to find the other party
   const otherAddress = messageList.find(
     (m) => m.senderAddress !== myAddress,
   )?.senderAddress;
-  const displayAddress = otherAddress ?? counterpartyAddress;
+  const displayAddress = otherAddress ?? "Unknown";
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -93,21 +94,15 @@ function ChannelPage() {
     setSending(true);
 
     try {
-      // Find recipient address and pub key from existing messages
       const otherMsg = messageList.find(
         (m) => m.senderPubKey !== myKeyData.publicKey,
       );
       const recipientPubKeyHex =
-        otherMsg?.senderPubKey ??
-        messageList[0]?.recipientPubKey;
+        otherMsg?.senderPubKey ?? messageList[0]?.recipientPubKey;
       if (!recipientPubKeyHex) throw new Error("Cannot determine recipient");
 
-      // Determine recipient address
       let recipientAddr = otherMsg?.senderAddress;
       if (!recipientAddr) {
-        // We sent the first message — recipient pub key is in recipientPubKey field
-        // We need to look up who this key belongs to... use channel counterparty
-        // For now, derive from the channel data
         throw new Error("Cannot determine recipient address");
       }
 
@@ -140,6 +135,7 @@ function ChannelPage() {
         },
       ]);
       setText("");
+      scrollToBottom();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send.");
     } finally {
@@ -148,9 +144,9 @@ function ChannelPage() {
   }
 
   return (
-    <div className="flex h-full flex-col font-sans">
-      {/* Header */}
-      <div className="border-border/30 flex items-center gap-3 border-b px-4 py-3">
+    <div className="flex min-h-screen flex-col font-sans">
+      {/* Fixed header */}
+      <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3">
         <a
           href="/inbox"
           className="text-muted-foreground hover:text-foreground no-underline"
@@ -162,7 +158,7 @@ function ChannelPage() {
         </span>
       </div>
 
-      {/* Messages */}
+      {/* Scrollable messages */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {messageList.map((msg) => {
@@ -188,13 +184,14 @@ function ChannelPage() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input */}
+      {/* Fixed input */}
       <form
         onSubmit={handleSend}
-        className="border-border/30 flex gap-3 border-t px-4 py-3"
+        className="bg-background border-border/30 flex gap-3 border-t px-4 py-3"
       >
         <input
           type="text"

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
 import { Route as AppProfileRouteImport } from './routes/_app/$profile'
@@ -20,7 +21,6 @@ import { Route as AppSavedSendRouteImport } from './routes/_app/_saved/send'
 import { Route as AppSavedPasswordRouteImport } from './routes/_app/_saved/password'
 import { Route as AppSavedKeysRouteImport } from './routes/_app/_saved/keys'
 import { Route as AppSavedInboxRouteImport } from './routes/_app/_saved/inbox'
-import { Route as AppSavedChannelIdRouteImport } from './routes/_app/_saved/channel.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -34,6 +34,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelIdRoute = ChannelIdRouteImport.update({
+  id: '/channel/$id',
+  path: '/channel/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWelcomeRoute = AppWelcomeRouteImport.update({
@@ -75,35 +80,30 @@ const AppSavedInboxRoute = AppSavedInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppSavedRoute,
 } as any)
-const AppSavedChannelIdRoute = AppSavedChannelIdRouteImport.update({
-  id: '/channel/$id',
-  path: '/channel/$id',
-  getParentRoute: () => AppSavedRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
   '/welcome': typeof AppWelcomeRoute
+  '/channel/$id': typeof ChannelIdRoute
   '/inbox': typeof AppSavedInboxRoute
   '/keys': typeof AppSavedKeysRoute
   '/password': typeof AppSavedPasswordRoute
   '/send': typeof AppSavedSendRoute
   '/vault': typeof AppSavedVaultRoute
-  '/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/$profile': typeof AppProfileRoute
   '/welcome': typeof AppWelcomeRoute
+  '/channel/$id': typeof ChannelIdRoute
   '/inbox': typeof AppSavedInboxRoute
   '/keys': typeof AppSavedKeysRoute
   '/password': typeof AppSavedPasswordRoute
   '/send': typeof AppSavedSendRoute
   '/vault': typeof AppSavedVaultRoute
-  '/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,12 +113,12 @@ export interface FileRoutesById {
   '/_app/$profile': typeof AppProfileRoute
   '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
+  '/channel/$id': typeof ChannelIdRoute
   '/_app/_saved/inbox': typeof AppSavedInboxRoute
   '/_app/_saved/keys': typeof AppSavedKeysRoute
   '/_app/_saved/password': typeof AppSavedPasswordRoute
   '/_app/_saved/send': typeof AppSavedSendRoute
   '/_app/_saved/vault': typeof AppSavedVaultRoute
-  '/_app/_saved/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,24 +127,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/$profile'
     | '/welcome'
+    | '/channel/$id'
     | '/inbox'
     | '/keys'
     | '/password'
     | '/send'
     | '/vault'
-    | '/channel/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/$profile'
     | '/welcome'
+    | '/channel/$id'
     | '/inbox'
     | '/keys'
     | '/password'
     | '/send'
     | '/vault'
-    | '/channel/$id'
   id:
     | '__root__'
     | '/'
@@ -153,18 +153,19 @@ export interface FileRouteTypes {
     | '/_app/$profile'
     | '/_app/_saved'
     | '/_app/welcome'
+    | '/channel/$id'
     | '/_app/_saved/inbox'
     | '/_app/_saved/keys'
     | '/_app/_saved/password'
     | '/_app/_saved/send'
     | '/_app/_saved/vault'
-    | '/_app/_saved/channel/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ChannelIdRoute: typeof ChannelIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -188,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel/$id': {
+      id: '/channel/$id'
+      path: '/channel/$id'
+      fullPath: '/channel/$id'
+      preLoaderRoute: typeof ChannelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/welcome': {
@@ -246,13 +254,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedInboxRouteImport
       parentRoute: typeof AppSavedRoute
     }
-    '/_app/_saved/channel/$id': {
-      id: '/_app/_saved/channel/$id'
-      path: '/channel/$id'
-      fullPath: '/channel/$id'
-      preLoaderRoute: typeof AppSavedChannelIdRouteImport
-      parentRoute: typeof AppSavedRoute
-    }
   }
 }
 
@@ -262,7 +263,6 @@ interface AppSavedRouteChildren {
   AppSavedPasswordRoute: typeof AppSavedPasswordRoute
   AppSavedSendRoute: typeof AppSavedSendRoute
   AppSavedVaultRoute: typeof AppSavedVaultRoute
-  AppSavedChannelIdRoute: typeof AppSavedChannelIdRoute
 }
 
 const AppSavedRouteChildren: AppSavedRouteChildren = {
@@ -271,7 +271,6 @@ const AppSavedRouteChildren: AppSavedRouteChildren = {
   AppSavedPasswordRoute: AppSavedPasswordRoute,
   AppSavedSendRoute: AppSavedSendRoute,
   AppSavedVaultRoute: AppSavedVaultRoute,
-  AppSavedChannelIdRoute: AppSavedChannelIdRoute,
 }
 
 const AppSavedRouteWithChildren = AppSavedRoute._addFileChildren(
@@ -296,6 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ChannelIdRoute: ChannelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
