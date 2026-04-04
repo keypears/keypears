@@ -171,6 +171,7 @@ export function Sidebar({
   domain: string;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { unreadCount } = useChannels();
 
   return (
     <>
@@ -180,13 +181,18 @@ export function Sidebar({
           {hasPassword && (
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground relative"
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <>
+                  <Menu className="h-6 w-6" />
+                  {unreadCount > 0 && (
+                    <span className="bg-accent absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full" />
+                  )}
+                </>
               )}
             </button>
           )}
