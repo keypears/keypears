@@ -7,7 +7,6 @@ import {
 import "../globals.css";
 
 export const Route = createRootRoute({
-  ssr: false,
   head: () => ({
     meta: [
       { charSet: "utf-8" },

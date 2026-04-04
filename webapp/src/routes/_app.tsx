@@ -4,6 +4,7 @@ import { Sidebar } from "~/components/Sidebar";
 import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/_app")({
+  ssr: false,
   loader: async () => {
     const user = await getMyUser();
     if (!user) throw redirect({ to: "/" });

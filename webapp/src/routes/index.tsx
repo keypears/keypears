@@ -11,6 +11,7 @@ import { $icon } from "~/lib/icons";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   loader: async () => {
     const user = await getMyUser();
     if (user?.hasPassword) throw redirect({ to: "/inbox" });

@@ -16,6 +16,7 @@ import { $icon } from "~/lib/icons";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   component: LoginPage,
 });
 
