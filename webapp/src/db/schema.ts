@@ -2,6 +2,7 @@ import {
   mysqlTable,
   int,
   bigint,
+  boolean,
   varchar,
   text,
   timestamp,
@@ -48,6 +49,7 @@ export const messages = mysqlTable("messages", {
   encryptedContent: text("encrypted_content").notNull(),
   senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
   recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

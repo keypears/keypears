@@ -8,6 +8,9 @@ import {
   getChannelMessages,
   getChannelById,
   getNewMessages,
+  markChannelRead,
+  getUnreadCount,
+  getChannelUnreadCounts,
 } from "./message.server";
 import { getUserById, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
@@ -79,12 +82,14 @@ export const sendMessage = createServerFn({ method: "POST" })
     const { senderChannelId, recipientChannelId } =
       await getOrCreateChannelPair(senderUser.id, recipientId);
 
+    // Sender's copy is read, recipient's is unread
     await insertMessage(
       senderChannelId,
       senderAddress,
       input.encryptedContent,
       input.senderPubKey,
       input.recipientPubKey,
+      true,
     );
     await insertMessage(
       recipientChannelId,
@@ -92,6 +97,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       input.encryptedContent,
       input.senderPubKey,
       input.recipientPubKey,
+      false,
     );
 
     return { success: true };
@@ -101,16 +107,22 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) return [];
-    const channelList = await getUserChannels(Number(id));
+    const userId = Number(id);
+    const [channelList, unreadCounts] = await Promise.all([
+      getUserChannels(userId),
+      getChannelUnreadCounts(userId),
+    ]);
 
-    const results = await Promise.all(
-      channelList.map(async (ch) => ({
-        id: ch.id,
-        counterpartyAddress: `${ch.counterpartyId}@keypears.com`,
-        updatedAt: ch.updatedAt,
-      })),
+    const unreadMap = new Map(
+      unreadCounts.map((u) => [u.channelId, u.cnt]),
     );
-    return results;
+
+    return channelList.map((ch) => ({
+      id: ch.id,
+      counterpartyAddress: `${ch.counterpartyId}@keypears.com`,
+      updatedAt: ch.updatedAt,
+      unreadCount: unreadMap.get(ch.id) ?? 0,
+    }));
   },
 );
 
@@ -144,6 +156,28 @@ export const pollNewMessages = createServerFn({ method: "GET" })
 
     return getNewMessages(data.channelId, data.afterId);
   });
+
+export const markChannelAsRead = createServerFn({ method: "POST" })
+  .inputValidator(z.number())
+  .handler(async ({ data: channelId }) => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+
+    const channel = await getChannelById(channelId);
+    if (!channel || channel.ownerId !== Number(id))
+      throw new Error("Channel not found");
+
+    await markChannelRead(channelId);
+    return { success: true };
+  });
+
+export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) return 0;
+    return getUnreadCount(Number(id));
+  },
+);
 
 export const getMyActiveEncryptedKey = createServerFn({
   method: "GET",

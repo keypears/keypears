@@ -5,6 +5,7 @@ import {
   sendMessage,
   getMyActiveEncryptedKey,
   pollNewMessages,
+  markChannelAsRead,
 } from "~/server/message.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
@@ -48,6 +49,11 @@ function ChannelPage() {
     return data;
   }
 
+  // Mark as read on mount
+  useEffect(() => {
+    markChannelAsRead({ data: channelId });
+  }, [channelId]);
+
   // Scroll to bottom on initial load and when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView();
@@ -74,6 +80,7 @@ function ChannelPage() {
           if (!active) break;
           if (newMsgs.length > 0) {
             setMessageList((prev) => [...prev, ...newMsgs]);
+            markChannelAsRead({ data: channelId });
           }
         } catch {
           // ignore errors, retry after delay

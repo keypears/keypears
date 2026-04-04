@@ -39,9 +39,16 @@ function InboxPage() {
                   {ch.counterpartyAddress}
                 </span>
               </div>
-              <span className="text-muted-foreground text-xs">
-                {new Date(ch.updatedAt).toLocaleDateString()}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">
+                  {new Date(ch.updatedAt).toLocaleDateString()}
+                </span>
+                {ch.unreadCount > 0 && (
+                  <span className="bg-accent text-accent-foreground rounded-full px-1.5 py-0.5 text-xs font-medium">
+                    {ch.unreadCount}
+                  </span>
+                )}
+              </div>
             </a>
           ))}
         </div>

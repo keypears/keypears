@@ -1,13 +1,12 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
-import { eq, desc, and, gt } from "drizzle-orm";
+import { eq, desc, and, gt, count } from "drizzle-orm";
 
 export async function getOrCreateChannelPair(
   userId: number,
   counterpartyId: number,
 ): Promise<{ senderChannelId: number; recipientChannelId: number }> {
   return db.transaction(async (tx) => {
-    // Sender's channel
     const [senderRow] = await tx
       .select({ id: channels.id })
       .from(channels)
@@ -30,7 +29,6 @@ export async function getOrCreateChannelPair(
       senderChannelId = result.id;
     }
 
-    // Recipient's channel
     const [recipientRow] = await tx
       .select({ id: channels.id })
       .from(channels)
@@ -80,6 +78,7 @@ export async function insertMessage(
   encryptedContent: string,
   senderPubKey: string,
   recipientPubKey: string,
+  isRead: boolean,
 ) {
   await db.insert(messages).values({
     channelId,
@@ -87,11 +86,50 @@ export async function insertMessage(
     encryptedContent,
     senderPubKey,
     recipientPubKey,
+    isRead,
   });
   await db
     .update(channels)
     .set({ updatedAt: new Date() })
     .where(eq(channels.id, channelId));
+}
+
+export async function markChannelRead(channelId: number) {
+  await db
+    .update(messages)
+    .set({ isRead: true })
+    .where(and(eq(messages.channelId, channelId), eq(messages.isRead, false)));
+}
+
+export async function getUnreadCount(userId: number): Promise<number> {
+  const [result] = await db
+    .select({ cnt: count() })
+    .from(messages)
+    .innerJoin(channels, eq(messages.channelId, channels.id))
+    .where(
+      and(
+        eq(channels.ownerId, userId),
+        eq(messages.isRead, false),
+      ),
+    );
+  return result.cnt;
+}
+
+export async function getChannelUnreadCounts(userId: number) {
+  return db
+    .select({
+      channelId: messages.channelId,
+      cnt: count(),
+    })
+    .from(messages)
+    .innerJoin(channels, eq(messages.channelId, channels.id))
+    .where(
+      and(
+        eq(channels.ownerId, userId),
+        eq(messages.isRead, false),
+      ),
+    )
+    .groupBy(messages.channelId);
 }
 
 export async function getUserChannels(userId: number) {
