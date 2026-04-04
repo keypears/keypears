@@ -73,9 +73,9 @@
   --success: #587539;
   --warning: #8c6c3e;
   --destructive: #f52a65;
-  --border: #a8aecb;
-  --input: #a8aecb;
-  --ring: #2e7de9;
+  --border: #a0b0a2;
+  --input: #a0b0a2;
+  --ring: #a0b0a2;
   --card: #e1e2e7;
   --card-foreground: #2a3a2c;
   --popover: #d5d6db;
@@ -92,8 +92,8 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #c4c8da;
   --sidebar-accent-foreground: #2a3a2c;
-  --sidebar-border: #a8aecb;
-  --sidebar-ring: #2e7de9;
+  --sidebar-border: #a0b0a2;
+  --sidebar-ring: #a0b0a2;
 }
 
 /* Tokyo Night (dark) */
@@ -115,9 +115,9 @@
     --success: #9ece6a;
     --warning: #e0af68;
     --destructive: #f7768e;
-    --border: #3b4261;
-    --input: #3b4261;
-    --ring: #7aa2f7;
+    --border: #2e3e30;
+    --input: #2e3e30;
+    --ring: #2e3e30;
     --card: #151a16;
     --card-foreground: #c2ccc0;
     --popover: #111614;
@@ -133,8 +133,8 @@
     --sidebar-primary-foreground: #151a16;
     --sidebar-accent: #252e28;
     --sidebar-accent-foreground: #c2ccc0;
-    --sidebar-border: #3b4261;
-    --sidebar-ring: #7aa2f7;
+    --sidebar-border: #2e3e30;
+    --sidebar-ring: #2e3e30;
   }
 }
 
