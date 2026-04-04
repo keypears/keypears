@@ -32,11 +32,10 @@ function ChannelPage() {
   const encryptionKey = getCachedEncryptionKey();
 
   const myKeyData = useMyKey();
-  const myAddress =
-    myKeyData?.publicKey
-      ? messageList.find((m) => m.senderPubKey === myKeyData.publicKey)
-          ?.senderAddress ?? null
-      : null;
+  const myAddress = myKeyData?.publicKey
+    ? (messageList.find((m) => m.senderPubKey === myKeyData.publicKey)
+        ?.senderAddress ?? null)
+    : null;
 
   function useMyKey() {
     const [data, setData] = useState<{
@@ -106,9 +105,7 @@ function ChannelPage() {
         encryptionKey,
       );
       const isSender = msg.senderPubKey === myKeyData.publicKey;
-      const theirPubKeyHex = isSender
-        ? msg.recipientPubKey
-        : msg.senderPubKey;
+      const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
       return decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey);
     } catch {

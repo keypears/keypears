@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { createUser, getMyUser } from "~/server/user.functions";
 import { getPowChallenge } from "~/server/pow.functions";
@@ -50,9 +46,7 @@ function LandingPage() {
       setPhase("mining");
       startTimeRef.current = performance.now();
 
-      const { Pow5_64b_Wasm, hashMeetsTarget } = await import(
-        "@keypears/pow5"
-      );
+      const { Pow5_64b_Wasm, hashMeetsTarget } = await import("@keypears/pow5");
       const { FixedBuf } = await import("@webbuf/fixedbuf");
       const { WebBuf } = await import("@webbuf/webbuf");
 
@@ -86,9 +80,7 @@ function LandingPage() {
           const expectedRemaining =
             hashRate > 0 ? challenge.difficulty / hashRate : 0;
           setHashCount(nonce);
-          setProgress(
-            (elapsed / (elapsed + expectedRemaining)) * 100,
-          );
+          setProgress((elapsed / (elapsed + expectedRemaining)) * 100);
           setTimeRemaining(formatTime(expectedRemaining));
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
@@ -129,9 +121,7 @@ function LandingPage() {
             />
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
-          <p className="text-muted-foreground mb-8">
-            Secret sharing system.
-          </p>
+          <p className="text-muted-foreground mb-8">Secret Exchange</p>
 
           {phase === "idle" && (
             <>

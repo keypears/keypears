@@ -74,9 +74,8 @@ function SendPage() {
           const challenge = await getLoginPowChallenge();
           startTimeRef.current = performance.now();
 
-          const { Pow5_64b_Wasm, hashMeetsTarget } = await import(
-            "@keypears/pow5"
-          );
+          const { Pow5_64b_Wasm, hashMeetsTarget } =
+            await import("@keypears/pow5");
           const { WebBuf } = await import("@webbuf/webbuf");
 
           const headerBuf = FixedBuf.fromHex(64, challenge.header);
@@ -163,9 +162,7 @@ function SendPage() {
           required
         />
         {error && <p className="text-danger text-sm">{error}</p>}
-        {status && (
-          <p className="text-muted-foreground text-sm">{status}</p>
-        )}
+        {status && <p className="text-muted-foreground text-sm">{status}</p>}
         <button
           type="submit"
           disabled={sending}

@@ -58,9 +58,7 @@ function LoginPage() {
       startTimeRef.current = performance.now();
 
       // 2. Mine
-      const { Pow5_64b_Wasm, hashMeetsTarget } = await import(
-        "@keypears/pow5"
-      );
+      const { Pow5_64b_Wasm, hashMeetsTarget } = await import("@keypears/pow5");
       const { FixedBuf } = await import("@webbuf/fixedbuf");
       const { WebBuf } = await import("@webbuf/webbuf");
 
@@ -129,10 +127,7 @@ function LoginPage() {
       <div className="flex justify-end px-6 py-4">
         <span className="text-muted-foreground text-sm">
           Don&apos;t have an account?{" "}
-          <a
-            href="/"
-            className="text-accent hover:text-accent/80 no-underline"
-          >
+          <a href="/" className="text-accent hover:text-accent/80 no-underline">
             Create one
           </a>
         </span>

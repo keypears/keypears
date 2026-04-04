@@ -64,8 +64,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     // Check if channel exists — if not, require PoW
     const alreadyExists = await channelExists(senderUser.id, recipientId);
     if (!alreadyExists) {
-      if (!input.pow)
-        throw new Error("Proof of work required for new channel");
+      if (!input.pow) throw new Error("Proof of work required for new channel");
       const powResult = verifyPowSolution(
         input.pow.solvedHeader,
         input.pow.target,
@@ -113,9 +112,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
       getChannelUnreadCounts(userId),
     ]);
 
-    const unreadMap = new Map(
-      unreadCounts.map((u) => [u.channelId, u.cnt]),
-    );
+    const unreadMap = new Map(unreadCounts.map((u) => [u.channelId, u.cnt]));
 
     return channelList.map((ch) => ({
       id: ch.id,

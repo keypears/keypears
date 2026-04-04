@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  getMyEncryptedKeys,
-  changeMyPassword,
-} from "~/server/user.functions";
+import { getMyEncryptedKeys, changeMyPassword } from "~/server/user.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -118,7 +115,7 @@ function PasswordPage() {
         </p>
       )}
       {currentTier === "yellow" && (
-        <p className="text-yellow-500 mt-3 text-sm font-medium">
+        <p className="mt-3 text-sm font-medium text-yellow-500">
           Your current password is fair. Consider a stronger one.
         </p>
       )}
@@ -168,9 +165,7 @@ function PasswordPage() {
           required
         />
         {error && <p className="text-danger text-sm">{error}</p>}
-        {status && (
-          <p className="text-muted-foreground text-sm">{status}</p>
-        )}
+        {status && <p className="text-muted-foreground text-sm">{status}</p>}
         <button
           type="submit"
           disabled={saving}

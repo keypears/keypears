@@ -52,9 +52,5 @@ export function ChannelProvider({ children }: { children: React.ReactNode }) {
     [channels, unreadCount],
   );
 
-  return (
-    <ChannelContext value={value}>
-      {children}
-    </ChannelContext>
-  );
+  return <ChannelContext value={value}>{children}</ChannelContext>;
 }

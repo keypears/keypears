@@ -106,12 +106,7 @@ export async function getUnreadCount(userId: number): Promise<number> {
     .select({ cnt: count() })
     .from(messages)
     .innerJoin(channels, eq(messages.channelId, channels.id))
-    .where(
-      and(
-        eq(channels.ownerId, userId),
-        eq(messages.isRead, false),
-      ),
-    );
+    .where(and(eq(channels.ownerId, userId), eq(messages.isRead, false)));
   return result.cnt;
 }
 
@@ -123,12 +118,7 @@ export async function getChannelUnreadCounts(userId: number) {
     })
     .from(messages)
     .innerJoin(channels, eq(messages.channelId, channels.id))
-    .where(
-      and(
-        eq(channels.ownerId, userId),
-        eq(messages.isRead, false),
-      ),
-    )
+    .where(and(eq(channels.ownerId, userId), eq(messages.isRead, false)))
     .groupBy(messages.channelId);
 }
 

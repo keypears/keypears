@@ -54,7 +54,10 @@ export async function insertUser() {
       return { id: expired.id };
     }
 
-    const [result] = await tx.insert(users).values({ createdAt: now, expiresAt }).$returningId();
+    const [result] = await tx
+      .insert(users)
+      .values({ createdAt: now, expiresAt })
+      .$returningId();
     return { id: result.id };
   });
 }

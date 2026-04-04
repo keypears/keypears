@@ -103,9 +103,8 @@ describe("PoW verification", () => {
 
   it("rejects a hash that does not meet target", () => {
     // Use high difficulty to guarantee the unsolved header fails.
-    const hardChallenge = createPowChallenge(
-      1_000_000_000_000_000_000_000_000n,
-    );
+    const hardChallenge =
+      createPowChallenge(1_000_000_000_000_000_000_000_000n);
     const hardResult = verifyPowSolution(
       hardChallenge.header,
       hardChallenge.target,

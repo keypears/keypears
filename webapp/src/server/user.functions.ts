@@ -114,10 +114,12 @@ export const deleteMyUser = createServerFn({ method: "POST" }).handler(
 
 export const login = createServerFn({ method: "POST" })
   .inputValidator(
-    z.object({
-      id: z.number(),
-      loginKey: z.string(),
-    }).and(PowSolutionSchema),
+    z
+      .object({
+        id: z.number(),
+        loginKey: z.string(),
+      })
+      .and(PowSolutionSchema),
   )
   .handler(async ({ data: input }) => {
     const powResult = verifyPowSolution(
