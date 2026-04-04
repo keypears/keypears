@@ -1,6 +1,6 @@
 import { db, pool } from "~/db";
 import { channels, messages } from "~/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gt } from "drizzle-orm";
 
 export async function getOrCreateChannelPair(
   userId: number,
@@ -111,6 +111,14 @@ export async function getChannelMessages(
     .where(eq(messages.channelId, channelId))
     .orderBy(messages.createdAt)
     .limit(limit);
+}
+
+export async function getNewMessages(channelId: number, afterId: number) {
+  return db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.channelId, channelId), gt(messages.id, afterId)))
+    .orderBy(messages.createdAt);
 }
 
 export async function getChannelById(channelId: number) {

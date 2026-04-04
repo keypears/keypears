@@ -7,6 +7,7 @@ import {
   getUserChannels,
   getChannelMessages,
   getChannelById,
+  getNewMessages,
 } from "./message.server";
 import { getUserById, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
@@ -128,6 +129,19 @@ export const getMessagesForChannel = createServerFn({ method: "GET" })
       throw new Error("Channel not found");
 
     return getChannelMessages(channelId);
+  });
+
+export const pollNewMessages = createServerFn({ method: "GET" })
+  .inputValidator((data: { channelId: number; afterId: number }) => data)
+  .handler(async ({ data }) => {
+    const id = getCookie(COOKIE_NAME);
+    if (!id) throw new Error("Not logged in");
+
+    const channel = await getChannelById(data.channelId);
+    if (!channel || channel.ownerId !== Number(id))
+      throw new Error("Channel not found");
+
+    return getNewMessages(data.channelId, data.afterId);
   });
 
 export const getMyActiveEncryptedKey = createServerFn({

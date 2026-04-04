@@ -4,6 +4,7 @@ import {
   getMessagesForChannel,
   sendMessage,
   getMyActiveEncryptedKey,
+  pollNewMessages,
 } from "~/server/message.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
@@ -47,14 +48,32 @@ function ChannelPage() {
     return data;
   }
 
-  function scrollToBottom() {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-
   // Scroll to bottom on initial load and when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView();
   }, [messageList.length]);
+
+  // Poll for new messages every 1 second
+  const lastIdRef = useRef(
+    messageList.length > 0 ? messageList[messageList.length - 1].id : 0,
+  );
+  useEffect(() => {
+    if (messageList.length > 0) {
+      lastIdRef.current = messageList[messageList.length - 1].id;
+    }
+  }, [messageList]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const newMsgs = await pollNewMessages({
+        data: { channelId, afterId: lastIdRef.current },
+      });
+      if (newMsgs.length > 0) {
+        setMessageList((prev) => [...prev, ...newMsgs]);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [channelId]);
 
   function tryDecrypt(msg: {
     encryptedContent: string;
@@ -118,20 +137,14 @@ function ChannelPage() {
         },
       });
 
-      setMessageList([
-        ...messageList,
-        {
-          id: Date.now(),
-          channelId,
-          senderAddress: myAddress ?? "",
-          encryptedContent,
-          senderPubKey: myKeyData.publicKey,
-          recipientPubKey: recipientPubKeyHex,
-          createdAt: new Date(),
-        },
-      ]);
+      // Fetch the real message from server instead of using a fake ID
+      const newMsgs = await pollNewMessages({
+        data: { channelId, afterId: lastIdRef.current },
+      });
+      if (newMsgs.length > 0) {
+        setMessageList((prev) => [...prev, ...newMsgs]);
+      }
       setText("");
-      scrollToBottom();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send.");
     } finally {
