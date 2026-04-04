@@ -38,7 +38,7 @@ export const channels = mysqlTable(
   (table) => [
     uniqueIndex("owner_counterparty_idx").on(
       table.ownerId,
-      table.counterpartyId,
+      table.counterpartyAddress,
     ),
   ],
 );
