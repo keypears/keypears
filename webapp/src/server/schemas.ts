@@ -6,3 +6,10 @@ export const PowSolutionSchema = z.object({
   expiresAt: z.number(),
   signature: z.string(),
 });
+
+export const nameSchema = z
+  .string()
+  .min(1, "Name must be at least 1 character")
+  .max(30, "Name must be at most 30 characters")
+  .regex(/^[a-z]/, "Name must start with a lowercase letter")
+  .regex(/^[a-z0-9]+$/, "Name must contain only lowercase letters and numbers");

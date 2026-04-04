@@ -20,7 +20,7 @@ import {
   changePassword,
 } from "./user.server";
 import { verifyPowSolution, REGISTRATION_DIFFICULTY } from "./pow.server";
-import { PowSolutionSchema } from "./schemas";
+import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
 
 const COOKIE_NAME = "user_id";
@@ -87,10 +87,21 @@ export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const checkNameAvailable = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: name }) => {
+    const parsed = nameSchema.safeParse(name);
+    if (!parsed.success) {
+      return { available: false, error: parsed.error.issues[0]?.message };
+    }
+    const existing = await getUserByName(name);
+    return { available: !existing, error: null };
+  });
+
 export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      name: z.string().min(1).max(255),
+      name: nameSchema,
       loginKey: z.string(),
       publicKey: z.string(),
       encryptedPrivateKey: z.string(),

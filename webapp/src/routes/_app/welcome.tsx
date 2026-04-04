@@ -1,6 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
+import {
+  getMyUser,
+  saveMyUser,
+  deleteMyUser,
+  checkNameAvailable,
+} from "~/server/user.functions";
 import { getServerDomain } from "~/server/config.functions";
 import {
   derivePasswordKey,
@@ -14,7 +19,8 @@ import {
   entropyColor,
   cacheEntropyTier,
 } from "~/lib/auth";
-import { Footer } from "~/components/Footer";
+import { nameSchema } from "~/server/schemas";
+import { Check, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/welcome")({
   loader: async () => {
@@ -31,22 +37,71 @@ function WelcomePage() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [checkingName, setCheckingName] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  function handleNameChange(value: string) {
+    setName(value);
+    setNameAvailable(null);
+
+    if (!value) {
+      setNameError("");
+      return;
+    }
+
+    const result = nameSchema.safeParse(value);
+    if (!result.success) {
+      setNameError(result.error.issues[0]?.message ?? "Invalid name");
+    } else {
+      setNameError("");
+    }
+  }
+
+  async function handleNameBlur() {
+    if (!name || nameError) return;
+
+    setCheckingName(true);
+    setNameAvailable(null);
+    try {
+      const result = await checkNameAvailable({ data: name });
+      if (result.error) {
+        setNameError(result.error);
+      } else {
+        setNameAvailable(result.available);
+      }
+    } catch {
+      setNameError("Failed to check availability");
+    } finally {
+      setCheckingName(false);
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
     if (!name.trim()) {
       setError("Name is required.");
+      return;
+    }
+    if (nameError) {
+      setError("Please fix the name error.");
+      return;
+    }
+    if (nameAvailable === false) {
+      setError("This name is already taken.");
       return;
     }
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
     }
+
     setSaving(true);
     try {
       const passwordKey = derivePasswordKey(password);
@@ -85,14 +140,43 @@ function WelcomePage() {
 
           <div className="mt-8">
             <form onSubmit={handleSave} className="flex flex-col gap-4">
-              <input
-                type="text"
-                placeholder="Choose a name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-                required
-              />
+              <div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Choose a name"
+                    value={name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    onBlur={handleNameBlur}
+                    className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 pr-10"
+                    required
+                  />
+                  <div className="absolute top-1/2 right-3 -translate-y-1/2">
+                    {checkingName && (
+                      <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+                    )}
+                    {!checkingName && nameAvailable === true && (
+                      <Check className="h-4 w-4 text-green-500" />
+                    )}
+                    {!checkingName && nameAvailable === false && (
+                      <X className="text-destructive h-4 w-4" />
+                    )}
+                  </div>
+                </div>
+                {nameError && (
+                  <p className="text-destructive mt-1 text-xs">{nameError}</p>
+                )}
+                {!nameError && nameAvailable === false && (
+                  <p className="text-destructive mt-1 text-xs">
+                    This name is already taken
+                  </p>
+                )}
+                {!nameError && nameAvailable === true && (
+                  <p className="mt-1 text-xs text-green-500">
+                    This name is available!
+                  </p>
+                )}
+              </div>
               <div>
                 <input
                   type="password"
@@ -131,7 +215,7 @@ function WelcomePage() {
               {error && <p className="text-danger text-sm">{error}</p>}
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !!nameError || nameAvailable === false}
                 className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
@@ -149,7 +233,7 @@ function WelcomePage() {
           </div>
         </div>
       </div>
-      <Footer />
+      <div className="pb-12" />
     </div>
   );
 }
