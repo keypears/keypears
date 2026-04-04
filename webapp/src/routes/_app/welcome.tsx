@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
 import { getServerDomain } from "~/server/config.functions";
@@ -33,6 +33,7 @@ function keypearAddress(id: number, domain: string) {
 
 function WelcomePage() {
   const data = Route.useLoaderData();
+  const navigate = useNavigate();
 
   const [copied, setCopied] = useState(false);
   const [addressInput, setAddressInput] = useState("");

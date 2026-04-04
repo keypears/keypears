@@ -94,13 +94,11 @@ A server needs minimal configuration:
 |---------|-------------|---------|
 | `KEYPEARS_DOMAIN` | The user-facing domain for addresses | `acme.com` |
 | `KEYPEARS_API_URL` | The URL where this server's API is hosted | `https://keypears.com/api` |
-
-Email auth is configured per domain. When enabled, all users on that domain
-must verify their email to register.
+| `KEYPEARS_SECRET` | Master secret for deriving PoW signing keys | 64-char hex |
 
 ## Discovery: keypears.json
 
-When a client needs to interact with a user on another domain, it fetches
+When a server needs to interact with a user on another domain, it fetches
 the well-known configuration:
 
 ```
@@ -119,31 +117,41 @@ Response:
 | Field    | Type   | Description                              |
 |----------|--------|------------------------------------------|
 | version  | number | Protocol version (currently 1)           |
-| apiUrl   | string | Base URL for all API calls for this domain |
+| apiUrl   | string | Base URL for all oRPC API calls          |
 
-The `apiUrl` is the single entry point. All operations — key discovery,
-message delivery, PoW challenges — go through this URL.
+The `apiUrl` is the single entry point for all server-to-server
+communication. All operations — key discovery, message delivery, PoW
+challenges — go through oRPC procedures at this URL.
 
 ### Caching
 
-Clients should cache `keypears.json` responses. The file changes rarely
+Servers should cache `keypears.json` responses. The file changes rarely
 (only when migrating hosting). A TTL of 1 hour is reasonable. On error,
 fall back to the cached value.
 
+## Wire Protocol: oRPC
+
+All server-to-server communication uses **oRPC** — a type-safe RPC
+framework with Zod validation. The API is mounted at `/api` and provides
+the following public procedures:
+
+| Procedure | Description |
+|-----------|-------------|
+| `serverInfo` | Returns domain and API URL |
+| `getPublicKey` | Returns active public key for an address |
+| `getPowChallenge` | Issues a PoW challenge for channel opening |
+| `notifyMessage` | Notifies server of a new incoming message |
+| `pullMessage` | Serves a pending message delivery (one-time token) |
+
 ## Key Discovery
 
-To find a user's current public key:
+To find a user's current public key, the sender's server calls the
+recipient's server via oRPC:
 
-```
-GET {apiUrl}/getPublicKey?address=alice@acme.com
-```
-
-Response:
-
-```json
-{
-  "publicKey": "02abc...def"
-}
+```typescript
+const client = createRemoteClient(recipientApiUrl);
+const result = await client.getPublicKey({ address: "alice@acme.com" });
+// result.publicKey = "02abc...def"
 ```
 
 The server returns the user's **active** public key (the most recently
@@ -158,41 +166,55 @@ When sender and recipient are on the same server, messages are stored
 directly. Each user has their own copy of the message in their own channel
 view. No cross-domain communication needed.
 
-### Cross Domain
+### Cross Domain (Pull Model)
+
+All cross-domain communication is server-to-server. The client only talks
+to its own server. This avoids CORS and simplifies the client.
 
 When `alice@acme.com` sends a message to `bob@other.com`:
 
-1. **Discover API** — Alice's client fetches
-   `other.com/.well-known/keypears.json` to get Bob's `apiUrl`
+1. **Client sends to own server** — Alice's client calls `sendMessage` on
+   Alice's server with the encrypted message and recipient address.
 
-2. **Get Bob's public key** — Alice's client calls
-   `{bobApiUrl}/getPublicKey?address=bob@other.com`
+2. **Sender's server stores locally** — Alice's server stores Alice's copy
+   of the message in her channel view.
 
-3. **Encrypt** — Alice computes ECDH shared secret using her private key
-   and Bob's public key, then encrypts the message with ACS2
+3. **Sender's server creates pending delivery** — The message is stored in
+   a `pending_deliveries` table with a random one-time token. Only the
+   SHA-256 hash of the token is stored.
 
-4. **Get PoW challenge** (if new channel) — Alice's client calls
-   `{bobApiUrl}/getPowChallenge` to get a signed work packet
+4. **Sender's server notifies recipient** — Alice's server calls
+   `notifyMessage` on Bob's server via oRPC with:
+   - `senderAddress`: `alice@acme.com`
+   - `recipientAddress`: `bob@other.com`
+   - `pullToken`: the one-time token
 
-5. **Mine PoW** — Alice's client solves the proof-of-work challenge
+5. **Recipient verifies sender domain** — Bob's server parses the sender
+   address, extracts the domain (`acme.com`), fetches
+   `acme.com/.well-known/keypears.json` to discover the API URL. This
+   ensures the sender can't spoof another domain — TLS guarantees the
+   response came from the real domain.
 
-6. **Deliver** — Alice's client POSTs the encrypted message to
-   `{bobApiUrl}/receiveMessage` with:
-   - Sender address (`alice@acme.com`)
-   - Encrypted content
-   - Sender's public key
-   - Recipient's public key
-   - PoW solution (if new channel)
+6. **Recipient pulls message** — Bob's server calls `pullMessage` on
+   Alice's server (at the verified API URL) with the token. The message is
+   returned and the pending delivery is deleted (one-time use).
 
-7. **Verify sender** — Bob's server verifies Alice's identity by fetching
-   `acme.com/.well-known/keypears.json`, then calling
-   `{aliceApiUrl}/verifyKey?address=alice@acme.com&publicKey=02abc...`
-   to confirm Alice owns the claimed public key
+7. **Recipient verifies and stores** — Bob's server verifies the sender and
+   recipient addresses match the notification, then stores the message in
+   Bob's channel view.
 
-8. **Store** — Bob's server stores the message in Bob's channel view
+### Why Pull Model?
 
-9. **Store locally** — Alice's client also stores the message in Alice's
-   channel view on her own server
+The pull model provides **domain verification without signing keys**:
+
+- The recipient independently discovers the sender's API URL via DNS + TLS
+- The sender can't provide a fake API URL — the recipient resolves it
+  themselves from the sender's domain
+- No server signing keys, no key exchange, no certificate management
+- Authentication comes from HTTPS/TLS — the same trust model the web uses
+
+The one-time token prevents unauthorized access to pending messages. Only
+the server that received the `notifyMessage` call has the token.
 
 ### Message Structure
 
@@ -217,9 +239,8 @@ On servers with open registration (like keypears.com), account creation
 requires proof-of-work. This prevents mass account creation without
 requiring email or any identifying information.
 
-PoW challenges are signed with HMAC by the server. They are stateless — no
-database entry is created until the PoW is verified. This prevents DoS
-attacks where an attacker requests millions of challenges.
+PoW challenges are signed with HMAC (derived from `KEYPEARS_SECRET`). They
+are stateless — no database entry is created until the PoW is verified.
 
 ### Channel PoW
 
@@ -233,19 +254,6 @@ Subsequent messages to the same recipient do not require PoW.
 
 Each login attempt requires a small amount of PoW. This throttles
 brute-force password attacks without rate limiting or account lockouts.
-
-## Identity Verification
-
-When a server receives a cross-domain message claiming to be from
-`alice@acme.com`, it must verify that Alice actually owns the public key
-used to encrypt the message. The verification flow:
-
-1. Fetch `acme.com/.well-known/keypears.json` → get Alice's `apiUrl`
-2. Call `{aliceApiUrl}/verifyKey?address=alice@acme.com&publicKey=02abc...`
-3. Alice's server confirms or denies ownership
-
-This prevents impersonation — you can't claim to be `alice@acme.com`
-without Alice's server confirming your public key.
 
 ## Migration
 
@@ -277,13 +285,13 @@ message content. They only store ciphertext.
 registration process for domains. If you can serve a `keypears.json` file,
 you can join the federation.
 
+**Domain verification via TLS** — Cross-domain messages are authenticated
+by the recipient independently resolving the sender's domain. No server
+signing keys or certificates needed beyond standard HTTPS.
+
 **PoW-gated channels** — Spam protection is decentralized. Each server
 sets its own PoW difficulty. A server under attack can raise its difficulty
 independently.
-
-**Verifiable identity** — Public keys are tied to addresses via the
-domain's API. Cross-domain messages include sender verification to prevent
-impersonation.
 
 **Forward secrecy via key rotation** — Users can rotate keys at any time.
 Old messages remain encrypted with old keys. New messages use the current

@@ -34,16 +34,27 @@ keypears/
         Footer.tsx      # astrohacker footer
         ui/             # shadcn components
       server/
+        api.router.ts      # oRPC router (federation API at /api)
         user.functions.ts  # createServerFn wrappers (safe to import from client)
         user.server.ts     # DB logic (server-only)
+        message.functions.ts # messaging server functions
+        message.server.ts  # messaging DB logic
+        federation.server.ts # cross-domain delivery (pull model)
         pow.functions.ts   # PoW challenge server functions
         pow.server.ts      # PoW challenge creation + verification
+        config.functions.ts # domain config server functions
+        wellknown.functions.ts # keypears.json server function
+        schemas.ts         # shared Zod schemas
       db/
-        schema.ts       # Drizzle schema (users, user_keys, pow_log)
+        schema.ts       # Drizzle schema (users, user_keys, channels, messages, etc.)
         schema.clear.ts # empty schema for db:clear
         index.ts        # MySQL connection pool
       lib/
         auth.ts         # three-tier KDF + encryption key caching
+        config.ts       # domain config + derived secrets
+        message.ts      # ECDH encryption/decryption
+        channel-context.tsx # React context for channel polling
+        use-pow-miner.ts   # shared PoW mining hook
         icons.ts        # auto-generated type-safe image paths
         utils.ts        # shadcn utility (cn)
     docs/
@@ -54,12 +65,14 @@ keypears/
 
 - **Framework**: TanStack Start, TanStack Router, React 19
 - **Database**: Drizzle ORM, MySQL
+- **API**: oRPC (type-safe RPC with Zod validation) at `/api`
 - **Styling**: Tailwind CSS v4, shadcn components
 - **Auth**: Three-tier SHA-256 PBKDF (password key -> encryption key + login key)
-- **Crypto**: secp256k1 key pairs, ACS2 encryption (`@webbuf/*` libraries)
+- **Crypto**: secp256k1 key pairs, ACS2 encryption, ECDH shared secrets (`@webbuf/*`)
 - **PoW**: pow5-64b algorithm (WASM), signed stateless challenges (no DB)
+- **Federation**: Pull-model message delivery, domain verification via TLS
 - **Env**: dotenvx for encrypted env management
-- **Linting**: oxlint
+- **Linting**: oxlint (161 rules)
 - **Formatting**: Prettier
 - **Testing**: Vitest
 - **Package manager**: Bun
@@ -136,6 +149,9 @@ Password (never stored)
 
 - **users**: id, passwordHash, expiresAt, createdAt
 - **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, createdAt
+- **channels**: id, ownerId, counterpartyId, counterpartyAddress, createdAt, updatedAt
+- **messages**: id, channelId, senderAddress, encryptedContent, senderPubKey, recipientPubKey, isRead, createdAt
+- **pending_deliveries**: id, tokenHash, senderAddress, recipientAddress, encryptedContent, senderPubKey, recipientPubKey, createdAt
 - **pow_log**: id, userId, algorithm, difficulty, cumulativeDifficulty, createdAt
 
 ## Route protection
