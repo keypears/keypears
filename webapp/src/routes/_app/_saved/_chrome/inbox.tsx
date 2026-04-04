@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getMyChannels } from "~/server/message.functions";
+import { useChannels } from "~/lib/channel-context";
 import { MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/inbox")({
-  loader: () => getMyChannels(),
   component: InboxPage,
 });
 
 function InboxPage() {
-  const channelList = Route.useLoaderData();
+  const { channels } = useChannels();
 
   return (
     <div className="mx-auto max-w-2xl p-8 font-sans">
       <h1 className="text-foreground text-2xl font-bold">Inbox</h1>
 
-      {channelList.length === 0 ? (
+      {channels.length === 0 ? (
         <div className="mt-8 text-center">
           <MessageSquare className="text-muted-foreground mx-auto h-12 w-12" />
           <p className="text-muted-foreground mt-4">No messages yet.</p>
@@ -27,7 +26,7 @@ function InboxPage() {
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-2">
-          {channelList.map((ch) => (
+          {channels.map((ch) => (
             <a
               key={ch.id}
               href={`/channel/${ch.id}`}

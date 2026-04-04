@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
+import { useChannels } from "~/lib/channel-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,13 +93,12 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
 function NavItems({
   onClick,
   hasPassword,
-  unreadCount = 0,
 }: {
   onClick?: () => void;
   hasPassword: boolean;
-  unreadCount?: number;
 }) {
   const location = useLocation();
+  const { unreadCount } = useChannels();
 
   if (!hasPassword) return null;
 
@@ -163,11 +163,9 @@ function Address({ keypearId }: { keypearId: number }) {
 export function Sidebar({
   keypearId,
   hasPassword,
-  unreadCount = 0,
 }: {
   keypearId: number;
   hasPassword: boolean;
-  unreadCount?: number;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -226,7 +224,6 @@ export function Sidebar({
         <NavItems
           onClick={() => setIsMenuOpen(false)}
           hasPassword={hasPassword}
-          unreadCount={unreadCount}
         />
         <div className="mt-auto">
           <UserDropdown keypearId={keypearId} />
@@ -239,7 +236,7 @@ export function Sidebar({
           <div className="mb-8">
             <Logo />
           </div>
-          <NavItems hasPassword={hasPassword} unreadCount={unreadCount} />
+          <NavItems hasPassword={hasPassword} />
         </nav>
       )}
 
