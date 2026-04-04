@@ -5,7 +5,7 @@ import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
-import { getActiveKey, getUserById } from "./user.server";
+import { getActiveKey, getUserByName } from "./user.server";
 import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
 import { getOrCreateChannel, insertMessage } from "./message.server";
 import { createPowChallenge } from "./pow.server";
@@ -29,11 +29,11 @@ const serverInfo = os.handler(async () => {
 const getPublicKey = os
   .input(z.object({ address: z.string() }))
   .handler(async ({ input }) => {
-    const userId = parseLocalAddress(input.address);
-    if (userId == null) return { publicKey: null };
-    const user = await getUserById(userId);
+    const name = parseLocalAddress(input.address);
+    if (name == null) return { publicKey: null };
+    const user = await getUserByName(name);
     if (!user || !user.passwordHash) return { publicKey: null };
-    const key = await getActiveKey(userId);
+    const key = await getActiveKey(user.id);
     if (!key) return { publicKey: null };
     return { publicKey: key.publicKey };
   });
@@ -53,10 +53,10 @@ const notifyMessage = os
   .handler(async ({ input }) => {
     try {
       // Verify recipient is local
-      const recipientId = parseLocalAddress(input.recipientAddress);
-      if (recipientId == null)
+      const recipientName = parseLocalAddress(input.recipientAddress);
+      if (recipientName == null)
         throw new Error("Recipient not found on this server");
-      const recipientUser = await getUserById(recipientId);
+      const recipientUser = await getUserByName(recipientName);
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
@@ -85,10 +85,10 @@ const notifyMessage = os
       if (messageData.recipientAddress !== input.recipientAddress)
         throw new Error("Recipient address mismatch");
 
-      // Store in recipient's channel (counterpartyId=0 for remote users)
+      // Store in recipient's channel (empty counterpartyId for remote users)
       const channelId = await getOrCreateChannel(
-        recipientId,
-        0,
+        recipientUser.id,
+        "",
         messageData.senderAddress,
       );
 

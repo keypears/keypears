@@ -1,12 +1,13 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 export async function getOrCreateChannel(
-  ownerId: number,
-  counterpartyId: number,
+  ownerId: string,
+  counterpartyId: string,
   counterpartyAddress: string,
-): Promise<number> {
+): Promise<string> {
   return db.transaction(async (tx) => {
     const [existing] = await tx
       .select({ id: channels.id })
@@ -21,20 +22,20 @@ export async function getOrCreateChannel(
 
     if (existing) return existing.id;
 
-    const [result] = await tx
+    const id = uuidv7();
+    await tx
       .insert(channels)
-      .values({ ownerId, counterpartyId, counterpartyAddress })
-      .$returningId();
-    return result.id;
+      .values({ id, ownerId, counterpartyId, counterpartyAddress });
+    return id;
   });
 }
 
 export async function getOrCreateChannelPair(
-  userId: number,
-  counterpartyId: number,
+  userId: string,
+  counterpartyId: string,
   senderAddress: string,
   recipientAddress: string,
-): Promise<{ senderChannelId: number; recipientChannelId: number }> {
+): Promise<{ senderChannelId: string; recipientChannelId: string }> {
   const senderChannelId = await getOrCreateChannel(
     userId,
     counterpartyId,
@@ -49,7 +50,7 @@ export async function getOrCreateChannelPair(
 }
 
 export async function channelExists(
-  userId: number,
+  userId: string,
   counterpartyAddress: string,
 ): Promise<boolean> {
   const [row] = await db
@@ -66,14 +67,16 @@ export async function channelExists(
 }
 
 export async function insertMessage(
-  channelId: number,
+  channelId: string,
   senderAddress: string,
   encryptedContent: string,
   senderPubKey: string,
   recipientPubKey: string,
   isRead: boolean,
 ) {
+  const id = uuidv7();
   await db.insert(messages).values({
+    id,
     channelId,
     senderAddress,
     encryptedContent,
@@ -87,14 +90,14 @@ export async function insertMessage(
     .where(eq(channels.id, channelId));
 }
 
-export async function markChannelRead(channelId: number) {
+export async function markChannelRead(channelId: string) {
   await db
     .update(messages)
     .set({ isRead: true })
     .where(and(eq(messages.channelId, channelId), eq(messages.isRead, false)));
 }
 
-export async function getUnreadCount(userId: number): Promise<number> {
+export async function getUnreadCount(userId: string): Promise<number> {
   const [result] = await db
     .select({ cnt: count() })
     .from(messages)
@@ -103,7 +106,7 @@ export async function getUnreadCount(userId: number): Promise<number> {
   return result.cnt;
 }
 
-export async function getChannelUnreadCounts(userId: number) {
+export async function getChannelUnreadCounts(userId: string) {
   return db
     .select({
       channelId: messages.channelId,
@@ -115,7 +118,7 @@ export async function getChannelUnreadCounts(userId: number) {
     .groupBy(messages.channelId);
 }
 
-export async function getUserChannels(userId: number) {
+export async function getUserChannels(userId: string) {
   return db
     .select({
       id: channels.id,
@@ -128,9 +131,9 @@ export async function getUserChannels(userId: number) {
 }
 
 export async function getChannelMessages(
-  channelId: number,
+  channelId: string,
   limit = 20,
-  beforeId?: number,
+  beforeId?: string,
 ) {
   const conditions = beforeId
     ? and(eq(messages.channelId, channelId), lt(messages.id, beforeId))
@@ -146,7 +149,7 @@ export async function getChannelMessages(
   return rows.toReversed();
 }
 
-export async function getNewMessages(channelId: number, afterId: number) {
+export async function getNewMessages(channelId: string, afterId: string) {
   return db
     .select()
     .from(messages)
@@ -154,7 +157,7 @@ export async function getNewMessages(channelId: number, afterId: number) {
     .orderBy(messages.createdAt);
 }
 
-export async function getChannelById(channelId: number) {
+export async function getChannelById(channelId: string) {
   const [row] = await db
     .select()
     .from(channels)
@@ -164,7 +167,7 @@ export async function getChannelById(channelId: number) {
 }
 
 export async function getChannelByCounterparty(
-  ownerId: number,
+  ownerId: string,
   counterpartyAddress: string,
 ) {
   const [row] = await db

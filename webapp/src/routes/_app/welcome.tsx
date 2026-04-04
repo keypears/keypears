@@ -14,7 +14,6 @@ import {
   entropyColor,
   cacheEntropyTier,
 } from "~/lib/auth";
-import { Copy, Check } from "lucide-react";
 import { Footer } from "~/components/Footer";
 
 export const Route = createFileRoute("/_app/welcome")({
@@ -27,16 +26,11 @@ export const Route = createFileRoute("/_app/welcome")({
   component: WelcomePage,
 });
 
-function keypearAddress(id: number, domain: string) {
-  return `${id}@${domain}`;
-}
-
 function WelcomePage() {
   const data = Route.useLoaderData();
   const navigate = useNavigate();
 
-  const [copied, setCopied] = useState(false);
-  const [addressInput, setAddressInput] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +39,8 @@ function WelcomePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (addressInput !== keypearAddress(data.id, data.domain)) {
-      setError("KeyPears address does not match.");
+    if (!name.trim()) {
+      setError("Name is required.");
       return;
     }
     if (password !== confirm) {
@@ -64,7 +58,7 @@ function WelcomePage() {
       const entropy = calculatePasswordEntropy(password);
       cacheEntropyTier(entropyTier(entropy));
       await saveMyUser({
-        data: { loginKey, publicKey, encryptedPrivateKey },
+        data: { name: name.trim(), loginKey, publicKey, encryptedPrivateKey },
       });
       // Full reload so the sidebar picks up the new entropy tier from localStorage
       window.location.href = "/inbox";
@@ -79,35 +73,23 @@ function WelcomePage() {
     <div className="flex flex-1 flex-col font-sans">
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-        <h1 className="text-foreground text-4xl font-bold">Welcome</h1>
-        <p className="text-foreground-dark mt-2">Your KeyPears address is</p>
-        <p className="text-accent mt-1 font-bold">{keypearAddress(data.id, data.domain)}</p>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(keypearAddress(data.id, data.domain));
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-          className="text-muted-foreground hover:text-foreground mt-1 inline-flex cursor-pointer items-center gap-1 text-xs transition-colors"
-        >
-          {copied ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
-          {copied ? "Copied!" : "Copy"}
-        </button>
-        {!data.hasPassword && (
+          <h1 className="text-foreground text-4xl font-bold">
+            Choose Your Name
+          </h1>
+          <p className="text-foreground-dark mt-2">
+            Your KeyPears address will be{" "}
+            <span className="text-accent font-bold">
+              {name || "name"}@{data.domain}
+            </span>
+          </p>
+
           <div className="mt-8 w-full max-w-sm">
-            <p className="text-foreground-dark mb-4 text-sm">
-              Set a password to keep your address forever.
-            </p>
             <form onSubmit={handleSave} className="flex flex-col gap-4">
               <input
                 type="text"
-                placeholder="Your KeyPears address"
-                value={addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
+                placeholder="Choose a name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
                 required
               />
@@ -165,7 +147,6 @@ function WelcomePage() {
               Delete my account
             </button>
           </div>
-        )}
         </div>
       </div>
       <Footer />

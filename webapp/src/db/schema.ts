@@ -10,15 +10,16 @@ import {
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
-  id: int("id").primaryKey().autoincrement(),
+  id: varchar("id", { length: 36 }).primaryKey(),
+  name: varchar("name", { length: 255 }),
   passwordHash: varchar("password_hash", { length: 255 }),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const keys = mysqlTable("user_keys", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull(),
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
   keyNumber: int("key_number").notNull(),
   publicKey: varchar("public_key", { length: 66 }).notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),
@@ -28,10 +29,12 @@ export const keys = mysqlTable("user_keys", {
 export const channels = mysqlTable(
   "channels",
   {
-    id: int("id").primaryKey().autoincrement(),
-    ownerId: int("owner_id").notNull(),
-    counterpartyId: int("counterparty_id").notNull(),
-    counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
+    id: varchar("id", { length: 36 }).primaryKey(),
+    ownerId: varchar("owner_id", { length: 36 }).notNull(),
+    counterpartyId: varchar("counterparty_id", { length: 36 }).notNull(),
+    counterpartyAddress: varchar("counterparty_address", {
+      length: 255,
+    }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -44,8 +47,8 @@ export const channels = mysqlTable(
 );
 
 export const messages = mysqlTable("messages", {
-  id: int("id").primaryKey().autoincrement(),
-  channelId: int("channel_id").notNull(),
+  id: varchar("id", { length: 36 }).primaryKey(),
+  channelId: varchar("channel_id", { length: 36 }).notNull(),
   senderAddress: varchar("sender_address", { length: 255 }).notNull(),
   encryptedContent: text("encrypted_content").notNull(),
   senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
@@ -55,7 +58,7 @@ export const messages = mysqlTable("messages", {
 });
 
 export const pendingDeliveries = mysqlTable("pending_deliveries", {
-  id: int("id").primaryKey().autoincrement(),
+  id: varchar("id", { length: 36 }).primaryKey(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull(),
   senderAddress: varchar("sender_address", { length: 255 }).notNull(),
   recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
@@ -66,8 +69,8 @@ export const pendingDeliveries = mysqlTable("pending_deliveries", {
 });
 
 export const powLog = mysqlTable("pow_log", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull(),
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
   algorithm: varchar("algorithm", { length: 32 }).notNull(),
   difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
   cumulativeDifficulty: bigint("cumulative_difficulty", {

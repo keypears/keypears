@@ -9,21 +9,20 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
     if (!params.profile.startsWith("@")) {
       throw notFound();
     }
-    const profileId = Number(params.profile.slice(1));
-    if (Number.isNaN(profileId)) {
+    const profileName = params.profile.slice(1);
+    if (!profileName) {
       throw notFound();
     }
     const [me, profileData, domain] = await Promise.all([
       getMyUser(),
-      getProfile({ data: profileId }),
+      getProfile({ data: profileName }),
       getServerDomain(),
     ]);
     if (!me) {
       throw notFound();
     }
     return {
-      myId: me.id,
-      profileId,
+      profileName,
       publicKey: profileData?.publicKey ?? null,
       powTotal: profileData?.powTotal ?? "0",
       domain,
@@ -33,7 +32,7 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
 });
 
 function ProfilePage() {
-  const { profileId, publicKey, powTotal, domain } = Route.useLoaderData();
+  const { profileName, publicKey, powTotal, domain } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -52,7 +51,7 @@ function ProfilePage() {
     <div className="flex flex-col items-center pt-32 font-sans">
       <CircleUser className="text-muted-foreground h-24 w-24" />
       <h1 className="text-foreground mt-6 text-2xl font-bold">
-        {profileId}@{domain}
+        {profileName}@{domain}
       </h1>
       {truncatedKey && (
         <button

@@ -5,6 +5,7 @@ import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
+import { uuidv7 } from "uuidv7";
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 100_000;
@@ -42,32 +43,39 @@ export async function insertUser() {
       .select({ id: users.id })
       .from(users)
       .where(and(lt(users.expiresAt, sql`NOW()`), isNull(users.passwordHash)))
-      .orderBy(users.id)
+      .orderBy(users.createdAt)
       .limit(1)
       .for("update");
 
     if (expired) {
       await tx
         .update(users)
-        .set({ createdAt: now, expiresAt, passwordHash: null })
+        .set({ createdAt: now, expiresAt, passwordHash: null, name: null })
         .where(eq(users.id, expired.id));
       return { id: expired.id };
     }
 
-    const [result] = await tx
-      .insert(users)
-      .values({ createdAt: now, expiresAt })
-      .$returningId();
-    return { id: result.id };
+    const id = uuidv7();
+    await tx.insert(users).values({ id, createdAt: now, expiresAt });
+    return { id };
   });
 }
 
-export async function getUserById(id: number) {
+export async function getUserById(id: string) {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return row ?? null;
 }
 
-export async function deleteUnsavedUser(id: number) {
+export async function getUserByName(name: string) {
+  const [row] = await db
+    .select()
+    .from(users)
+    .where(eq(users.name, name))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function deleteUnsavedUser(id: string) {
   const user = await getUserById(id);
   if (!user) throw new Error("User not found");
   if (user.passwordHash) throw new Error("Cannot delete a saved account");
@@ -77,7 +85,7 @@ export async function deleteUnsavedUser(id: number) {
     .where(eq(users.id, id));
 }
 
-export async function getActiveKey(userId: number) {
+export async function getActiveKey(userId: string) {
   const [row] = await db
     .select()
     .from(keys)
@@ -90,7 +98,7 @@ export async function getActiveKey(userId: number) {
 const MAX_KEYS_PER_USER = 100;
 
 export async function insertKey(
-  userId: number,
+  userId: string,
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
@@ -110,7 +118,9 @@ export async function insertKey(
       .for("update");
     const keyNumber = (maxResult.maxNum ?? 0) + 1;
 
+    const id = uuidv7();
     await tx.insert(keys).values({
+      id,
       userId,
       keyNumber,
       publicKey,
@@ -122,20 +132,27 @@ export async function insertKey(
 }
 
 export async function saveUser(
-  id: number,
+  id: string,
+  name: string,
   loginKeyHex: string,
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
+  // Check name uniqueness
+  const existing = await getUserByName(name);
+  if (existing && existing.id !== id) {
+    throw new Error("Name is already taken");
+  }
+
   const passwordHash = hashLoginKey(loginKeyHex);
   await db
     .update(users)
-    .set({ passwordHash, expiresAt: null })
+    .set({ name, passwordHash, expiresAt: null })
     .where(eq(users.id, id));
   await insertKey(id, publicKey, encryptedPrivateKey);
 }
 
-export async function getRecentKeys(userId: number, limit = 10) {
+export async function getRecentKeys(userId: string, limit = 10) {
   return db
     .select({
       keyNumber: keys.keyNumber,
@@ -148,7 +165,7 @@ export async function getRecentKeys(userId: number, limit = 10) {
     .limit(limit);
 }
 
-export async function getAllEncryptedKeys(userId: number) {
+export async function getAllEncryptedKeys(userId: string) {
   return db
     .select({
       id: keys.id,
@@ -161,9 +178,9 @@ export async function getAllEncryptedKeys(userId: number) {
 }
 
 export async function changePassword(
-  userId: number,
+  userId: string,
   newLoginKeyHex: string,
-  reEncryptedKeys: { id: number; encryptedPrivateKey: string }[],
+  reEncryptedKeys: { id: string; encryptedPrivateKey: string }[],
 ) {
   const newPasswordHash = hashLoginKey(newLoginKeyHex);
   await db.transaction(async (tx) => {
@@ -181,12 +198,8 @@ export async function changePassword(
   });
 }
 
-export async function verifyLogin(id: number, loginKeyHex: string) {
-  const [saved] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+export async function verifyLogin(name: string, loginKeyHex: string) {
+  const saved = await getUserByName(name);
 
   if (!saved || !saved.passwordHash) {
     throw new Error("Invalid credentials");
@@ -202,11 +215,11 @@ export async function verifyLogin(id: number, loginKeyHex: string) {
     throw new Error("Invalid credentials");
   }
 
-  return { id: saved.id };
+  return { id: saved.id, name: saved.name };
 }
 
 export async function insertPowLog(
-  userId: number,
+  userId: string,
   algorithm: string,
   difficulty: bigint,
 ) {
@@ -221,7 +234,9 @@ export async function insertPowLog(
 
     const cumulative = (prev?.cumulativeDifficulty ?? 0n) + difficulty;
 
+    const id = uuidv7();
     await tx.insert(powLog).values({
+      id,
       userId,
       algorithm,
       difficulty,
@@ -232,7 +247,7 @@ export async function insertPowLog(
   });
 }
 
-export async function getUserPowTotal(userId: number): Promise<bigint> {
+export async function getUserPowTotal(userId: string): Promise<bigint> {
   const [row] = await db
     .select({ cumulativeDifficulty: powLog.cumulativeDifficulty })
     .from(powLog)

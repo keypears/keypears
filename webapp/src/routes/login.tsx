@@ -37,12 +37,12 @@ function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const match = address.match(new RegExp(`^(\\d+)@${domain.replace(".", "\\.")}$`));
+    const match = address.match(new RegExp(`^([^@]+)@${domain.replace(".", "\\.")}$`));
     if (!match) {
-      setError(`Enter a valid KeyPears address (e.g. 1@${domain}).`);
+      setError(`Enter a valid KeyPears address (e.g. name@${domain}).`);
       return;
     }
-    const id = Number(match[1]);
+    const name = match[1];
 
     setPagePhase("mining");
     try {
@@ -53,7 +53,7 @@ function LoginPage() {
       const passwordKey = derivePasswordKey(password);
       const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       await login({
-        data: { id, loginKey, ...solution },
+        data: { name, loginKey, ...solution },
       });
       const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
@@ -94,7 +94,7 @@ function LoginPage() {
             >
               <input
                 type="text"
-                placeholder={`KeyPears address (e.g. 1@${domain})`}
+                placeholder={`KeyPears address (e.g. name@${domain})`}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="bg-background-dark border-border text-foreground rounded border px-4 py-2"

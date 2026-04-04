@@ -34,7 +34,7 @@ const navItems = [
   { name: "Vault", path: "/vault", icon: Lock },
 ];
 
-function UserDropdown({ keypearId }: { keypearId: number }) {
+function UserDropdown({ userName }: { userName: string }) {
   const tier = getCachedEntropyTier();
   const showWarning = tier === "red" || tier === "yellow";
   const dotColor = tier === "red" ? "bg-destructive" : "bg-yellow-500";
@@ -55,7 +55,7 @@ function UserDropdown({ keypearId }: { keypearId: number }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <a href={`/@${keypearId}`} className="cursor-pointer no-underline">
+          <a href={`/@${userName}`} className="cursor-pointer no-underline">
             <User className="mr-2 h-4 w-4" />
             Profile
           </a>
@@ -145,28 +145,28 @@ function Logo() {
 }
 
 function Address({
-  keypearId,
+  userName,
   domain,
 }: {
-  keypearId: number;
+  userName: string;
   domain: string;
 }) {
   return (
     <a
-      href={`/@${keypearId}`}
+      href={`/@${userName}`}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
-      {keypearId}@{domain}
+      {userName}@{domain}
     </a>
   );
 }
 
 export function Sidebar({
-  keypearId,
+  userName,
   hasPassword,
   domain,
 }: {
-  keypearId: number;
+  userName: string | null;
   hasPassword: boolean;
   domain: string;
 }) {
@@ -193,8 +193,8 @@ export function Sidebar({
           <Logo />
         </div>
         <div className="flex items-center gap-3">
-          <Address keypearId={keypearId} domain={domain} />
-          <UserDropdown keypearId={keypearId} />
+          {userName && <Address userName={userName} domain={domain} />}
+          {userName && <UserDropdown userName={userName} />}
         </div>
       </nav>
 
@@ -229,7 +229,7 @@ export function Sidebar({
           hasPassword={hasPassword}
         />
         <div className="mt-auto">
-          <UserDropdown keypearId={keypearId} />
+          {userName && <UserDropdown userName={userName} />}
         </div>
       </div>
 
@@ -245,8 +245,8 @@ export function Sidebar({
 
       {/* Desktop top-right: address + user dropdown */}
       <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
-        <Address keypearId={keypearId} domain={domain} />
-        <UserDropdown keypearId={keypearId} />
+        {userName && <Address userName={userName} domain={domain} />}
+        {userName && <UserDropdown userName={userName} />}
       </div>
     </>
   );

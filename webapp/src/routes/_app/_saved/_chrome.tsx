@@ -22,7 +22,7 @@ function ChromeLayout() {
   return (
     <ChannelProvider>
       <Sidebar
-        keypearId={data?.id ?? 0}
+        userName={data?.name ?? null}
         hasPassword={data?.hasPassword ?? false}
         domain={data?.domain ?? "keypears.com"}
       />

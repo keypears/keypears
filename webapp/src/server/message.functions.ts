@@ -13,7 +13,7 @@ import {
   getUnreadCount,
   getChannelUnreadCounts,
 } from "./message.server";
-import { getUserById, getActiveKey } from "./user.server";
+import { getUserById, getUserByName, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
@@ -25,12 +25,12 @@ const COOKIE_NAME = "user_id";
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())
   .handler(async ({ data: address }) => {
-    const id = parseLocalAddress(address);
-    if (id != null) {
+    const name = parseLocalAddress(address);
+    if (name != null) {
       // Local user
-      const user = await getUserById(id);
+      const user = await getUserByName(name);
       if (!user || !user.passwordHash) return null;
-      const key = await getActiveKey(id);
+      const key = await getActiveKey(user.id);
       if (!key) return null;
       return { publicKey: key.publicKey };
     }
@@ -52,11 +52,12 @@ export const sendMessage = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const senderId = getCookie(COOKIE_NAME);
     if (!senderId) throw new Error("Not logged in");
-    const senderUser = await getUserById(Number(senderId));
+    const senderUser = await getUserById(senderId);
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
 
-    const senderAddress = makeAddress(senderUser.id);
+    if (!senderUser.name) throw new Error("Account not saved");
+    const senderAddress = makeAddress(senderUser.name);
     const parsed = parseAddress(input.recipientAddress);
     if (!parsed) throw new Error("Invalid recipient address");
 
@@ -64,11 +65,10 @@ export const sendMessage = createServerFn({ method: "POST" })
 
     if (isLocal) {
       // --- Local delivery ---
-      const recipientId = Number(parsed.name);
-      if (Number.isNaN(recipientId)) throw new Error("Invalid recipient");
-      if (recipientId === senderUser.id)
+      const recipientUser = await getUserByName(parsed.name);
+      if (!recipientUser) throw new Error("Recipient not found");
+      if (recipientUser.id === senderUser.id)
         throw new Error("Cannot message yourself");
-      const recipientUser = await getUserById(recipientId);
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
@@ -87,7 +87,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       }
 
       const { senderChannelId, recipientChannelId } =
-        await getOrCreateChannelPair(senderUser.id, recipientId, senderAddress, input.recipientAddress);
+        await getOrCreateChannelPair(senderUser.id, recipientUser.id, senderAddress, input.recipientAddress);
 
       await insertMessage(
         senderChannelId,
@@ -107,10 +107,10 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // Store sender's copy locally (counterpartyId=0 for remote users)
+      // Store sender's copy locally (empty counterpartyId for remote users)
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,
-        0,
+        "",
         input.recipientAddress,
       );
       await insertMessage(
@@ -139,7 +139,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) return [];
-    const userId = Number(id);
+    const userId = id;
     const [channelList, unreadCounts] = await Promise.all([
       getUserChannels(userId),
       getChannelUnreadCounts(userId),
@@ -159,7 +159,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 async function resolveChannel(counterpartyAddress: string) {
   const id = getCookie(COOKIE_NAME);
   if (!id) throw new Error("Not logged in");
-  const channel = await getChannelByCounterparty(Number(id), counterpartyAddress);
+  const channel = await getChannelByCounterparty(id, counterpartyAddress);
   if (!channel) throw new Error("Channel not found");
   return channel;
 }
@@ -207,7 +207,7 @@ export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) return 0;
-    return getUnreadCount(Number(id));
+    return getUnreadCount(id);
   },
 );
 
@@ -216,7 +216,7 @@ export const getMyActiveEncryptedKey = createServerFn({
 }).handler(async () => {
   const id = getCookie(COOKIE_NAME);
   if (!id) throw new Error("Not logged in");
-  const key = await getActiveKey(Number(id));
+  const key = await getActiveKey(id);
   if (!key) throw new Error("No key found");
   return {
     publicKey: key.publicKey,

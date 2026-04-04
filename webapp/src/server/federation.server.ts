@@ -3,6 +3,7 @@ import { pendingDeliveries } from "~/db/schema";
 import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { uuidv7 } from "uuidv7";
 import { parseAddress, getDomain, getApiUrl } from "~/lib/config";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -84,7 +85,9 @@ export async function deliverRemoteMessage(
   const token = generateToken();
   const tokenH = hashToken(token);
 
+  const deliveryId = uuidv7();
   await db.insert(pendingDeliveries).values({
+    id: deliveryId,
     tokenHash: tokenH,
     senderAddress,
     recipientAddress,

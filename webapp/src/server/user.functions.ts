@@ -7,6 +7,7 @@ import {
 import {
   insertUser,
   getUserById,
+  getUserByName,
   saveUser,
   verifyLogin,
   getActiveKey,
@@ -50,37 +51,46 @@ export const createUser = createServerFn({ method: "POST" })
     }
     const result = await insertUser();
     await insertPowLog(result.id, "pow5-64b", REGISTRATION_DIFFICULTY);
-    setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
+    setCookie(COOKIE_NAME, result.id, cookieOpts(ONE_DAY));
     return result;
   });
 
 export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
   const id = getCookie(COOKIE_NAME);
   if (!id) return null;
-  const row = await getUserById(Number(id));
+  const row = await getUserById(id);
   if (!row) return null;
   if (row.expiresAt && row.expiresAt < new Date()) return null;
-  return { id: row.id, hasPassword: row.passwordHash != null };
+  return {
+    id: row.id,
+    name: row.name,
+    hasPassword: row.passwordHash != null,
+  };
 });
 
 export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (id) {
-      const row = await getUserById(Number(id));
+      const row = await getUserById(id);
       if (row && (!row.expiresAt || row.expiresAt >= new Date())) {
-        return { id: row.id, hasPassword: row.passwordHash != null };
+        return {
+          id: row.id,
+          name: row.name,
+          hasPassword: row.passwordHash != null,
+        };
       }
     }
     const result = await insertUser();
-    setCookie(COOKIE_NAME, String(result.id), cookieOpts(ONE_DAY));
-    return { id: result.id, hasPassword: false };
+    setCookie(COOKIE_NAME, result.id, cookieOpts(ONE_DAY));
+    return { id: result.id, name: null, hasPassword: false };
   },
 );
 
 export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
+      name: z.string().min(1).max(255),
       loginKey: z.string(),
       publicKey: z.string(),
       encryptedPrivateKey: z.string(),
@@ -89,16 +99,17 @@ export const saveMyUser = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    const row = await getUserById(Number(id));
+    const row = await getUserById(id);
     if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
     await saveUser(
       row.id,
+      input.name,
       input.loginKey,
       input.publicKey,
       input.encryptedPrivateKey,
     );
-    setCookie(COOKIE_NAME, String(row.id), cookieOpts(TWO_YEARS));
+    setCookie(COOKIE_NAME, row.id, cookieOpts(TWO_YEARS));
     return { success: true };
   });
 
@@ -106,7 +117,7 @@ export const deleteMyUser = createServerFn({ method: "POST" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    await deleteUnsavedUser(Number(id));
+    await deleteUnsavedUser(id);
     deleteCookie(COOKIE_NAME);
     return { success: true };
   },
@@ -116,7 +127,7 @@ export const login = createServerFn({ method: "POST" })
   .inputValidator(
     z
       .object({
-        id: z.number(),
+        name: z.string(),
         loginKey: z.string(),
       })
       .and(PowSolutionSchema),
@@ -131,8 +142,8 @@ export const login = createServerFn({ method: "POST" })
     if (!powResult.valid) {
       throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
-    const result = await verifyLogin(input.id, input.loginKey);
-    setCookie(COOKIE_NAME, String(result.id), cookieOpts(TWO_YEARS));
+    const result = await verifyLogin(input.name, input.loginKey);
+    setCookie(COOKIE_NAME, result.id, cookieOpts(TWO_YEARS));
     return { id: result.id };
   });
 
@@ -151,7 +162,7 @@ export const rotateKey = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    const row = await getUserById(Number(id));
+    const row = await getUserById(id);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
     const result = await insertKey(
@@ -165,20 +176,20 @@ export const rotateKey = createServerFn({ method: "POST" })
 export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
   const id = getCookie(COOKIE_NAME);
   if (!id) return [];
-  return getRecentKeys(Number(id), 10);
+  return getRecentKeys(id, 10);
 });
 
 export const getProfile = createServerFn({ method: "GET" })
-  .inputValidator(z.number())
-  .handler(async ({ data: id }) => {
-    const row = await getUserById(id);
+  .inputValidator(z.string())
+  .handler(async ({ data: name }) => {
+    const row = await getUserByName(name);
     if (!row) return null;
     const [activeKey, powTotal] = await Promise.all([
-      getActiveKey(id),
-      getUserPowTotal(id),
+      getActiveKey(row.id),
+      getUserPowTotal(row.id),
     ]);
     return {
-      id: row.id,
+      name: row.name,
       publicKey: activeKey?.publicKey ?? null,
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
@@ -189,7 +200,7 @@ export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(
   async () => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    return getAllEncryptedKeys(Number(id));
+    return getAllEncryptedKeys(id);
   },
 );
 
@@ -199,7 +210,7 @@ export const changeMyPassword = createServerFn({ method: "POST" })
       newLoginKey: z.string(),
       reEncryptedKeys: z.array(
         z.object({
-          id: z.number(),
+          id: z.string(),
           encryptedPrivateKey: z.string(),
         }),
       ),
@@ -208,7 +219,7 @@ export const changeMyPassword = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const id = getCookie(COOKIE_NAME);
     if (!id) throw new Error("Not logged in");
-    const row = await getUserById(Number(id));
+    const row = await getUserById(id);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
     await changePassword(row.id, input.newLoginKey, input.reEncryptedKeys);
