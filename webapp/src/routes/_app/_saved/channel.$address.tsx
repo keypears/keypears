@@ -222,9 +222,13 @@ function ChannelPage() {
             </div>
           )}
           {!hasMore && messageList.length > 0 && (
-            <p className="text-muted-foreground text-center text-xs">
-              Beginning of conversation
-            </p>
+            <div className="text-muted-foreground mb-2 text-center text-xs">
+              <p>Beginning of conversation</p>
+              <p className="mt-1">
+                Messages are end-to-end encrypted. Only you and the other party
+                can read them.
+              </p>
+            </div>
           )}
           {messageList.map((msg) => {
             const isMine = msg.senderPubKey === myKeyData?.publicKey;
