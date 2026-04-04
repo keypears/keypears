@@ -10,14 +10,16 @@ determines where your data lives.
 ### 1. keypears.com (Default)
 
 Users sign up at keypears.com and get an address like `1@keypears.com`. Zero
-setup. This is the default experience, like using Gmail.
+setup, no email required, fully anonymous. Registration is PoW-gated to
+prevent spam. Users can optionally claim a vanity name (e.g.
+`ryan@keypears.com`) on a first-come-first-serve basis.
 
 ### 2. Hosted KeyPears (Custom Domain)
 
-A business or individual owns `acme.com` and wants their users to have
-addresses like `alice@acme.com`. They sign up for hosted KeyPears, which runs
-on keypears.com infrastructure. They add a `keypears.json` file to their
-domain that points to keypears.com:
+A business owns `acme.com` and wants their users to have addresses like
+`alice@acme.com`. Setup is minimal:
+
+1. Add `keypears.json` to their domain:
 
 ```
 https://acme.com/.well-known/keypears.json
@@ -30,14 +32,16 @@ https://acme.com/.well-known/keypears.json
 }
 ```
 
-Users authenticate with `alice@acme.com` but all data is stored and served
-by keypears.com. Like Google Workspace with a custom domain.
+2. That's it. Users sign up by verifying their `@acme.com` email address.
+   Their KeyPears name matches their email prefix automatically.
+
+All data is stored and served by keypears.com. Like Google Workspace with a
+custom domain.
 
 ### 3. Self-Hosted
 
-A business runs their own KeyPears server at `kp.acme.com`. Their users
-have addresses like `alice@acme.com`, and the `keypears.json` points to
-their own server:
+A business runs their own KeyPears server at `kp.acme.com`. Their
+`keypears.json` points to their own server:
 
 ```json
 {
@@ -46,19 +50,53 @@ their own server:
 }
 ```
 
-Full control over data, infrastructure, and policies. Like running your own
-mail server.
+The server is configured to require email auth for the domain. Users sign
+up by verifying their `@acme.com` email. Full control over data,
+infrastructure, and policies.
 
 ## Address Format
 
 A KeyPears address is `name@domain`:
 
-- **name** — a numeric user ID (e.g. `1`, `42`, `1000`)
+- **name** — a string identifier. On keypears.com, defaults to the numeric
+  user ID (e.g. `1`, `42`) but can be changed to a vanity name. On business
+  domains, matches the email prefix (e.g. `alice`, `bob`).
 - **domain** — the domain that hosts the user's `keypears.json`
 
 The address is the user's identity. It does not change even if the hosting
 provider changes, because the domain stays the same and only the
 `keypears.json` file is updated.
+
+## Registration Modes
+
+A KeyPears server supports two registration modes, configured per domain:
+
+### Open Registration (keypears.com)
+
+- No email required. Fully anonymous.
+- Users get a numeric ID as their name (e.g. `1@keypears.com`).
+- Registration is gated by proof-of-work to prevent spam.
+- Users can optionally claim a vanity name (first-come-first-serve).
+
+### Email-Authenticated Registration (Business Domains)
+
+- Users must verify ownership of an email address on the domain.
+- Their KeyPears name matches their email prefix automatically.
+- No PoW required — email verification is the anti-spam mechanism.
+- The domain admin only needs to set up `keypears.json` — no user
+  provisioning. Users self-serve.
+
+### Server Configuration
+
+A server needs minimal configuration:
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| `KEYPEARS_DOMAIN` | The user-facing domain for addresses | `acme.com` |
+| `KEYPEARS_API_URL` | The URL where this server's API is hosted | `https://keypears.com/api` |
+
+Email auth is configured per domain. When enabled, all users on that domain
+must verify their email to register.
 
 ## Discovery: keypears.json
 
@@ -171,21 +209,30 @@ Each message stored on the server contains:
 Both public keys are stored so the recipient knows which keys to use for
 ECDH decryption, even after key rotation.
 
-## Proof of Work for Cross-Domain
+## Proof of Work
 
-Opening a new channel to a user on any domain requires proof of work. This
-prevents spam across the federation. The PoW challenge is issued by the
-**recipient's server**, because the recipient's server is the one that
-needs to be protected from spam.
+### Registration PoW (Open Registration Only)
 
-The sender requests a challenge from the recipient's API, solves it
-client-side, and includes the solution with the first message. Subsequent
-messages to the same recipient do not require PoW.
+On servers with open registration (like keypears.com), account creation
+requires proof-of-work. This prevents mass account creation without
+requiring email or any identifying information.
 
-PoW challenges are signed with HMAC by the issuing server. They are
-stateless — no database entry is created until the message is actually
-delivered with a valid solution. This prevents DoS attacks where an
-attacker requests millions of challenges to fill the database.
+PoW challenges are signed with HMAC by the server. They are stateless — no
+database entry is created until the PoW is verified. This prevents DoS
+attacks where an attacker requests millions of challenges.
+
+### Channel PoW
+
+Opening a new channel to any user (same domain or cross-domain) requires
+proof-of-work. This prevents spam messaging. The PoW challenge is issued
+by the **recipient's server**, because it is the one that needs protection.
+
+Subsequent messages to the same recipient do not require PoW.
+
+### Login PoW
+
+Each login attempt requires a small amount of PoW. This throttles
+brute-force password attacks without rate limiting or account lockouts.
 
 ## Identity Verification
 
@@ -242,3 +289,8 @@ impersonation.
 Old messages remain encrypted with old keys. New messages use the current
 key. The protocol handles key transitions gracefully by storing both
 sender and recipient public keys per message.
+
+**Privacy-preserving by default** — keypears.com requires no email, no
+phone number, no identifying information. Business domains can require
+email auth, but that is a per-domain policy choice, not a protocol
+requirement.
