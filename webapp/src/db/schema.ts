@@ -5,6 +5,7 @@ import {
   varchar,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -20,6 +21,33 @@ export const keys = mysqlTable("user_keys", {
   keyNumber: int("key_number").notNull(),
   publicKey: varchar("public_key", { length: 66 }).notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const channels = mysqlTable(
+  "channels",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    ownerId: int("owner_id").notNull(),
+    counterpartyId: int("counterparty_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("owner_counterparty_idx").on(
+      table.ownerId,
+      table.counterpartyId,
+    ),
+  ],
+);
+
+export const messages = mysqlTable("messages", {
+  id: int("id").primaryKey().autoincrement(),
+  channelId: int("channel_id").notNull(),
+  senderAddress: varchar("sender_address", { length: 255 }).notNull(),
+  encryptedContent: text("encrypted_content").notNull(),
+  senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
+  recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

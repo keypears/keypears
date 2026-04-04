@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, saveMyUser, deleteMyUser } from "~/server/user.functions";
 import {
@@ -30,7 +30,6 @@ function keypearAddress(id: number) {
 
 function WelcomePage() {
   const data = Route.useLoaderData();
-  const navigate = useNavigate();
 
   const [copied, setCopied] = useState(false);
   const [addressInput, setAddressInput] = useState("");
@@ -63,7 +62,8 @@ function WelcomePage() {
       await saveMyUser({
         data: { loginKey, publicKey, encryptedPrivateKey },
       });
-      navigate({ to: "/inbox" });
+      // Full reload so the sidebar picks up the new entropy tier from localStorage
+      window.location.href = "/inbox";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {

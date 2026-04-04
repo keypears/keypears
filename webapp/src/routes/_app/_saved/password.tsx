@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getMyEncryptedKeys,
   changeMyPassword,
@@ -31,6 +31,12 @@ function PasswordPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [currentTier, setCurrentTier] = useState<ReturnType<
+    typeof getCachedEntropyTier
+  >>(null);
+  useEffect(() => {
+    setCurrentTier(getCachedEntropyTier());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,23 +117,16 @@ function PasswordPage() {
       <p className="text-muted-foreground mt-2 text-sm">
         All your encrypted keys will be re-encrypted with your new password.
       </p>
-      {(() => {
-        const currentTier =
-          typeof window !== "undefined" ? getCachedEntropyTier() : null;
-        if (currentTier === "red")
-          return (
-            <p className="text-destructive mt-3 text-sm font-medium">
-              Your current password is weak. Choose a stronger one.
-            </p>
-          );
-        if (currentTier === "yellow")
-          return (
-            <p className="text-yellow-500 mt-3 text-sm font-medium">
-              Your current password is fair. Consider a stronger one.
-            </p>
-          );
-        return null;
-      })()}
+      {currentTier === "red" && (
+        <p className="text-destructive mt-3 text-sm font-medium">
+          Your current password is weak. Choose a stronger one.
+        </p>
+      )}
+      {currentTier === "yellow" && (
+        <p className="text-yellow-500 mt-3 text-sm font-medium">
+          Your current password is fair. Consider a stronger one.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <input
