@@ -9,7 +9,6 @@ function newId(): string {
 
 export async function getOrCreateChannel(
   ownerId: string,
-  counterpartyId: string,
   counterpartyAddress: string,
 ): Promise<string> {
   return db.transaction(async (tx) => {
@@ -29,25 +28,20 @@ export async function getOrCreateChannel(
     const id = newId();
     await tx
       .insert(channels)
-      .values({ id, ownerId, counterpartyId, counterpartyAddress });
+      .values({ id, ownerId, counterpartyAddress });
     return id;
   });
 }
 
 export async function getOrCreateChannelPair(
   userId: string,
-  counterpartyId: string,
+  counterpartyUserId: string,
   senderAddress: string,
   recipientAddress: string,
 ): Promise<{ senderChannelId: string; recipientChannelId: string }> {
-  const senderChannelId = await getOrCreateChannel(
-    userId,
-    counterpartyId,
-    recipientAddress,
-  );
+  const senderChannelId = await getOrCreateChannel(userId, recipientAddress);
   const recipientChannelId = await getOrCreateChannel(
-    counterpartyId,
-    userId,
+    counterpartyUserId,
     senderAddress,
   );
   return { senderChannelId, recipientChannelId };

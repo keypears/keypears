@@ -85,10 +85,9 @@ const notifyMessage = os
       if (messageData.recipientAddress !== input.recipientAddress)
         throw new Error("Recipient address mismatch");
 
-      // Store in recipient's channel (empty counterpartyId for remote users)
+      // Store in recipient's channel
       const channelId = await getOrCreateChannel(
         recipientUser.id,
-        "",
         messageData.senderAddress,
       );
 

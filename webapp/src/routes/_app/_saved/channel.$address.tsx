@@ -55,7 +55,7 @@ function ChannelPage() {
 
   // Poll for new messages — 200ms after each response
   const lastIdRef = useRef(
-    messageList.length > 0 ? messageList[messageList.length - 1].id : 0,
+    messageList.length > 0 ? messageList[messageList.length - 1].id : "",
   );
   useEffect(() => {
     if (messageList.length > 0) {

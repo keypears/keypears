@@ -50,7 +50,6 @@ export const channels = mysqlTable(
   {
     id: binaryId("id").primaryKey(),
     ownerId: binaryId("owner_id").notNull(),
-    counterpartyId: binaryId("counterparty_id").notNull(),
     counterpartyAddress: varchar("counterparty_address", {
       length: 255,
     }).notNull(),

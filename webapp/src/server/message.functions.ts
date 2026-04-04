@@ -107,10 +107,8 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // Store sender's copy locally (empty counterpartyId for remote users)
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,
-        "",
         input.recipientAddress,
       );
       await insertMessage(
@@ -175,7 +173,7 @@ export const getOlderMessages = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
       counterpartyAddress: z.string(),
-      beforeId: z.number(),
+      beforeId: z.string(),
     }),
   )
   .handler(async ({ data }) => {
@@ -187,7 +185,7 @@ export const pollNewMessages = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
       counterpartyAddress: z.string(),
-      afterId: z.number(),
+      afterId: z.string(),
     }),
   )
   .handler(async ({ data }) => {
