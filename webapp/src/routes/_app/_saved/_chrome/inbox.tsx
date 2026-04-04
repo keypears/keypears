@@ -29,7 +29,7 @@ function InboxPage() {
           {channels.map((ch) => (
             <a
               key={ch.id}
-              href={`/channel/${ch.id}`}
+              href={`/channel/${encodeURIComponent(ch.counterpartyAddress)}`}
               className="border-border/30 hover:bg-accent/5 flex items-center gap-3 rounded border px-4 py-3 no-underline transition-colors"
             >
               <MessageSquare className="text-muted-foreground h-5 w-5" />

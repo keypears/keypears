@@ -12,17 +12,17 @@ import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_saved/channel/$id")({
+export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
-    const channelId = Number(params.id);
-    const msgs = await getMessagesForChannel({ data: channelId });
-    return { channelId, messages: msgs };
+    const address = decodeURIComponent(params.address);
+    const msgs = await getMessagesForChannel({ data: address });
+    return { address, messages: msgs };
   },
   component: ChannelPage,
 });
 
 function ChannelPage() {
-  const { channelId, messages: initialMessages } = Route.useLoaderData();
+  const { address, messages: initialMessages } = Route.useLoaderData();
   const [messageList, setMessageList] = useState(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -32,10 +32,6 @@ function ChannelPage() {
   const encryptionKey = getCachedEncryptionKey();
 
   const myKeyData = useMyKey();
-  const myAddress = myKeyData?.publicKey
-    ? (messageList.find((m) => m.senderPubKey === myKeyData.publicKey)
-        ?.senderAddress ?? null)
-    : null;
 
   function useMyKey() {
     const [data, setData] = useState<{
@@ -50,8 +46,8 @@ function ChannelPage() {
 
   // Mark as read on mount
   useEffect(() => {
-    markChannelAsRead({ data: channelId });
-  }, [channelId]);
+    markChannelAsRead({ data: address });
+  }, [address]);
 
   // Scroll to bottom on initial load and when messages change
   useEffect(() => {
@@ -74,12 +70,12 @@ function ChannelPage() {
       while (active) {
         try {
           const newMsgs = await pollNewMessages({
-            data: { channelId, afterId: lastIdRef.current },
+            data: { counterpartyAddress: address, afterId: lastIdRef.current },
           });
           if (!active) break;
           if (newMsgs.length > 0) {
             setMessageList((prev) => [...prev, ...newMsgs]);
-            markChannelAsRead({ data: channelId });
+            markChannelAsRead({ data: address });
           }
         } catch {
           // ignore errors, retry after delay
@@ -91,7 +87,7 @@ function ChannelPage() {
     return () => {
       active = false;
     };
-  }, [channelId]);
+  }, [address]);
 
   function tryDecrypt(msg: {
     encryptedContent: string;
@@ -113,11 +109,6 @@ function ChannelPage() {
     }
   }
 
-  const otherAddress = messageList.find(
-    (m) => m.senderAddress !== myAddress,
-  )?.senderAddress;
-  const displayAddress = otherAddress ?? "Unknown";
-
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim() || !myKeyData || !encryptionKey) return;
@@ -132,11 +123,6 @@ function ChannelPage() {
         otherMsg?.senderPubKey ?? messageList[0]?.recipientPubKey;
       if (!recipientPubKeyHex) throw new Error("Cannot determine recipient");
 
-      let recipientAddr = otherMsg?.senderAddress;
-      if (!recipientAddr) {
-        throw new Error("Cannot determine recipient address");
-      }
-
       const myPrivKey = decryptPrivateKey(
         myKeyData.encryptedPrivateKey,
         encryptionKey,
@@ -146,16 +132,15 @@ function ChannelPage() {
 
       await sendMessage({
         data: {
-          recipientAddress: recipientAddr,
+          recipientAddress: address,
           encryptedContent,
           senderPubKey: myKeyData.publicKey,
           recipientPubKey: recipientPubKeyHex,
         },
       });
 
-      // Fetch the real message from server instead of using a fake ID
       const newMsgs = await pollNewMessages({
-        data: { channelId, afterId: lastIdRef.current },
+        data: { counterpartyAddress: address, afterId: lastIdRef.current },
       });
       if (newMsgs.length > 0) {
         setMessageList((prev) => [...prev, ...newMsgs]);
@@ -178,9 +163,7 @@ function ChannelPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </a>
-        <span className="text-foreground text-sm font-medium">
-          {displayAddress}
-        </span>
+        <span className="text-foreground text-sm font-medium">{address}</span>
       </div>
 
       {/* Scrollable messages */}

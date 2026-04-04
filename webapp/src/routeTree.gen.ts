@@ -15,7 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
-import { Route as AppSavedChannelIdRouteImport } from './routes/_app/_saved/channel.$id'
+import { Route as AppSavedChannelAddressRouteImport } from './routes/_app/_saved/channel.$address'
 import { Route as AppSavedChromeVaultRouteImport } from './routes/_app/_saved/_chrome/vault'
 import { Route as AppSavedChromeSendRouteImport } from './routes/_app/_saved/_chrome/send'
 import { Route as AppSavedChromePasswordRouteImport } from './routes/_app/_saved/_chrome/password'
@@ -50,9 +50,9 @@ const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
   id: '/_chrome',
   getParentRoute: () => AppSavedRoute,
 } as any)
-const AppSavedChannelIdRoute = AppSavedChannelIdRouteImport.update({
-  id: '/channel/$id',
-  path: '/channel/$id',
+const AppSavedChannelAddressRoute = AppSavedChannelAddressRouteImport.update({
+  id: '/channel/$address',
+  path: '/channel/$address',
   getParentRoute: () => AppSavedRoute,
 } as any)
 const AppSavedChromeVaultRoute = AppSavedChromeVaultRouteImport.update({
@@ -96,7 +96,7 @@ export interface FileRoutesByFullPath {
   '/password': typeof AppSavedChromePasswordRoute
   '/send': typeof AppSavedChromeSendRoute
   '/vault': typeof AppSavedChromeVaultRoute
-  '/channel/$id': typeof AppSavedChannelIdRoute
+  '/channel/$address': typeof AppSavedChannelAddressRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -108,7 +108,7 @@ export interface FileRoutesByTo {
   '/password': typeof AppSavedChromePasswordRoute
   '/send': typeof AppSavedChromeSendRoute
   '/vault': typeof AppSavedChromeVaultRoute
-  '/channel/$id': typeof AppSavedChannelIdRoute
+  '/channel/$address': typeof AppSavedChannelAddressRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,7 +124,7 @@ export interface FileRoutesById {
   '/_app/_saved/_chrome/password': typeof AppSavedChromePasswordRoute
   '/_app/_saved/_chrome/send': typeof AppSavedChromeSendRoute
   '/_app/_saved/_chrome/vault': typeof AppSavedChromeVaultRoute
-  '/_app/_saved/channel/$id': typeof AppSavedChannelIdRoute
+  '/_app/_saved/channel/$address': typeof AppSavedChannelAddressRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,7 +138,7 @@ export interface FileRouteTypes {
     | '/password'
     | '/send'
     | '/vault'
-    | '/channel/$id'
+    | '/channel/$address'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,7 +150,7 @@ export interface FileRouteTypes {
     | '/password'
     | '/send'
     | '/vault'
-    | '/channel/$id'
+    | '/channel/$address'
   id:
     | '__root__'
     | '/'
@@ -165,7 +165,7 @@ export interface FileRouteTypes {
     | '/_app/_saved/_chrome/password'
     | '/_app/_saved/_chrome/send'
     | '/_app/_saved/_chrome/vault'
-    | '/_app/_saved/channel/$id'
+    | '/_app/_saved/channel/$address'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -218,11 +218,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedChromeRouteImport
       parentRoute: typeof AppSavedRoute
     }
-    '/_app/_saved/channel/$id': {
-      id: '/_app/_saved/channel/$id'
-      path: '/channel/$id'
-      fullPath: '/channel/$id'
-      preLoaderRoute: typeof AppSavedChannelIdRouteImport
+    '/_app/_saved/channel/$address': {
+      id: '/_app/_saved/channel/$address'
+      path: '/channel/$address'
+      fullPath: '/channel/$address'
+      preLoaderRoute: typeof AppSavedChannelAddressRouteImport
       parentRoute: typeof AppSavedRoute
     }
     '/_app/_saved/_chrome/vault': {
@@ -294,12 +294,12 @@ const AppSavedChromeRouteWithChildren = AppSavedChromeRoute._addFileChildren(
 
 interface AppSavedRouteChildren {
   AppSavedChromeRoute: typeof AppSavedChromeRouteWithChildren
-  AppSavedChannelIdRoute: typeof AppSavedChannelIdRoute
+  AppSavedChannelAddressRoute: typeof AppSavedChannelAddressRoute
 }
 
 const AppSavedRouteChildren: AppSavedRouteChildren = {
   AppSavedChromeRoute: AppSavedChromeRouteWithChildren,
-  AppSavedChannelIdRoute: AppSavedChannelIdRoute,
+  AppSavedChannelAddressRoute: AppSavedChannelAddressRoute,
 }
 
 const AppSavedRouteWithChildren = AppSavedRoute._addFileChildren(

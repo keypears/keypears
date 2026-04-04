@@ -122,6 +122,23 @@ export async function getChannelUnreadCounts(userId: number) {
     .groupBy(messages.channelId);
 }
 
+export async function getChannelByCounterparty(
+  ownerId: number,
+  counterpartyId: number,
+) {
+  const [row] = await db
+    .select()
+    .from(channels)
+    .where(
+      and(
+        eq(channels.ownerId, ownerId),
+        eq(channels.counterpartyId, counterpartyId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getUserChannels(userId: number) {
   return db
     .select({

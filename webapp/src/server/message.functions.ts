@@ -6,7 +6,7 @@ import {
   insertMessage,
   getUserChannels,
   getChannelMessages,
-  getChannelById,
+  getChannelByCounterparty,
   getNewMessages,
   markChannelRead,
   getUnreadCount,
@@ -123,48 +123,40 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
   },
 );
 
+async function resolveChannel(counterpartyAddress: string) {
+  const id = getCookie(COOKIE_NAME);
+  if (!id) throw new Error("Not logged in");
+  const counterpartyId = parseAddress(counterpartyAddress);
+  if (counterpartyId == null) throw new Error("Invalid address");
+  const channel = await getChannelByCounterparty(Number(id), counterpartyId);
+  if (!channel) throw new Error("Channel not found");
+  return channel;
+}
+
 export const getMessagesForChannel = createServerFn({ method: "GET" })
-  .inputValidator(z.number())
-  .handler(async ({ data: channelId }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-
-    const channel = await getChannelById(channelId);
-    if (!channel || channel.ownerId !== Number(id))
-      throw new Error("Channel not found");
-
-    return getChannelMessages(channelId);
+  .inputValidator(z.string())
+  .handler(async ({ data: counterpartyAddress }) => {
+    const channel = await resolveChannel(counterpartyAddress);
+    return getChannelMessages(channel.id);
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
-      channelId: z.number(),
+      counterpartyAddress: z.string(),
       afterId: z.number(),
     }),
   )
   .handler(async ({ data }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-
-    const channel = await getChannelById(data.channelId);
-    if (!channel || channel.ownerId !== Number(id))
-      throw new Error("Channel not found");
-
-    return getNewMessages(data.channelId, data.afterId);
+    const channel = await resolveChannel(data.counterpartyAddress);
+    return getNewMessages(channel.id, data.afterId);
   });
 
 export const markChannelAsRead = createServerFn({ method: "POST" })
-  .inputValidator(z.number())
-  .handler(async ({ data: channelId }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-
-    const channel = await getChannelById(channelId);
-    if (!channel || channel.ownerId !== Number(id))
-      throw new Error("Channel not found");
-
-    await markChannelRead(channelId);
+  .inputValidator(z.string())
+  .handler(async ({ data: counterpartyAddress }) => {
+    const channel = await resolveChannel(counterpartyAddress);
+    await markChannelRead(channel.id);
     return { success: true };
   });
 
