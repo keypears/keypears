@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getDomain, getApiUrl } from "~/lib/config";
+import { getDomain, getApiUrl, getServerPublicKey } from "~/lib/config";
 
 export const getKeypearsJson = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -7,6 +7,7 @@ export const getKeypearsJson = createServerFn({ method: "GET" }).handler(
       version: 1,
       domain: getDomain(),
       apiUrl: getApiUrl(),
+      serverPublicKey: getServerPublicKey().buf.toHex(),
     };
   },
 );

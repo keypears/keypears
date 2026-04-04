@@ -5,7 +5,7 @@ import { Pow5_64b_Wasm, hashMeetsTarget } from "@keypears/pow5";
 import { createPowChallenge, verifyPowSolution } from "./pow.server";
 
 beforeAll(() => {
-  process.env.POW_SECRET = FixedBuf.fromRandom(32).buf.toHex();
+  process.env.KEYPEARS_SECRET = FixedBuf.fromRandom(32).buf.toHex();
 });
 
 function solveChallenge(headerHex: string, targetHex: string): string {

@@ -1,7 +1,15 @@
-/**
- * Server-side config — reads from environment variables.
- * These values are used to construct addresses and serve keypears.json.
- */
+import { sha256Hmac } from "@webbuf/sha256";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
+import { publicKeyCreate } from "@webbuf/secp256k1";
+
+// --- Environment variables ---
+
+function getMasterSecret(): FixedBuf<32> {
+  const hex = process.env.KEYPEARS_SECRET;
+  if (!hex) throw new Error("KEYPEARS_SECRET env var is required");
+  return FixedBuf.fromHex(32, hex);
+}
 
 export function getDomain(): string {
   return process.env.KEYPEARS_DOMAIN ?? "keypears.com";
@@ -11,17 +19,36 @@ export function getApiUrl(): string {
   return process.env.KEYPEARS_API_URL ?? `https://${getDomain()}/api`;
 }
 
-/**
- * Construct a KeyPears address from a user name/ID and domain.
- */
+// --- Derived secrets ---
+// All derived deterministically from KEYPEARS_SECRET using different salts.
+// Same secret always produces same keys, even across restarts.
+
+export function getPowSigningKey(): FixedBuf<32> {
+  const secret = getMasterSecret();
+  return sha256Hmac(
+    WebBuf.fromUtf8("keypears pow secret v1"),
+    secret.buf,
+  );
+}
+
+export function getServerPrivateKey(): FixedBuf<32> {
+  const secret = getMasterSecret();
+  return sha256Hmac(
+    WebBuf.fromUtf8("keypears server auth v1"),
+    secret.buf,
+  );
+}
+
+export function getServerPublicKey(): FixedBuf<33> {
+  return publicKeyCreate(getServerPrivateKey());
+}
+
+// --- Address utilities ---
+
 export function makeAddress(name: string | number): string {
   return `${name}@${getDomain()}`;
 }
 
-/**
- * Parse a KeyPears address into { name, domain }.
- * Accepts any domain — not just our own.
- */
 export function parseAddress(address: string): {
   name: string;
   domain: string;
@@ -31,10 +58,6 @@ export function parseAddress(address: string): {
   return { name: match[1], domain: match[2] };
 }
 
-/**
- * Parse a local address — must match our domain.
- * Returns the numeric user ID, or null if not a local address.
- */
 export function parseLocalAddress(address: string): number | null {
   const parsed = parseAddress(address);
   if (!parsed) return null;
