@@ -31,18 +31,13 @@ function ChannelPage() {
 
   const encryptionKey = getCachedEncryptionKey();
 
-  const myKeyData = useMyKey();
-
-  function useMyKey() {
-    const [data, setData] = useState<{
-      publicKey: string;
-      encryptedPrivateKey: string;
-    } | null>(null);
-    if (!data) {
-      getMyActiveEncryptedKey().then(setData);
-    }
-    return data;
-  }
+  const [myKeyData, setMyKeyData] = useState<{
+    publicKey: string;
+    encryptedPrivateKey: string;
+  } | null>(null);
+  useEffect(() => {
+    getMyActiveEncryptedKey().then(setMyKeyData);
+  }, []);
 
   // Mark as read on mount
   useEffect(() => {
