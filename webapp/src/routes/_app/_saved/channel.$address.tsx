@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
+  getMyChannels,
   getOlderMessages,
   sendMessage,
   getMyActiveEncryptedKey,
@@ -11,25 +12,42 @@ import {
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { Send as SendIcon, ArrowLeft, LockKeyhole, Loader2 } from "lucide-react";
+import {
+  Send as SendIcon,
+  LockKeyhole,
+  Loader2,
+  Inbox,
+  MessageSquare,
+  Menu,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
     const address = params.address;
-    const msgs = await getMessagesForChannel({ data: address });
-    return { address, messages: msgs };
+    const [msgs, channels] = await Promise.all([
+      getMessagesForChannel({ data: address }),
+      getMyChannels(),
+    ]);
+    return { address, messages: msgs, channels };
   },
   component: ChannelPage,
 });
 
 function ChannelPage() {
-  const { address, messages: initialMessages } = Route.useLoaderData();
+  const {
+    address,
+    messages: initialMessages,
+    channels: initialChannels,
+  } = Route.useLoaderData();
   const [messageList, setMessageList] = useState(initialMessages);
+  const [channels, setChannels] = useState(initialChannels);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= 20);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +106,28 @@ function ChannelPage() {
     };
   }, [address]);
 
-  // Reverse infinite scroll — load older messages when scrolling to top
+  // Poll channel list for sidebar updates
+  useEffect(() => {
+    let active = true;
+    async function poll() {
+      while (active) {
+        try {
+          const updated = await getMyChannels();
+          if (!active) break;
+          setChannels(updated);
+        } catch {
+          // ignore
+        }
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+    poll();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Reverse infinite scroll
   async function loadOlder() {
     if (loadingOlder || !hasMore || messageList.length === 0) return;
     setLoadingOlder(true);
@@ -102,7 +141,6 @@ function ChannelPage() {
         const container = messagesContainerRef.current;
         const prevHeight = container?.scrollHeight ?? 0;
         setMessageList((prev) => [...older, ...prev]);
-        // Restore scroll position after prepend
         requestAnimationFrame(() => {
           if (container) {
             const newHeight = container.scrollHeight;
@@ -141,9 +179,11 @@ function ChannelPage() {
       const isSender = msg.senderPubKey === myKeyData.publicKey;
       const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
-      return { ok: true, text: decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey) };
+      return {
+        ok: true,
+        text: decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey),
+      };
     } catch {
-      // Key mismatch — likely encrypted with a rotated or old key
       const isSender = msg.senderPubKey === myKeyData.publicKey;
       if (!isSender && msg.recipientPubKey !== myKeyData.publicKey) {
         return { ok: false, reason: "wrong-key" };
@@ -196,111 +236,189 @@ function ChannelPage() {
     }
   }
 
-  return (
-    <div className="fixed inset-0 flex flex-col font-sans">
-      {/* Fixed header */}
-      <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3">
+  // --- Channel list panel (shared between drawer and desktop sidebar) ---
+  function ChannelList({ onSelect }: { onSelect?: () => void }) {
+    return (
+      <div className="flex flex-col">
         <a
           href="/inbox"
-          className="text-muted-foreground hover:text-foreground no-underline"
+          onClick={onSelect}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <Inbox className="h-4 w-4" />
+          Inbox
         </a>
-        <span className="text-foreground text-sm font-medium">{address}</span>
-      </div>
-
-      {/* Scrollable messages */}
-      <div
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4"
-      >
-        <div className="mx-auto flex max-w-2xl flex-col gap-3">
-          {loadingOlder && (
-            <div className="flex justify-center py-2">
-              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-            </div>
-          )}
-          {!hasMore && messageList.length > 0 && (
-            <div className="text-muted-foreground mb-2 text-center text-xs">
-              <p>Beginning of conversation</p>
-              <p className="mt-1">
-                Messages are end-to-end encrypted. Only you and the other party
-                can read them.
-              </p>
-            </div>
-          )}
-          {messageList.map((msg) => {
-            const isMine = msg.senderPubKey === myKeyData?.publicKey;
-            const result = tryDecrypt(msg);
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-              >
-                {result.ok ? (
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
-                      isMine
-                        ? "bg-accent/15 text-foreground"
-                        : "bg-background-highlight text-foreground"
-                    }`}
-                  >
-                    <p className="break-words">{result.text}</p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(msg.createdAt).toLocaleTimeString()}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border-border/30 max-w-[70%] rounded-lg border border-dashed px-4 py-2 text-sm">
-                    <div className="text-muted-foreground flex items-center gap-2 italic">
-                      <LockKeyhole className="h-3 w-3 shrink-0" />
-                      {result.reason === "loading"
-                        ? "Decrypting..."
-                        : result.reason === "wrong-key"
-                          ? "Encrypted with a different key"
-                          : "Unable to decrypt this message"}
-                    </div>
-                    {result.reason === "wrong-key" && (
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        This message may have been sent before a key rotation or
-                        password reset.
-                      </p>
-                    )}
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(msg.createdAt).toLocaleTimeString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
+        <div className="border-border/30 border-t" />
+        <div className="flex-1 overflow-y-auto">
+          {channels.map((ch) => (
+            <a
+              key={ch.id}
+              href={`/channel/${ch.counterpartyAddress}`}
+              onClick={onSelect}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm no-underline transition-colors ${
+                ch.counterpartyAddress === address
+                  ? "bg-accent/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4 shrink-0" />
+              <span className="truncate">{ch.counterpartyAddress}</span>
+              {ch.unreadCount > 0 && (
+                <span className="bg-accent text-accent-foreground ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium">
+                  {ch.unreadCount}
+                </span>
+              )}
+            </a>
+          ))}
         </div>
       </div>
+    );
+  }
 
-      {/* Fixed input */}
-      <form
-        onSubmit={handleSend}
-        className="bg-background border-border/30 flex gap-3 border-t px-4 py-3"
+  return (
+    <div className="fixed inset-0 flex font-sans">
+      {/* Desktop channel list panel */}
+      <div className="bg-background border-border/30 hidden w-64 flex-col border-r lg:flex">
+        <div className="border-border/30 flex items-center gap-2 border-b px-4 py-3">
+          <span className="text-foreground text-sm font-bold">Channels</span>
+        </div>
+        <ChannelList />
+      </div>
+
+      {/* Mobile drawer backdrop */}
+      <button
+        type="button"
+        aria-label="Close channels"
+        className={`fixed inset-0 z-30 bg-black/20 transition-opacity duration-300 ease-in-out lg:hidden dark:bg-black/40 ${
+          drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setDrawerOpen(false)}
+      />
+
+      {/* Mobile drawer */}
+      <div
+        className={`bg-background border-border/30 fixed top-0 left-0 z-40 flex h-full w-64 transform flex-col border-r shadow-lg transition-transform duration-300 ease-in-out lg:hidden ${
+          drawerOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <input
-          type="text"
-          placeholder="Type a message..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="bg-background-dark border-border text-foreground flex-1 rounded border px-4 py-2 text-sm"
-          required
-        />
-        {error && <p className="text-danger text-sm">{error}</p>}
-        <button
-          type="submit"
-          disabled={sending}
-          className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 transition-all disabled:opacity-50"
+        <div className="border-border/30 flex items-center gap-2 border-b px-4 py-3">
+          <button
+            onClick={() => setDrawerOpen(false)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <span className="text-foreground text-sm font-bold">Channels</span>
+        </div>
+        <ChannelList onSelect={() => setDrawerOpen(false)} />
+      </div>
+
+      {/* Main conversation area */}
+      <div className="flex flex-1 flex-col">
+        {/* Header */}
+        <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="text-muted-foreground hover:text-foreground lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="text-foreground text-sm font-medium">{address}</span>
+        </div>
+
+        {/* Scrollable messages */}
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4"
         >
-          <SendIcon className="h-4 w-4" />
-        </button>
-      </form>
+          <div className="mx-auto flex max-w-2xl flex-col gap-3">
+            {loadingOlder && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+              </div>
+            )}
+            {!hasMore && messageList.length > 0 && (
+              <div className="text-muted-foreground mb-2 text-center text-xs">
+                <p>Beginning of conversation</p>
+                <p className="mt-1">
+                  Messages are end-to-end encrypted. Only you and the other
+                  party can read them.
+                </p>
+              </div>
+            )}
+            {messageList.map((msg) => {
+              const isMine = msg.senderPubKey === myKeyData?.publicKey;
+              const result = tryDecrypt(msg);
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                >
+                  {result.ok ? (
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
+                        isMine
+                          ? "bg-accent/15 text-foreground"
+                          : "bg-background-highlight text-foreground"
+                      }`}
+                    >
+                      <p className="break-words">{result.text}</p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border-border/30 max-w-[70%] rounded-lg border border-dashed px-4 py-2 text-sm">
+                      <div className="text-muted-foreground flex items-center gap-2 italic">
+                        <LockKeyhole className="h-3 w-3 shrink-0" />
+                        {result.reason === "loading"
+                          ? "Decrypting..."
+                          : result.reason === "wrong-key"
+                            ? "Encrypted with a different key"
+                            : "Unable to decrypt this message"}
+                      </div>
+                      {result.reason === "wrong-key" && (
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          This message may have been sent before a key rotation
+                          or password reset.
+                        </p>
+                      )}
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Fixed input */}
+        <form
+          onSubmit={handleSend}
+          className="bg-background border-border/30 flex gap-3 border-t px-4 py-3"
+        >
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="bg-background-dark border-border text-foreground flex-1 rounded border px-4 py-2 text-sm"
+            required
+          />
+          {error && <p className="text-danger text-sm">{error}</p>}
+          <button
+            type="submit"
+            disabled={sending}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 transition-all disabled:opacity-50"
+          >
+            <SendIcon className="h-4 w-4" />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
