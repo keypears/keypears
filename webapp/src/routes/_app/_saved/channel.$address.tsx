@@ -10,7 +10,7 @@ import {
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { Send as SendIcon, ArrowLeft } from "lucide-react";
+import { Send as SendIcon, ArrowLeft, LockKeyhole } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
@@ -84,12 +84,16 @@ function ChannelPage() {
     };
   }, [address]);
 
+  type DecryptResult =
+    | { ok: true; text: string }
+    | { ok: false; reason: "loading" | "wrong-key" | "error" };
+
   function tryDecrypt(msg: {
     encryptedContent: string;
     senderPubKey: string;
     recipientPubKey: string;
-  }): string {
-    if (!encryptionKey || !myKeyData) return "[encrypted]";
+  }): DecryptResult {
+    if (!encryptionKey || !myKeyData) return { ok: false, reason: "loading" };
     try {
       const myPrivKey = decryptPrivateKey(
         myKeyData.encryptedPrivateKey,
@@ -98,9 +102,14 @@ function ChannelPage() {
       const isSender = msg.senderPubKey === myKeyData.publicKey;
       const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
-      return decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey);
+      return { ok: true, text: decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey) };
     } catch {
-      return "[unable to decrypt]";
+      // Key mismatch — likely encrypted with a rotated or old key
+      const isSender = msg.senderPubKey === myKeyData.publicKey;
+      if (!isSender && msg.recipientPubKey !== myKeyData.publicKey) {
+        return { ok: false, reason: "wrong-key" };
+      }
+      return { ok: false, reason: "error" };
     }
   }
 
@@ -166,24 +175,46 @@ function ChannelPage() {
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {messageList.map((msg) => {
             const isMine = msg.senderPubKey === myKeyData?.publicKey;
-            const decrypted = tryDecrypt(msg);
+            const result = tryDecrypt(msg);
             return (
               <div
                 key={msg.id}
                 className={`flex ${isMine ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
-                    isMine
-                      ? "bg-accent/15 text-foreground"
-                      : "bg-background-highlight text-foreground"
-                  }`}
-                >
-                  <p className="break-words">{decrypted}</p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {new Date(msg.createdAt).toLocaleTimeString()}
-                  </p>
-                </div>
+                {result.ok ? (
+                  <div
+                    className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
+                      isMine
+                        ? "bg-accent/15 text-foreground"
+                        : "bg-background-highlight text-foreground"
+                    }`}
+                  >
+                    <p className="break-words">{result.text}</p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {new Date(msg.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border-border/30 max-w-[70%] rounded-lg border border-dashed px-4 py-2 text-sm">
+                    <div className="text-muted-foreground flex items-center gap-2 italic">
+                      <LockKeyhole className="h-3 w-3 shrink-0" />
+                      {result.reason === "loading"
+                        ? "Decrypting..."
+                        : result.reason === "wrong-key"
+                          ? "Encrypted with a different key"
+                          : "Unable to decrypt this message"}
+                    </div>
+                    {result.reason === "wrong-key" && (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        This message may have been sent before a key rotation or
+                        password reset.
+                      </p>
+                    )}
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {new Date(msg.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}
