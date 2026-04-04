@@ -1,7 +1,6 @@
 import { sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { publicKeyCreate } from "@webbuf/secp256k1";
 
 // --- Environment variables ---
 
@@ -29,18 +28,6 @@ export function getPowSigningKey(): FixedBuf<32> {
     WebBuf.fromUtf8("keypears pow secret v1"),
     secret.buf,
   );
-}
-
-export function getServerPrivateKey(): FixedBuf<32> {
-  const secret = getMasterSecret();
-  return sha256Hmac(
-    WebBuf.fromUtf8("keypears server auth v1"),
-    secret.buf,
-  );
-}
-
-export function getServerPublicKey(): FixedBuf<33> {
-  return publicKeyCreate(getServerPrivateKey());
 }
 
 // --- Address utilities ---

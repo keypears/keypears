@@ -16,7 +16,8 @@ import { getUserById, getActiveKey } from "./user.server";
 import { verifyPowSolution } from "./pow.server";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
-import { parseLocalAddress, makeAddress } from "~/lib/config";
+import { parseLocalAddress, parseAddress, makeAddress, getDomain } from "~/lib/config";
+import { fetchRemotePublicKey, deliverRemoteMessage } from "./federation.server";
 
 const COOKIE_NAME = "user_id";
 
@@ -24,12 +25,17 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())
   .handler(async ({ data: address }) => {
     const id = parseLocalAddress(address);
-    if (id == null) return null;
-    const user = await getUserById(id);
-    if (!user || !user.passwordHash) return null;
-    const key = await getActiveKey(id);
-    if (!key) return null;
-    return { publicKey: key.publicKey };
+    if (id != null) {
+      // Local user
+      const user = await getUserById(id);
+      if (!user || !user.passwordHash) return null;
+      const key = await getActiveKey(id);
+      if (!key) return null;
+      return { publicKey: key.publicKey };
+    }
+    // Remote user — proxy the request
+    const publicKey = await fetchRemotePublicKey(address);
+    return publicKey ? { publicKey } : null;
   });
 
 export const sendMessage = createServerFn({ method: "POST" })
@@ -49,51 +55,80 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
 
-    const recipientId = parseLocalAddress(input.recipientAddress);
-    if (recipientId == null) throw new Error("Invalid recipient address");
-    if (recipientId === senderUser.id)
-      throw new Error("Cannot message yourself");
-    const recipientUser = await getUserById(recipientId);
-    if (!recipientUser || !recipientUser.passwordHash)
-      throw new Error("Recipient not found");
-
-    // Check if channel exists — if not, require PoW
-    const alreadyExists = await channelExists(senderUser.id, recipientId);
-    if (!alreadyExists) {
-      if (!input.pow) throw new Error("Proof of work required for new channel");
-      const powResult = verifyPowSolution(
-        input.pow.solvedHeader,
-        input.pow.target,
-        input.pow.expiresAt,
-        input.pow.signature,
-      );
-      if (!powResult.valid)
-        throw new Error(`Invalid proof of work: ${powResult.message}`);
-    }
-
     const senderAddress = makeAddress(senderUser.id);
+    const parsed = parseAddress(input.recipientAddress);
+    if (!parsed) throw new Error("Invalid recipient address");
 
-    // Create channels for both sides and insert message into both
-    const { senderChannelId, recipientChannelId } =
-      await getOrCreateChannelPair(senderUser.id, recipientId);
+    const isLocal = parsed.domain === getDomain();
 
-    // Sender's copy is read, recipient's is unread
-    await insertMessage(
-      senderChannelId,
-      senderAddress,
-      input.encryptedContent,
-      input.senderPubKey,
-      input.recipientPubKey,
-      true,
-    );
-    await insertMessage(
-      recipientChannelId,
-      senderAddress,
-      input.encryptedContent,
-      input.senderPubKey,
-      input.recipientPubKey,
-      false,
-    );
+    if (isLocal) {
+      // --- Local delivery ---
+      const recipientId = Number(parsed.name);
+      if (Number.isNaN(recipientId)) throw new Error("Invalid recipient");
+      if (recipientId === senderUser.id)
+        throw new Error("Cannot message yourself");
+      const recipientUser = await getUserById(recipientId);
+      if (!recipientUser || !recipientUser.passwordHash)
+        throw new Error("Recipient not found");
+
+      const alreadyExists = await channelExists(senderUser.id, recipientId);
+      if (!alreadyExists) {
+        if (!input.pow)
+          throw new Error("Proof of work required for new channel");
+        const powResult = verifyPowSolution(
+          input.pow.solvedHeader,
+          input.pow.target,
+          input.pow.expiresAt,
+          input.pow.signature,
+        );
+        if (!powResult.valid)
+          throw new Error(`Invalid proof of work: ${powResult.message}`);
+      }
+
+      const { senderChannelId, recipientChannelId } =
+        await getOrCreateChannelPair(senderUser.id, recipientId);
+
+      await insertMessage(
+        senderChannelId,
+        senderAddress,
+        input.encryptedContent,
+        input.senderPubKey,
+        input.recipientPubKey,
+        true,
+      );
+      await insertMessage(
+        recipientChannelId,
+        senderAddress,
+        input.encryptedContent,
+        input.senderPubKey,
+        input.recipientPubKey,
+        false,
+      );
+    } else {
+      // --- Remote delivery ---
+      // Store sender's copy locally (use counterpartyId=0 for remote users)
+      const { senderChannelId } = await getOrCreateChannelPair(
+        senderUser.id,
+        0,
+      );
+      await insertMessage(
+        senderChannelId,
+        senderAddress,
+        input.encryptedContent,
+        input.senderPubKey,
+        input.recipientPubKey,
+        true,
+      );
+
+      // Deliver to remote server via pull model
+      await deliverRemoteMessage(
+        senderAddress,
+        input.recipientAddress,
+        input.encryptedContent,
+        input.senderPubKey,
+        input.recipientPubKey,
+      );
+    }
 
     return { success: true };
   });

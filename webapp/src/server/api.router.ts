@@ -1,0 +1,147 @@
+import { os } from "@orpc/server";
+import { z } from "zod";
+import { db } from "~/db";
+import { pendingDeliveries } from "~/db/schema";
+import { eq } from "drizzle-orm";
+import { sha256Hash } from "@webbuf/sha256";
+import { WebBuf } from "@webbuf/webbuf";
+import { getActiveKey, getUserById } from "./user.server";
+import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
+import { getOrCreateChannelPair, insertMessage } from "./message.server";
+import { createPowChallenge } from "./pow.server";
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
+
+function hashToken(token: string): string {
+  return sha256Hash(WebBuf.fromUtf8(token)).buf.toHex();
+}
+
+// --- oRPC Router ---
+
+const serverInfo = os.handler(async () => {
+  return {
+    domain: getDomain(),
+    apiUrl: getApiUrl(),
+  };
+});
+
+const getPublicKey = os
+  .input(z.object({ address: z.string() }))
+  .handler(async ({ input }) => {
+    const userId = parseLocalAddress(input.address);
+    if (userId == null) return { publicKey: null };
+    const user = await getUserById(userId);
+    if (!user || !user.passwordHash) return { publicKey: null };
+    const key = await getActiveKey(userId);
+    if (!key) return { publicKey: null };
+    return { publicKey: key.publicKey };
+  });
+
+const getPowChallengeEndpoint = os.handler(async () => {
+  return createPowChallenge();
+});
+
+const notifyMessage = os
+  .input(
+    z.object({
+      senderAddress: z.string(),
+      recipientAddress: z.string(),
+      pullUrl: z.string(),
+      pullToken: z.string(),
+    }),
+  )
+  .handler(async ({ input }) => {
+    try {
+      // Verify recipient is local
+      const recipientId = parseLocalAddress(input.recipientAddress);
+      if (recipientId == null)
+        throw new Error("Recipient not found on this server");
+      const recipientUser = await getUserById(recipientId);
+      if (!recipientUser || !recipientUser.passwordHash)
+        throw new Error("Recipient not found");
+
+      // Pull the message from the sender's server via oRPC
+      const senderParsed = parseAddress(input.senderAddress);
+      if (!senderParsed) throw new Error("Invalid sender address");
+
+      // Create a client to pull the message from the sender's server
+      // Type it with just the pullMessage shape to avoid circular reference with apiRouter
+      const link = new RPCLink({ url: input.pullUrl });
+      const remoteClient: {
+        pullMessage: (input: { token: string }) => Promise<{
+          senderAddress: string;
+          recipientAddress: string;
+          encryptedContent: string;
+          senderPubKey: string;
+          recipientPubKey: string;
+        }>;
+      } = createORPCClient(link);
+      console.log("Pulling message from", input.pullUrl, "with token", input.pullToken);
+      const messageData = await remoteClient.pullMessage({
+        token: input.pullToken,
+      });
+      console.log("Pulled message:", messageData.senderAddress, "->", messageData.recipientAddress);
+
+      // Verify the message matches the notification
+      if (messageData.senderAddress !== input.senderAddress)
+        throw new Error("Sender address mismatch");
+      if (messageData.recipientAddress !== input.recipientAddress)
+        throw new Error("Recipient address mismatch");
+
+      // Store in recipient's channel
+      // counterpartyId = 0 for remote users
+      const { recipientChannelId } = await getOrCreateChannelPair(
+        recipientId,
+        0,
+      );
+
+      await insertMessage(
+        recipientChannelId,
+        messageData.senderAddress,
+        messageData.encryptedContent,
+        messageData.senderPubKey,
+        messageData.recipientPubKey,
+        false,
+      );
+
+      return { success: true };
+    } catch (err) {
+      console.error("notifyMessage handler failed:", err);
+      throw err;
+    }
+  });
+
+const pullMessage = os
+  .input(z.object({ token: z.string() }))
+  .handler(async ({ input }) => {
+    const hash = hashToken(input.token);
+
+    const [delivery] = await db
+      .select()
+      .from(pendingDeliveries)
+      .where(eq(pendingDeliveries.tokenHash, hash))
+      .limit(1);
+
+    if (!delivery) throw new Error("Message not found or already pulled");
+
+    // Delete after pulling (one-time use)
+    await db
+      .delete(pendingDeliveries)
+      .where(eq(pendingDeliveries.id, delivery.id));
+
+    return {
+      senderAddress: delivery.senderAddress,
+      recipientAddress: delivery.recipientAddress,
+      encryptedContent: delivery.encryptedContent,
+      senderPubKey: delivery.senderPubKey,
+      recipientPubKey: delivery.recipientPubKey,
+    };
+  });
+
+export const apiRouter = {
+  serverInfo,
+  getPublicKey,
+  getPowChallenge: getPowChallengeEndpoint,
+  notifyMessage,
+  pullMessage,
+};

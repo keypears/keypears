@@ -53,6 +53,17 @@ export const messages = mysqlTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const pendingDeliveries = mysqlTable("pending_deliveries", {
+  id: int("id").primaryKey().autoincrement(),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+  senderAddress: varchar("sender_address", { length: 255 }).notNull(),
+  recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
+  encryptedContent: text("encrypted_content").notNull(),
+  senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
+  recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const powLog = mysqlTable("pow_log", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id").notNull(),
