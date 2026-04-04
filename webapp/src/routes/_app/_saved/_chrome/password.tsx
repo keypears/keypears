@@ -20,7 +20,7 @@ import {
 } from "~/lib/auth";
 import { acs2Encrypt } from "@webbuf/acs2";
 
-export const Route = createFileRoute("/_app/_saved/password")({
+export const Route = createFileRoute("/_app/_saved/_chrome/password")({
   component: PasswordPage,
 });
 

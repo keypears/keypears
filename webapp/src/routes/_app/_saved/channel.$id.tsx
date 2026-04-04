@@ -1,21 +1,17 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
   sendMessage,
   getMyActiveEncryptedKey,
 } from "~/server/message.functions";
-import { getMyUser } from "~/server/user.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/channel/$id")({
-  ssr: false,
+export const Route = createFileRoute("/_app/_saved/channel/$id")({
   loader: async ({ params }) => {
-    const user = await getMyUser();
-    if (!user || !user.hasPassword) throw redirect({ to: "/" });
     const channelId = Number(params.id);
     const msgs = await getMessagesForChannel({ data: channelId });
     return { channelId, messages: msgs };

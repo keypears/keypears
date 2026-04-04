@@ -12,15 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
-import { Route as AppProfileRouteImport } from './routes/_app/$profile'
-import { Route as AppSavedVaultRouteImport } from './routes/_app/_saved/vault'
-import { Route as AppSavedSendRouteImport } from './routes/_app/_saved/send'
-import { Route as AppSavedPasswordRouteImport } from './routes/_app/_saved/password'
-import { Route as AppSavedKeysRouteImport } from './routes/_app/_saved/keys'
-import { Route as AppSavedInboxRouteImport } from './routes/_app/_saved/inbox'
+import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
+import { Route as AppSavedChannelIdRouteImport } from './routes/_app/_saved/channel.$id'
+import { Route as AppSavedChromeVaultRouteImport } from './routes/_app/_saved/_chrome/vault'
+import { Route as AppSavedChromeSendRouteImport } from './routes/_app/_saved/_chrome/send'
+import { Route as AppSavedChromePasswordRouteImport } from './routes/_app/_saved/_chrome/password'
+import { Route as AppSavedChromeKeysRouteImport } from './routes/_app/_saved/_chrome/keys'
+import { Route as AppSavedChromeInboxRouteImport } from './routes/_app/_saved/_chrome/inbox'
+import { Route as AppSavedChromeProfileRouteImport } from './routes/_app/_saved/_chrome/$profile'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -36,11 +37,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChannelIdRoute = ChannelIdRouteImport.update({
-  id: '/channel/$id',
-  path: '/channel/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppWelcomeRoute = AppWelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -50,122 +46,132 @@ const AppSavedRoute = AppSavedRouteImport.update({
   id: '/_saved',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/$profile',
-  path: '/$profile',
-  getParentRoute: () => AppRoute,
+const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
+  id: '/_chrome',
+  getParentRoute: () => AppSavedRoute,
 } as any)
-const AppSavedVaultRoute = AppSavedVaultRouteImport.update({
+const AppSavedChannelIdRoute = AppSavedChannelIdRouteImport.update({
+  id: '/channel/$id',
+  path: '/channel/$id',
+  getParentRoute: () => AppSavedRoute,
+} as any)
+const AppSavedChromeVaultRoute = AppSavedChromeVaultRouteImport.update({
   id: '/vault',
   path: '/vault',
-  getParentRoute: () => AppSavedRoute,
+  getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedSendRoute = AppSavedSendRouteImport.update({
+const AppSavedChromeSendRoute = AppSavedChromeSendRouteImport.update({
   id: '/send',
   path: '/send',
-  getParentRoute: () => AppSavedRoute,
+  getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedPasswordRoute = AppSavedPasswordRouteImport.update({
+const AppSavedChromePasswordRoute = AppSavedChromePasswordRouteImport.update({
   id: '/password',
   path: '/password',
-  getParentRoute: () => AppSavedRoute,
+  getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedKeysRoute = AppSavedKeysRouteImport.update({
+const AppSavedChromeKeysRoute = AppSavedChromeKeysRouteImport.update({
   id: '/keys',
   path: '/keys',
-  getParentRoute: () => AppSavedRoute,
+  getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedInboxRoute = AppSavedInboxRouteImport.update({
+const AppSavedChromeInboxRoute = AppSavedChromeInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
-  getParentRoute: () => AppSavedRoute,
+  getParentRoute: () => AppSavedChromeRoute,
+} as any)
+const AppSavedChromeProfileRoute = AppSavedChromeProfileRouteImport.update({
+  id: '/$profile',
+  path: '/$profile',
+  getParentRoute: () => AppSavedChromeRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/$profile': typeof AppProfileRoute
   '/welcome': typeof AppWelcomeRoute
-  '/channel/$id': typeof ChannelIdRoute
-  '/inbox': typeof AppSavedInboxRoute
-  '/keys': typeof AppSavedKeysRoute
-  '/password': typeof AppSavedPasswordRoute
-  '/send': typeof AppSavedSendRoute
-  '/vault': typeof AppSavedVaultRoute
+  '/$profile': typeof AppSavedChromeProfileRoute
+  '/inbox': typeof AppSavedChromeInboxRoute
+  '/keys': typeof AppSavedChromeKeysRoute
+  '/password': typeof AppSavedChromePasswordRoute
+  '/send': typeof AppSavedChromeSendRoute
+  '/vault': typeof AppSavedChromeVaultRoute
+  '/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/$profile': typeof AppProfileRoute
   '/welcome': typeof AppWelcomeRoute
-  '/channel/$id': typeof ChannelIdRoute
-  '/inbox': typeof AppSavedInboxRoute
-  '/keys': typeof AppSavedKeysRoute
-  '/password': typeof AppSavedPasswordRoute
-  '/send': typeof AppSavedSendRoute
-  '/vault': typeof AppSavedVaultRoute
+  '/$profile': typeof AppSavedChromeProfileRoute
+  '/inbox': typeof AppSavedChromeInboxRoute
+  '/keys': typeof AppSavedChromeKeysRoute
+  '/password': typeof AppSavedChromePasswordRoute
+  '/send': typeof AppSavedChromeSendRoute
+  '/vault': typeof AppSavedChromeVaultRoute
+  '/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/$profile': typeof AppProfileRoute
   '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
-  '/channel/$id': typeof ChannelIdRoute
-  '/_app/_saved/inbox': typeof AppSavedInboxRoute
-  '/_app/_saved/keys': typeof AppSavedKeysRoute
-  '/_app/_saved/password': typeof AppSavedPasswordRoute
-  '/_app/_saved/send': typeof AppSavedSendRoute
-  '/_app/_saved/vault': typeof AppSavedVaultRoute
+  '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
+  '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
+  '/_app/_saved/_chrome/inbox': typeof AppSavedChromeInboxRoute
+  '/_app/_saved/_chrome/keys': typeof AppSavedChromeKeysRoute
+  '/_app/_saved/_chrome/password': typeof AppSavedChromePasswordRoute
+  '/_app/_saved/_chrome/send': typeof AppSavedChromeSendRoute
+  '/_app/_saved/_chrome/vault': typeof AppSavedChromeVaultRoute
+  '/_app/_saved/channel/$id': typeof AppSavedChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
-    | '/$profile'
     | '/welcome'
-    | '/channel/$id'
+    | '/$profile'
     | '/inbox'
     | '/keys'
     | '/password'
     | '/send'
     | '/vault'
+    | '/channel/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/$profile'
     | '/welcome'
-    | '/channel/$id'
+    | '/$profile'
     | '/inbox'
     | '/keys'
     | '/password'
     | '/send'
     | '/vault'
+    | '/channel/$id'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/$profile'
     | '/_app/_saved'
     | '/_app/welcome'
-    | '/channel/$id'
-    | '/_app/_saved/inbox'
-    | '/_app/_saved/keys'
-    | '/_app/_saved/password'
-    | '/_app/_saved/send'
-    | '/_app/_saved/vault'
+    | '/_app/_saved/_chrome'
+    | '/_app/_saved/_chrome/$profile'
+    | '/_app/_saved/_chrome/inbox'
+    | '/_app/_saved/_chrome/keys'
+    | '/_app/_saved/_chrome/password'
+    | '/_app/_saved/_chrome/send'
+    | '/_app/_saved/_chrome/vault'
+    | '/_app/_saved/channel/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ChannelIdRoute: typeof ChannelIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -191,13 +197,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/channel/$id': {
-      id: '/channel/$id'
-      path: '/channel/$id'
-      fullPath: '/channel/$id'
-      preLoaderRoute: typeof ChannelIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/welcome': {
       id: '/_app/welcome'
       path: '/welcome'
@@ -212,65 +211,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/$profile': {
-      id: '/_app/$profile'
-      path: '/$profile'
-      fullPath: '/$profile'
-      preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
+    '/_app/_saved/_chrome': {
+      id: '/_app/_saved/_chrome'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppSavedChromeRouteImport
+      parentRoute: typeof AppSavedRoute
     }
-    '/_app/_saved/vault': {
-      id: '/_app/_saved/vault'
+    '/_app/_saved/channel/$id': {
+      id: '/_app/_saved/channel/$id'
+      path: '/channel/$id'
+      fullPath: '/channel/$id'
+      preLoaderRoute: typeof AppSavedChannelIdRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
+    '/_app/_saved/_chrome/vault': {
+      id: '/_app/_saved/_chrome/vault'
       path: '/vault'
       fullPath: '/vault'
-      preLoaderRoute: typeof AppSavedVaultRouteImport
-      parentRoute: typeof AppSavedRoute
+      preLoaderRoute: typeof AppSavedChromeVaultRouteImport
+      parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/send': {
-      id: '/_app/_saved/send'
+    '/_app/_saved/_chrome/send': {
+      id: '/_app/_saved/_chrome/send'
       path: '/send'
       fullPath: '/send'
-      preLoaderRoute: typeof AppSavedSendRouteImport
-      parentRoute: typeof AppSavedRoute
+      preLoaderRoute: typeof AppSavedChromeSendRouteImport
+      parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/password': {
-      id: '/_app/_saved/password'
+    '/_app/_saved/_chrome/password': {
+      id: '/_app/_saved/_chrome/password'
       path: '/password'
       fullPath: '/password'
-      preLoaderRoute: typeof AppSavedPasswordRouteImport
-      parentRoute: typeof AppSavedRoute
+      preLoaderRoute: typeof AppSavedChromePasswordRouteImport
+      parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/keys': {
-      id: '/_app/_saved/keys'
+    '/_app/_saved/_chrome/keys': {
+      id: '/_app/_saved/_chrome/keys'
       path: '/keys'
       fullPath: '/keys'
-      preLoaderRoute: typeof AppSavedKeysRouteImport
-      parentRoute: typeof AppSavedRoute
+      preLoaderRoute: typeof AppSavedChromeKeysRouteImport
+      parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/inbox': {
-      id: '/_app/_saved/inbox'
+    '/_app/_saved/_chrome/inbox': {
+      id: '/_app/_saved/_chrome/inbox'
       path: '/inbox'
       fullPath: '/inbox'
-      preLoaderRoute: typeof AppSavedInboxRouteImport
-      parentRoute: typeof AppSavedRoute
+      preLoaderRoute: typeof AppSavedChromeInboxRouteImport
+      parentRoute: typeof AppSavedChromeRoute
+    }
+    '/_app/_saved/_chrome/$profile': {
+      id: '/_app/_saved/_chrome/$profile'
+      path: '/$profile'
+      fullPath: '/$profile'
+      preLoaderRoute: typeof AppSavedChromeProfileRouteImport
+      parentRoute: typeof AppSavedChromeRoute
     }
   }
 }
 
+interface AppSavedChromeRouteChildren {
+  AppSavedChromeProfileRoute: typeof AppSavedChromeProfileRoute
+  AppSavedChromeInboxRoute: typeof AppSavedChromeInboxRoute
+  AppSavedChromeKeysRoute: typeof AppSavedChromeKeysRoute
+  AppSavedChromePasswordRoute: typeof AppSavedChromePasswordRoute
+  AppSavedChromeSendRoute: typeof AppSavedChromeSendRoute
+  AppSavedChromeVaultRoute: typeof AppSavedChromeVaultRoute
+}
+
+const AppSavedChromeRouteChildren: AppSavedChromeRouteChildren = {
+  AppSavedChromeProfileRoute: AppSavedChromeProfileRoute,
+  AppSavedChromeInboxRoute: AppSavedChromeInboxRoute,
+  AppSavedChromeKeysRoute: AppSavedChromeKeysRoute,
+  AppSavedChromePasswordRoute: AppSavedChromePasswordRoute,
+  AppSavedChromeSendRoute: AppSavedChromeSendRoute,
+  AppSavedChromeVaultRoute: AppSavedChromeVaultRoute,
+}
+
+const AppSavedChromeRouteWithChildren = AppSavedChromeRoute._addFileChildren(
+  AppSavedChromeRouteChildren,
+)
+
 interface AppSavedRouteChildren {
-  AppSavedInboxRoute: typeof AppSavedInboxRoute
-  AppSavedKeysRoute: typeof AppSavedKeysRoute
-  AppSavedPasswordRoute: typeof AppSavedPasswordRoute
-  AppSavedSendRoute: typeof AppSavedSendRoute
-  AppSavedVaultRoute: typeof AppSavedVaultRoute
+  AppSavedChromeRoute: typeof AppSavedChromeRouteWithChildren
+  AppSavedChannelIdRoute: typeof AppSavedChannelIdRoute
 }
 
 const AppSavedRouteChildren: AppSavedRouteChildren = {
-  AppSavedInboxRoute: AppSavedInboxRoute,
-  AppSavedKeysRoute: AppSavedKeysRoute,
-  AppSavedPasswordRoute: AppSavedPasswordRoute,
-  AppSavedSendRoute: AppSavedSendRoute,
-  AppSavedVaultRoute: AppSavedVaultRoute,
+  AppSavedChromeRoute: AppSavedChromeRouteWithChildren,
+  AppSavedChannelIdRoute: AppSavedChannelIdRoute,
 }
 
 const AppSavedRouteWithChildren = AppSavedRoute._addFileChildren(
@@ -278,13 +307,11 @@ const AppSavedRouteWithChildren = AppSavedRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
-  AppProfileRoute: typeof AppProfileRoute
   AppSavedRoute: typeof AppSavedRouteWithChildren
   AppWelcomeRoute: typeof AppWelcomeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppProfileRoute: AppProfileRoute,
   AppSavedRoute: AppSavedRouteWithChildren,
   AppWelcomeRoute: AppWelcomeRoute,
 }
@@ -295,7 +322,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
-  ChannelIdRoute: ChannelIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

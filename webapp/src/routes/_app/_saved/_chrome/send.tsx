@@ -11,7 +11,7 @@ import { encryptMessage } from "~/lib/message";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_saved/send")({
+export const Route = createFileRoute("/_app/_saved/_chrome/send")({
   component: SendPage,
 });
 

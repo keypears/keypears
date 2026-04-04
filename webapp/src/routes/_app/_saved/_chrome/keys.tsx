@@ -10,7 +10,7 @@ import {
 } from "~/lib/auth";
 import { KeyRound, RotateCw } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_saved/keys")({
+export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
   loader: () => getMyKeys(),
   component: KeysPage,
 });

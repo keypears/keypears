@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getMyChannels } from "~/server/message.functions";
 import { MessageSquare } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_saved/inbox")({
+export const Route = createFileRoute("/_app/_saved/_chrome/inbox")({
   loader: () => getMyChannels(),
   component: InboxPage,
 });

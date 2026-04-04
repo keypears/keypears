@@ -3,7 +3,7 @@ import { useState } from "react";
 import { getMyUser, getProfile } from "~/server/user.functions";
 import { CircleUser, Cpu } from "lucide-react";
 
-export const Route = createFileRoute("/_app/$profile")({
+export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   loader: async ({ params }) => {
     if (!params.profile.startsWith("@")) {
       throw notFound();
