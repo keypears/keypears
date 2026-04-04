@@ -67,10 +67,12 @@ keypears/
 
 ## Development
 
+Local HTTPS via Caddy reverse proxy — see [docs/dev-setup.md](docs/dev-setup.md).
+
 ```bash
 bun install               # from repo root
 cd webapp
-bun dev                   # starts on port 3001
+bun dev                   # starts on port 3001, access via https://keypears.test
 bun run db:clear          # drop all tables
 bun run db:push           # push schema to MySQL
 bun run test              # run tests
