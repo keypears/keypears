@@ -144,7 +144,7 @@ function ChannelPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col font-sans">
+    <div className="fixed inset-0 flex flex-col font-sans">
       {/* Fixed header */}
       <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3">
         <a
