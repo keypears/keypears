@@ -14,7 +14,7 @@ import { Send as SendIcon, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
-    const address = decodeURIComponent(params.address);
+    const address = params.address;
     const msgs = await getMessagesForChannel({ data: address });
     return { address, messages: msgs };
   },
