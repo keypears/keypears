@@ -20,6 +20,7 @@ import {
   cacheEntropyTier,
 } from "~/lib/auth";
 import { nameSchema } from "~/server/schemas";
+import { parseAddress } from "~/lib/config";
 import { Check, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/welcome")({
@@ -36,8 +37,8 @@ function WelcomePage() {
   const data = Route.useLoaderData();
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [address, setAddress] = useState("");
+  const [addressError, setAddressError] = useState("");
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [checkingName, setCheckingName] = useState(false);
   const [password, setPassword] = useState("");
@@ -45,37 +46,55 @@ function WelcomePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function handleNameChange(value: string) {
-    setName(value);
+  function extractName(): string | null {
+    const parsed = parseAddress(address);
+    if (!parsed) return null;
+    if (parsed.domain !== data.domain) return null;
+    return parsed.name;
+  }
+
+  function handleAddressChange(value: string) {
+    setAddress(value);
     setNameAvailable(null);
 
     if (!value) {
-      setNameError("");
+      setAddressError("");
       return;
     }
 
-    const result = nameSchema.safeParse(value);
+    const parsed = parseAddress(value);
+    if (!parsed) {
+      setAddressError(`Enter a full address (e.g. yourname@${data.domain})`);
+      return;
+    }
+    if (parsed.domain !== data.domain) {
+      setAddressError(`Domain must be ${data.domain}`);
+      return;
+    }
+
+    const result = nameSchema.safeParse(parsed.name);
     if (!result.success) {
-      setNameError(result.error.issues[0]?.message ?? "Invalid name");
+      setAddressError(result.error.issues[0]?.message ?? "Invalid name");
     } else {
-      setNameError("");
+      setAddressError("");
     }
   }
 
-  async function handleNameBlur() {
-    if (!name || nameError) return;
+  async function handleAddressBlur() {
+    const name = extractName();
+    if (!name || addressError) return;
 
     setCheckingName(true);
     setNameAvailable(null);
     try {
       const result = await checkNameAvailable({ data: name });
       if (result.error) {
-        setNameError(result.error);
+        setAddressError(result.error);
       } else {
         setNameAvailable(result.available);
       }
     } catch {
-      setNameError("Failed to check availability");
+      setAddressError("Failed to check availability");
     } finally {
       setCheckingName(false);
     }
@@ -85,12 +104,13 @@ function WelcomePage() {
     e.preventDefault();
     setError("");
 
-    if (!name.trim()) {
-      setError("Name is required.");
+    const name = extractName();
+    if (!name) {
+      setError("Please enter a valid address.");
       return;
     }
-    if (nameError) {
-      setError("Please fix the name error.");
+    if (addressError) {
+      setError("Please fix the address error.");
       return;
     }
     if (nameAvailable === false) {
@@ -113,7 +133,7 @@ function WelcomePage() {
       const entropy = calculatePasswordEntropy(password);
       cacheEntropyTier(entropyTier(entropy));
       await saveMyUser({
-        data: { name: name.trim(), loginKey, publicKey, encryptedPrivateKey },
+        data: { name, loginKey, publicKey, encryptedPrivateKey },
       });
       // Full reload so the sidebar picks up the new entropy tier from localStorage
       window.location.href = "/inbox";
@@ -129,13 +149,10 @@ function WelcomePage() {
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-sm text-center">
           <h1 className="text-foreground text-4xl font-bold">
-            Choose Your Name
+            Choose Your Address
           </h1>
           <p className="text-foreground-dark mt-2">
-            Your KeyPears address will be{" "}
-            <span className="text-accent font-bold">
-              {name || "name"}@{data.domain}
-            </span>
+            This will be your KeyPears identity.
           </p>
 
           <div className="mt-8">
@@ -144,10 +161,10 @@ function WelcomePage() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Choose a name"
-                    value={name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    onBlur={handleNameBlur}
+                    placeholder={`yourname@${data.domain}`}
+                    value={address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onBlur={handleAddressBlur}
                     className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 pr-10"
                     required
                   />
@@ -163,17 +180,19 @@ function WelcomePage() {
                     )}
                   </div>
                 </div>
-                {nameError && (
-                  <p className="text-destructive mt-1 text-xs">{nameError}</p>
-                )}
-                {!nameError && nameAvailable === false && (
+                {addressError && (
                   <p className="text-destructive mt-1 text-xs">
-                    This name is already taken
+                    {addressError}
                   </p>
                 )}
-                {!nameError && nameAvailable === true && (
+                {!addressError && nameAvailable === false && (
+                  <p className="text-destructive mt-1 text-xs">
+                    This address is already taken
+                  </p>
+                )}
+                {!addressError && nameAvailable === true && (
                   <p className="mt-1 text-xs text-green-500">
-                    This name is available!
+                    This address is available!
                   </p>
                 )}
               </div>
@@ -215,7 +234,7 @@ function WelcomePage() {
               {error && <p className="text-danger text-sm">{error}</p>}
               <button
                 type="submit"
-                disabled={saving || !!nameError || nameAvailable === false}
+                disabled={saving || !!addressError || nameAvailable === false}
                 className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
