@@ -1,7 +1,11 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
-import { uuidv7 } from "uuidv7";
+import { uuidv7obj } from "uuidv7";
+
+function newId(): string {
+  return Buffer.from(uuidv7obj().bytes).toString("hex");
+}
 
 export async function getOrCreateChannel(
   ownerId: string,
@@ -22,7 +26,7 @@ export async function getOrCreateChannel(
 
     if (existing) return existing.id;
 
-    const id = uuidv7();
+    const id = newId();
     await tx
       .insert(channels)
       .values({ id, ownerId, counterpartyId, counterpartyAddress });
@@ -74,7 +78,7 @@ export async function insertMessage(
   recipientPubKey: string,
   isRead: boolean,
 ) {
-  const id = uuidv7();
+  const id = newId();
   await db.insert(messages).values({
     id,
     channelId,

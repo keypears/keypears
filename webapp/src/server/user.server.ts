@@ -5,7 +5,11 @@ import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
-import { uuidv7 } from "uuidv7";
+import { uuidv7obj } from "uuidv7";
+
+function newId(): string {
+  return Buffer.from(uuidv7obj().bytes).toString("hex");
+}
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 100_000;
@@ -55,7 +59,7 @@ export async function insertUser() {
       return { id: expired.id };
     }
 
-    const id = uuidv7();
+    const id = newId();
     await tx.insert(users).values({ id, createdAt: now, expiresAt });
     return { id };
   });
@@ -118,7 +122,7 @@ export async function insertKey(
       .for("update");
     const keyNumber = (maxResult.maxNum ?? 0) + 1;
 
-    const id = uuidv7();
+    const id = newId();
     await tx.insert(keys).values({
       id,
       userId,
@@ -234,7 +238,7 @@ export async function insertPowLog(
 
     const cumulative = (prev?.cumulativeDifficulty ?? 0n) + difficulty;
 
-    const id = uuidv7();
+    const id = newId();
     await tx.insert(powLog).values({
       id,
       userId,

@@ -7,10 +7,28 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  customType,
 } from "drizzle-orm/mysql-core";
 
+// --- Custom column types ---
+
+/** binary(16) stored as hex string in TypeScript for easy handling */
+const binaryId = customType<{ data: string }>({
+  dataType() {
+    return "binary(16)";
+  },
+  toDriver(data: string) {
+    return Buffer.from(data, "hex");
+  },
+  fromDriver(data) {
+    return Buffer.from(data as Buffer).toString("hex");
+  },
+});
+
+// --- Tables ---
+
 export const users = mysqlTable("users", {
-  id: varchar("id", { length: 36 }).primaryKey(),
+  id: binaryId("id").primaryKey(),
   name: varchar("name", { length: 255 }),
   passwordHash: varchar("password_hash", { length: 255 }),
   expiresAt: timestamp("expires_at"),
@@ -18,8 +36,8 @@ export const users = mysqlTable("users", {
 });
 
 export const keys = mysqlTable("user_keys", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull(),
+  id: binaryId("id").primaryKey(),
+  userId: binaryId("user_id").notNull(),
   keyNumber: int("key_number").notNull(),
   publicKey: varchar("public_key", { length: 66 }).notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),
@@ -29,9 +47,9 @@ export const keys = mysqlTable("user_keys", {
 export const channels = mysqlTable(
   "channels",
   {
-    id: varchar("id", { length: 36 }).primaryKey(),
-    ownerId: varchar("owner_id", { length: 36 }).notNull(),
-    counterpartyId: varchar("counterparty_id", { length: 36 }).notNull(),
+    id: binaryId("id").primaryKey(),
+    ownerId: binaryId("owner_id").notNull(),
+    counterpartyId: binaryId("counterparty_id").notNull(),
     counterpartyAddress: varchar("counterparty_address", {
       length: 255,
     }).notNull(),
@@ -47,8 +65,8 @@ export const channels = mysqlTable(
 );
 
 export const messages = mysqlTable("messages", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  channelId: varchar("channel_id", { length: 36 }).notNull(),
+  id: binaryId("id").primaryKey(),
+  channelId: binaryId("channel_id").notNull(),
   senderAddress: varchar("sender_address", { length: 255 }).notNull(),
   encryptedContent: text("encrypted_content").notNull(),
   senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
@@ -58,7 +76,7 @@ export const messages = mysqlTable("messages", {
 });
 
 export const pendingDeliveries = mysqlTable("pending_deliveries", {
-  id: varchar("id", { length: 36 }).primaryKey(),
+  id: binaryId("id").primaryKey(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull(),
   senderAddress: varchar("sender_address", { length: 255 }).notNull(),
   recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
@@ -69,8 +87,8 @@ export const pendingDeliveries = mysqlTable("pending_deliveries", {
 });
 
 export const powLog = mysqlTable("pow_log", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull(),
+  id: binaryId("id").primaryKey(),
+  userId: binaryId("user_id").notNull(),
   algorithm: varchar("algorithm", { length: 32 }).notNull(),
   difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
   cumulativeDifficulty: bigint("cumulative_difficulty", {
