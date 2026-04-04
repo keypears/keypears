@@ -11,6 +11,7 @@ import { getOrCreateChannel, insertMessage } from "./message.server";
 import { createPowChallenge } from "./pow.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
+import { resolveApiUrl } from "./federation.server";
 
 function hashToken(token: string): string {
   return sha256Hash(WebBuf.fromUtf8(token)).buf.toHex();
@@ -46,7 +47,6 @@ const notifyMessage = os
     z.object({
       senderAddress: z.string(),
       recipientAddress: z.string(),
-      pullUrl: z.string(),
       pullToken: z.string(),
     }),
   )
@@ -60,13 +60,13 @@ const notifyMessage = os
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
-      // Pull the message from the sender's server via oRPC
+      // Resolve the sender's API URL from their domain (verified via TLS)
       const senderParsed = parseAddress(input.senderAddress);
       if (!senderParsed) throw new Error("Invalid sender address");
+      const senderApiUrl = await resolveApiUrl(senderParsed.domain);
 
-      // Create a client to pull the message from the sender's server
-      // Type it with just the pullMessage shape to avoid circular reference with apiRouter
-      const link = new RPCLink({ url: input.pullUrl });
+      // Pull the message from the sender's server via oRPC
+      const link = new RPCLink({ url: senderApiUrl });
       const remoteClient: {
         pullMessage: (input: { token: string }) => Promise<{
           senderAddress: string;
@@ -76,12 +76,9 @@ const notifyMessage = os
           recipientPubKey: string;
         }>;
       } = createORPCClient(link);
-      console.log("Pulling message from", input.pullUrl, "with token", input.pullToken);
       const messageData = await remoteClient.pullMessage({
         token: input.pullToken,
       });
-      console.log("Pulled message:", messageData.senderAddress, "->", messageData.recipientAddress);
-
       // Verify the message matches the notification
       if (messageData.senderAddress !== input.senderAddress)
         throw new Error("Sender address mismatch");

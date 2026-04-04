@@ -15,7 +15,7 @@ type ApiClient = RouterClient<typeof apiRouter>;
 
 const apiUrlCache = new Map<string, string>();
 
-async function resolveApiUrl(domain: string): Promise<string> {
+export async function resolveApiUrl(domain: string): Promise<string> {
   if (domain === getDomain()) return getApiUrl();
 
   const cached = apiUrlCache.get(domain);
@@ -93,16 +93,12 @@ export async function deliverRemoteMessage(
     recipientPubKey,
   });
 
-  // 2. Build pull URL (our own API)
-  const ourApiUrl = getApiUrl();
-
-  // 3. Notify recipient's server via oRPC
+  // 2. Notify recipient's server via oRPC
   const client = await getRemoteClient(parsed.domain);
   try {
     await client.notifyMessage({
       senderAddress,
       recipientAddress,
-      pullUrl: ourApiUrl,
       pullToken: token,
     });
   } catch (err) {
