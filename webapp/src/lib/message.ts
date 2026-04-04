@@ -3,6 +3,13 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { sharedSecret } from "@webbuf/secp256k1";
 import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { z } from "zod";
+
+const MessageContentSchema = z.object({
+  version: z.number(),
+  type: z.literal("text"),
+  text: z.string(),
+});
 
 export function computeMessageKey(
   myPrivKey: FixedBuf<32>,
@@ -30,10 +37,6 @@ export function decryptMessage(
 ): string {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const decrypted = acs2Decrypt(WebBuf.fromHex(encryptedHex), key);
-  const parsed = JSON.parse(decrypted.toUtf8()) as {
-    version: number;
-    type: string;
-    text: string;
-  };
+  const parsed = MessageContentSchema.parse(JSON.parse(decrypted.toUtf8()));
   return parsed.text;
 }

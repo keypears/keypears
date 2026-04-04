@@ -11,7 +11,7 @@ const CHALLENGE_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
 export const REGISTRATION_DIFFICULTY = 700_000n;
 export const LOGIN_DIFFICULTY = 70_000n;
 const NONCE_SIZE = 32; // bytes 0-31 are nonce
-const HEADER_SIZE = 64;
+const HEADER_SIZE = 64 as const;
 
 function getSecret(): FixedBuf<32> {
   const hex = process.env.POW_SECRET;
@@ -77,7 +77,7 @@ export function verifyPowSolution(
 
   // Compute hash and verify it meets target
   const hash = Pow5_64b_Wasm.elementaryIteration(
-    FixedBuf.fromBuf(HEADER_SIZE as 64, solvedHeader),
+    FixedBuf.fromBuf(HEADER_SIZE, solvedHeader),
   );
   const targetFixed = FixedBuf.fromBuf(32, target);
 
