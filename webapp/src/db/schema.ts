@@ -31,6 +31,7 @@ export const channels = mysqlTable(
     id: int("id").primaryKey().autoincrement(),
     ownerId: int("owner_id").notNull(),
     counterpartyId: int("counterparty_id").notNull(),
+    counterpartyAddress: varchar("counterparty_address", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

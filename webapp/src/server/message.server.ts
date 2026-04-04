@@ -2,62 +2,55 @@ import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
 
+export async function getOrCreateChannel(
+  ownerId: number,
+  counterpartyId: number,
+  counterpartyAddress: string,
+): Promise<number> {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: channels.id })
+      .from(channels)
+      .where(
+        and(
+          eq(channels.ownerId, ownerId),
+          eq(channels.counterpartyAddress, counterpartyAddress),
+        ),
+      )
+      .limit(1);
+
+    if (existing) return existing.id;
+
+    const [result] = await tx
+      .insert(channels)
+      .values({ ownerId, counterpartyId, counterpartyAddress })
+      .$returningId();
+    return result.id;
+  });
+}
+
 export async function getOrCreateChannelPair(
   userId: number,
   counterpartyId: number,
+  senderAddress: string,
+  recipientAddress: string,
 ): Promise<{ senderChannelId: number; recipientChannelId: number }> {
-  return db.transaction(async (tx) => {
-    const [senderRow] = await tx
-      .select({ id: channels.id })
-      .from(channels)
-      .where(
-        and(
-          eq(channels.ownerId, userId),
-          eq(channels.counterpartyId, counterpartyId),
-        ),
-      )
-      .limit(1);
-
-    let senderChannelId: number;
-    if (senderRow) {
-      senderChannelId = senderRow.id;
-    } else {
-      const [result] = await tx
-        .insert(channels)
-        .values({ ownerId: userId, counterpartyId })
-        .$returningId();
-      senderChannelId = result.id;
-    }
-
-    const [recipientRow] = await tx
-      .select({ id: channels.id })
-      .from(channels)
-      .where(
-        and(
-          eq(channels.ownerId, counterpartyId),
-          eq(channels.counterpartyId, userId),
-        ),
-      )
-      .limit(1);
-
-    let recipientChannelId: number;
-    if (recipientRow) {
-      recipientChannelId = recipientRow.id;
-    } else {
-      const [result] = await tx
-        .insert(channels)
-        .values({ ownerId: counterpartyId, counterpartyId: userId })
-        .$returningId();
-      recipientChannelId = result.id;
-    }
-
-    return { senderChannelId, recipientChannelId };
-  });
+  const senderChannelId = await getOrCreateChannel(
+    userId,
+    counterpartyId,
+    recipientAddress,
+  );
+  const recipientChannelId = await getOrCreateChannel(
+    counterpartyId,
+    userId,
+    senderAddress,
+  );
+  return { senderChannelId, recipientChannelId };
 }
 
 export async function channelExists(
   userId: number,
-  counterpartyId: number,
+  counterpartyAddress: string,
 ): Promise<boolean> {
   const [row] = await db
     .select({ id: channels.id })
@@ -65,7 +58,7 @@ export async function channelExists(
     .where(
       and(
         eq(channels.ownerId, userId),
-        eq(channels.counterpartyId, counterpartyId),
+        eq(channels.counterpartyAddress, counterpartyAddress),
       ),
     )
     .limit(1);
@@ -122,28 +115,11 @@ export async function getChannelUnreadCounts(userId: number) {
     .groupBy(messages.channelId);
 }
 
-export async function getChannelByCounterparty(
-  ownerId: number,
-  counterpartyId: number,
-) {
-  const [row] = await db
-    .select()
-    .from(channels)
-    .where(
-      and(
-        eq(channels.ownerId, ownerId),
-        eq(channels.counterpartyId, counterpartyId),
-      ),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
 export async function getUserChannels(userId: number) {
   return db
     .select({
       id: channels.id,
-      counterpartyId: channels.counterpartyId,
+      counterpartyAddress: channels.counterpartyAddress,
       updatedAt: channels.updatedAt,
     })
     .from(channels)
@@ -160,7 +136,6 @@ export async function getChannelMessages(
     ? and(eq(messages.channelId, channelId), lt(messages.id, beforeId))
     : eq(messages.channelId, channelId);
 
-  // Fetch newest N messages (or newest N before beforeId), then reverse for chronological order
   const rows = await db
     .select()
     .from(messages)
@@ -184,6 +159,23 @@ export async function getChannelById(channelId: number) {
     .select()
     .from(channels)
     .where(eq(channels.id, channelId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function getChannelByCounterparty(
+  ownerId: number,
+  counterpartyAddress: string,
+) {
+  const [row] = await db
+    .select()
+    .from(channels)
+    .where(
+      and(
+        eq(channels.ownerId, ownerId),
+        eq(channels.counterpartyAddress, counterpartyAddress),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

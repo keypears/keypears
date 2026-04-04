@@ -7,7 +7,7 @@ import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserById } from "./user.server";
 import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
-import { getOrCreateChannelPair, insertMessage } from "./message.server";
+import { getOrCreateChannel, insertMessage } from "./message.server";
 import { createPowChallenge } from "./pow.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -88,15 +88,15 @@ const notifyMessage = os
       if (messageData.recipientAddress !== input.recipientAddress)
         throw new Error("Recipient address mismatch");
 
-      // Store in recipient's channel
-      // counterpartyId = 0 for remote users
-      const { recipientChannelId } = await getOrCreateChannelPair(
+      // Store in recipient's channel (counterpartyId=0 for remote users)
+      const channelId = await getOrCreateChannel(
         recipientId,
         0,
+        messageData.senderAddress,
       );
 
       await insertMessage(
-        recipientChannelId,
+        channelId,
         messageData.senderAddress,
         messageData.encryptedContent,
         messageData.senderPubKey,

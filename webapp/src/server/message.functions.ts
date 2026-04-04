@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import {
+  getOrCreateChannel,
   getOrCreateChannelPair,
   channelExists,
   insertMessage,
@@ -71,7 +72,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
-      const alreadyExists = await channelExists(senderUser.id, recipientId);
+      const alreadyExists = await channelExists(senderUser.id, input.recipientAddress);
       if (!alreadyExists) {
         if (!input.pow)
           throw new Error("Proof of work required for new channel");
@@ -86,7 +87,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       }
 
       const { senderChannelId, recipientChannelId } =
-        await getOrCreateChannelPair(senderUser.id, recipientId);
+        await getOrCreateChannelPair(senderUser.id, recipientId, senderAddress, input.recipientAddress);
 
       await insertMessage(
         senderChannelId,
@@ -106,10 +107,11 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // Store sender's copy locally (use counterpartyId=0 for remote users)
-      const { senderChannelId } = await getOrCreateChannelPair(
+      // Store sender's copy locally (counterpartyId=0 for remote users)
+      const senderChannelId = await getOrCreateChannel(
         senderUser.id,
         0,
+        input.recipientAddress,
       );
       await insertMessage(
         senderChannelId,
@@ -147,7 +149,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 
     return channelList.map((ch) => ({
       id: ch.id,
-      counterpartyAddress: makeAddress(ch.counterpartyId),
+      counterpartyAddress: ch.counterpartyAddress,
       updatedAt: ch.updatedAt,
       unreadCount: unreadMap.get(ch.id) ?? 0,
     }));
@@ -157,9 +159,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 async function resolveChannel(counterpartyAddress: string) {
   const id = getCookie(COOKIE_NAME);
   if (!id) throw new Error("Not logged in");
-  const counterpartyId = parseLocalAddress(counterpartyAddress);
-  if (counterpartyId == null) throw new Error("Invalid address");
-  const channel = await getChannelByCounterparty(Number(id), counterpartyId);
+  const channel = await getChannelByCounterparty(Number(id), counterpartyAddress);
   if (!channel) throw new Error("Channel not found");
   return channel;
 }
