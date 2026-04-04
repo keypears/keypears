@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import {
   DropdownMenu,
@@ -34,10 +34,7 @@ const navItems = [
 ];
 
 function UserDropdown({ keypearId }: { keypearId: number }) {
-  const [tier, setTier] = useState<ReturnType<typeof getCachedEntropyTier>>(null);
-  useEffect(() => {
-    setTier(getCachedEntropyTier());
-  }, []);
+  const tier = getCachedEntropyTier();
   const showWarning = tier === "red" || tier === "yellow";
   const dotColor = tier === "red" ? "bg-destructive" : "bg-yellow-500";
 

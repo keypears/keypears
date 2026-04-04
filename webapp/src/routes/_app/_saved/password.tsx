@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   getMyEncryptedKeys,
   changeMyPassword,
@@ -31,12 +31,7 @@ function PasswordPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
-  const [currentTier, setCurrentTier] = useState<ReturnType<
-    typeof getCachedEntropyTier
-  >>(null);
-  useEffect(() => {
-    setCurrentTier(getCachedEntropyTier());
-  }, []);
+  const currentTier = getCachedEntropyTier();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

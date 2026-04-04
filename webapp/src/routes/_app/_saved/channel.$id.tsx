@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   getMessagesForChannel,
   sendMessage,
@@ -27,12 +27,7 @@ function ChannelPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
-  const [encryptionKey, setEncryptionKey] = useState<ReturnType<
-    typeof getCachedEncryptionKey
-  >>(null);
-  useEffect(() => {
-    setEncryptionKey(getCachedEncryptionKey());
-  }, []);
+  const encryptionKey = getCachedEncryptionKey();
 
   // Determine counterparty from first message
   const myKeyData = useMyKey();
