@@ -1,9 +1,10 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { createUser, getMyUser } from "~/server/user.functions";
 import { getPowChallenge } from "~/server/pow.functions";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
+import { usePowMiner } from "~/lib/use-pow-miner";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -16,96 +17,31 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-function formatTime(seconds: number): string {
-  if (seconds < 1) return "less than a second";
-  if (seconds < 60) return `~${Math.ceil(seconds)} seconds`;
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.ceil(seconds % 60);
-  return secs > 0 ? `~${mins}m ${secs}s` : `~${mins}m`;
-}
-
 function LandingPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [phase, setPhase] = useState<
+  const [pagePhase, setPagePhase] = useState<
     "idle" | "fetching" | "mining" | "solved" | "creating"
   >("idle");
-  const [hashCount, setHashCount] = useState(0);
-  const [difficulty, setDifficulty] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState("");
-  const [progress, setProgress] = useState(0);
-  const startTimeRef = useRef(0);
+  const miner = usePowMiner();
 
   async function handleCreate() {
-    setPhase("fetching");
+    setPagePhase("fetching");
     setError("");
     try {
       const challenge = await getPowChallenge();
-      setDifficulty(challenge.difficulty);
+      setPagePhase("mining");
+      const solution = await miner.mine(challenge, { showSolved: true });
+      setPagePhase("solved");
 
-      setPhase("mining");
-      startTimeRef.current = performance.now();
-
-      const { Pow5_64b_Wasm, hashMeetsTarget } = await import("@keypears/pow5");
-      const { FixedBuf } = await import("@webbuf/fixedbuf");
-      const { WebBuf } = await import("@webbuf/webbuf");
-
-      const headerBuf = FixedBuf.fromHex(64, challenge.header);
-      const targetBuf = FixedBuf.fromHex(32, challenge.target);
-
-      let solvedHeaderHex: string | null = null;
-      let nonce = 0;
-
-      while (!solvedHeaderHex) {
-        const nonceBuf = WebBuf.alloc(32);
-        let remaining = BigInt(nonce);
-        for (let i = 31; i >= 0; i--) {
-          nonceBuf[i] = Number(remaining & 0xffn);
-          remaining = remaining >> 8n;
-        }
-        const testHeader = FixedBuf.fromBuf(
-          64,
-          WebBuf.from([...nonceBuf, ...headerBuf.buf.slice(32)]),
-        );
-        const hash = Pow5_64b_Wasm.elementaryIteration(testHeader);
-
-        if (hashMeetsTarget(hash, targetBuf)) {
-          solvedHeaderHex = testHeader.buf.toHex();
-        }
-
-        nonce++;
-        if (nonce % 1000 === 0) {
-          const elapsed = (performance.now() - startTimeRef.current) / 1000;
-          const hashRate = nonce / elapsed;
-          const expectedRemaining =
-            hashRate > 0 ? challenge.difficulty / hashRate : 0;
-          setHashCount(nonce);
-          setProgress((elapsed / (elapsed + expectedRemaining)) * 100);
-          setTimeRemaining(formatTime(expectedRemaining));
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      }
-
-      setPhase("solved");
-      setProgress(100);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      setPhase("creating");
-      await createUser({
-        data: {
-          solvedHeader: solvedHeaderHex,
-          target: challenge.target,
-          expiresAt: challenge.expiresAt,
-          signature: challenge.signature,
-        },
-      });
-
+      setPagePhase("creating");
+      await createUser({ data: solution });
       navigate({ to: "/welcome" });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create account.",
       );
-      setPhase("idle");
+      setPagePhase("idle");
     }
   }
 
@@ -123,7 +59,7 @@ function LandingPage() {
           </div>
           <p className="text-muted-foreground mb-8">Secret Exchange</p>
 
-          {phase === "idle" && (
+          {pagePhase === "idle" && (
             <>
               <button
                 onClick={handleCreate}
@@ -144,7 +80,7 @@ function LandingPage() {
             </>
           )}
 
-          {phase === "fetching" && (
+          {pagePhase === "fetching" && (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="text-accent h-8 w-8 animate-spin" />
               <p className="text-muted-foreground text-sm">
@@ -153,7 +89,7 @@ function LandingPage() {
             </div>
           )}
 
-          {phase === "mining" && (
+          {pagePhase === "mining" && (
             <div className="mx-auto max-w-sm">
               <div className="mb-4 flex flex-col items-center gap-3">
                 <Loader2 className="text-accent h-8 w-8 animate-spin" />
@@ -166,24 +102,23 @@ function LandingPage() {
                 CAPTCHAs or email verification. This protects the network from
                 spam while keeping your identity private.
               </p>
-              {/* Progress bar */}
               <div className="bg-background-dark mb-3 h-2 w-full overflow-hidden rounded-full">
                 <div
                   className="bg-accent h-full rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${miner.progress}%` }}
                 />
               </div>
               <div className="text-muted-foreground flex justify-between text-xs">
                 <span>
-                  {(hashCount / 1000).toFixed(0)}k /{" "}
-                  {(difficulty / 1000).toFixed(0)}k hashes
+                  {(miner.hashCount / 1000).toFixed(0)}k /{" "}
+                  {(miner.difficulty / 1000).toFixed(0)}k hashes
                 </span>
-                <span>{timeRemaining} remaining</span>
+                <span>{miner.timeRemaining} remaining</span>
               </div>
             </div>
           )}
 
-          {phase === "solved" && (
+          {pagePhase === "solved" && (
             <div className="flex flex-col items-center gap-3">
               <CheckCircle2 className="text-accent h-8 w-8" />
               <p className="text-accent text-sm font-medium">
@@ -192,7 +127,7 @@ function LandingPage() {
             </div>
           )}
 
-          {phase === "creating" && (
+          {pagePhase === "creating" && (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="text-accent h-8 w-8 animate-spin" />
               <p className="text-muted-foreground text-sm">
