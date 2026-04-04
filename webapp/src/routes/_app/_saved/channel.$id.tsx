@@ -53,7 +53,7 @@ function ChannelPage() {
     messagesEndRef.current?.scrollIntoView();
   }, [messageList.length]);
 
-  // Poll for new messages every 1 second
+  // Poll for new messages — 200ms after each response
   const lastIdRef = useRef(
     messageList.length > 0 ? messageList[messageList.length - 1].id : 0,
   );
@@ -64,15 +64,27 @@ function ChannelPage() {
   }, [messageList]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const newMsgs = await pollNewMessages({
-        data: { channelId, afterId: lastIdRef.current },
-      });
-      if (newMsgs.length > 0) {
-        setMessageList((prev) => [...prev, ...newMsgs]);
+    let active = true;
+    async function poll() {
+      while (active) {
+        try {
+          const newMsgs = await pollNewMessages({
+            data: { channelId, afterId: lastIdRef.current },
+          });
+          if (!active) break;
+          if (newMsgs.length > 0) {
+            setMessageList((prev) => [...prev, ...newMsgs]);
+          }
+        } catch {
+          // ignore errors, retry after delay
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-    }, 1000);
-    return () => clearInterval(interval);
+    }
+    poll();
+    return () => {
+      active = false;
+    };
   }, [channelId]);
 
   function tryDecrypt(msg: {
