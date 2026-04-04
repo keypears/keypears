@@ -72,7 +72,7 @@ function WelcomePage() {
   return (
     <div className="flex flex-1 flex-col font-sans">
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
+        <div className="w-full max-w-sm text-center">
           <h1 className="text-foreground text-4xl font-bold">
             Choose Your Name
           </h1>
@@ -83,7 +83,7 @@ function WelcomePage() {
             </span>
           </p>
 
-          <div className="mt-8 w-full max-w-sm">
+          <div className="mt-8">
             <form onSubmit={handleSave} className="flex flex-col gap-4">
               <input
                 type="text"
