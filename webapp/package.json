@@ -15,7 +15,7 @@
     "db:clear:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:generate": "dotenvx run -f .env.dev -- drizzle-kit generate",
     "build:icons": "bun run process-icons.ts",
-    "test": "vitest run"
+    "test": "dotenvx run -f .env.test -- vitest run"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.59.1",

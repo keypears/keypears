@@ -19,7 +19,8 @@ import {
   getAllEncryptedKeys,
   changePassword,
 } from "./user.server";
-import { verifyPowSolution, REGISTRATION_DIFFICULTY } from "./pow.server";
+import { REGISTRATION_DIFFICULTY } from "./pow.server";
+import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
 
@@ -40,7 +41,7 @@ function cookieOpts(maxAge: number) {
 export const createUser = createServerFn({ method: "POST" })
   .inputValidator(PowSolutionSchema)
   .handler(async ({ data: pow }) => {
-    const powResult = verifyPowSolution(
+    const powResult = await verifyAndConsumePow(
       pow.solvedHeader,
       pow.target,
       pow.expiresAt,
@@ -144,7 +145,7 @@ export const login = createServerFn({ method: "POST" })
       .and(PowSolutionSchema),
   )
   .handler(async ({ data: input }) => {
-    const powResult = verifyPowSolution(
+    const powResult = await verifyAndConsumePow(
       input.solvedHeader,
       input.target,
       input.expiresAt,

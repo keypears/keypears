@@ -9,6 +9,7 @@ function newId(): string {
   return uuidv7();
 }
 import { parseAddress, getDomain, getApiUrl } from "~/lib/config";
+import { mineChallenge } from "./pow.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
@@ -100,13 +101,23 @@ export async function deliverRemoteMessage(
     recipientPubKey,
   });
 
-  // 2. Notify recipient's server via oRPC
+  // 2. Get PoW challenge from recipient's server and mine it
   const client = await getRemoteClient(parsed.domain);
+  const challenge = await client.getPowChallenge();
+  const solvedHeader = mineChallenge(challenge);
+
+  // 3. Notify recipient's server via oRPC with PoW proof
   try {
     await client.notifyMessage({
       senderAddress,
       recipientAddress,
       pullToken: token,
+      pow: {
+        solvedHeader,
+        target: challenge.target,
+        expiresAt: challenge.expiresAt,
+        signature: challenge.signature,
+      },
     });
   } catch (err) {
     console.error("Federation delivery failed:", err);

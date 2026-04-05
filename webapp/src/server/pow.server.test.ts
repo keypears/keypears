@@ -1,12 +1,10 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { Pow5_64b_Wasm, hashMeetsTarget } from "@keypears/pow5";
 import { createPowChallenge, verifyPowSolution } from "./pow.server";
 
-beforeAll(() => {
-  process.env.KEYPEARS_SECRET = FixedBuf.fromRandom(32).buf.toHex();
-});
+// KEYPEARS_SECRET and DATABASE_URL are set by the test script
 
 function solveChallenge(headerHex: string, targetHex: string): string {
   const headerBuf = WebBuf.fromHex(headerHex);

@@ -7,8 +7,13 @@ import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserByName } from "./user.server";
 import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
-import { getOrCreateChannel, insertMessage } from "./message.server";
+import {
+  getOrCreateChannel,
+  insertMessage,
+  channelExists,
+} from "./message.server";
 import { createPowChallenge } from "./pow.server";
+import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { resolveApiUrl } from "./federation.server";
@@ -48,6 +53,14 @@ const notifyMessage = os
       senderAddress: z.string(),
       recipientAddress: z.string(),
       pullToken: z.string(),
+      pow: z
+        .object({
+          solvedHeader: z.string(),
+          target: z.string(),
+          expiresAt: z.number(),
+          signature: z.string(),
+        })
+        .optional(),
     }),
   )
   .handler(async ({ input }) => {
@@ -59,6 +72,24 @@ const notifyMessage = os
       const recipientUser = await getUserByName(recipientName);
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
+
+      // Check if channel exists — require PoW for new channels
+      const alreadyExists = await channelExists(
+        recipientUser.id,
+        input.senderAddress,
+      );
+      if (!alreadyExists) {
+        if (!input.pow)
+          throw new Error("Proof of work required for new channel");
+        const powResult = await verifyAndConsumePow(
+          input.pow.solvedHeader,
+          input.pow.target,
+          input.pow.expiresAt,
+          input.pow.signature,
+        );
+        if (!powResult.valid)
+          throw new Error(`Invalid proof of work: ${powResult.message}`);
+      }
 
       // Resolve the sender's API URL from their domain (verified via TLS)
       const senderParsed = parseAddress(input.senderAddress);

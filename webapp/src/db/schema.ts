@@ -86,6 +86,14 @@ export const pendingDeliveries = mysqlTable("pending_deliveries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const usedPow = mysqlTable("used_pow", {
+  solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
+  solvedHeader: text("solved_header").notNull(),
+  target: varchar("target", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const powLog = mysqlTable("pow_log", {
   id: binaryId("id").primaryKey(),
   userId: binaryId("user_id").notNull(),

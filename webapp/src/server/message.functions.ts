@@ -14,7 +14,7 @@ import {
   getChannelUnreadCounts,
 } from "./message.server";
 import { getUserById, getUserByName, getActiveKey } from "./user.server";
-import { verifyPowSolution } from "./pow.server";
+import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
 import { parseLocalAddress, parseAddress, makeAddress, getDomain } from "~/lib/config";
@@ -76,7 +76,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       if (!alreadyExists) {
         if (!input.pow)
           throw new Error("Proof of work required for new channel");
-        const powResult = verifyPowSolution(
+        const powResult = await verifyAndConsumePow(
           input.pow.solvedHeader,
           input.pow.target,
           input.pow.expiresAt,
@@ -107,23 +107,8 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      const alreadyExists = await channelExists(
-        senderUser.id,
-        input.recipientAddress,
-      );
-      if (!alreadyExists) {
-        if (!input.pow)
-          throw new Error("Proof of work required for new channel");
-        const powResult = verifyPowSolution(
-          input.pow.solvedHeader,
-          input.pow.target,
-          input.pow.expiresAt,
-          input.pow.signature,
-        );
-        if (!powResult.valid)
-          throw new Error(`Invalid proof of work: ${powResult.message}`);
-      }
-
+      // PoW is enforced by the recipient's server in notifyMessage,
+      // not here. The sender's server just delivers.
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,
         input.recipientAddress,
