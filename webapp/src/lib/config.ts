@@ -1,4 +1,4 @@
-import { sha256Hmac } from "@webbuf/sha256";
+import { blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 
@@ -24,10 +24,7 @@ export function getApiUrl(): string {
 
 export function getPowSigningKey(): FixedBuf<32> {
   const secret = getMasterSecret();
-  return sha256Hmac(
-    WebBuf.fromUtf8("keypears pow secret v1"),
-    secret.buf,
-  );
+  return blake3Mac(secret, WebBuf.fromUtf8("keypears pow secret v1"));
 }
 
 // --- Address utilities ---

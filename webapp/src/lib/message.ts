@@ -1,4 +1,4 @@
-import { sha256Hash } from "@webbuf/sha256";
+import { blake3Hash } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { sharedSecret } from "@webbuf/secp256k1";
@@ -16,7 +16,7 @@ export function computeMessageKey(
   theirPubKey: FixedBuf<33>,
 ): FixedBuf<32> {
   const ecdhPoint = sharedSecret(myPrivKey, theirPubKey);
-  return sha256Hash(ecdhPoint.buf);
+  return blake3Hash(ecdhPoint.buf);
 }
 
 export function encryptMessage(

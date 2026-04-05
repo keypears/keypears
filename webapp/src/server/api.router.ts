@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { sha256Hash } from "@webbuf/sha256";
+import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserByName } from "./user.server";
 import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
@@ -14,7 +14,7 @@ import { RPCLink } from "@orpc/client/fetch";
 import { resolveApiUrl } from "./federation.server";
 
 function hashToken(token: string): string {
-  return sha256Hash(WebBuf.fromUtf8(token)).buf.toHex();
+  return blake3Hash(WebBuf.fromUtf8(token)).buf.toHex();
 }
 
 // --- oRPC Router ---

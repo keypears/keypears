@@ -1,4 +1,4 @@
-import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
+import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { publicKeyCreate } from "@webbuf/secp256k1";
@@ -62,29 +62,29 @@ export function clearCachedEntropyTier(): void {
   localStorage.removeItem(ENTROPY_TIER_STORAGE_KEY);
 }
 
-function sha256Pbkdf(
+function blake3Pbkdf(
   password: WebBuf,
   salt: FixedBuf<32>,
   rounds: number,
 ): FixedBuf<32> {
-  let result = sha256Hmac(salt.buf, password);
+  let result = blake3Mac(salt, password);
   for (let i = 1; i < rounds; i++) {
-    result = sha256Hmac(salt.buf, result.buf);
+    result = blake3Mac(salt, result.buf);
   }
   return result;
 }
 
 function derivePasswordSalt(password: string): FixedBuf<32> {
-  const context = sha256Hash(WebBuf.fromUtf8("Keypears password salt v1"));
-  return sha256Hmac(context.buf, WebBuf.fromUtf8(password));
+  const context = blake3Hash(WebBuf.fromUtf8("Keypears password salt v1"));
+  return blake3Mac(context, WebBuf.fromUtf8(password));
 }
 
 function deriveLoginSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Keypears login salt v1"));
+  return blake3Hash(WebBuf.fromUtf8("Keypears login salt v1"));
 }
 
 function deriveEncryptionSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
+  return blake3Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
 }
 
 // --- Tier 1: Password → Password Key (ephemeral, never stored) ---
@@ -92,7 +92,7 @@ function deriveEncryptionSalt(): FixedBuf<32> {
 export function derivePasswordKey(password: string): FixedBuf<32> {
   const passwordBuf = WebBuf.fromUtf8(password);
   const passwordSalt = derivePasswordSalt(password);
-  return sha256Pbkdf(passwordBuf, passwordSalt, CLIENT_KDF_ROUNDS);
+  return blake3Pbkdf(passwordBuf, passwordSalt, CLIENT_KDF_ROUNDS);
 }
 
 // --- Tier 2: Password Key → Login Key / Encryption Key ---
@@ -101,7 +101,7 @@ export function deriveLoginKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
 ): string {
   const loginSalt = deriveLoginSalt();
-  const loginKey = sha256Pbkdf(passwordKey.buf, loginSalt, CLIENT_KDF_ROUNDS);
+  const loginKey = blake3Pbkdf(passwordKey.buf, loginSalt, CLIENT_KDF_ROUNDS);
   return loginKey.buf.toHex();
 }
 
@@ -109,7 +109,7 @@ export function deriveEncryptionKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
 ): FixedBuf<32> {
   const encryptionSalt = deriveEncryptionSalt();
-  return sha256Pbkdf(passwordKey.buf, encryptionSalt, CLIENT_KDF_ROUNDS);
+  return blake3Pbkdf(passwordKey.buf, encryptionSalt, CLIENT_KDF_ROUNDS);
 }
 
 // --- Key pair operations (use encryption key directly) ---

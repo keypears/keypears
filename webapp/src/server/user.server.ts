@@ -1,7 +1,7 @@
 import { db } from "~/db";
 import { users, keys, powLog } from "~/db/schema";
 import { eq, desc, and, lt, isNull, max, count, sql } from "drizzle-orm";
-import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
+import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
@@ -14,26 +14,26 @@ function newId(): string {
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 100_000;
 
-function sha256Pbkdf(
+function blake3Pbkdf(
   password: WebBuf,
   salt: FixedBuf<32>,
   rounds: number,
 ): FixedBuf<32> {
-  let result = sha256Hmac(salt.buf, password);
+  let result = blake3Mac(salt, password);
   for (let i = 1; i < rounds; i++) {
-    result = sha256Hmac(salt.buf, result.buf);
+    result = blake3Mac(salt, result.buf);
   }
   return result;
 }
 
 function deriveServerSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
+  return blake3Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
 }
 
 function hashLoginKey(loginKeyHex: string): string {
   const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
   const salt = deriveServerSalt();
-  const hashed = sha256Pbkdf(loginKeyBuf, salt, SERVER_KDF_ROUNDS);
+  const hashed = blake3Pbkdf(loginKeyBuf, salt, SERVER_KDF_ROUNDS);
   return hashed.buf.toHex();
 }
 

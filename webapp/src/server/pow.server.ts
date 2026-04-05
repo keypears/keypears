@@ -1,4 +1,4 @@
-import { sha256Hmac } from "@webbuf/sha256";
+import { blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import {
@@ -24,7 +24,7 @@ function signChallenge(
   const expiresAtBuf = WebBuf.alloc(8);
   new DataView(expiresAtBuf.buffer).setBigUint64(0, BigInt(expiresAt));
   const payload = WebBuf.from([...nonNonce, ...target, ...expiresAtBuf]);
-  return sha256Hmac(secret.buf, payload);
+  return blake3Mac(secret, payload);
 }
 
 export function createPowChallenge(difficulty?: bigint) {

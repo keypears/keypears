@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
-import { sha256Hash } from "@webbuf/sha256";
+import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { uuidv7 } from "uuidv7";
@@ -55,7 +55,7 @@ async function getRemoteClient(domain: string): Promise<ApiClient> {
 // --- Token utilities ---
 
 function hashToken(token: string): string {
-  return sha256Hash(WebBuf.fromUtf8(token)).buf.toHex();
+  return blake3Hash(WebBuf.fromUtf8(token)).buf.toHex();
 }
 
 function generateToken(): string {

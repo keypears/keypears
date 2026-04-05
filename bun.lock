@@ -48,6 +48,7 @@
         "@tanstack/react-router": "^1.168.10",
         "@tanstack/react-start": "^1.167.16",
         "@webbuf/acs2": "^3.5.0",
+        "@webbuf/blake3": "^3.5.0",
         "@webbuf/fixedbuf": "^3.5.0",
         "@webbuf/secp256k1": "^3.5.0",
         "@webbuf/sha256": "^3.5.0",
