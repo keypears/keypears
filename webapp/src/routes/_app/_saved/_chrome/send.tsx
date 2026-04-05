@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   sendMessage,
   getPublicKeyForAddress,
@@ -8,7 +8,8 @@ import {
 } from "~/server/message.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
-import { usePowMiner } from "~/lib/use-pow-miner";
+import { PowModal } from "~/components/PowModal";
+import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon } from "lucide-react";
 
@@ -23,7 +24,15 @@ function SendPage() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState("");
-  const miner = usePowMiner();
+  const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
+
+  // Store encrypted data while PoW is mining
+  const pendingSendRef = useRef<{
+    recipientAddress: string;
+    encryptedContent: string;
+    senderPubKey: string;
+    recipientPubKey: string;
+  } | null>(null);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -48,32 +57,51 @@ function SendPage() {
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientKeyResult.publicKey);
-
       const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
 
-      // Get PoW challenge from recipient's server and mine it
-      setStatus("Computing proof of work...");
-      const challenge = await getRemotePowChallenge({ data: recipient });
-      const solution = await miner.mine(challenge);
+      // Store the prepared message and fetch PoW challenge
+      pendingSendRef.current = {
+        recipientAddress: recipient,
+        encryptedContent,
+        senderPubKey: myKeyData.publicKey,
+        recipientPubKey: recipientKeyResult.publicKey,
+      };
+      setStatus("");
 
+      const challenge = await getRemotePowChallenge({ data: recipient });
+      setPowChallenge(challenge);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send message.");
+      setStatus("");
+      setSending(false);
+    }
+  }
+
+  async function handlePowComplete(solution: PowSolution) {
+    setPowChallenge(null);
+    const pending = pendingSendRef.current;
+    if (!pending) return;
+
+    try {
       setStatus("Sending...");
       await sendMessage({
-        data: {
-          recipientAddress: recipient,
-          encryptedContent,
-          senderPubKey: myKeyData.publicKey,
-          recipientPubKey: recipientKeyResult.publicKey,
-          pow: solution,
-        },
+        data: { ...pending, pow: solution },
       });
-
-      navigate({ to: `/channel/${recipient}` });
+      navigate({ to: `/channel/${pending.recipientAddress}` });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send message.");
       setStatus("");
     } finally {
       setSending(false);
+      pendingSendRef.current = null;
     }
+  }
+
+  function handlePowCancel() {
+    setPowChallenge(null);
+    setSending(false);
+    setStatus("");
+    pendingSendRef.current = null;
   }
 
   return (
@@ -110,6 +138,12 @@ function SendPage() {
           {sending ? "Sending..." : "Send"}
         </button>
       </form>
+
+      <PowModal
+        challenge={powChallenge}
+        onComplete={handlePowComplete}
+        onCancel={handlePowCancel}
+      />
     </div>
   );
 }

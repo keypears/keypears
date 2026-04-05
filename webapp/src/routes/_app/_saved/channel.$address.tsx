@@ -12,7 +12,8 @@ import {
 } from "~/server/message.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
-import { usePowMiner } from "~/lib/use-pow-miner";
+import { PowModal } from "~/components/PowModal";
+import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import {
   Send as SendIcon,
@@ -54,7 +55,7 @@ function ChannelPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const encryptionKey = getCachedEncryptionKey();
-  const miner = usePowMiner();
+  const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   const [myKeyData, setMyKeyData] = useState<{
     publicKey: string;
@@ -195,6 +196,13 @@ function ChannelPage() {
     }
   }
 
+  const pendingSendRef = useRef<{
+    recipientAddress: string;
+    encryptedContent: string;
+    senderPubKey: string;
+    recipientPubKey: string;
+  } | null>(null);
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim() || !myKeyData || !encryptionKey) return;
@@ -216,17 +224,29 @@ function ChannelPage() {
       const theirPubKey = FixedBuf.fromHex(33, recipientPubKeyHex);
       const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
 
-      const challenge = await getRemotePowChallenge({ data: address });
-      const solution = await miner.mine(challenge);
+      pendingSendRef.current = {
+        recipientAddress: address,
+        encryptedContent,
+        senderPubKey: myKeyData.publicKey,
+        recipientPubKey: recipientPubKeyHex,
+      };
 
+      const challenge = await getRemotePowChallenge({ data: address });
+      setPowChallenge(challenge);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send.");
+      setSending(false);
+    }
+  }
+
+  async function handlePowComplete(solution: PowSolution) {
+    setPowChallenge(null);
+    const pending = pendingSendRef.current;
+    if (!pending) return;
+
+    try {
       await sendMessage({
-        data: {
-          recipientAddress: address,
-          encryptedContent,
-          senderPubKey: myKeyData.publicKey,
-          recipientPubKey: recipientPubKeyHex,
-          pow: solution,
-        },
+        data: { ...pending, pow: solution },
       });
 
       const newMsgs = await pollNewMessages({
@@ -240,7 +260,14 @@ function ChannelPage() {
       setError(err instanceof Error ? err.message : "Failed to send.");
     } finally {
       setSending(false);
+      pendingSendRef.current = null;
     }
+  }
+
+  function handlePowCancel() {
+    setPowChallenge(null);
+    setSending(false);
+    pendingSendRef.current = null;
   }
 
   // --- Channel list panel (shared between drawer and desktop sidebar) ---
@@ -426,6 +453,12 @@ function ChannelPage() {
           </button>
         </form>
       </div>
+
+      <PowModal
+        challenge={powChallenge}
+        onComplete={handlePowComplete}
+        onCancel={handlePowCancel}
+      />
     </div>
   );
 }

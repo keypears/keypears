@@ -1,0 +1,112 @@
+import { useEffect, useRef } from "react";
+import {
+  usePowMiner,
+  type PowChallenge,
+  type PowSolution,
+} from "~/lib/use-pow-miner";
+import { Loader2, CheckCircle2, X } from "lucide-react";
+
+interface PowModalProps {
+  challenge: PowChallenge | null;
+  onComplete: (solution: PowSolution) => void;
+  onCancel: () => void;
+}
+
+export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
+  const miner = usePowMiner();
+  const startedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!challenge) {
+      startedRef.current = null;
+      return;
+    }
+
+    // Prevent re-mining the same challenge
+    const challengeKey = challenge.header;
+    if (startedRef.current === challengeKey) return;
+    startedRef.current = challengeKey;
+
+    let cancelled = false;
+
+    miner
+      .mine(challenge, { showSolved: true })
+      .then((solution) => {
+        if (!cancelled) onComplete(solution);
+        return solution;
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
+  }, [challenge]);
+
+  if (!challenge) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" />
+
+      {/* Modal */}
+      <div className="bg-background border-border relative z-10 w-full max-w-sm rounded-lg border p-6 shadow-lg">
+        <button
+          onClick={onCancel}
+          className="text-muted-foreground hover:text-foreground absolute top-3 right-3"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {miner.phase === "mining" && (
+          <div className="flex flex-col items-center">
+            <Loader2 className="text-accent mb-4 h-8 w-8 animate-spin" />
+            <p className="text-foreground mb-1 text-sm font-medium">
+              Computing proof of work...
+            </p>
+            <p className="text-muted-foreground mb-5 text-center text-xs">
+              This short computation protects the network from spam while
+              keeping your identity private.
+            </p>
+            <div className="bg-background-dark mb-3 h-2 w-full overflow-hidden rounded-full">
+              <div
+                className="bg-accent h-full rounded-full transition-all duration-300"
+                style={{ width: `${miner.progress}%` }}
+              />
+            </div>
+            <div className="text-muted-foreground flex w-full justify-between text-xs">
+              <span>
+                {(miner.hashCount / 1000).toFixed(0)}k /{" "}
+                {(miner.difficulty / 1000).toFixed(0)}k hashes
+              </span>
+              <span>{miner.timeRemaining} remaining</span>
+            </div>
+            <button
+              onClick={onCancel}
+              className="text-muted-foreground hover:text-foreground mt-5 text-sm underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {miner.phase === "solved" && (
+          <div className="flex flex-col items-center py-2">
+            <CheckCircle2 className="text-accent mb-3 h-8 w-8" />
+            <p className="text-accent text-sm font-medium">
+              Proof of work complete!
+            </p>
+          </div>
+        )}
+
+        {miner.phase === "idle" && (
+          <div className="flex flex-col items-center py-2">
+            <Loader2 className="text-accent mb-3 h-8 w-8 animate-spin" />
+            <p className="text-muted-foreground text-sm">Preparing...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
