@@ -5,7 +5,7 @@ import {
   getPublicKeyForAddress,
   getMyActiveEncryptedKey,
 } from "~/server/message.functions";
-import { getLoginPowChallenge } from "~/server/pow.functions";
+import { getChannelPowChallenge } from "~/server/pow.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
 import { usePowMiner } from "~/lib/use-pow-miner";
@@ -68,7 +68,7 @@ function SendPage() {
           err.message.includes("Proof of work required")
         ) {
           setStatus("New channel — computing proof of work...");
-          const challenge = await getLoginPowChallenge();
+          const challenge = await getChannelPowChallenge();
           const solution = await miner.mine(challenge);
 
           setStatus("Sending...");

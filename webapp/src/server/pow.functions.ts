@@ -3,6 +3,7 @@ import {
   createPowChallenge,
   verifyPowSolution,
   LOGIN_DIFFICULTY,
+  CHANNEL_DIFFICULTY,
 } from "./pow.server";
 import { PowSolutionSchema } from "./schemas";
 
@@ -15,6 +16,12 @@ export const getPowChallenge = createServerFn({ method: "GET" }).handler(
 export const getLoginPowChallenge = createServerFn({ method: "GET" }).handler(
   async () => {
     return createPowChallenge(LOGIN_DIFFICULTY);
+  },
+);
+
+export const getChannelPowChallenge = createServerFn({ method: "GET" }).handler(
+  async () => {
+    return createPowChallenge(CHANNEL_DIFFICULTY);
   },
 );
 

@@ -107,6 +107,23 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
+      const alreadyExists = await channelExists(
+        senderUser.id,
+        input.recipientAddress,
+      );
+      if (!alreadyExists) {
+        if (!input.pow)
+          throw new Error("Proof of work required for new channel");
+        const powResult = verifyPowSolution(
+          input.pow.solvedHeader,
+          input.pow.target,
+          input.pow.expiresAt,
+          input.pow.signature,
+        );
+        if (!powResult.valid)
+          throw new Error(`Invalid proof of work: ${powResult.message}`);
+      }
+
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,
         input.recipientAddress,
