@@ -4,8 +4,8 @@ import {
   sendMessage,
   getPublicKeyForAddress,
   getMyActiveEncryptedKey,
+  getRemotePowChallenge,
 } from "~/server/message.functions";
-import { getChannelPowChallenge } from "~/server/pow.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
 import { usePowMiner } from "~/lib/use-pow-miner";
@@ -49,46 +49,28 @@ function SendPage() {
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientKeyResult.publicKey);
 
-      setStatus("Encrypting...");
       const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
 
-      // Optimistically try without PoW first
-      try {
-        await sendMessage({
-          data: {
-            recipientAddress: recipient,
-            encryptedContent,
-            senderPubKey: myKeyData.publicKey,
-            recipientPubKey: recipientKeyResult.publicKey,
-          },
-        });
-      } catch (err: unknown) {
-        if (
-          err instanceof Error &&
-          err.message.includes("Proof of work required")
-        ) {
-          setStatus("New channel — computing proof of work...");
-          const challenge = await getChannelPowChallenge();
-          const solution = await miner.mine(challenge);
+      // Get PoW challenge from recipient's server and mine it
+      setStatus("Computing proof of work...");
+      const challenge = await getRemotePowChallenge({ data: recipient });
+      const solution = await miner.mine(challenge);
 
-          setStatus("Sending...");
-          await sendMessage({
-            data: {
-              recipientAddress: recipient,
-              encryptedContent,
-              senderPubKey: myKeyData.publicKey,
-              recipientPubKey: recipientKeyResult.publicKey,
-              pow: solution,
-            },
-          });
-        } else {
-          throw err;
-        }
-      }
+      setStatus("Sending...");
+      await sendMessage({
+        data: {
+          recipientAddress: recipient,
+          encryptedContent,
+          senderPubKey: myKeyData.publicKey,
+          recipientPubKey: recipientKeyResult.publicKey,
+          pow: solution,
+        },
+      });
 
       navigate({ to: `/channel/${recipient}` });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send message.");
+      setStatus("");
     } finally {
       setSending(false);
     }

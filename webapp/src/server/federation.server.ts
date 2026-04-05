@@ -1,5 +1,6 @@
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
+import { eq } from "drizzle-orm";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -9,7 +10,6 @@ function newId(): string {
   return uuidv7();
 }
 import { parseAddress, getDomain, getApiUrl } from "~/lib/config";
-import { mineChallenge } from "./pow.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
@@ -76,23 +76,35 @@ export async function fetchRemotePublicKey(
   return result.publicKey;
 }
 
+export async function fetchRemotePowChallenge(recipientAddress: string) {
+  const parsed = parseAddress(recipientAddress);
+  if (!parsed) throw new Error("Invalid recipient address");
+  const client = await getRemoteClient(parsed.domain);
+  return client.getPowChallenge();
+}
+
 export async function deliverRemoteMessage(
   senderAddress: string,
   recipientAddress: string,
   encryptedContent: string,
   senderPubKey: string,
   recipientPubKey: string,
+  pow: {
+    solvedHeader: string;
+    target: string;
+    expiresAt: number;
+    signature: string;
+  },
 ): Promise<void> {
   const parsed = parseAddress(recipientAddress);
   if (!parsed) throw new Error("Invalid recipient address");
 
-  // 1. Generate token and store pending delivery
+  // 1. Generate token and store pending delivery (recipient will pull from us)
   const token = generateToken();
   const tokenH = hashToken(token);
 
-  const deliveryId = newId();
   await db.insert(pendingDeliveries).values({
-    id: deliveryId,
+    id: newId(),
     tokenHash: tokenH,
     senderAddress,
     recipientAddress,
@@ -101,33 +113,20 @@ export async function deliverRemoteMessage(
     recipientPubKey,
   });
 
-  // 2. Get PoW challenge from recipient's server and mine it
+  // 2. Notify recipient's server, passing client-mined PoW if provided
   const client = await getRemoteClient(parsed.domain);
-  const challenge = await client.getPowChallenge();
-  const solvedHeader = mineChallenge(challenge);
-
-  // 3. Notify recipient's server via oRPC with PoW proof
   try {
     await client.notifyMessage({
       senderAddress,
       recipientAddress,
       pullToken: token,
-      pow: {
-        solvedHeader,
-        target: challenge.target,
-        expiresAt: challenge.expiresAt,
-        signature: challenge.signature,
-      },
+      pow,
     });
   } catch (err) {
-    console.error("Federation delivery failed:", err);
     // Clean up pending delivery on failure
-    const { eq } = await import("drizzle-orm");
     await db
       .delete(pendingDeliveries)
       .where(eq(pendingDeliveries.tokenHash, tokenH));
-    throw new Error("Failed to deliver message to remote server", {
-      cause: err,
-    });
+    throw err;
   }
 }

@@ -6,11 +6,13 @@ import {
   getOlderMessages,
   sendMessage,
   getMyActiveEncryptedKey,
+  getRemotePowChallenge,
   pollNewMessages,
   markChannelAsRead,
 } from "~/server/message.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
+import { usePowMiner } from "~/lib/use-pow-miner";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import {
   Send as SendIcon,
@@ -52,6 +54,7 @@ function ChannelPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const encryptionKey = getCachedEncryptionKey();
+  const miner = usePowMiner();
 
   const [myKeyData, setMyKeyData] = useState<{
     publicKey: string;
@@ -213,12 +216,16 @@ function ChannelPage() {
       const theirPubKey = FixedBuf.fromHex(33, recipientPubKeyHex);
       const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
 
+      const challenge = await getRemotePowChallenge({ data: address });
+      const solution = await miner.mine(challenge);
+
       await sendMessage({
         data: {
           recipientAddress: address,
           encryptedContent,
           senderPubKey: myKeyData.publicKey,
           recipientPubKey: recipientPubKeyHex,
+          pow: solution,
         },
       });
 

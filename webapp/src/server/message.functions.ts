@@ -3,7 +3,6 @@ import { getCookie } from "@tanstack/react-start/server";
 import {
   getOrCreateChannel,
   getOrCreateChannelPair,
-  channelExists,
   insertMessage,
   getUserChannels,
   getChannelMessages,
@@ -18,7 +17,7 @@ import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
 import { parseLocalAddress, parseAddress, makeAddress, getDomain } from "~/lib/config";
-import { fetchRemotePublicKey, deliverRemoteMessage } from "./federation.server";
+import { fetchRemotePublicKey, deliverRemoteMessage, fetchRemotePowChallenge } from "./federation.server";
 
 const COOKIE_NAME = "user_id";
 
@@ -46,7 +45,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       encryptedContent: z.string(),
       senderPubKey: z.string(),
       recipientPubKey: z.string(),
-      pow: PowSolutionSchema.optional(),
+      pow: PowSolutionSchema,
     }),
   )
   .handler(async ({ data: input }) => {
@@ -72,19 +71,15 @@ export const sendMessage = createServerFn({ method: "POST" })
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
-      const alreadyExists = await channelExists(senderUser.id, input.recipientAddress);
-      if (!alreadyExists) {
-        if (!input.pow)
-          throw new Error("Proof of work required for new channel");
-        const powResult = await verifyAndConsumePow(
-          input.pow.solvedHeader,
-          input.pow.target,
-          input.pow.expiresAt,
-          input.pow.signature,
-        );
-        if (!powResult.valid)
-          throw new Error(`Invalid proof of work: ${powResult.message}`);
-      }
+      // Verify PoW locally
+      const powResult = await verifyAndConsumePow(
+        input.pow.solvedHeader,
+        input.pow.target,
+        input.pow.expiresAt,
+        input.pow.signature,
+      );
+      if (!powResult.valid)
+        throw new Error(`Invalid proof of work: ${powResult.message}`);
 
       const { senderChannelId, recipientChannelId } =
         await getOrCreateChannelPair(senderUser.id, recipientUser.id, senderAddress, input.recipientAddress);
@@ -107,8 +102,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // PoW is enforced by the recipient's server in notifyMessage,
-      // not here. The sender's server just delivers.
+      // PoW is verified by recipient's server in notifyMessage.
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,
         input.recipientAddress,
@@ -122,13 +116,13 @@ export const sendMessage = createServerFn({ method: "POST" })
         true,
       );
 
-      // Deliver to remote server via pull model
       await deliverRemoteMessage(
         senderAddress,
         input.recipientAddress,
         input.encryptedContent,
         input.senderPubKey,
         input.recipientPubKey,
+        input.pow,
       );
     }
 
@@ -223,3 +217,9 @@ export const getMyActiveEncryptedKey = createServerFn({
     encryptedPrivateKey: key.encryptedPrivateKey,
   };
 });
+
+export const getRemotePowChallenge = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: recipientAddress }) => {
+    return fetchRemotePowChallenge(recipientAddress);
+  });

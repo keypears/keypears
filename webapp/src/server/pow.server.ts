@@ -79,35 +79,3 @@ export function verifyPowSolution(
   return { valid: true };
 }
 
-/**
- * Mine a PoW challenge server-side (WASM, CPU).
- * Used by the sender's server when delivering messages to a remote server.
- */
-export function mineChallenge(challenge: {
-  header: string;
-  target: string;
-}): string {
-  const headerBuf = FixedBuf.fromHex(64, challenge.header);
-  const targetBuf = FixedBuf.fromHex(32, challenge.target);
-
-  let nonce = 0;
-  while (true) {
-    const nonceBuf = WebBuf.alloc(32);
-    let remaining = BigInt(nonce);
-    for (let i = 31; i >= 0; i--) {
-      nonceBuf[i] = Number(remaining & 0xffn);
-      remaining = remaining >> 8n;
-    }
-    const testHeader = FixedBuf.fromBuf(
-      64,
-      WebBuf.from([...nonceBuf, ...headerBuf.buf.slice(32)]),
-    );
-    const hash = Pow5_64b_Wasm.elementaryIteration(testHeader);
-
-    if (hashMeetsTarget(hash, targetBuf)) {
-      return testHeader.buf.toHex();
-    }
-
-    nonce++;
-  }
-}

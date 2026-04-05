@@ -10,9 +10,8 @@ import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/con
 import {
   getOrCreateChannel,
   insertMessage,
-  channelExists,
 } from "./message.server";
-import { createPowChallenge } from "./pow.server";
+import { createPowChallenge, LOGIN_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -44,7 +43,7 @@ const getPublicKey = os
   });
 
 const getPowChallengeEndpoint = os.handler(async () => {
-  return createPowChallenge();
+  return createPowChallenge(LOGIN_DIFFICULTY);
 });
 
 const notifyMessage = os
@@ -53,14 +52,12 @@ const notifyMessage = os
       senderAddress: z.string(),
       recipientAddress: z.string(),
       pullToken: z.string(),
-      pow: z
-        .object({
-          solvedHeader: z.string(),
-          target: z.string(),
-          expiresAt: z.number(),
-          signature: z.string(),
-        })
-        .optional(),
+      pow: z.object({
+        solvedHeader: z.string(),
+        target: z.string(),
+        expiresAt: z.number(),
+        signature: z.string(),
+      }),
     }),
   )
   .handler(async ({ input }) => {
@@ -73,23 +70,15 @@ const notifyMessage = os
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 
-      // Check if channel exists — require PoW for new channels
-      const alreadyExists = await channelExists(
-        recipientUser.id,
-        input.senderAddress,
+      // Always verify PoW — difficulty is set by getPowChallenge
+      const powResult = await verifyAndConsumePow(
+        input.pow.solvedHeader,
+        input.pow.target,
+        input.pow.expiresAt,
+        input.pow.signature,
       );
-      if (!alreadyExists) {
-        if (!input.pow)
-          throw new Error("Proof of work required for new channel");
-        const powResult = await verifyAndConsumePow(
-          input.pow.solvedHeader,
-          input.pow.target,
-          input.pow.expiresAt,
-          input.pow.signature,
-        );
-        if (!powResult.valid)
-          throw new Error(`Invalid proof of work: ${powResult.message}`);
-      }
+      if (!powResult.valid)
+        throw new Error(`Invalid proof of work: ${powResult.message}`);
 
       // Resolve the sender's API URL from their domain (verified via TLS)
       const senderParsed = parseAddress(input.senderAddress);
