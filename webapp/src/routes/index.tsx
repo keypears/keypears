@@ -4,8 +4,9 @@ import { createUser, getMyUser } from "~/server/user.functions";
 import { getPowChallenge } from "~/server/pow.functions";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
-import { usePowMiner } from "~/lib/use-pow-miner";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { PowModal } from "~/components/PowModal";
+import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -21,20 +22,28 @@ function LandingPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [pagePhase, setPagePhase] = useState<
-    "idle" | "fetching" | "mining" | "solved" | "creating"
+    "idle" | "fetching" | "creating"
   >("idle");
-  const miner = usePowMiner();
+  const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   async function handleCreate() {
     setPagePhase("fetching");
     setError("");
     try {
       const challenge = await getPowChallenge();
-      setPagePhase("mining");
-      const solution = await miner.mine(challenge, { showSolved: true });
-      setPagePhase("solved");
+      setPowChallenge(challenge);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create account.",
+      );
+      setPagePhase("idle");
+    }
+  }
 
-      setPagePhase("creating");
+  async function handlePowComplete(solution: PowSolution) {
+    setPowChallenge(null);
+    setPagePhase("creating");
+    try {
       await createUser({ data: solution });
       navigate({ to: "/welcome" });
     } catch (err) {
@@ -43,6 +52,11 @@ function LandingPage() {
       );
       setPagePhase("idle");
     }
+  }
+
+  function handlePowCancel() {
+    setPowChallenge(null);
+    setPagePhase("idle");
   }
 
   return (
@@ -89,44 +103,6 @@ function LandingPage() {
             </div>
           )}
 
-          {pagePhase === "mining" && (
-            <div className="mx-auto max-w-sm">
-              <div className="mb-4 flex flex-col items-center gap-3">
-                <Loader2 className="text-accent h-8 w-8 animate-spin" />
-                <p className="text-foreground text-sm font-medium">
-                  Proving you&apos;re not a bot...
-                </p>
-              </div>
-              <p className="text-muted-foreground mb-4 text-xs">
-                KeyPears uses a short proof-of-work computation instead of
-                CAPTCHAs or email verification. This protects the network from
-                spam while keeping your identity private.
-              </p>
-              <div className="bg-background-dark mb-3 h-2 w-full overflow-hidden rounded-full">
-                <div
-                  className="bg-accent h-full rounded-full transition-all duration-300"
-                  style={{ width: `${miner.progress}%` }}
-                />
-              </div>
-              <div className="text-muted-foreground flex justify-between text-xs">
-                <span>
-                  {(miner.hashCount / 1000).toFixed(0)}k /{" "}
-                  {(miner.difficulty / 1000).toFixed(0)}k hashes
-                </span>
-                <span>{miner.timeRemaining} remaining</span>
-              </div>
-            </div>
-          )}
-
-          {pagePhase === "solved" && (
-            <div className="flex flex-col items-center gap-3">
-              <CheckCircle2 className="text-accent h-8 w-8" />
-              <p className="text-accent text-sm font-medium">
-                Proof of work complete!
-              </p>
-            </div>
-          )}
-
           {pagePhase === "creating" && (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="text-accent h-8 w-8 animate-spin" />
@@ -138,6 +114,12 @@ function LandingPage() {
         </div>
       </div>
       <Footer />
+
+      <PowModal
+        challenge={powChallenge}
+        onComplete={handlePowComplete}
+        onCancel={handlePowCancel}
+      />
     </div>
   );
 }

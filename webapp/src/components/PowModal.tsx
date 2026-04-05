@@ -94,9 +94,17 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
         {miner.phase === "solved" && (
           <div className="flex flex-col items-center py-2">
             <CheckCircle2 className="text-accent mb-3 h-8 w-8" />
-            <p className="text-accent text-sm font-medium">
+            <p className="text-accent mb-4 text-sm font-medium">
               Proof of work complete!
             </p>
+            <button
+              onClick={() => {
+                if (miner.result) onComplete(miner.result);
+              }}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
+            >
+              Continue
+            </button>
           </div>
         )}
 
