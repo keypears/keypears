@@ -104,8 +104,8 @@ of the token in a new `sessions` table. The raw token lives only in the cookie.
   high-entropy, brute-force strengthening is pointless).
 - Store `(tokenHash, userId, expiresAt, createdAt)` in the `sessions` table.
 - Set the raw token as the cookie value.
-- On every request: read cookie, hash it, look up the hash in `sessions`.
-  If found and not expired, the user is authenticated. Otherwise, reject.
+- On every request: read cookie, hash it, look up the hash in `sessions`. If
+  found and not expired, the user is authenticated. Otherwise, reject.
 - On logout: delete the session row by hash, clear the cookie.
 - On password change or key rotation: delete all session rows for the user
   except the current one (revoke all other sessions).
@@ -153,12 +153,12 @@ export const sessions = mysqlTable("sessions", {
 - `changeMyPassword` — call `deleteAllSessionsExcept(userId, currentHash)` to
   revoke other sessions.
 
-**`webapp/src/server/message.functions.ts`** — Update all `getCookie` call
-sites to use `resolveSession` instead of treating the cookie value as a user ID.
+**`webapp/src/server/message.functions.ts`** — Update all `getCookie` call sites
+to use `resolveSession` instead of treating the cookie value as a user ID.
 
-Extract a shared helper (e.g. `getAuthenticatedUserId()`) that reads the
-cookie, resolves the session, and throws "Not logged in" if invalid — replacing
-the repeated pattern across both files.
+Extract a shared helper (e.g. `getAuthenticatedUserId()`) that reads the cookie,
+resolves the session, and throws "Not logged in" if invalid — replacing the
+repeated pattern across both files.
 
 **`webapp/src/server/pow.functions.ts`** — No changes (PoW doesn't touch
 sessions).
@@ -166,14 +166,21 @@ sessions).
 #### Verification
 
 1. Create an account — cookie value is a 64-char hex string (not a UUID).
-2. `sessions` table has a row with a different hash, correct user ID, and
-   expiry 1 day from now.
+2. `sessions` table has a row with a different hash, correct user ID, and expiry
+   1 day from now.
 3. Set password — session is replaced with a 30-day expiry.
 4. Log out — session row is deleted, cookie is cleared.
 5. Log in — new session row created with 30-day expiry.
-6. Copy the cookie value, change password — old cookie no longer works
-   (session revoked).
-7. Directly querying the `sessions` table reveals only hashes, never raw
-   tokens.
+6. Copy the cookie value, change password — old cookie no longer works (session
+   revoked).
+7. Directly querying the `sessions` table reveals only hashes, never raw tokens.
 8. All existing functionality works: sending messages, key rotation, channel
    polling, federation.
+
+**Result:** Pass
+
+#### Conclusion
+
+Session cookies now store a random 32-byte token. The database stores only the
+BLAKE3 hash. Expiry reduced from 2 years to 30 days. Password changes revoke
+all other sessions. The raw user ID is no longer exposed in cookies.
