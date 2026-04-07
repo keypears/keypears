@@ -8,6 +8,7 @@ key exchange. User identities are KeyPears addresses (e.g. `1@keypears.com`).
 ```
 keypears/
   package.json          # bun workspace root
+  issues/               # issue tracking (see "Issues and experiments")
   kp1/                  # archived kp1 codebase (reference only)
   packages/
     pow5-rs/            # PoW algorithm (Rust, compiles to WASM)
@@ -162,7 +163,7 @@ Two-layer auth gate:
 
 ## Issues and experiments
 
-Every significant piece of work gets an issue in `webapp/issues/`. Issues
+Every significant piece of work gets an issue in `issues/`. Issues
 describe the problem, provide background, and propose solutions. Experiments
 are the incremental steps that solve the problem.
 
