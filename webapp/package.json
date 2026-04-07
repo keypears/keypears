@@ -2,8 +2,8 @@
   "name": "@keypears/webapp",
   "type": "module",
   "scripts": {
-    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev -- vite",
-    "dev:passapples": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev.passapples -- vite --port 3002",
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev -- vite --port 3500",
+    "dev:passapples": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev.passapples -- vite --port 3510",
     "build": "vite build",
     "start": "bun dist/server/server.js",
     "lint": "oxlint",
