@@ -33,7 +33,7 @@ export async function resolveApiUrl(domain: string): Promise<string> {
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const json = (await response.json()) as { version: number; apiUrl: string };
+  const json = (await response.json()) as { apiUrl: string };
   if (!json.apiUrl) {
     throw new Error(`Invalid keypears.json from ${domain}: missing apiUrl`);
   }

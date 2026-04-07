@@ -27,7 +27,6 @@ https://acme.com/.well-known/keypears.json
 
 ```json
 {
-  "version": 1,
   "apiUrl": "https://keypears.com/api"
 }
 ```
@@ -45,7 +44,6 @@ A business runs their own KeyPears server at `kp.acme.com`. Their
 
 ```json
 {
-  "version": 1,
   "apiUrl": "https://kp.acme.com/api"
 }
 ```
@@ -109,14 +107,12 @@ Response:
 
 ```json
 {
-  "version": 1,
   "apiUrl": "https://example.com/api"
 }
 ```
 
 | Field    | Type   | Description                              |
 |----------|--------|------------------------------------------|
-| version  | number | Protocol version (currently 1)           |
 | apiUrl   | string | Base URL for all oRPC API calls          |
 
 The `apiUrl` is the single entry point for all server-to-server

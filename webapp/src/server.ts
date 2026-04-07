@@ -20,7 +20,6 @@ export default {
     // Serve .well-known/keypears.json
     if (url.pathname === "/.well-known/keypears.json") {
       return Response.json({
-        version: 1,
         apiUrl: getApiUrl(),
       });
     }

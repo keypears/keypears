@@ -25,7 +25,6 @@ HTTPS alone.
    `https://ryanxcharles.com/.well-known/keypears.json` containing:
    ```json
    {
-     "version": 1,
      "apiUrl": "https://keypears.com/api",
      "admin": "ryan@keypears.com"
    }
