@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-07"
+closed = "2026-04-07"
 +++
 
 # Issue 4: Email Sending — Nodemailer vs Lettre
@@ -216,3 +217,23 @@ operationally complex but more predictable — no Bun compatibility questions.
 The next experiment should test Nodemailer in Bun to determine if the
 compatibility risk is real or theoretical. If it works, Nodemailer is the
 pragmatic choice for now. If it doesn't, lettre sidecar is the path forward.
+
+## Conclusion
+
+Email sending is not needed. The original motivation was OTP verification for
+domain owners adding custom domains to KeyPears. But domain ownership can be
+proven without email — the domain owner places a `keypears.json` file at
+`/.well-known/keypears.json` containing an `admin` field that names an existing
+KeyPears user (e.g. `ryan@keypears.com`). KeyPears fetches this over HTTPS,
+verifying domain ownership via TLS — the same trust model already used for
+federation.
+
+This eliminates the need for SMTP, relays, MX resolution, IP reputation
+management, and all the operational complexity of email sending. Domain
+claiming becomes a simple HTTPS fetch of a JSON file.
+
+Neither Nodemailer nor lettre is needed. The vendored repos can be removed.
+
+Email hosting remains a possible future feature but is not required for
+multi-domain support. If pursued later, it would be its own issue with
+different requirements (full email service, not just OTP).
