@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-07"
+closed = "2026-04-07"
 +++
 
 # Issue 3: Multi-Domain Support
@@ -193,3 +194,42 @@ will parse the domain and resolve it.
 7. `isLocalDomain("example.com")` returns false.
 8. Name uniqueness is scoped to domain — if a second domain were manually
    inserted, two users named "alice" could exist (one per domain).
+
+**Result:** Pass
+
+#### Conclusion
+
+All user lookups, login, name checks, and federation endpoints are now
+domain-aware. The primary domain is created lazily on first user save. The
+system operates identically to before for single-domain use but the schema and
+code paths are ready for additional domains.
+
+## Conclusion
+
+The database and protocol are now forwards-compatible with hosting multiple
+domains on a single KeyPears server. The `domains` table stores each hosted
+domain. Users are associated with a domain via `domainId`, and name uniqueness
+is scoped to `(name, domainId)`. All server code — authentication, messaging,
+federation, profile lookup — resolves users by name + domain rather than name
+alone. `isLocalDomain()` replaces the old single-domain check, so the server
+can recognize any domain it hosts as local.
+
+### Next steps
+
+The multi-domain foundation enables three paths forward:
+
+**Email-based auth for existing domains.** Domain owners who already have email
+can verify their users via email. This requires the ability to send email from
+the KeyPears server — either via a built-in SMTP capability or a third-party
+relay.
+
+**Built-in email hosting.** KeyPears addresses could also be real email
+addresses if the server includes SMTP send/receive. This would let anyone
+running a KeyPears node host email for their domain without depending on
+external services like AWS SES. A built-in approach keeps the system
+self-contained and deployable on any infrastructure.
+
+**Domain admin and policy.** The `domains` table can be extended with admin
+user references, PoW difficulty overrides, user limits, and other per-domain
+configuration. This is straightforward once the basic multi-domain plumbing is
+in place.
