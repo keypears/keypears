@@ -7,12 +7,12 @@ export function Footer() {
       >
         <picture>
           <source
-            srcSet="/images/astrohacker-5-dark-32.webp 1x, /images/astrohacker-5-dark-64.webp 2x"
+            srcSet="/images/astrohacker-6-dark-32.webp 1x, /images/astrohacker-6-dark-64.webp 2x"
             media="(prefers-color-scheme: dark)"
           />
           <img
-            src="/images/astrohacker-5-light-32.webp"
-            srcSet="/images/astrohacker-5-light-32.webp 1x, /images/astrohacker-5-light-64.webp 2x"
+            src="/images/astrohacker-6-light-32.webp"
+            srcSet="/images/astrohacker-6-light-32.webp 1x, /images/astrohacker-6-light-64.webp 2x"
             alt="Astrohacker logo"
             className="h-5 w-5"
           />
