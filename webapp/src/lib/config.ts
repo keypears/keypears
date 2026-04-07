@@ -29,8 +29,8 @@ export function getPowSigningKey(): FixedBuf<32> {
 
 // --- Address utilities ---
 
-export function makeAddress(name: string): string {
-  return `${name}@${getDomain()}`;
+export function makeAddress(name: string, domain: string): string {
+  return `${name}@${domain}`;
 }
 
 export function parseAddress(address: string): {
@@ -40,15 +40,4 @@ export function parseAddress(address: string): {
   const match = address.match(/^([^@]+)@([^@]+)$/);
   if (!match) return null;
   return { name: match[1], domain: match[2] };
-}
-
-/**
- * Parse a local address — must match our domain.
- * Returns the name string, or null if not a local address.
- */
-export function parseLocalAddress(address: string): string | null {
-  const parsed = parseAddress(address);
-  if (!parsed) return null;
-  if (parsed.domain !== getDomain()) return null;
-  return parsed.name;
 }

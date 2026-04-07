@@ -5,8 +5,8 @@ import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
-import { getActiveKey, getUserByName } from "./user.server";
-import { parseLocalAddress, getDomain, getApiUrl, parseAddress } from "~/lib/config";
+import { getActiveKey, getUserByNameAndDomain, getDomainByName } from "./user.server";
+import { getDomain, getApiUrl, parseAddress } from "~/lib/config";
 import {
   getOrCreateChannel,
   insertMessage,
@@ -33,9 +33,11 @@ const serverInfo = os.handler(async () => {
 const getPublicKey = os
   .input(z.object({ address: z.string() }))
   .handler(async ({ input }) => {
-    const name = parseLocalAddress(input.address);
-    if (name == null) return { publicKey: null };
-    const user = await getUserByName(name);
+    const parsed = parseAddress(input.address);
+    if (!parsed) return { publicKey: null };
+    const domain = await getDomainByName(parsed.domain);
+    if (!domain) return { publicKey: null };
+    const user = await getUserByNameAndDomain(parsed.name, domain.id);
     if (!user || !user.passwordHash) return { publicKey: null };
     const key = await getActiveKey(user.id);
     if (!key) return { publicKey: null };
@@ -63,10 +65,15 @@ const notifyMessage = os
   .handler(async ({ input }) => {
     try {
       // Verify recipient is local
-      const recipientName = parseLocalAddress(input.recipientAddress);
-      if (recipientName == null)
+      const recipientParsed = parseAddress(input.recipientAddress);
+      if (!recipientParsed) throw new Error("Invalid recipient address");
+      const recipientDomain = await getDomainByName(recipientParsed.domain);
+      if (!recipientDomain)
         throw new Error("Recipient not found on this server");
-      const recipientUser = await getUserByName(recipientName);
+      const recipientUser = await getUserByNameAndDomain(
+        recipientParsed.name,
+        recipientDomain.id,
+      );
       if (!recipientUser || !recipientUser.passwordHash)
         throw new Error("Recipient not found");
 

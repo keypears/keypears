@@ -1,5 +1,5 @@
 import { db } from "~/db";
-import { users, keys, powLog, sessions } from "~/db/schema";
+import { users, keys, powLog, sessions, domains } from "~/db/schema";
 import { eq, desc, and, lt, isNull, max, count, sql, ne } from "drizzle-orm";
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -13,6 +13,46 @@ function newId(): string {
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 100_000;
+
+// --- Domain management ---
+
+export async function getDomainByName(
+  domainName: string,
+): Promise<{ id: string; domain: string } | null> {
+  const [row] = await db
+    .select()
+    .from(domains)
+    .where(eq(domains.domain, domainName))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function getOrCreateDomain(
+  domainName: string,
+): Promise<{ id: string; domain: string }> {
+  const existing = await getDomainByName(domainName);
+  if (existing) return existing;
+
+  const id = newId();
+  await db.insert(domains).values({ id, domain: domainName });
+  return { id, domain: domainName };
+}
+
+export async function isLocalDomain(domainName: string): Promise<boolean> {
+  const row = await getDomainByName(domainName);
+  return row != null;
+}
+
+export async function getDomainById(
+  id: string,
+): Promise<{ id: string; domain: string } | null> {
+  const [row] = await db
+    .select()
+    .from(domains)
+    .where(eq(domains.id, id))
+    .limit(1);
+  return row ?? null;
+}
 
 function blake3Pbkdf(
   password: WebBuf,
@@ -70,11 +110,14 @@ export async function getUserById(id: string) {
   return row ?? null;
 }
 
-export async function getUserByName(name: string) {
+export async function getUserByNameAndDomain(
+  name: string,
+  domainId: string,
+) {
   const [row] = await db
     .select()
     .from(users)
-    .where(eq(users.name, name))
+    .where(and(eq(users.name, name), eq(users.domainId, domainId)))
     .limit(1);
   return row ?? null;
 }
@@ -138,12 +181,13 @@ export async function insertKey(
 export async function saveUser(
   id: string,
   name: string,
+  domainId: string,
   loginKeyHex: string,
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
-  // Check name uniqueness
-  const existing = await getUserByName(name);
+  // Check name uniqueness within domain
+  const existing = await getUserByNameAndDomain(name, domainId);
   if (existing && existing.id !== id) {
     throw new Error("Name is already taken");
   }
@@ -151,7 +195,7 @@ export async function saveUser(
   const passwordHash = hashLoginKey(loginKeyHex);
   await db
     .update(users)
-    .set({ name, passwordHash, expiresAt: null })
+    .set({ name, domainId, passwordHash, expiresAt: null })
     .where(eq(users.id, id));
   await insertKey(id, publicKey, encryptedPrivateKey);
 }
@@ -202,8 +246,12 @@ export async function changePassword(
   });
 }
 
-export async function verifyLogin(name: string, loginKeyHex: string) {
-  const saved = await getUserByName(name);
+export async function verifyLogin(
+  name: string,
+  domainId: string,
+  loginKeyHex: string,
+) {
+  const saved = await getUserByNameAndDomain(name, domainId);
 
   if (!saved || !saved.passwordHash) {
     throw new Error("Invalid credentials");

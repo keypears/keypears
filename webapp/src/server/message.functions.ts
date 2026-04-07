@@ -12,12 +12,24 @@ import {
   getUnreadCount,
   getChannelUnreadCounts,
 } from "./message.server";
-import { getUserById, getUserByName, getActiveKey, resolveSession } from "./user.server";
+import {
+  getUserById,
+  getUserByNameAndDomain,
+  getActiveKey,
+  resolveSession,
+  isLocalDomain,
+  getDomainByName,
+  getDomainById,
+} from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
-import { parseLocalAddress, parseAddress, makeAddress, getDomain } from "~/lib/config";
-import { fetchRemotePublicKey, deliverRemoteMessage, fetchRemotePowChallenge } from "./federation.server";
+import { parseAddress, makeAddress } from "~/lib/config";
+import {
+  fetchRemotePublicKey,
+  deliverRemoteMessage,
+  fetchRemotePowChallenge,
+} from "./federation.server";
 
 const COOKIE_NAME = "session";
 
@@ -36,10 +48,14 @@ async function requireSessionUserId(): Promise<string> {
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())
   .handler(async ({ data: address }) => {
-    const name = parseLocalAddress(address);
-    if (name != null) {
-      // Local user
-      const user = await getUserByName(name);
+    const parsed = parseAddress(address);
+    if (!parsed) return null;
+
+    const local = await isLocalDomain(parsed.domain);
+    if (local) {
+      const domain = await getDomainByName(parsed.domain);
+      if (!domain) return null;
+      const user = await getUserByNameAndDomain(parsed.name, domain.id);
       if (!user || !user.passwordHash) return null;
       const key = await getActiveKey(user.id);
       if (!key) return null;
@@ -65,22 +81,30 @@ export const sendMessage = createServerFn({ method: "POST" })
     const senderUser = await getUserById(senderId);
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
+    if (!senderUser.name || !senderUser.domainId)
+      throw new Error("Account not saved");
 
-    if (!senderUser.name) throw new Error("Account not saved");
-    const senderAddress = makeAddress(senderUser.name);
+    const senderDomain = await getDomainById(senderUser.domainId);
+    if (!senderDomain) throw new Error("Domain not found");
+    const senderAddress = makeAddress(senderUser.name, senderDomain.domain);
+
     const parsed = parseAddress(input.recipientAddress);
     if (!parsed) throw new Error("Invalid recipient address");
 
-    const isLocal = parsed.domain === getDomain();
+    const local = await isLocalDomain(parsed.domain);
 
-    if (isLocal) {
+    if (local) {
       // --- Local delivery ---
-      const recipientUser = await getUserByName(parsed.name);
+      const recipientDomain = await getDomainByName(parsed.domain);
+      if (!recipientDomain) throw new Error("Recipient domain not found");
+      const recipientUser = await getUserByNameAndDomain(
+        parsed.name,
+        recipientDomain.id,
+      );
       if (!recipientUser) throw new Error("Recipient not found");
       if (recipientUser.id === senderUser.id)
         throw new Error("Cannot message yourself");
-      if (!recipientUser || !recipientUser.passwordHash)
-        throw new Error("Recipient not found");
+      if (!recipientUser.passwordHash) throw new Error("Recipient not found");
 
       // Verify PoW locally
       const powResult = await verifyAndConsumePow(
@@ -93,7 +117,12 @@ export const sendMessage = createServerFn({ method: "POST" })
         throw new Error(`Invalid proof of work: ${powResult.message}`);
 
       const { senderChannelId, recipientChannelId } =
-        await getOrCreateChannelPair(senderUser.id, recipientUser.id, senderAddress, input.recipientAddress);
+        await getOrCreateChannelPair(
+          senderUser.id,
+          recipientUser.id,
+          senderAddress,
+          input.recipientAddress,
+        );
 
       await insertMessage(
         senderChannelId,

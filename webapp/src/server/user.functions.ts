@@ -7,7 +7,7 @@ import {
 import {
   insertUser,
   getUserById,
-  getUserByName,
+  getUserByNameAndDomain,
   saveUser,
   verifyLogin,
   getActiveKey,
@@ -23,6 +23,8 @@ import {
   deleteSession,
   deleteAllSessions,
   deleteAllSessionsExcept,
+  getOrCreateDomain,
+  getDomainByName,
 } from "./user.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
@@ -30,6 +32,7 @@ import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
+import { getDomain, parseAddress } from "~/lib/config";
 
 const COOKIE_NAME = "session";
 const ONE_DAY = 60 * 60 * 24;
@@ -125,7 +128,9 @@ export const checkNameAvailable = createServerFn({ method: "GET" })
     if (!parsed.success) {
       return { available: false, error: parsed.error.issues[0]?.message };
     }
-    const existing = await getUserByName(name);
+    // Check within the primary domain
+    const domain = await getOrCreateDomain(getDomain());
+    const existing = await getUserByNameAndDomain(name, domain.id);
     return { available: !existing, error: null };
   });
 
@@ -143,9 +148,12 @@ export const saveMyUser = createServerFn({ method: "POST" })
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
+    // Create primary domain on first use
+    const domain = await getOrCreateDomain(getDomain());
     await saveUser(
       row.id,
       input.name,
+      domain.id,
       input.loginKey,
       input.publicKey,
       input.encryptedPrivateKey,
@@ -187,7 +195,10 @@ export const login = createServerFn({ method: "POST" })
     if (!powResult.valid) {
       throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
-    const result = await verifyLogin(input.name, input.loginKey);
+    // Resolve domain from the login name (which may be parsed from a full address)
+    const domain = await getDomainByName(getDomain());
+    if (!domain) throw new Error("Domain not configured");
+    const result = await verifyLogin(input.name, domain.id, input.loginKey);
     const session = await createSession(result.id, THIRTY_DAYS);
     setCookie(COOKIE_NAME, session.token, cookieOpts(THIRTY_DAYS));
     return { id: result.id };
@@ -228,8 +239,12 @@ export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
 
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator(z.string())
-  .handler(async ({ data: name }) => {
-    const row = await getUserByName(name);
+  .handler(async ({ data: address }) => {
+    const parsed = parseAddress(address);
+    if (!parsed) return null;
+    const domain = await getDomainByName(parsed.domain);
+    if (!domain) return null;
+    const row = await getUserByNameAndDomain(parsed.name, domain.id);
     if (!row) return null;
     const [activeKey, powTotal] = await Promise.all([
       getActiveKey(row.id),

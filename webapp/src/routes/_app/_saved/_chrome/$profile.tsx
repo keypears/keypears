@@ -13,11 +13,10 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
     if (!profileName) {
       throw notFound();
     }
-    const [me, profileData, domain] = await Promise.all([
-      getMyUser(),
-      getProfile({ data: profileName }),
-      getServerDomain(),
-    ]);
+    const [me, domain] = await Promise.all([getMyUser(), getServerDomain()]);
+    const profileData = await getProfile({
+      data: `${profileName}@${domain}`,
+    });
     if (!me) {
       throw notFound();
     }

@@ -28,13 +28,26 @@ const binaryId = customType<{ data: string }>({
 
 // --- Tables ---
 
-export const users = mysqlTable("users", {
+export const domains = mysqlTable("domains", {
   id: binaryId("id").primaryKey(),
-  name: varchar("name", { length: 255 }),
-  passwordHash: varchar("password_hash", { length: 255 }),
-  expiresAt: timestamp("expires_at"),
+  domain: varchar("domain", { length: 255 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const users = mysqlTable(
+  "users",
+  {
+    id: binaryId("id").primaryKey(),
+    domainId: binaryId("domain_id"),
+    name: varchar("name", { length: 255 }),
+    passwordHash: varchar("password_hash", { length: 255 }),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("name_domain_idx").on(table.name, table.domainId),
+  ],
+);
 
 export const keys = mysqlTable("user_keys", {
   id: binaryId("id").primaryKey(),
