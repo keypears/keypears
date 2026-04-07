@@ -11,6 +11,12 @@ const ICON_WEB_PATH = "/images";
 const WEBP_SIZES = [32, 64, 96, 128, 180, 200, 300, 400];
 const FAVICON_SIZE = 64;
 
+// Files that should generate a favicon PNG (basename -> output name)
+const FAVICON_MAP: Record<string, string> = {
+  "keypears-5-dark": "favicon-dark.png",
+  "keypears-5-light": "favicon-light.png",
+};
+
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const outputPaths: string[] = [];
@@ -29,13 +35,16 @@ async function processFile(file: string) {
     console.log(`Processed ${outputFileName}`);
   }
 
-  // Generate favicon as PNG named favicon.ico
-  const faviconPath = path.join(FAVICON_DIR, "favicon.ico");
-  await sharp(sourcePath)
-    .resize(FAVICON_SIZE, FAVICON_SIZE)
-    .png()
-    .toFile(faviconPath);
-  console.log(`Processed favicon.ico (${FAVICON_SIZE}px PNG)`);
+  // Generate favicon if this file is in the favicon map
+  const faviconName = FAVICON_MAP[baseName];
+  if (faviconName) {
+    const faviconPath = path.join(FAVICON_DIR, faviconName);
+    await sharp(sourcePath)
+      .resize(FAVICON_SIZE, FAVICON_SIZE)
+      .png()
+      .toFile(faviconPath);
+    console.log(`Processed ${faviconName} (${FAVICON_SIZE}px PNG)`);
+  }
 }
 
 async function main() {

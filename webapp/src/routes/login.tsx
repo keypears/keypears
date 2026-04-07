@@ -102,11 +102,18 @@ function LoginPage() {
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-sm text-center">
           <div className="mb-8 flex items-center justify-center gap-3">
-            <img
-              src={$icon("/images/keypears-64.webp")}
-              alt="KeyPears"
-              className="h-10 w-10"
-            />
+            <picture>
+              <source
+                srcSet={`${$icon("/images/keypears-5-dark-64.webp")} 1x, ${$icon("/images/keypears-5-dark-128.webp")} 2x`}
+                media="(prefers-color-scheme: dark)"
+              />
+              <img
+                src={$icon("/images/keypears-5-light-64.webp")}
+                srcSet={`${$icon("/images/keypears-5-light-64.webp")} 1x, ${$icon("/images/keypears-5-light-128.webp")} 2x`}
+                alt="KeyPears"
+                className="h-10 w-10"
+              />
+            </picture>
             <h1 className="text-foreground text-3xl font-bold">Log In</h1>
           </div>
 

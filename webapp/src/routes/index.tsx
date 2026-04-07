@@ -64,11 +64,18 @@ function LandingPage() {
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-md text-center">
           <div className="mb-6 flex items-center justify-center gap-3">
-            <img
-              src={$icon("/images/keypears-200.webp")}
-              alt="KeyPears"
-              className="h-12 w-12"
-            />
+            <picture>
+              <source
+                srcSet={`${$icon("/images/keypears-5-dark-200.webp")} 1x, ${$icon("/images/keypears-5-dark-400.webp")} 2x`}
+                media="(prefers-color-scheme: dark)"
+              />
+              <img
+                src={$icon("/images/keypears-5-light-200.webp")}
+                srcSet={`${$icon("/images/keypears-5-light-200.webp")} 1x, ${$icon("/images/keypears-5-light-400.webp")} 2x`}
+                alt="KeyPears"
+                className="h-12 w-12"
+              />
+            </picture>
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
           <p className="text-muted-foreground mb-8">Secret Exchange</p>
