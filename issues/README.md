@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                           | Title                | Opened     |
+| ------------------------------------------- | -------------------- | ---------- |
+| [0003](0003-multi-domain/README.md)         | Multi-Domain Support | 2026-04-07 |
 
 ## Closed
 
