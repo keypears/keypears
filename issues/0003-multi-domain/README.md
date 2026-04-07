@@ -85,3 +85,111 @@ architecture researched in issue 0001.
 - The pull-model federation protocol.
 - PoW for account creation, login, and messaging.
 - The `keypears.json` well-known file format.
+
+## Experiments
+
+### Experiment 1: Add domains table and domainId to users
+
+#### Description
+
+Add a `domains` table and associate every user with a domain. The primary
+domain is seeded from `KEYPEARS_DOMAIN` on startup. All existing single-domain
+code is updated to be domain-aware: user lookups, login, name availability
+checks, address construction, and local address detection.
+
+After this experiment, the system still operates as single-domain in practice
+(only the primary domain exists), but the data model and code paths are ready
+for additional domains.
+
+#### Changes
+
+**`webapp/src/db/schema.ts`** — Add `domains` table and `domainId` to `users`:
+
+```ts
+export const domains = mysqlTable("domains", {
+  id: binaryId("id").primaryKey(),
+  domain: varchar("domain", { length: 255 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+Add `domainId` column to `users`:
+
+```ts
+domainId: binaryId("domain_id").notNull(),
+```
+
+Add unique index on `(name, domainId)` to `users` — name uniqueness is scoped
+to domain. Remove any existing global uniqueness assumption on `name`.
+
+**`webapp/src/server/user.server.ts`** — Domain-aware user functions:
+
+- Add `getOrCreatePrimaryDomain()` — looks up domain matching
+  `KEYPEARS_DOMAIN`, creates it if missing. Called during startup or lazily on
+  first use. Caches the result.
+- Change `insertUser()` to accept `domainId` and store it.
+- Change `getUserByName(name)` to `getUserByNameAndDomain(name, domainId)` —
+  queries by `(name, domainId)`.
+- Change `saveUser()` to check name uniqueness within domain.
+- Change `verifyLogin(name, loginKeyHex)` to
+  `verifyLogin(name, domainId, loginKeyHex)`.
+- Add `getDomainByName(domain)` — looks up a domain record by name.
+- Add `isLocalDomain(domain)` — checks if a domain is hosted by this server
+  (exists in the `domains` table).
+
+**`webapp/src/lib/config.ts`** — Replace single-domain helpers:
+
+- `parseLocalAddress()` can no longer check against a single domain. It must
+  be removed or changed to an async function that checks the `domains` table.
+  Since it's called in server-only code, making it async is fine.
+- `makeAddress(name)` needs a domain parameter: `makeAddress(name, domain)`.
+- `getDomain()` stays as the primary domain for backwards compatibility (used
+  by the welcome page, login page, etc.).
+
+**`webapp/src/server/user.functions.ts`** — Update all handlers:
+
+- `createUser` — resolve primary domain, pass `domainId` to `insertUser()`.
+- `saveMyUser` — pass domain-scoped name check.
+- `login` — parse full address to extract name + domain, resolve domain to
+  `domainId`, pass both to `verifyLogin()`.
+- `checkNameAvailable` — accept full address or name + domain, check within
+  domain scope.
+- `getProfile` — accept full address, resolve domain.
+
+**`webapp/src/server/message.functions.ts`** — Update local/remote detection:
+
+- `sendMessage` — replace `parsed.domain === getDomain()` with
+  `isLocalDomain(parsed.domain)`. Use `getUserByNameAndDomain` for recipient
+  lookups. Construct sender address with actual domain from user's `domainId`.
+- `getPublicKeyForAddress` — same local domain check change.
+
+**`webapp/src/server/api.router.ts`** — Update federation endpoints:
+
+- `getPublicKey` — replace `parseLocalAddress` with domain-aware lookup: parse
+  address, check if domain is local, look up user by name + domainId.
+- `notifyMessage` — same pattern for recipient lookup.
+- `serverInfo` — could return list of hosted domains or just the primary.
+
+**`webapp/src/server/config.functions.ts`** — `getServerDomain()` stays as-is
+(returns primary domain for the welcome/login UI).
+
+**`webapp/src/routes/_app/welcome.tsx`** — No changes needed. Users on the
+welcome page are creating accounts on the primary domain. The UI already uses
+`getServerDomain()` for display.
+
+**`webapp/src/routes/login.tsx`** — No changes needed immediately. Login
+already accepts full `name@domain` addresses. The server-side `login` handler
+will parse the domain and resolve it.
+
+#### Verification
+
+1. Existing single-domain flow works unchanged: create account, set password,
+   log in, send messages, federation between keypears.test and passapples.test.
+2. The `domains` table has one row for the primary domain.
+3. All users have a `domainId` pointing to the primary domain.
+4. `getUserByNameAndDomain("alice", primaryDomainId)` returns Alice.
+5. `getUserByNameAndDomain("alice", somethingElse)` returns null.
+6. `isLocalDomain("keypears.test")` returns true.
+7. `isLocalDomain("example.com")` returns false.
+8. Name uniqueness is scoped to domain — if a second domain were manually
+   inserted, two users named "alice" could exist (one per domain).
