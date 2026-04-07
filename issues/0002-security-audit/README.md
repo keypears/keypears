@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-07"
+closed = "2026-04-07"
 +++
 
 # Issue 2: Security Audit
@@ -184,3 +185,45 @@ sessions).
 Session cookies now store a random 32-byte token. The database stores only the
 BLAKE3 hash. Expiry reduced from 2 years to 30 days. Password changes revoke
 all other sessions. The raw user ID is no longer exposed in cookies.
+
+## Conclusion
+
+The audit identified six findings. One was a real vulnerability (session
+cookies), which is now fixed. The rest are either sound as-is, inherent to the
+trust model, or acceptable tradeoffs.
+
+### Finding status
+
+**1. Session cookies — FIXED.** Raw UUIDv7 user IDs replaced with random
+32-byte tokens. Database stores only BLAKE3 hashes. Expiry reduced to 30 days.
+Password changes revoke all other sessions.
+
+**2. Password hashing / KDF — No issue.** The three-tier BLAKE3 KDF is
+well-designed. Password is never stored. Encryption key and login key are
+siblings — neither derivable from the other. Server adds 100k additional rounds
+before storing. 400k total rounds per guess.
+
+**3. Sender public key verification — Not a vulnerability.** ECDH enforces
+correctness: if the sender lies about their public key, the shared secret is
+wrong and the recipient gets garbage. The sender has no incentive to send a
+bogus key, and the cryptography makes it self-defeating.
+
+**4. Message signatures — Not needed.** ECDH already provides authentication.
+Only the holder of the correct private key can produce ciphertext that decrypts
+with the expected shared secret. An explicit signature would be redundant.
+
+**5. Federation content integrity — Inherent to federation.** The sender's
+server is the authority for the sender's public key. A malicious server could
+MITM its own users — this is true of any federated system (email, Matrix,
+XMPP). Mitigations are social, not cryptographic: run your own server, trust
+your operator, or verify keys out of band.
+
+**6. Other observations — Acceptable.**
+- CSRF: `sameSite: "lax"` + `httpOnly` cookies are adequate. All
+  state-changing endpoints use POST.
+- Rate limiting: PoW on every login makes brute-force computationally expensive
+  by design. That is the purpose of PoW.
+- Forward secrecy: static ECDH keys mean a compromised private key exposes past
+  messages. Key rotation exists but does not re-encrypt old messages. Ephemeral
+  keys (Double Ratchet) would add forward secrecy but are a major architectural
+  change — a separate issue if ever pursued.
