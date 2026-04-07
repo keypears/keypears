@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                              | Title                                  | Opened     |
+| ---------------------------------------------- | -------------------------------------- | ---------- |
+| [0004](0004-email-sending/README.md)           | Email Sending — Nodemailer vs Lettre   | 2026-04-07 |
 
 ## Closed
 
