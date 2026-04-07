@@ -12,14 +12,26 @@ import {
   getUnreadCount,
   getChannelUnreadCounts,
 } from "./message.server";
-import { getUserById, getUserByName, getActiveKey } from "./user.server";
+import { getUserById, getUserByName, getActiveKey, resolveSession } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
 import { z } from "zod";
 import { parseLocalAddress, parseAddress, makeAddress, getDomain } from "~/lib/config";
 import { fetchRemotePublicKey, deliverRemoteMessage, fetchRemotePowChallenge } from "./federation.server";
 
-const COOKIE_NAME = "user_id";
+const COOKIE_NAME = "session";
+
+async function getSessionUserId(): Promise<string | null> {
+  const token = getCookie(COOKIE_NAME);
+  if (!token) return null;
+  return resolveSession(token);
+}
+
+async function requireSessionUserId(): Promise<string> {
+  const userId = await getSessionUserId();
+  if (!userId) throw new Error("Not logged in");
+  return userId;
+}
 
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())
@@ -49,8 +61,7 @@ export const sendMessage = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data: input }) => {
-    const senderId = getCookie(COOKIE_NAME);
-    if (!senderId) throw new Error("Not logged in");
+    const senderId = await requireSessionUserId();
     const senderUser = await getUserById(senderId);
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
@@ -131,9 +142,8 @@ export const sendMessage = createServerFn({ method: "POST" })
 
 export const getMyChannels = createServerFn({ method: "GET" }).handler(
   async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) return [];
-    const userId = id;
+    const userId = await getSessionUserId();
+    if (!userId) return [];
     const [channelList, unreadCounts] = await Promise.all([
       getUserChannels(userId),
       getChannelUnreadCounts(userId),
@@ -151,9 +161,8 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
 );
 
 async function resolveChannel(counterpartyAddress: string) {
-  const id = getCookie(COOKIE_NAME);
-  if (!id) throw new Error("Not logged in");
-  const channel = await getChannelByCounterparty(id, counterpartyAddress);
+  const userId = await requireSessionUserId();
+  const channel = await getChannelByCounterparty(userId, counterpartyAddress);
   if (!channel) throw new Error("Channel not found");
   return channel;
 }
@@ -199,18 +208,17 @@ export const markChannelAsRead = createServerFn({ method: "POST" })
 
 export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
   async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) return 0;
-    return getUnreadCount(id);
+    const userId = await getSessionUserId();
+    if (!userId) return 0;
+    return getUnreadCount(userId);
   },
 );
 
 export const getMyActiveEncryptedKey = createServerFn({
   method: "GET",
 }).handler(async () => {
-  const id = getCookie(COOKIE_NAME);
-  if (!id) throw new Error("Not logged in");
-  const key = await getActiveKey(id);
+  const userId = await requireSessionUserId();
+  const key = await getActiveKey(userId);
   if (!key) throw new Error("No key found");
   return {
     publicKey: key.publicKey,

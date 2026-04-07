@@ -18,15 +18,22 @@ import {
   getUserPowTotal,
   getAllEncryptedKeys,
   changePassword,
+  createSession,
+  resolveSession,
+  deleteSession,
+  deleteAllSessions,
+  deleteAllSessionsExcept,
 } from "./user.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
+import { blake3Hash } from "@webbuf/blake3";
+import { WebBuf } from "@webbuf/webbuf";
 
-const COOKIE_NAME = "user_id";
+const COOKIE_NAME = "session";
 const ONE_DAY = 60 * 60 * 24;
-const TWO_YEARS = 60 * 60 * 24 * 365 * 2;
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
 
 function cookieOpts(maxAge: number) {
   return {
@@ -36,6 +43,27 @@ function cookieOpts(maxAge: number) {
     maxAge,
     path: "/",
   };
+}
+
+/** Read session cookie, resolve to user ID. Returns null if invalid/expired. */
+async function getSessionUserId(): Promise<string | null> {
+  const token = getCookie(COOKIE_NAME);
+  if (!token) return null;
+  return resolveSession(token);
+}
+
+/** Read session cookie, resolve to user ID. Throws if not logged in. */
+async function requireSessionUserId(): Promise<string> {
+  const userId = await getSessionUserId();
+  if (!userId) throw new Error("Not logged in");
+  return userId;
+}
+
+/** Hash the current session token to identify it in the sessions table. */
+function hashCurrentToken(): string | null {
+  const token = getCookie(COOKIE_NAME);
+  if (!token) return null;
+  return blake3Hash(WebBuf.fromHex(token)).buf.toHex();
 }
 
 export const createUser = createServerFn({ method: "POST" })
@@ -52,14 +80,15 @@ export const createUser = createServerFn({ method: "POST" })
     }
     const result = await insertUser();
     await insertPowLog(result.id, "pow5-64b", REGISTRATION_DIFFICULTY);
-    setCookie(COOKIE_NAME, result.id, cookieOpts(ONE_DAY));
+    const session = await createSession(result.id, ONE_DAY);
+    setCookie(COOKIE_NAME, session.token, cookieOpts(ONE_DAY));
     return result;
   });
 
 export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
-  const id = getCookie(COOKIE_NAME);
-  if (!id) return null;
-  const row = await getUserById(id);
+  const userId = await getSessionUserId();
+  if (!userId) return null;
+  const row = await getUserById(userId);
   if (!row) return null;
   if (row.expiresAt && row.expiresAt < new Date()) return null;
   return {
@@ -71,9 +100,9 @@ export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
 
 export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
   async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (id) {
-      const row = await getUserById(id);
+    const userId = await getSessionUserId();
+    if (userId) {
+      const row = await getUserById(userId);
       if (row && (!row.expiresAt || row.expiresAt >= new Date())) {
         return {
           id: row.id,
@@ -83,7 +112,8 @@ export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
       }
     }
     const result = await insertUser();
-    setCookie(COOKIE_NAME, result.id, cookieOpts(ONE_DAY));
+    const session = await createSession(result.id, ONE_DAY);
+    setCookie(COOKIE_NAME, session.token, cookieOpts(ONE_DAY));
     return { id: result.id, name: null, hasPassword: false };
   },
 );
@@ -109,9 +139,8 @@ export const saveMyUser = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data: input }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-    const row = await getUserById(id);
+    const userId = await requireSessionUserId();
+    const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
     await saveUser(
@@ -121,15 +150,19 @@ export const saveMyUser = createServerFn({ method: "POST" })
       input.publicKey,
       input.encryptedPrivateKey,
     );
-    setCookie(COOKIE_NAME, row.id, cookieOpts(TWO_YEARS));
+    // Replace the 1-day session with a 30-day session
+    const token = getCookie(COOKIE_NAME);
+    if (token) await deleteSession(token);
+    const session = await createSession(row.id, THIRTY_DAYS);
+    setCookie(COOKIE_NAME, session.token, cookieOpts(THIRTY_DAYS));
     return { success: true };
   });
 
 export const deleteMyUser = createServerFn({ method: "POST" }).handler(
   async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-    await deleteUnsavedUser(id);
+    const userId = await requireSessionUserId();
+    await deleteAllSessions(userId);
+    await deleteUnsavedUser(userId);
     deleteCookie(COOKIE_NAME);
     return { success: true };
   },
@@ -155,11 +188,14 @@ export const login = createServerFn({ method: "POST" })
       throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
     const result = await verifyLogin(input.name, input.loginKey);
-    setCookie(COOKIE_NAME, result.id, cookieOpts(TWO_YEARS));
+    const session = await createSession(result.id, THIRTY_DAYS);
+    setCookie(COOKIE_NAME, session.token, cookieOpts(THIRTY_DAYS));
     return { id: result.id };
   });
 
 export const logout = createServerFn({ method: "POST" }).handler(async () => {
+  const token = getCookie(COOKIE_NAME);
+  if (token) await deleteSession(token);
   deleteCookie(COOKIE_NAME);
   return { success: true };
 });
@@ -172,9 +208,8 @@ export const rotateKey = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data: input }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-    const row = await getUserById(id);
+    const userId = await requireSessionUserId();
+    const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
     const result = await insertKey(
@@ -186,9 +221,9 @@ export const rotateKey = createServerFn({ method: "POST" })
   });
 
 export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
-  const id = getCookie(COOKIE_NAME);
-  if (!id) return [];
-  return getRecentKeys(id, 10);
+  const userId = await getSessionUserId();
+  if (!userId) return [];
+  return getRecentKeys(userId, 10);
 });
 
 export const getProfile = createServerFn({ method: "GET" })
@@ -210,9 +245,8 @@ export const getProfile = createServerFn({ method: "GET" })
 
 export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(
   async () => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-    return getAllEncryptedKeys(id);
+    const userId = await requireSessionUserId();
+    return getAllEncryptedKeys(userId);
   },
 );
 
@@ -229,11 +263,15 @@ export const changeMyPassword = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data: input }) => {
-    const id = getCookie(COOKIE_NAME);
-    if (!id) throw new Error("Not logged in");
-    const row = await getUserById(id);
+    const userId = await requireSessionUserId();
+    const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
     await changePassword(row.id, input.newLoginKey, input.reEncryptedKeys);
+    // Revoke all other sessions
+    const currentHash = hashCurrentToken();
+    if (currentHash) {
+      await deleteAllSessionsExcept(row.id, currentHash);
+    }
     return { success: true };
   });

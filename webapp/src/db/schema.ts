@@ -86,6 +86,13 @@ export const pendingDeliveries = mysqlTable("pending_deliveries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const sessions = mysqlTable("sessions", {
+  tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
+  userId: binaryId("user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const usedPow = mysqlTable("used_pow", {
   solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
   solvedHeader: text("solved_header").notNull(),

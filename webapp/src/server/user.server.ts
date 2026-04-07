@@ -1,6 +1,6 @@
 import { db } from "~/db";
-import { users, keys, powLog } from "~/db/schema";
-import { eq, desc, and, lt, isNull, max, count, sql } from "drizzle-orm";
+import { users, keys, powLog, sessions } from "~/db/schema";
+import { eq, desc, and, lt, isNull, max, count, sql, ne } from "drizzle-orm";
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -259,4 +259,63 @@ export async function getUserPowTotal(userId: string): Promise<bigint> {
     .orderBy(desc(powLog.id))
     .limit(1);
   return row?.cumulativeDifficulty ?? 0n;
+}
+
+// --- Session management ---
+
+function hashSessionToken(token: string): string {
+  return blake3Hash(WebBuf.fromHex(token)).buf.toHex();
+}
+
+export async function createSession(
+  userId: string,
+  maxAgeSeconds: number,
+): Promise<{ token: string; tokenHash: string }> {
+  const token = FixedBuf.fromRandom(32).buf.toHex();
+  const tokenHash = hashSessionToken(token);
+  const expiresAt = new Date(Date.now() + maxAgeSeconds * 1000);
+
+  await db.insert(sessions).values({ tokenHash, userId, expiresAt });
+
+  // Lazy cleanup: delete expired sessions
+  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
+
+  return { token, tokenHash };
+}
+
+export async function resolveSession(
+  token: string,
+): Promise<string | null> {
+  const tokenHash = hashSessionToken(token);
+  const [row] = await db
+    .select({ userId: sessions.userId, expiresAt: sessions.expiresAt })
+    .from(sessions)
+    .where(eq(sessions.tokenHash, tokenHash))
+    .limit(1);
+  if (!row) return null;
+  if (row.expiresAt < new Date()) {
+    await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+    return null;
+  }
+  return row.userId;
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  const tokenHash = hashSessionToken(token);
+  await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+}
+
+export async function deleteAllSessions(userId: string): Promise<void> {
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+}
+
+export async function deleteAllSessionsExcept(
+  userId: string,
+  currentTokenHash: string,
+): Promise<void> {
+  await db
+    .delete(sessions)
+    .where(
+      and(eq(sessions.userId, userId), ne(sessions.tokenHash, currentTokenHash)),
+    );
 }
