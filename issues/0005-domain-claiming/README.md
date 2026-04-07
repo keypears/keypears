@@ -25,14 +25,14 @@ HTTPS alone.
    `https://ryanxcharles.com/.well-known/keypears.json` containing:
    ```json
    {
-     "apiUrl": "https://keypears.com/api",
+     "apiDomain": "keypears.com",
      "admin": "ryan@keypears.com"
    }
    ```
 3. In KeyPears, they click "Add a domain" and enter `ryanxcharles.com`.
 4. KeyPears fetches the `keypears.json` file over HTTPS, verifying:
    - The file exists and is valid JSON.
-   - The `apiUrl` points to this KeyPears server.
+   - The `apiDomain` matches this KeyPears server's domain.
    - The `admin` field matches the logged-in user's address.
 5. The domain is added to the `domains` table with the user as admin.
 6. The admin can now create user accounts under the domain (e.g.

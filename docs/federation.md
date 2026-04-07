@@ -27,7 +27,7 @@ https://acme.com/.well-known/keypears.json
 
 ```json
 {
-  "apiUrl": "https://keypears.com/api"
+  "apiDomain": "keypears.com"
 }
 ```
 
@@ -44,7 +44,7 @@ A business runs their own KeyPears server at `kp.acme.com`. Their
 
 ```json
 {
-  "apiUrl": "https://kp.acme.com/api"
+  "apiDomain": "kp.acme.com"
 }
 ```
 
@@ -90,8 +90,7 @@ A server needs minimal configuration:
 
 | Setting | Description | Example |
 |---------|-------------|---------|
-| `KEYPEARS_DOMAIN` | The user-facing domain for addresses | `acme.com` |
-| `KEYPEARS_API_URL` | The URL where this server's API is hosted | `https://keypears.com/api` |
+| `KEYPEARS_DOMAIN` | The domain for addresses and API (`/api`) | `acme.com` |
 | `KEYPEARS_SECRET` | Master secret for deriving PoW signing keys | 64-char hex |
 
 ## Discovery: keypears.json
@@ -107,17 +106,17 @@ Response:
 
 ```json
 {
-  "apiUrl": "https://example.com/api"
+  "apiDomain": "example.com"
 }
 ```
 
-| Field    | Type   | Description                              |
-|----------|--------|------------------------------------------|
-| apiUrl   | string | Base URL for all oRPC API calls          |
+| Field      | Type   | Description                                    |
+|------------|--------|------------------------------------------------|
+| apiDomain  | string | Domain hosting the KeyPears API (at `/api`)    |
 
-The `apiUrl` is the single entry point for all server-to-server
-communication. All operations — key discovery, message delivery, PoW
-challenges — go through oRPC procedures at this URL.
+The API URL is derived as `https://{apiDomain}/api`. All server-to-server
+communication — key discovery, message delivery, PoW challenges — goes
+through oRPC procedures at this URL.
 
 ### Caching
 

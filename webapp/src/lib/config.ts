@@ -14,8 +14,9 @@ export function getDomain(): string {
   return process.env.KEYPEARS_DOMAIN ?? "keypears.com";
 }
 
-export function getApiUrl(): string {
-  return process.env.KEYPEARS_API_URL ?? `https://${getDomain()}/api`;
+/** Build the API URL from a domain. Always https://{domain}/api. */
+export function apiUrlFromDomain(domain: string): string {
+  return `https://${domain}/api`;
 }
 
 // --- Derived secrets ---

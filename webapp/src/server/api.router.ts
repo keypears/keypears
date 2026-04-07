@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserByNameAndDomain, getDomainByName } from "./user.server";
-import { getDomain, getApiUrl, parseAddress } from "~/lib/config";
+import { getDomain, parseAddress } from "~/lib/config";
 import {
   getOrCreateChannel,
   insertMessage,
@@ -26,7 +26,6 @@ function hashToken(token: string): string {
 const serverInfo = os.handler(async () => {
   return {
     domain: getDomain(),
-    apiUrl: getApiUrl(),
   };
 });
 

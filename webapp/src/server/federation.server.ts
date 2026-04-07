@@ -9,7 +9,7 @@ import { uuidv7 } from "uuidv7";
 function newId(): string {
   return uuidv7();
 }
-import { parseAddress, getApiUrl } from "~/lib/config";
+import { parseAddress, apiUrlFromDomain, getDomain } from "~/lib/config";
 import { isLocalDomain } from "./user.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -18,27 +18,29 @@ import type { apiRouter } from "./api.router";
 
 type ApiClient = RouterClient<typeof apiRouter>;
 
-// --- API URL discovery cache ---
+// --- API domain discovery cache ---
 
-const apiUrlCache = new Map<string, string>();
+const apiDomainCache = new Map<string, string>();
 
 export async function resolveApiUrl(domain: string): Promise<string> {
-  if (await isLocalDomain(domain)) return getApiUrl();
+  if (await isLocalDomain(domain)) return apiUrlFromDomain(getDomain());
 
-  const cached = apiUrlCache.get(domain);
-  if (cached) return cached;
+  const cached = apiDomainCache.get(domain);
+  if (cached) return apiUrlFromDomain(cached);
 
   const url = `https://${domain}/.well-known/keypears.json`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const json = (await response.json()) as { apiUrl: string };
-  if (!json.apiUrl) {
-    throw new Error(`Invalid keypears.json from ${domain}: missing apiUrl`);
+  const json = (await response.json()) as { apiDomain: string };
+  if (!json.apiDomain) {
+    throw new Error(
+      `Invalid keypears.json from ${domain}: missing apiDomain`,
+    );
   }
-  apiUrlCache.set(domain, json.apiUrl);
-  return json.apiUrl;
+  apiDomainCache.set(domain, json.apiDomain);
+  return apiUrlFromDomain(json.apiDomain);
 }
 
 // --- oRPC client for remote servers ---

@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getApiUrl } from "~/lib/config";
+import { getDomain } from "~/lib/config";
 
 export const getKeypearsJson = createServerFn({ method: "GET" }).handler(
   async () => {
     return {
-      apiUrl: getApiUrl(),
+      apiDomain: getDomain(),
     };
   },
 );

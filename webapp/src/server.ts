@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { RPCHandler } from "@orpc/server/fetch";
 import { apiRouter } from "./server/api.router";
-import { getApiUrl } from "./lib/config";
+import { getDomain } from "./lib/config";
 
 const handler = createStartHandler(defaultStreamHandler);
 const rpcHandler = new RPCHandler(apiRouter);
@@ -20,7 +20,7 @@ export default {
     // Serve .well-known/keypears.json
     if (url.pathname === "/.well-known/keypears.json") {
       return Response.json({
-        apiUrl: getApiUrl(),
+        apiDomain: getDomain(),
       });
     }
 
