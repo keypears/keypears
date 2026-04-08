@@ -66,12 +66,12 @@ function LandingPage() {
           <div className="mb-6 flex items-center justify-center gap-3">
             <picture>
               <source
-                srcSet={`${$icon("/images/keypears-5-dark-200.webp")} 1x, ${$icon("/images/keypears-5-dark-400.webp")} 2x`}
+                srcSet={`${$icon("/images/keypears-6-dark-200.webp")} 1x, ${$icon("/images/keypears-6-dark-400.webp")} 2x`}
                 media="(prefers-color-scheme: dark)"
               />
               <img
-                src={$icon("/images/keypears-5-light-200.webp")}
-                srcSet={`${$icon("/images/keypears-5-light-200.webp")} 1x, ${$icon("/images/keypears-5-light-400.webp")} 2x`}
+                src={$icon("/images/keypears-6-light-200.webp")}
+                srcSet={`${$icon("/images/keypears-6-light-200.webp")} 1x, ${$icon("/images/keypears-6-light-400.webp")} 2x`}
                 alt="KeyPears"
                 className="h-12 w-12"
               />

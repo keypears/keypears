@@ -136,12 +136,12 @@ function Logo() {
     >
       <picture>
         <source
-          srcSet={`${$icon("/images/keypears-5-dark-64.webp")} 1x, ${$icon("/images/keypears-5-dark-128.webp")} 2x`}
+          srcSet={`${$icon("/images/keypears-6-dark-64.webp")} 1x, ${$icon("/images/keypears-6-dark-128.webp")} 2x`}
           media="(prefers-color-scheme: dark)"
         />
         <img
-          src={$icon("/images/keypears-5-light-64.webp")}
-          srcSet={`${$icon("/images/keypears-5-light-64.webp")} 1x, ${$icon("/images/keypears-5-light-128.webp")} 2x`}
+          src={$icon("/images/keypears-6-light-64.webp")}
+          srcSet={`${$icon("/images/keypears-6-light-64.webp")} 1x, ${$icon("/images/keypears-6-light-128.webp")} 2x`}
           alt="KeyPears"
           className="h-8 w-8"
         />
