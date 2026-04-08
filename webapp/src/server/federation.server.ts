@@ -9,7 +9,7 @@ import { uuidv7 } from "uuidv7";
 function newId(): string {
   return uuidv7();
 }
-import { parseAddress, apiUrlFromDomain, getDomain } from "~/lib/config";
+import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
 import { isLocalDomain } from "./user.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -23,7 +23,7 @@ type ApiClient = RouterClient<typeof apiRouter>;
 const apiDomainCache = new Map<string, string>();
 
 export async function resolveApiUrl(domain: string): Promise<string> {
-  if (await isLocalDomain(domain)) return apiUrlFromDomain(getDomain());
+  if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
 
   const cached = apiDomainCache.get(domain);
   if (cached) return apiUrlFromDomain(cached);

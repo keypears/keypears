@@ -10,8 +10,18 @@ function getMasterSecret(): FixedBuf<32> {
   return FixedBuf.fromHex(32, hex);
 }
 
+/** Address domain — goes after @ in user addresses. */
 export function getDomain(): string {
-  return process.env.KEYPEARS_DOMAIN ?? "keypears.com";
+  const d = process.env.KEYPEARS_DOMAIN;
+  if (!d) throw new Error("KEYPEARS_DOMAIN env var is required");
+  return d;
+}
+
+/** API domain — where this server's API runs. */
+export function getApiDomain(): string {
+  const d = process.env.KEYPEARS_API_DOMAIN;
+  if (!d) throw new Error("KEYPEARS_API_DOMAIN env var is required");
+  return d;
 }
 
 /** Build the API URL from a domain. Always https://{domain}/api. */
