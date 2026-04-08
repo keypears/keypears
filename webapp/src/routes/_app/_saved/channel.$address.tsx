@@ -62,11 +62,17 @@ function ChannelPage() {
     publicKey: string;
     encryptedPrivateKey: string;
   } | null>(null);
+  const [allMyKeys, setAllMyKeys] = useState<
+    { publicKey: string; encryptedPrivateKey: string; loginKeyHash: string | null }[]
+  >([]);
   const [myPublicKeys, setMyPublicKeys] = useState<Set<string>>(new Set());
+  const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(null);
   useEffect(() => {
     getMyActiveEncryptedKey().then(setMyKeyData);
     getMyKeys().then((data) => {
+      setAllMyKeys(data.keys);
       setMyPublicKeys(new Set(data.keys.map((k) => k.publicKey)));
+      setCurrentPasswordHash(data.passwordHash);
       return data;
     });
   }, []);
@@ -180,24 +186,34 @@ function ChannelPage() {
     senderPubKey: string;
     recipientPubKey: string;
   }): DecryptResult {
-    if (!encryptionKey || !myKeyData) return { ok: false, reason: "loading" };
+    if (!encryptionKey || allMyKeys.length === 0)
+      return { ok: false, reason: "loading" };
+
+    // Find which of my keys was used for this message
+    const isSender = myPublicKeys.has(msg.senderPubKey);
+    const myPubKeyHex = isSender ? msg.senderPubKey : msg.recipientPubKey;
+    const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
+
+    // Find the matching key data
+    const matchingKey = allMyKeys.find((k) => k.publicKey === myPubKeyHex);
+    if (!matchingKey) return { ok: false, reason: "wrong-key" };
+
+    // Check if this key is encrypted with the current password
+    if (matchingKey.loginKeyHash !== currentPasswordHash) {
+      return { ok: false, reason: "wrong-key" };
+    }
+
     try {
       const myPrivKey = decryptPrivateKey(
-        myKeyData.encryptedPrivateKey,
+        matchingKey.encryptedPrivateKey,
         encryptionKey,
       );
-      const isSender = msg.senderPubKey === myKeyData.publicKey;
-      const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
       return {
         ok: true,
         text: decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey),
       };
     } catch {
-      const isSender = msg.senderPubKey === myKeyData.publicKey;
-      if (!isSender && msg.recipientPubKey !== myKeyData.publicKey) {
-        return { ok: false, reason: "wrong-key" };
-      }
       return { ok: false, reason: "error" };
     }
   }
