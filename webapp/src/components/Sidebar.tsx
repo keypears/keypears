@@ -63,7 +63,7 @@ function UserDropdown({ userName }: { userName: string }) {
         <DropdownMenuItem asChild>
           <a href="/keys" className="cursor-pointer no-underline">
             <KeyRound className="mr-2 h-4 w-4" />
-            Key Rotation
+            Keys
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

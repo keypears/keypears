@@ -131,7 +131,7 @@ function KeysPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-8 font-sans">
-      <h1 className="text-foreground text-2xl font-bold">Key Rotation</h1>
+      <h1 className="text-foreground text-2xl font-bold">Keys</h1>
 
       <section className="mt-8">
         <div className="flex items-center justify-between">
