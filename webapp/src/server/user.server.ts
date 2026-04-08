@@ -45,13 +45,135 @@ export async function isLocalDomain(domainName: string): Promise<boolean> {
 
 export async function getDomainById(
   id: string,
-): Promise<{ id: string; domain: string } | null> {
+): Promise<{ id: string; domain: string; adminUserId: string | null } | null> {
   const [row] = await db
     .select()
     .from(domains)
     .where(eq(domains.id, id))
     .limit(1);
   return row ?? null;
+}
+
+export async function getDomainsForAdmin(userId: string) {
+  return db
+    .select({ id: domains.id, domain: domains.domain })
+    .from(domains)
+    .where(eq(domains.adminUserId, userId));
+}
+
+export async function getUsersForDomain(domainId: string) {
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(and(eq(users.domainId, domainId), sql`${users.passwordHash} IS NOT NULL`))
+    .orderBy(users.name);
+}
+
+export async function verifyDomainAdmin(
+  domainName: string,
+  adminAddress: string,
+): Promise<{ valid: boolean; message?: string }> {
+  const { getApiDomain } = await import("~/lib/config");
+
+  const url = `https://${domainName}/.well-known/keypears.json`;
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    return { valid: false, message: `Cannot reach ${domainName}` };
+  }
+  if (!response.ok) {
+    return { valid: false, message: `No keypears.json at ${domainName}` };
+  }
+
+  const json = (await response.json()) as {
+    apiDomain?: string;
+    admin?: string;
+  };
+
+  if (!json.apiDomain) {
+    return { valid: false, message: "Missing apiDomain in keypears.json" };
+  }
+  if (json.apiDomain !== getApiDomain()) {
+    return {
+      valid: false,
+      message: `apiDomain "${json.apiDomain}" does not match this server`,
+    };
+  }
+  if (!json.admin) {
+    return { valid: false, message: "Missing admin in keypears.json" };
+  }
+  if (json.admin !== adminAddress) {
+    return {
+      valid: false,
+      message: `Admin "${json.admin}" does not match your address`,
+    };
+  }
+
+  return { valid: true };
+}
+
+export async function claimDomain(
+  domainName: string,
+  adminUserId: string,
+): Promise<{ id: string; domain: string }> {
+  const existing = await getDomainByName(domainName);
+  if (existing) {
+    // Update admin if domain already exists
+    await db
+      .update(domains)
+      .set({ adminUserId })
+      .where(eq(domains.id, existing.id));
+    return existing;
+  }
+
+  const id = newId();
+  await db.insert(domains).values({ id, domain: domainName, adminUserId });
+  return { id, domain: domainName };
+}
+
+export async function createUserForDomain(
+  name: string,
+  domainId: string,
+  loginKeyHex: string,
+  publicKey: string,
+  encryptedPrivateKey: string,
+) {
+  // Check name uniqueness within domain
+  const existing = await getUserByNameAndDomain(name, domainId);
+  if (existing) throw new Error("Name is already taken");
+
+  const passwordHash = hashLoginKey(loginKeyHex);
+  const id = newId();
+  await db.insert(users).values({
+    id,
+    name,
+    domainId,
+    passwordHash,
+    expiresAt: null,
+  });
+  await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
+  return { id };
+}
+
+export async function resetUserPassword(
+  userId: string,
+  newLoginKeyHex: string,
+  publicKey: string,
+  encryptedPrivateKey: string,
+) {
+  const newPasswordHash = hashLoginKey(newLoginKeyHex);
+  await db
+    .update(users)
+    .set({ passwordHash: newPasswordHash })
+    .where(eq(users.id, userId));
+  await insertKey(userId, publicKey, encryptedPrivateKey, newPasswordHash);
+  // Revoke all sessions for this user
+  await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 function blake3Pbkdf(

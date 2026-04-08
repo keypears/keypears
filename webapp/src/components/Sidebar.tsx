@@ -26,6 +26,7 @@ import {
   LockKeyhole,
   LogOut,
   User,
+  Globe,
 } from "lucide-react";
 
 const navItems = [
@@ -64,6 +65,12 @@ function UserDropdown({ userName }: { userName: string }) {
           <a href="/keys" className="cursor-pointer no-underline">
             <KeyRound className="mr-2 h-4 w-4" />
             Keys
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/domains" className="cursor-pointer no-underline">
+            <Globe className="mr-2 h-4 w-4" />
+            Domains
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -156,14 +163,14 @@ function Address({
   domain,
 }: {
   userName: string;
-  domain: string;
+  domain: string | null;
 }) {
   return (
     <a
       href={`/@${userName}`}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
-      {userName}@{domain}
+      {domain ? `${userName}@${domain}` : userName}
     </a>
   );
 }
@@ -175,7 +182,7 @@ export function Sidebar({
 }: {
   userName: string | null;
   hasPassword: boolean;
-  domain: string;
+  domain: string | null;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { unreadCount } = useChannels();

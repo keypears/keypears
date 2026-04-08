@@ -13,13 +13,16 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
     if (!profileName) {
       throw notFound();
     }
-    const [me, domain] = await Promise.all([getMyUser(), getServerDomain()]);
+    const [me, primaryDomain] = await Promise.all([
+      getMyUser(),
+      getServerDomain(),
+    ]);
+    if (!me) throw notFound();
+    // Use the logged-in user's domain for profile lookup
+    const domain = me.domain ?? primaryDomain;
     const profileData = await getProfile({
       data: `${profileName}@${domain}`,
     });
-    if (!me) {
-      throw notFound();
-    }
     return {
       profileName,
       publicKey: profileData?.publicKey ?? null,

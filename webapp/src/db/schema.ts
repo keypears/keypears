@@ -31,6 +31,7 @@ const binaryId = customType<{ data: string }>({
 export const domains = mysqlTable("domains", {
   id: binaryId("id").primaryKey(),
   domain: varchar("domain", { length: 255 }).notNull().unique(),
+  adminUserId: binaryId("admin_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

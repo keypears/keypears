@@ -26,6 +26,13 @@ import {
   deleteAllSessionsExcept,
   getOrCreateDomain,
   getDomainByName,
+  getDomainById,
+  getDomainsForAdmin,
+  getUsersForDomain,
+  verifyDomainAdmin,
+  claimDomain,
+  createUserForDomain,
+  resetUserPassword,
 } from "./user.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
@@ -33,7 +40,7 @@ import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
-import { getDomain, parseAddress } from "~/lib/config";
+import { getDomain, makeAddress, parseAddress } from "~/lib/config";
 
 const COOKIE_NAME = "session";
 const ONE_DAY = 60 * 60 * 24;
@@ -95,9 +102,15 @@ export const getMyUser = createServerFn({ method: "GET" }).handler(async () => {
   const row = await getUserById(userId);
   if (!row) return null;
   if (row.expiresAt && row.expiresAt < new Date()) return null;
+  let userDomain: string | null = null;
+  if (row.domainId) {
+    const d = await getDomainById(row.domainId);
+    if (d) userDomain = d.domain;
+  }
   return {
     id: row.id,
     name: row.name,
+    domain: userDomain,
     hasPassword: row.passwordHash != null,
   };
 });
@@ -182,6 +195,7 @@ export const login = createServerFn({ method: "POST" })
     z
       .object({
         name: z.string(),
+        domain: z.string(),
         loginKey: z.string(),
       })
       .and(PowSolutionSchema),
@@ -196,9 +210,8 @@ export const login = createServerFn({ method: "POST" })
     if (!powResult.valid) {
       throw new Error(`Invalid proof of work: ${powResult.message}`);
     }
-    // Resolve domain from the login name (which may be parsed from a full address)
-    const domain = await getDomainByName(getDomain());
-    if (!domain) throw new Error("Domain not configured");
+    const domain = await getDomainByName(input.domain);
+    if (!domain) throw new Error("Invalid credentials");
     const result = await verifyLogin(input.name, domain.id, input.loginKey);
     const session = await createSession(result.id, THIRTY_DAYS);
     setCookie(COOKIE_NAME, session.token, cookieOpts(THIRTY_DAYS));
@@ -311,6 +324,95 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
       input.keyId,
       input.encryptedPrivateKey,
       input.loginKey,
+    );
+    return { success: true };
+  });
+
+// --- Domain management ---
+
+async function getMyAddress(): Promise<string> {
+  const userId = await requireSessionUserId();
+  const user = await getUserById(userId);
+  if (!user?.name || !user.domainId) throw new Error("Account not saved");
+  const domain = await getDomainById(user.domainId);
+  if (!domain) throw new Error("Domain not found");
+  return makeAddress(user.name, domain.domain);
+}
+
+export const claimDomainFn = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: domainName }) => {
+    const userId = await requireSessionUserId();
+    const adminAddress = await getMyAddress();
+    const result = await verifyDomainAdmin(domainName, adminAddress);
+    if (!result.valid) throw new Error(result.message ?? "Verification failed");
+    const domain = await claimDomain(domainName, userId);
+    return { id: domain.id, domain: domain.domain };
+  });
+
+export const getMyDomains = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const userId = await getSessionUserId();
+    if (!userId) return [];
+    return getDomainsForAdmin(userId);
+  },
+);
+
+export const getDomainUsersFn = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: domainName }) => {
+    const adminAddress = await getMyAddress();
+    const result = await verifyDomainAdmin(domainName, adminAddress);
+    if (!result.valid) throw new Error(result.message ?? "Not authorized");
+    const domain = await getDomainByName(domainName);
+    if (!domain) throw new Error("Domain not found");
+    return getUsersForDomain(domain.id);
+  });
+
+export const createDomainUserFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      domain: z.string(),
+      name: nameSchema,
+      loginKey: z.string(),
+      publicKey: z.string(),
+      encryptedPrivateKey: z.string(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const adminAddress = await getMyAddress();
+    const result = await verifyDomainAdmin(input.domain, adminAddress);
+    if (!result.valid) throw new Error(result.message ?? "Not authorized");
+    const domain = await getDomainByName(input.domain);
+    if (!domain) throw new Error("Domain not found");
+    return createUserForDomain(
+      input.name,
+      domain.id,
+      input.loginKey,
+      input.publicKey,
+      input.encryptedPrivateKey,
+    );
+  });
+
+export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      domain: z.string(),
+      userId: z.string(),
+      newLoginKey: z.string(),
+      publicKey: z.string(),
+      encryptedPrivateKey: z.string(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const adminAddress = await getMyAddress();
+    const result = await verifyDomainAdmin(input.domain, adminAddress);
+    if (!result.valid) throw new Error(result.message ?? "Not authorized");
+    await resetUserPassword(
+      input.userId,
+      input.newLoginKey,
+      input.publicKey,
+      input.encryptedPrivateKey,
     );
     return { success: true };
   });

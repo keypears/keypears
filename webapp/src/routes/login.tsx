@@ -17,6 +17,7 @@ import { PowModal } from "~/components/PowModal";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { Loader2 } from "lucide-react";
 import { getServerDomain } from "~/server/config.functions";
+import { parseAddress } from "~/lib/config";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -34,22 +35,22 @@ function LoginPage() {
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   // Store credentials while PoW is mining
-  const credentialsRef = useRef<{ name: string; password: string } | null>(
-    null,
-  );
+  const credentialsRef = useRef<{
+    name: string;
+    domain: string;
+    password: string;
+  } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const match = address.match(
-      new RegExp(`^([^@]+)@${domain.replace(".", "\\.")}$`),
-    );
-    if (!match) {
+    const parsed = parseAddress(address);
+    if (!parsed) {
       setError(`Enter a valid KeyPears address (e.g. name@${domain}).`);
       return;
     }
 
-    credentialsRef.current = { name: match[1], password };
+    credentialsRef.current = { name: parsed.name, domain: parsed.domain, password };
 
     try {
       const challenge = await getLoginPowChallenge();
@@ -69,7 +70,7 @@ function LoginPage() {
       const passwordKey = derivePasswordKey(creds.password);
       const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
       await login({
-        data: { name: creds.name, loginKey, ...solution },
+        data: { name: creds.name, domain: creds.domain, loginKey, ...solution },
       });
       const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
