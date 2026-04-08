@@ -36,10 +36,6 @@ In reality:
 
 ### What needs to change
 
-**Rename `webapp/` to `keypears/`.**
-
-It's the KeyPears server, not a generic webapp.
-
 **Move the passapples KeyPears server to a subdomain.**
 
 The passapples KeyPears server should run at `keypears.passapples.test`, not
@@ -88,7 +84,7 @@ Reflect the new structure and the three deployment patterns.
 
 ### What stays the same
 
-- The KeyPears server codebase (just renamed from `webapp/` to `keypears/`).
+- The KeyPears server codebase (`webapp/`).
 - The federation protocol.
 - The database schema.
 - All existing functionality.
@@ -96,8 +92,8 @@ Reflect the new structure and the three deployment patterns.
 ### Dev topology after this change
 
 ```
-keypears.test                → keypears/ (primary KeyPears server)
-keypears.passapples.test     → keypears/ (same codebase, different env/db)
+keypears.test                → webapp/ (primary KeyPears server)
+keypears.passapples.test     → webapp/ (same codebase, different env/db)
 passapples.test              → passapples/ (landing page + well-known)
 lockberries.test             → lockberries/ (landing page + well-known)
 ```
@@ -119,7 +115,7 @@ lockberries.test           → localhost:3520
 
 #### Description
 
-Rename `webapp/` to `keypears/`. Create `passapples/` and `lockberries/` as
+Create `passapples/` and `lockberries/` as
 minimal Astro static sites that serve a landing page and a
 `/.well-known/keypears.json` endpoint. Move the passapples KeyPears server from
 `passapples.test` to `keypears.passapples.test`. Update the top-level workspace
@@ -137,18 +133,12 @@ implemented.
 
 #### Changes
 
-**Rename `webapp/` to `keypears/`.**
-
-- `git mv webapp keypears`.
-- Update root `package.json` workspaces: `["keypears", "packages/*"]`.
-- Update all paths in CLAUDE.md and docs that reference `webapp/`.
-
-**Update `keypears/package.json` scripts.**
+**Update `webapp/package.json` scripts.**
 
 - `dev:keypears` stays on port 3500.
 - `dev:passapples` moves to port 3512 (was 3510, now the subdomain server).
-- Update env file: rename `.env.dev.passapples` and change `KEYPEARS_DOMAIN`
-  to `keypears.passapples.test`.
+- Update env file: `.env.dev.passapples` changes `KEYPEARS_DOMAIN` to
+  `keypears.passapples.test`.
 
 **Create `passapples/` project.**
 
@@ -173,7 +163,7 @@ Same Astro structure as passapples:
 
 **Update root `package.json`.**
 
-- Workspaces: `["keypears", "passapples", "lockberries", "packages/*"]`.
+- Workspaces: `["webapp", "passapples", "lockberries", "packages/*"]`.
 - Scripts:
   - `dev` — runs all four servers concurrently via `concurrently`:
     keypears (3500), passapples landing (3510), keypears-on-passapples (3512),
