@@ -344,3 +344,15 @@ verification.
    server re-checks and rejects.
 10. Claiming a domain with wrong `apiDomain` or wrong `admin` fails with clear
     error.
+
+**Result:** Pass
+
+#### Conclusion
+
+Domain claiming and admin user management work. The admin verifies against
+`keypears.json` on every privileged action. Users created by the admin can
+log in with their `name@domain` address on the host server. Password reset
+creates a new key; old keys stay under the old password. Login now accepts
+any hosted domain, not just the primary. The navbar and profile page show the
+user's actual domain. Also fixed several places that hardcoded the primary
+domain where the user's domain should have been used.
