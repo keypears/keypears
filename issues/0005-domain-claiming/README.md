@@ -124,61 +124,86 @@ This enables several scenarios:
 
 #### Changes
 
+**`webapp/src/db/schema.ts`:**
+
+- `user_keys` table: add `loginKeyHash` column (varchar, nullable). Stores
+  the server-hashed login key for the password that encrypted this key.
+  Nullable for backwards compatibility — existing keys get the value
+  populated from the user's current `passwordHash` on migration (or lazily).
+
 **`webapp/src/server/user.server.ts`:**
 
-- Add `reEncryptKey(userId, keyId, encryptedPrivateKey)` — updates a single
-  key's encrypted private key. Verifies the key belongs to the user.
+- `insertKey` — accept and store `loginKeyHash` on the key.
+- `saveUser` — when creating the initial key, compute `loginKeyHash` from
+  the login key using the existing `hashLoginKey` function and store it.
+- Add `reEncryptKey(userId, keyId, encryptedPrivateKey, loginKeyHash)` —
+  updates a single key's encrypted private key and loginKeyHash. Verifies
+  the key belongs to the user.
 
 **`webapp/src/server/user.functions.ts`:**
 
-- `changeMyPassword` — change to only re-encrypt keys that the client sends. The
-  client determines which keys it can decrypt (those matching the current
-  password) and sends their re-encrypted versions. Keys not included are left
-  unchanged.
-- Add `reEncryptMyKey(keyId, encryptedPrivateKey)` — server function for
-  re-encrypting a single key. The client decrypts with the old password,
-  re-encrypts with any new password, and sends the result.
-- `getMyKeys` — also return `encryptedPrivateKey` so the client can attempt
-  decryption to determine which keys are locked.
+- `saveMyUser` — pass loginKeyHash when creating the initial key.
+- `rotateKey` — look up the user's current `passwordHash` and set
+  `loginKeyHash` on the new key to match (same password = same hash).
+- `changeMyPassword` — only re-encrypt keys the client sends (those it
+  could decrypt). Update `loginKeyHash` on re-encrypted keys to the new
+  password's hash. Keys not included stay unchanged.
+- Add `reEncryptMyKey(keyId, encryptedPrivateKey, loginKey)` — server
+  function for re-encrypting a single key. Server hashes the provided
+  login key and stores it as `loginKeyHash`. The encryption key never
+  touches the server — only the login key (for identification) and the
+  re-encrypted private key.
+- `getMyKeys` — return `encryptedPrivateKey` and `loginKeyHash` so the
+  client can determine which keys match the current password. The client
+  compares each key's `loginKeyHash` against the user's `passwordHash`
+  — if they match, the key is encrypted with the current login password.
 
 **`webapp/src/routes/_app/_saved/_chrome/keys.tsx`** — Update keys page:
 
-- For each key, attempt decryption with the current encryption key
-  (client-side). Show status: "Active" (decryptable) or "Locked" (different
-  password).
-- For any key (active or locked): "Change password" button. Opens a form with
-  two fields: "Current password for this key" and "New password." Client derives
-  old encryption key, decrypts, derives new encryption key, re-encrypts, calls
+- For each key, compare `loginKeyHash` to the user's `passwordHash`.
+  Show status: "Active" (matches) or "Locked" (different password).
+- Also attempt actual decryption client-side as a secondary check.
+- For any key: "Change password" button. Opens a form with two fields:
+  "Current password for this key" and "New password." Client derives
+  old encryption key (decrypts), derives new encryption key (re-encrypts),
+  derives new login key (sent to server for identification). Calls
   `reEncryptMyKey`.
-- Show a notice if the new password matches / doesn't match the login password:
-  "This key will auto-decrypt" vs "This key will not auto-decrypt — use your
-  login password to enable auto-decryption."
+- Show notice if the new password matches / doesn't match the login
+  password: "This key will auto-decrypt" vs "This key will not
+  auto-decrypt — use your login password to enable auto-decryption."
 
 **`webapp/src/routes/_app/_saved/channel.$address.tsx`** — Update message
 decryption:
 
-- When decryption fails because the key has a different password, show "Cannot
-  decrypt — update password on Keys page" with a link, instead of the current
-  generic "Unable to decrypt" or "Encrypted with a different key."
+- When decryption fails because the key has a different password, show
+  "Cannot decrypt — update password on Keys page" with a link, instead
+  of the current generic "Unable to decrypt" or "Encrypted with a
+  different key."
 
 **`webapp/src/routes/_app/_saved/_chrome/password.tsx`** — Update password
 change:
 
-- Only re-encrypt keys that are currently decryptable. Fetch all keys, attempt
-  to decrypt each with the current encryption key. Re-encrypt only the ones that
-  succeed. Send only those to the server.
+- Only re-encrypt keys that are currently decryptable. Fetch all keys,
+  attempt to decrypt each with the current encryption key. Re-encrypt
+  only the ones that succeed. Send only those to the server. Keys under
+  a different password are left untouched.
 
 #### Verification
 
-1. Create account, set password. Key 1 is active. All messages decryptable.
-2. Rotate key. Key 2 is active (same password). Both keys decryptable.
-3. On keys page, change key 1's password to something different. Key 1 shows as
-   "Locked." Key 2 still active.
-4. Old messages encrypted with key 1 show "Cannot decrypt — update password on
-   Keys page."
-5. On keys page, change key 1's password back to the login password. Key 1 shows
-   as "Active" again. Old messages decrypt.
-6. Change login password (via password page). Key 2 is re-encrypted with new
-   password (active). Key 1 was locked — stays locked, untouched.
-7. Enter key 1's password on keys page, re-encrypt with the new login password.
-   Key 1 becomes active. All messages decrypt.
+1. Create account, set password. Key 1 is active (loginKeyHash matches
+   passwordHash). All messages decryptable.
+2. Rotate key. Key 2 is active (same loginKeyHash). Both keys decryptable.
+3. On keys page, change key 1's password to something different. Key 1
+   shows as "Locked" (loginKeyHash no longer matches). Key 2 still active.
+4. Old messages encrypted with key 1 show "Cannot decrypt — update
+   password on Keys page."
+5. On keys page, change key 1's password back to the login password. Key 1
+   shows as "Active" again. Old messages decrypt.
+6. Change login password (via password page). Key 2 is re-encrypted with
+   new password (active, loginKeyHash updated). Key 1 was locked — stays
+   locked, untouched.
+7. Enter key 1's password on keys page, re-encrypt with the new login
+   password. Key 1 becomes active. All messages decrypt.
+8. Verify the database: `user_keys.loginKeyHash` is always a server-side
+   hash, never the raw login key. The encryption key never appears in any
+   server request or database column.
