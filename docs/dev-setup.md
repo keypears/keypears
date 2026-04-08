@@ -8,8 +8,8 @@ access local apps via real HTTPS domains like `https://keypears.test`.
 ### Why
 
 - Real HTTPS with green lock (needed for testing crypto APIs, secure cookies)
-- Memorable hostnames instead of `localhost:3001`
-- One setup handles all local projects
+- Memorable hostnames instead of `localhost:3500`
+- Tests all three deployment patterns (primary, subdomain, third-party)
 
 ### Install
 
@@ -37,8 +37,23 @@ Create `~/.caddy/Caddyfile`:
 
 ```
 keypears.test {
-  tls internal
-  reverse_proxy localhost:3001
+    tls internal
+    reverse_proxy localhost:3500
+}
+
+passapples.test {
+    tls internal
+    reverse_proxy localhost:3510
+}
+
+keypears.passapples.test {
+    tls internal
+    reverse_proxy localhost:3512
+}
+
+lockberries.test {
+    tls internal
+    reverse_proxy localhost:3520
 }
 ```
 
@@ -52,29 +67,46 @@ Start Caddy:
 caddy start --config ~/.caddy/Caddyfile
 ```
 
-To add a new app, add a block to the Caddyfile and reload:
+To reload after config changes:
 
 ```bash
 caddy reload --config ~/.caddy/Caddyfile
 ```
 
-### Vite Configuration
+### Dev Topology
 
-Vite 8+ blocks requests from unknown hostnames. Add the local domain to
-`server.allowedHosts` in `vite.config.ts`:
+Four domains test three deployment patterns:
 
-```ts
-server: {
-  port: 3001,
-  allowedHosts: ["keypears.test"],
-},
-```
+| Domain | Port | Purpose |
+|--------|------|---------|
+| `keypears.test` | 3500 | Primary self-hosted KeyPears server |
+| `passapples.test` | 3510 | Astro landing page (subdomain hosting) |
+| `keypears.passapples.test` | 3512 | KeyPears server for passapples domain |
+| `lockberries.test` | 3520 | Astro landing page (third-party hosted) |
+
+- **keypears.test** — the main KeyPears server. Address domain and API domain
+  are the same.
+- **passapples.test** — a business that runs its own KeyPears node on a
+  subdomain. The landing page at `passapples.test` has a `keypears.json`
+  pointing to `keypears.passapples.test`. Users have `@passapples.test`
+  addresses but log in at `keypears.passapples.test`.
+- **lockberries.test** — a domain that doesn't run any server. Its
+  `keypears.json` points to `keypears.test` as the host. Users have
+  `@lockberries.test` addresses but are served by the keypears.test server.
 
 ### Daily Workflow
 
 1. Caddy runs in the background (start once per boot, or use `brew services`)
-2. `cd webapp && bun dev` — starts TanStack on port 3001
+2. From repo root: `bun run dev` — starts all four servers via concurrently
 3. Visit `https://keypears.test` — green lock, real HTTPS
+
+Or run individual servers:
+
+```bash
+cd webapp
+bun run dev:keypears      # keypears.test on port 3500
+bun run dev:passapples    # keypears.passapples.test on port 3512
+```
 
 ### Useful Commands
 

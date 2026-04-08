@@ -5,21 +5,21 @@ users across different domains can communicate seamlessly. The model is
 analogous to email: your address is `name@domain.com`, and the domain
 determines where your data lives.
 
-## Three Tiers
+## Three Deployment Patterns
 
-### 1. keypears.com (Default)
+### 1. Primary Self-Hosted (keypears.com)
 
-Users sign up at keypears.com and get an address like `1@keypears.com`. Zero
-setup, no email required, fully anonymous. Registration is PoW-gated to
-prevent spam. Users can optionally claim a vanity name (e.g.
-`ryan@keypears.com`) on a first-come-first-serve basis.
+Users sign up at keypears.com and get an address like `alice@keypears.com`.
+Zero setup, no email required, fully anonymous. Registration is PoW-gated to
+prevent spam. The address domain and API domain are the same.
 
-### 2. Hosted KeyPears (Custom Domain)
+### 2. Subdomain Self-Hosted (Custom Domain)
 
 A business owns `acme.com` and wants their users to have addresses like
-`alice@acme.com`. Setup is minimal:
+`alice@acme.com`. They run a KeyPears server on a subdomain:
 
-1. Add `keypears.json` to their domain:
+1. Run a KeyPears server at `keypears.acme.com`
+2. Add `keypears.json` to `acme.com`:
 
 ```
 https://acme.com/.well-known/keypears.json
@@ -27,71 +27,58 @@ https://acme.com/.well-known/keypears.json
 
 ```json
 {
-  "apiDomain": "keypears.com"
+  "apiDomain": "keypears.acme.com"
 }
 ```
 
-2. That's it. Users sign up by verifying their `@acme.com` email address.
-   Their KeyPears name matches their email prefix automatically.
+The address domain (`acme.com`) differs from the API domain
+(`keypears.acme.com`). Users have `@acme.com` addresses but log in at
+`keypears.acme.com`. The main `acme.com` domain stays the business's
+website.
 
-All data is stored and served by keypears.com. Like Google Workspace with a
-custom domain.
+### 3. Third-Party Hosted (Custom Domain, No Server)
 
-### 3. Self-Hosted
-
-A business runs their own KeyPears server at `kp.acme.com`. Their
-`keypears.json` points to their own server:
+A domain owner doesn't run any server. They put a `keypears.json` on their
+domain pointing to a hosted KeyPears instance:
 
 ```json
 {
-  "apiDomain": "kp.acme.com"
+  "apiDomain": "keypears.com",
+  "admin": "acme@keypears.com"
 }
 ```
 
-The server is configured to require email auth for the domain. Users sign
-up by verifying their `@acme.com` email. Full control over data,
-infrastructure, and policies.
+The `admin` field names an existing KeyPears user who can manage users for
+this domain. Users at `@acme.com` are served by the keypears.com server.
+Like Google Workspace with a custom domain.
+
+The admin is verified against `keypears.json` on every privileged action
+(creating users, resetting passwords). If the `admin` field changes, the
+old admin immediately loses access.
 
 ## Address Format
 
 A KeyPears address is `name@domain`:
 
-- **name** — a string identifier. On keypears.com, defaults to the numeric
-  user ID (e.g. `1`, `42`) but can be changed to a vanity name. On business
-  domains, matches the email prefix (e.g. `alice`, `bob`).
+- **name** — a lowercase alphanumeric string (1-30 chars, starts with a letter)
 - **domain** — the domain that hosts the user's `keypears.json`
 
 The address is the user's identity. It does not change even if the hosting
 provider changes, because the domain stays the same and only the
 `keypears.json` file is updated.
 
-## Registration Modes
+## Server Configuration
 
-A KeyPears server supports two registration modes, configured per domain:
-
-### Open Registration (keypears.com)
-
-- No email required. Fully anonymous.
-- Users get a numeric ID as their name (e.g. `1@keypears.com`).
-- Registration is gated by proof-of-work to prevent spam.
-- Users can optionally claim a vanity name (first-come-first-serve).
-
-### Email-Authenticated Registration (Business Domains)
-
-- Users must verify ownership of an email address on the domain.
-- Their KeyPears name matches their email prefix automatically.
-- No PoW required — email verification is the anti-spam mechanism.
-- The domain admin only needs to set up `keypears.json` — no user
-  provisioning. Users self-serve.
-
-### Server Configuration
-
-A server needs minimal configuration:
+A server needs two domain env vars:
 
 | Setting | Description | Example |
 |---------|-------------|---------|
-| `KEYPEARS_DOMAIN` | The domain for addresses and API (`/api`) | `acme.com` |
-| `KEYPEARS_SECRET` | Master secret for deriving PoW signing keys | 64-char hex |
+| `KEYPEARS_DOMAIN` | Address domain (goes after `@`) | `acme.com` |
+| `KEYPEARS_API_DOMAIN` | Where this server's API runs | `keypears.acme.com` |
+| `KEYPEARS_SECRET` | Master secret for PoW signing keys | 64-char hex |
+
+For primary self-hosted servers, both domains are the same. For subdomain
+deployments, they differ.
 
 ## Discovery: keypears.json
 
@@ -113,6 +100,7 @@ Response:
 | Field      | Type   | Description                                    |
 |------------|--------|------------------------------------------------|
 | apiDomain  | string | Domain hosting the KeyPears API (at `/api`)    |
+| admin      | string | (Optional) Admin's full KeyPears address       |
 
 The API URL is derived as `https://{apiDomain}/api`. All server-to-server
 communication — key discovery, message delivery, PoW challenges — goes
@@ -132,9 +120,9 @@ the following public procedures:
 
 | Procedure | Description |
 |-----------|-------------|
-| `serverInfo` | Returns domain and API URL |
+| `serverInfo` | Returns domain info |
 | `getPublicKey` | Returns active public key for an address |
-| `getPowChallenge` | Issues a PoW challenge for channel opening |
+| `getPowChallenge` | Issues a PoW challenge for messaging |
 | `notifyMessage` | Notifies server of a new incoming message |
 | `pullMessage` | Serves a pending message delivery (one-time token) |
 
@@ -157,9 +145,9 @@ for encryption.
 
 ### Same Domain
 
-When sender and recipient are on the same server, messages are stored
-directly. Each user has their own copy of the message in their own channel
-view. No cross-domain communication needed.
+When sender and recipient are on the same server (including different
+hosted domains on the same server), messages are stored directly. Each
+user has their own copy of the message in their own channel view.
 
 ### Cross Domain (Pull Model)
 
@@ -176,13 +164,14 @@ When `alice@acme.com` sends a message to `bob@other.com`:
 
 3. **Sender's server creates pending delivery** — The message is stored in
    a `pending_deliveries` table with a random one-time token. Only the
-   SHA-256 hash of the token is stored.
+   BLAKE3 hash of the token is stored.
 
 4. **Sender's server notifies recipient** — Alice's server calls
    `notifyMessage` on Bob's server via oRPC with:
    - `senderAddress`: `alice@acme.com`
    - `recipientAddress`: `bob@other.com`
    - `pullToken`: the one-time token
+   - `pow`: proof of work solution (mined by Alice's browser)
 
 5. **Recipient verifies sender domain** — Bob's server parses the sender
    address, extracts the domain (`acme.com`), fetches
@@ -228,42 +217,40 @@ ECDH decryption, even after key rotation.
 
 ## Proof of Work
 
-### Registration PoW (Open Registration Only)
+### Registration PoW
 
-On servers with open registration (like keypears.com), account creation
-requires proof-of-work. This prevents mass account creation without
-requiring email or any identifying information.
+Account creation requires proof-of-work (difficulty 70M). This prevents
+mass account creation without requiring email or any identifying
+information.
 
-PoW challenges are signed with HMAC (derived from `KEYPEARS_SECRET`). They
-are stateless — no database entry is created until the PoW is verified.
+PoW challenges are signed with BLAKE3 MAC (derived from `KEYPEARS_SECRET`).
+They are stateless — no database entry is created until the PoW is verified.
+Solutions are tracked in `used_pow` for replay prevention.
 
-### Channel PoW
+### Message PoW
 
-Opening a new channel to any user (same domain or cross-domain) requires
-proof-of-work. This prevents spam messaging. The PoW challenge is issued
-by the **recipient's server**, because it is the one that needs protection.
-
-Subsequent messages to the same recipient do not require PoW.
+Every message requires proof-of-work (difficulty 7M) from the recipient's
+server. The client mines PoW on WebGPU before sending. Servers never mine.
 
 ### Login PoW
 
-Each login attempt requires a small amount of PoW. This throttles
-brute-force password attacks without rate limiting or account lockouts.
+Each login attempt requires PoW (difficulty 7M). This throttles brute-force
+password attacks without rate limiting or account lockouts.
 
 ## Migration
 
 ### Hosted → Self-Hosted
 
 1. Export data from keypears.com (users, keys, messages)
-2. Import data into self-hosted server at `kp.acme.com`
+2. Import data into self-hosted server at `keypears.acme.com`
 3. Update `acme.com/.well-known/keypears.json` to point to
-   `https://kp.acme.com/api`
+   `keypears.acme.com`
 4. Users keep their addresses — `alice@acme.com` still works
 
 ### Self-Hosted → Hosted
 
 The reverse: export from self-hosted, import to keypears.com, update
-`keypears.json` to point to `https://keypears.com/api`.
+`keypears.json` to point to `keypears.com`.
 
 ### Self-Hosted → Different Self-Hosted
 
@@ -284,9 +271,8 @@ you can join the federation.
 by the recipient independently resolving the sender's domain. No server
 signing keys or certificates needed beyond standard HTTPS.
 
-**PoW-gated channels** — Spam protection is decentralized. Each server
-sets its own PoW difficulty. A server under attack can raise its difficulty
-independently.
+**PoW-gated messaging** — Every message requires proof of work. Difficulty
+is set by the recipient's server.
 
 **Forward secrecy via key rotation** — Users can rotate keys at any time.
 Old messages remain encrypted with old keys. New messages use the current
@@ -294,6 +280,6 @@ key. The protocol handles key transitions gracefully by storing both
 sender and recipient public keys per message.
 
 **Privacy-preserving by default** — keypears.com requires no email, no
-phone number, no identifying information. Business domains can require
-email auth, but that is a per-domain policy choice, not a protocol
+phone number, no identifying information. Business domains can use admin
+user management, but that is a per-domain policy choice, not a protocol
 requirement.

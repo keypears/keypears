@@ -1,18 +1,21 @@
 # KeyPears
 
 An end-to-end encrypted secret sharing system built on federated Diffie-Hellman
-key exchange. User identities are KeyPears addresses (e.g. `1@keypears.com`).
+key exchange. User identities are KeyPears addresses (e.g. `alice@keypears.com`).
 
 ## Project structure
 
 ```
 keypears/
-  package.json          # bun workspace root
+  package.json          # bun workspace root (orchestrates all projects)
   issues/               # issue tracking (see "Issues and experiments")
   kp1/                  # archived kp1 codebase (reference only)
   packages/
     pow5-rs/            # PoW algorithm (Rust, compiles to WASM)
     pow5-ts/            # PoW TypeScript wrapper (@keypears/pow5)
+  passapples/           # Astro landing page for passapples.test
+  lockberries/          # Astro landing page for lockberries.test
+  vendor/               # third-party repos for research (gitignored)
   webapp/               # TanStack Start app (@keypears/webapp)
     src/
       routes/           # TanStack Router file-based routes
@@ -21,18 +24,23 @@ keypears/
         login.tsx       # login page (with PoW)
         _app.tsx        # authenticated layout (requires login)
         _app/
-          welcome.tsx   # onboarding (set password)
-          $profile.tsx  # profile page (/@N)
+          welcome.tsx   # onboarding (set address + password)
           _saved.tsx    # layout requiring saved password
           _saved/
-            inbox.tsx   # inbox (placeholder)
-            send.tsx    # send (placeholder)
-            vault.tsx   # vault (placeholder)
-            keys.tsx    # key rotation
-            password.tsx # change password
+            _chrome.tsx # layout with sidebar + footer
+            _chrome/
+              inbox.tsx     # inbox (placeholder)
+              send.tsx      # send message (with PoW)
+              vault.tsx     # vault (placeholder)
+              keys.tsx      # key management (rotate, per-key passwords)
+              password.tsx  # change password
+              domains.tsx   # domain claiming + admin user management
+              $profile.tsx  # profile page (/@N)
+            channel.$address.tsx  # conversation view
       components/
         Sidebar.tsx     # responsive sidebar + user dropdown
         Footer.tsx      # astrohacker footer
+        PowModal.tsx    # reusable PoW mining modal
         ui/             # shadcn components
       server/
         api.router.ts      # oRPC router (federation API at /api)
@@ -43,15 +51,16 @@ keypears/
         federation.server.ts # cross-domain delivery (pull model)
         pow.functions.ts   # PoW challenge server functions
         pow.server.ts      # PoW challenge creation + verification
+        pow.consume.ts     # PoW replay prevention (DB-dependent)
         config.functions.ts # domain config server functions
         wellknown.functions.ts # keypears.json server function
         schemas.ts         # shared Zod schemas
       db/
-        schema.ts       # Drizzle schema (users, user_keys, channels, messages, etc.)
+        schema.ts       # Drizzle schema
         schema.clear.ts # empty schema for db:clear
         index.ts        # MySQL connection pool
       lib/
-        auth.ts         # three-tier KDF + encryption key caching
+        auth.ts         # three-tier BLAKE3 KDF + encryption key caching
         config.ts       # domain config + derived secrets
         message.ts      # ECDH encryption/decryption
         channel-context.tsx # React context for channel polling
@@ -68,9 +77,10 @@ keypears/
 - **Database**: Drizzle ORM, MySQL
 - **API**: oRPC (type-safe RPC with Zod validation) at `/api`
 - **Styling**: Tailwind CSS v4, shadcn components
-- **Auth**: Three-tier SHA-256 PBKDF (password key -> encryption key + login key)
+- **Auth**: Three-tier BLAKE3 PBKDF (password key -> encryption key + login key)
+- **Sessions**: Random 32-byte tokens, BLAKE3-hashed in DB, 30-day expiry
 - **Crypto**: secp256k1 key pairs, ACS2 encryption, ECDH shared secrets (`@webbuf/*`)
-- **PoW**: pow5-64b algorithm (WASM), signed stateless challenges (no DB)
+- **PoW**: pow5-64b algorithm (WebGPU), signed stateless challenges
 - **Federation**: Pull-model message delivery, domain verification via TLS
 - **Env**: dotenvx for encrypted env management
 - **Linting**: oxlint (161 rules)
@@ -91,26 +101,52 @@ Local HTTPS via Caddy reverse proxy — see [docs/dev-setup.md](docs/dev-setup.m
 
 ```bash
 bun install               # from repo root
+bun run dev               # starts all servers (keypears, passapples, lockberries)
+```
+
+Or run individual servers from `webapp/`:
+
+```bash
 cd webapp
-bun dev                   # starts on port 3001, access via https://keypears.test
-bun run db:clear          # drop all tables
-bun run db:push           # push schema to MySQL
+bun run dev:keypears      # keypears.test on port 3500
+bun run dev:passapples    # keypears.passapples.test on port 3512
+bun run db:clear          # drop all tables (both databases)
+bun run db:push           # push schema to MySQL (both databases)
 bun run test              # run tests
 bun run lint              # run linter
 bun run format            # format code
 bun run build:icons       # regenerate images from raw-icons/
 ```
 
+### Environment variables
+
+Two domain env vars are required:
+
+- `KEYPEARS_DOMAIN` — the address domain (goes after `@` in user addresses)
+- `KEYPEARS_API_DOMAIN` — where this server's API runs (may differ for subdomain deployments)
+- `DATABASE_URL` — MySQL connection string
+- `KEYPEARS_SECRET` — master secret for deriving PoW signing keys (64-char hex)
+
+### Dev topology
+
+Three deployment patterns are tested locally:
+
+```
+keypears.test              → webapp/ port 3500 (primary self-hosted)
+keypears.passapples.test   → webapp/ port 3512 (subdomain self-hosted)
+passapples.test            → passapples/ port 3510 (Astro landing page)
+lockberries.test           → lockberries/ port 3520 (Astro landing, third-party hosted)
+```
+
 ## Key conventions
 
-- Use a single `DATABASE_URL` env var for database connections.
-- Use `dotenvx run -f .env.dev --` to wrap commands that need env vars.
 - Server functions follow the two-file pattern:
   - `*.functions.ts` — `createServerFn` wrappers, safe to import from client
   - `*.server.ts` — DB/crypto logic, only imported inside handler bodies
 - Use `$icon()` from `~/lib/icons` for type-safe image paths.
 - Use shadcn components for UI where appropriate.
 - Always capitalize "KeyPears" with capital K and P in user-facing text.
+- All address input fields require the full `name@domain` format.
 
 ## Auth architecture
 
@@ -123,36 +159,59 @@ Password (never stored)
     -> Login Key (sent to server once, then discarded)
 ```
 
+- All KDF uses BLAKE3 (keyed MAC mode), 100k rounds per tier.
 - Only the encryption key is cached. Password key is ephemeral.
 - If localStorage is compromised: attacker can decrypt keys but cannot
   impersonate the user (login key is a sibling, not derivable from encryption key).
 - Server hashes the login key with 100k additional rounds before storing.
 
+### Sessions
+
+- Random 32-byte session token set as httpOnly cookie.
+- Server stores only the BLAKE3 hash of the token.
+- 30-day expiry for saved accounts, 1-day for unsaved.
+- Password change revokes all other sessions.
+
 ### Proof of work
 
-- Account creation requires PoW (difficulty 700k, ~15s on fast hardware).
-- Login requires lighter PoW (difficulty 70k, ~1-2s).
-- Challenges are signed with HMAC — no database writes until PoW is verified.
-- PoW history is logged per user with cumulative difficulty on profile.
+- Account creation requires PoW (difficulty 70M, ~15s on WebGPU).
+- Login requires lighter PoW (difficulty 7M, ~1-2s).
+- Every message requires PoW from the recipient's server (difficulty 7M).
+- Challenges are signed with BLAKE3 MAC — stateless until verified.
+- PoW solutions are tracked in `used_pow` table for replay prevention.
+- All PoW mining happens in the browser via WebGPU. Servers never mine.
 
-### Key rotation
+### Key management
 
 - Users can rotate secp256k1 key pairs (max 100 per account).
 - Active key = most recent row in `user_keys` table.
-- Key numbers are assigned atomically via database transaction.
+- Each key tracks `loginKeyHash` — identifies which password encrypted it.
+- Keys encrypted with the current login password auto-decrypt.
+- Keys encrypted with a different password show as "locked" — user can
+  re-encrypt by entering the old password on the Keys page.
 
 ### Password change
 
-- All encrypted private keys are re-encrypted client-side with new encryption key.
-- Server atomically updates password hash + all encrypted keys in one transaction.
+- Only re-encrypts keys that match the current password.
+- Keys under a different password are left untouched.
+- Server atomically updates password hash + re-encrypted keys.
+
+### Domain claiming
+
+- Users can claim custom domains via `keypears.json` with `admin` field.
+- Admin verified against `keypears.json` on every privileged action.
+- Admin can create users and reset passwords for their domain.
 
 ## Database schema
 
-- **users**: id, passwordHash, expiresAt, createdAt
-- **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, createdAt
-- **channels**: id, ownerId, counterpartyId, counterpartyAddress, createdAt, updatedAt
+- **domains**: id, domain, adminUserId, createdAt
+- **users**: id, domainId, name, passwordHash, expiresAt, createdAt
+- **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, loginKeyHash, createdAt
+- **sessions**: tokenHash (PK), userId, expiresAt, createdAt
+- **channels**: id, ownerId, counterpartyAddress, createdAt, updatedAt
 - **messages**: id, channelId, senderAddress, encryptedContent, senderPubKey, recipientPubKey, isRead, createdAt
 - **pending_deliveries**: id, tokenHash, senderAddress, recipientAddress, encryptedContent, senderPubKey, recipientPubKey, createdAt
+- **used_pow**: solvedHeaderHash (PK), solvedHeader, target, expiresAt, createdAt
 - **pow_log**: id, userId, algorithm, difficulty, cumulativeDifficulty, createdAt
 
 ## Route protection
