@@ -199,3 +199,18 @@ Document the four-domain Caddyfile with the correct port mappings.
 8. Federation works: send a message from `alice@keypears.test` to
    `bob@keypears.passapples.test`.
 9. `bun run db:clear && bun run db:push` from root manages both databases.
+
+**Result:** Fail
+
+#### Conclusion
+
+The landing pages and workspace orchestration work correctly. However, the
+experiment exposed a fundamental design flaw: `KEYPEARS_DOMAIN` conflates two
+separate concepts — the **server domain** (where the app runs, e.g.
+`keypears.passapples.test`) and the **address domain** (what goes after `@` in
+user addresses, e.g. `passapples.test`). These are not the same thing. A
+KeyPears server at `keypears.passapples.test` should create users with
+addresses like `alice@passapples.test`, not `alice@keypears.passapples.test`.
+This is how email works: Gmail runs at `smtp.gmail.com` but addresses are
+`user@gmail.com`. The next experiment must fix this separation before the
+topology can work correctly.
