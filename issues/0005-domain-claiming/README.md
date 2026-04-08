@@ -221,3 +221,119 @@ message. Messages encrypted with locked keys show a clear error linking to
 the keys page. Also fixed a pre-existing bug where messages sent with older
 keys displayed on the wrong side (left instead of right) — now all of the
 user's public keys are checked, not just the active one.
+
+### Experiment 2: Domain claiming and admin user management
+
+#### Description
+
+Add the ability for a logged-in user to claim a domain and manage users
+under it. The admin is verified against `keypears.json` on every privileged
+action — no admin is stored in the database. The `keypears.json` file is the
+live source of truth for who has admin rights.
+
+**Claiming a domain:**
+
+1. User enters a domain name on the Domains page.
+2. Server fetches `https://{domain}/.well-known/keypears.json`.
+3. Verifies `apiDomain` matches this server's `KEYPEARS_API_DOMAIN`.
+4. Verifies `admin` matches the logged-in user's full address.
+5. Domain is inserted into the `domains` table (no `adminUserId` stored —
+   admin is always checked live from `keypears.json`).
+
+**Creating a user under a domain:**
+
+1. Admin enters a name and password on the Domains page.
+2. Server re-fetches `keypears.json` and re-verifies admin.
+3. Client-side: derives password key → login key + encryption key from the
+   password the admin entered. Generates a key pair, encrypts private key
+   with the encryption key.
+4. Server: creates user with name + domainId, stores hashed login key as
+   passwordHash, stores key with loginKeyHash.
+5. The new user can now log in with `name@domain` and the password the
+   admin chose.
+6. The new user should change their password and rotate their key on first
+   login (nudged by UI, not enforced yet).
+
+**Resetting a user's password:**
+
+1. Admin enters a new password for an existing user.
+2. Server re-fetches `keypears.json` and re-verifies admin.
+3. Client-side: derives new login key + encryption key. Generates a NEW
+   key pair encrypted with the new password.
+4. Server: updates user's passwordHash, inserts new key with new
+   loginKeyHash. Old keys remain encrypted under their old passwords —
+   the user can recover them later if they remember.
+5. All existing sessions for the user are revoked.
+
+#### Changes
+
+**`webapp/src/server/user.server.ts`:**
+
+- Add `verifyDomainAdmin(domain, adminAddress)` — fetches `keypears.json`
+  from the domain, verifies `apiDomain` matches `getApiDomain()`, verifies
+  `admin` matches `adminAddress`. Returns true/false.
+- Add `createUserForDomain(name, domainId, loginKeyHex, publicKey,
+  encryptedPrivateKey)` — creates a saved user under a specific domain.
+  Similar to `saveUser` but creates a new user row directly (no unsaved
+  user to upgrade).
+- Add `resetUserPassword(userId, newLoginKeyHex, publicKey,
+  encryptedPrivateKey)` — updates passwordHash, inserts new key, revokes
+  all sessions.
+
+**`webapp/src/server/user.functions.ts`:**
+
+- Add `claimDomain(domain)` — requires session. Builds admin address from
+  logged-in user. Calls `verifyDomainAdmin`. Inserts domain via
+  `getOrCreateDomain`.
+- Add `getMyDomains()` — returns all domains in the `domains` table where
+  this server is the API domain (i.e. all locally hosted domains). The
+  admin check happens when they try to do something, not when listing.
+- Add `getDomainUsers(domainId)` — returns saved users for a domain.
+  Requires admin verification.
+- Add `createDomainUser({ domain, name, loginKey, publicKey,
+  encryptedPrivateKey })` — requires admin verification. Creates user.
+- Add `resetDomainUserPassword({ domain, userId, newLoginKey, publicKey,
+  encryptedPrivateKey })` — requires admin verification. Resets password.
+
+**`lockberries/src/pages/.well-known/keypears.json.ts`:**
+
+- Add `admin` field: `ryan@keypears.test` (dev) / `ryan@keypears.com`
+  (prod).
+
+**`webapp/src/routes/_app/_saved/_chrome/domains.tsx`** — New page:
+
+- **Claim a domain** section: input for domain name, "Claim" button.
+  Instructions explaining the `keypears.json` requirements.
+- **My domains** section: list of domains hosted by this server. Each
+  domain expands to show:
+  - User list (name, created date, active/locked key status).
+  - "Add user" form: name + password fields. Client derives keys, sends
+    to server.
+  - Per-user "Reset password" button: new password field. Client derives
+    new keys, sends to server.
+
+**`webapp/src/components/Sidebar.tsx`:**
+
+- Add "Domains" link in the user dropdown menu.
+
+#### Verification
+
+1. Log in as `ryan@keypears.test`.
+2. Navigate to Domains page. Claim `lockberries.test` — succeeds (admin
+   matches).
+3. Create user `alice` under `lockberries.test` with a password.
+4. Log out. Log in as `alice@lockberries.test` — succeeds.
+5. Send a message from `alice@lockberries.test` to `ryan@keypears.test`.
+   Message arrives and decrypts (both on same server, different domains).
+6. Log back in as `ryan@keypears.test`. Go to Domains, reset Alice's
+   password.
+7. Log out. Log in as `alice@lockberries.test` with the NEW password —
+   succeeds. Old messages show "Cannot decrypt" (old key under old
+   password). New messages work.
+8. Alice re-encrypts old key with old password on Keys page — old
+   messages decrypt again.
+9. Change `admin` field in lockberries `keypears.json` to a different
+   user. Ryan can no longer perform admin actions on lockberries —
+   server re-checks and rejects.
+10. Claiming a domain with wrong `apiDomain` or wrong `admin` fails with
+    clear error.
