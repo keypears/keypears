@@ -10,6 +10,7 @@ import {
   pollNewMessages,
   markChannelAsRead,
 } from "~/server/message.functions";
+import { getMyKeys } from "~/server/user.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { PowModal } from "~/components/PowModal";
@@ -61,8 +62,13 @@ function ChannelPage() {
     publicKey: string;
     encryptedPrivateKey: string;
   } | null>(null);
+  const [myPublicKeys, setMyPublicKeys] = useState<Set<string>>(new Set());
   useEffect(() => {
     getMyActiveEncryptedKey().then(setMyKeyData);
+    getMyKeys().then((data) => {
+      setMyPublicKeys(new Set(data.keys.map((k) => k.publicKey)));
+      return data;
+    });
   }, []);
 
   // Mark as read on mount
@@ -382,7 +388,7 @@ function ChannelPage() {
               </div>
             )}
             {messageList.map((msg) => {
-              const isMine = msg.senderPubKey === myKeyData?.publicKey;
+              const isMine = myPublicKeys.has(msg.senderPubKey);
               const result = tryDecrypt(msg);
               return (
                 <div
