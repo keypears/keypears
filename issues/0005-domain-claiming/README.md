@@ -207,3 +207,17 @@ change:
 8. Verify the database: `user_keys.loginKeyHash` is always a server-side
    hash, never the raw login key. The encryption key never appears in any
    server request or database column.
+
+**Result:** Pass
+
+#### Conclusion
+
+Per-key password management works. Each key tracks its `loginKeyHash` to
+identify which password encrypted it. The keys page shows active vs locked
+status and allows re-encrypting individual keys with any password. Password
+change only re-encrypts keys that match the current password. Message
+decryption uses a `Map<publicKey, keyData>` to find the correct key for each
+message. Messages encrypted with locked keys show a clear error linking to
+the keys page. Also fixed a pre-existing bug where messages sent with older
+keys displayed on the wrong side (left instead of right) — now all of the
+user's public keys are checked, not just the active one.
