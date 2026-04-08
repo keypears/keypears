@@ -142,21 +142,28 @@ implemented.
 
 **Create `passapples/` project.**
 
-A minimal Astro static site:
+A minimal Astro static site styled identically to the main KeyPears landing
+page (same colors, logo, dark/light mode, layout). Instead of "Create an
+Account" / "Log in", shows "passapples.com" as subtitle and links to the
+KeyPears server at `keypears.passapples.test` (dev) / `keypears.passapples.com`
+(prod):
 - `astro.config.mjs` — static output, Tailwind CSS via Vite plugin.
-- `src/pages/index.astro` — landing page branded as KeyPears:
-  "passapples.com — KeyPears test domain".
+- `src/pages/index.astro` — KeyPears-branded landing page with link:
+  "Go to KeyPears" → `https://keypears.passapples.test`.
 - `src/pages/.well-known/keypears.json.ts` — GET endpoint returning
   `{ "apiDomain": "keypears.passapples.test" }` (dev) or
   `keypears.passapples.com` (prod), using `import.meta.env.PROD`.
+- `src/styles/style.css` — same theme variables as the main KeyPears app.
 - `package.json` with `"dev": "astro dev --port 3510"`.
-- Copy keypears logo files to `public/images/` for branding.
+- Copy keypears logo + favicon files to `public/` for branding.
 
 **Create `lockberries/` project.**
 
-Same Astro structure as passapples:
-- `src/pages/index.astro` — landing page:
-  "lockberries.com — KeyPears test domain (hosted by keypears.com)".
+Same Astro structure and styling as passapples, but links to `keypears.test`
+(dev) / `keypears.com` (prod) since lockberries is third-party hosted:
+- `src/pages/index.astro` — KeyPears-branded landing page with link:
+  "Go to KeyPears" → `https://keypears.test`.
+  Subtitle: "lockberries.com".
 - `src/pages/.well-known/keypears.json.ts` — GET endpoint returning
   `{ "apiDomain": "keypears.test" }` (dev) or `keypears.com` (prod).
 - `package.json` with `"dev": "astro dev --port 3520"`.
