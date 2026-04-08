@@ -214,3 +214,91 @@ addresses like `alice@passapples.test`, not `alice@keypears.passapples.test`.
 This is how email works: Gmail runs at `smtp.gmail.com` but addresses are
 `user@gmail.com`. The next experiment must fix this separation before the
 topology can work correctly.
+
+### Experiment 2: Separate address domain from API domain
+
+#### Description
+
+Split `KEYPEARS_DOMAIN` (address domain) from the new `KEYPEARS_API_DOMAIN`
+(where the server runs). Both env vars are required. They have different
+meanings and almost every deployment will have different values for each.
+
+- `KEYPEARS_DOMAIN` — the address domain. Goes after `@` in user addresses.
+  Example: `passapples.test`. Used for constructing addresses, login
+  validation, the welcome page, name availability checks.
+- `KEYPEARS_API_DOMAIN` — where this server's API runs. Example:
+  `keypears.passapples.test`. Used for the `keypears.json` response, the oRPC
+  API URL, and federation's local domain check.
+
+For the primary server (keypears.test), both are the same value. For the
+passapples server, they differ: `KEYPEARS_DOMAIN=passapples.test`,
+`KEYPEARS_API_DOMAIN=keypears.passapples.test`.
+
+#### Changes
+
+**`webapp/src/lib/config.ts`:**
+
+- `getDomain()` stays — reads `KEYPEARS_DOMAIN`. Used for address
+  construction, welcome page, login.
+- Add `getApiDomain()` — reads `KEYPEARS_API_DOMAIN`. Used for the
+  `keypears.json` response and federation local domain check.
+- `apiUrlFromDomain(domain)` stays — constructs `https://{domain}/api`.
+
+**`webapp/src/server.ts`** — `keypears.json` endpoint:
+
+- Serve `apiDomain: getApiDomain()` instead of `apiDomain: getDomain()`.
+
+**`webapp/src/server/wellknown.functions.ts`:**
+
+- Same: return `apiDomain: getApiDomain()`.
+
+**`webapp/src/server/federation.server.ts`:**
+
+- `resolveApiUrl` local check: use `isLocalDomain` (checks the `domains`
+  table, unchanged). When local, return `apiUrlFromDomain(getApiDomain())`
+  — the local API URL uses the API domain, not the address domain.
+
+**`webapp/src/server/api.router.ts`:**
+
+- `serverInfo` endpoint: return `domain: getDomain()` (address domain, for
+  display). Could also return `apiDomain: getApiDomain()` if useful.
+
+**`webapp/src/server/user.functions.ts`:**
+
+- `checkNameAvailable`, `saveMyUser`, `login` — these use `getDomain()` for
+  address construction. No change needed — `getDomain()` still returns the
+  address domain.
+- `getOrCreateDomain(getDomain())` — creates the address domain in the
+  `domains` table. Correct, no change.
+
+**`webapp/src/server/config.functions.ts`:**
+
+- `getServerDomain()` returns `getDomain()` — this is the address domain shown
+  in the UI (welcome page, login page). Correct, no change.
+
+**`webapp/.env.dev`:**
+
+Already updated: `KEYPEARS_DOMAIN=keypears.test`,
+`KEYPEARS_API_DOMAIN=keypears.test`.
+
+**`webapp/.env.dev.passapples`:**
+
+Already updated: `KEYPEARS_DOMAIN=passapples.test`,
+`KEYPEARS_API_DOMAIN=keypears.passapples.test`.
+
+#### Verification
+
+1. keypears.test: create account as `alice@keypears.test` — address uses
+   `keypears.test`, not `keypears.passapples.test`.
+2. keypears.passapples.test: create account as `bob@passapples.test` — address
+   uses `passapples.test`, not `keypears.passapples.test`.
+3. `https://keypears.test/.well-known/keypears.json` →
+   `{ "apiDomain": "keypears.test" }`.
+4. `https://keypears.passapples.test/.well-known/keypears.json` →
+   `{ "apiDomain": "keypears.passapples.test" }`.
+5. Federation works: send a message from `alice@keypears.test` to
+   `bob@passapples.test`.
+6. `passapples.test/.well-known/keypears.json` →
+   `{ "apiDomain": "keypears.passapples.test" }` (served by Astro landing).
+7. Login at keypears.passapples.test accepts `bob@passapples.test`, not
+   `bob@keypears.passapples.test`.
