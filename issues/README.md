@@ -2,9 +2,10 @@
 
 ## Open
 
-| #                                              | Title                                | Opened     |
-| ---------------------------------------------- | ------------------------------------ | ---------- |
-| [0005](0005-domain-claiming/README.md)         | Domain Claiming via keypears.json    | 2026-04-07 |
+| #                                              | Title                                  | Opened     |
+| ---------------------------------------------- | -------------------------------------- | ---------- |
+| [0006](0006-dev-topology/README.md)            | Dev Topology for Three Deployment Patterns | 2026-04-08 |
+| [0005](0005-domain-claiming/README.md)         | Domain Claiming via keypears.json      | 2026-04-07 |
 
 ## Closed
 
