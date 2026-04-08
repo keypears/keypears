@@ -21,6 +21,7 @@ import { Route as AppSavedChromeSendRouteImport } from './routes/_app/_saved/_ch
 import { Route as AppSavedChromePasswordRouteImport } from './routes/_app/_saved/_chrome/password'
 import { Route as AppSavedChromeKeysRouteImport } from './routes/_app/_saved/_chrome/keys'
 import { Route as AppSavedChromeInboxRouteImport } from './routes/_app/_saved/_chrome/inbox'
+import { Route as AppSavedChromeDomainsRouteImport } from './routes/_app/_saved/_chrome/domains'
 import { Route as AppSavedChromeProfileRouteImport } from './routes/_app/_saved/_chrome/$profile'
 
 const LoginRoute = LoginRouteImport.update({
@@ -80,6 +81,11 @@ const AppSavedChromeInboxRoute = AppSavedChromeInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppSavedChromeRoute,
 } as any)
+const AppSavedChromeDomainsRoute = AppSavedChromeDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => AppSavedChromeRoute,
+} as any)
 const AppSavedChromeProfileRoute = AppSavedChromeProfileRouteImport.update({
   id: '/$profile',
   path: '/$profile',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof AppSavedChromeProfileRoute
+  '/domains': typeof AppSavedChromeDomainsRoute
   '/inbox': typeof AppSavedChromeInboxRoute
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof AppSavedChromeProfileRoute
+  '/domains': typeof AppSavedChromeDomainsRoute
   '/inbox': typeof AppSavedChromeInboxRoute
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_app/welcome': typeof AppWelcomeRoute
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
   '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
+  '/_app/_saved/_chrome/domains': typeof AppSavedChromeDomainsRoute
   '/_app/_saved/_chrome/inbox': typeof AppSavedChromeInboxRoute
   '/_app/_saved/_chrome/keys': typeof AppSavedChromeKeysRoute
   '/_app/_saved/_chrome/password': typeof AppSavedChromePasswordRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/welcome'
     | '/$profile'
+    | '/domains'
     | '/inbox'
     | '/keys'
     | '/password'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/welcome'
     | '/$profile'
+    | '/domains'
     | '/inbox'
     | '/keys'
     | '/password'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_app/welcome'
     | '/_app/_saved/_chrome'
     | '/_app/_saved/_chrome/$profile'
+    | '/_app/_saved/_chrome/domains'
     | '/_app/_saved/_chrome/inbox'
     | '/_app/_saved/_chrome/keys'
     | '/_app/_saved/_chrome/password'
@@ -260,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedChromeInboxRouteImport
       parentRoute: typeof AppSavedChromeRoute
     }
+    '/_app/_saved/_chrome/domains': {
+      id: '/_app/_saved/_chrome/domains'
+      path: '/domains'
+      fullPath: '/domains'
+      preLoaderRoute: typeof AppSavedChromeDomainsRouteImport
+      parentRoute: typeof AppSavedChromeRoute
+    }
     '/_app/_saved/_chrome/$profile': {
       id: '/_app/_saved/_chrome/$profile'
       path: '/$profile'
@@ -272,6 +291,7 @@ declare module '@tanstack/react-router' {
 
 interface AppSavedChromeRouteChildren {
   AppSavedChromeProfileRoute: typeof AppSavedChromeProfileRoute
+  AppSavedChromeDomainsRoute: typeof AppSavedChromeDomainsRoute
   AppSavedChromeInboxRoute: typeof AppSavedChromeInboxRoute
   AppSavedChromeKeysRoute: typeof AppSavedChromeKeysRoute
   AppSavedChromePasswordRoute: typeof AppSavedChromePasswordRoute
@@ -281,6 +301,7 @@ interface AppSavedChromeRouteChildren {
 
 const AppSavedChromeRouteChildren: AppSavedChromeRouteChildren = {
   AppSavedChromeProfileRoute: AppSavedChromeProfileRoute,
+  AppSavedChromeDomainsRoute: AppSavedChromeDomainsRoute,
   AppSavedChromeInboxRoute: AppSavedChromeInboxRoute,
   AppSavedChromeKeysRoute: AppSavedChromeKeysRoute,
   AppSavedChromePasswordRoute: AppSavedChromePasswordRoute,
