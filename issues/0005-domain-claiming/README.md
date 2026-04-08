@@ -76,93 +76,103 @@ HTTPS alone.
 
 ## Experiments
 
-### Experiment 1: Domain claiming and user creation
+### Experiment 1: Per-key password management
 
 #### Description
 
-Add the ability for a logged-in KeyPears user to claim a custom domain and
-create user accounts under it. The flow:
+Before implementing domain claiming and admin-created accounts, we need the
+system to handle keys encrypted under different passwords. Currently, all
+keys are encrypted with one password and password change re-encrypts
+everything atomically. This breaks when:
 
-1. User navigates to a "Domains" page in the app.
-2. Enters a domain name (e.g. `lockberries.test`).
-3. Server fetches `https://lockberries.test/.well-known/keypears.json`.
-4. Verifies `apiDomain` matches this server's `KEYPEARS_API_DOMAIN`.
-5. Verifies `admin` matches the logged-in user's full address.
-6. Domain is added to the `domains` table with the user as admin.
-7. Admin can then create users under the domain from the same page.
-8. Created users can log in with their `@lockberries.test` addresses.
+- An admin creates a user with an initial password (and key).
+- The user changes their password — new keys use the new password, but old
+  keys remain encrypted under the admin's password.
+- An admin resets a user's password — same situation.
+- A user forgets their old password — old keys are permanently locked unless
+  they remember.
+
+The fix: track which password encrypted each key, decrypt selectively, and
+let users re-encrypt individual keys by entering the old password.
+
+**Password generation model:**
+
+Each user has a `passwordGeneration` counter (starts at 1, increments on
+every password change). Each key stores `encryptedWithGeneration` — the
+generation of the password used to encrypt it. The current encryption key
+(cached in localStorage) can only decrypt keys matching the current
+generation.
+
+**How it works in the UI:**
+
+- Keys page shows all keys with their generation.
+- Keys matching the current generation show as decryptable.
+- Keys under an older generation show as "locked" with an option to
+  re-encrypt: enter the old password, the system derives the old encryption
+  key, decrypts the private key, re-encrypts with the current encryption
+  key, updates the key's generation.
+- Messages encrypted with a locked key show "Cannot decrypt — update
+  password on Keys page" instead of the current generic error.
 
 #### Changes
 
-**`webapp/src/db/schema.ts`** — Extend `domains` table:
+**`webapp/src/db/schema.ts`** — Add generation tracking:
 
-```ts
-export const domains = mysqlTable("domains", {
-  id: binaryId("id").primaryKey(),
-  domain: varchar("domain", { length: 255 }).notNull().unique(),
-  adminUserId: binaryId("admin_user_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-```
+- `users` table: add `passwordGeneration` column (int, default 1).
+- `user_keys` table: add `encryptedWithGeneration` column (int, default 1).
 
-`adminUserId` is nullable — the primary domain (created by
-`getOrCreateDomain`) has no admin. Claimed domains have an admin.
+**`webapp/src/server/user.server.ts`:**
 
-**`lockberries/src/pages/.well-known/keypears.json.ts`** — Add `admin` field:
+- `saveUser` — set `passwordGeneration = 1` when creating the account.
+  Set `encryptedWithGeneration = 1` on the initial key.
+- `changePassword` — increment `passwordGeneration`. New keys get the new
+  generation. Do NOT re-encrypt old keys (they stay under the old
+  generation).
+- `rotateKey` — new key gets `encryptedWithGeneration = currentGeneration`.
+- Add `reEncryptKey(keyId, encryptedPrivateKey, generation)` — updates a
+  single key's encrypted data and generation.
 
-```ts
-return {
-  apiDomain: isProd ? "keypears.com" : "keypears.test",
-  admin: isProd ? "ryan@keypears.com" : "ryan@keypears.test",
-};
-```
+**`webapp/src/server/user.functions.ts`:**
 
-**`webapp/src/server/user.server.ts`** — Add domain claiming functions:
+- `getMyKeys` — return `encryptedWithGeneration` and user's current
+  `passwordGeneration` so the UI can tell which keys are decryptable.
+- `changeMyPassword` — increment generation, only re-encrypt keys that
+  match the current generation (not all keys).
+- Add `reEncryptMyKey(keyId, encryptedPrivateKey)` — re-encrypts a single
+  key under the current password generation.
 
-- `claimDomain(domain, adminUserId, adminAddress)` — fetches
-  `keypears.json` from the domain over HTTPS, verifies `apiDomain` matches
-  `getApiDomain()`, verifies `admin` matches `adminAddress`, inserts into
-  `domains` table with `adminUserId`. Throws if verification fails.
-- `getDomainsForAdmin(userId)` — returns all domains where
-  `adminUserId = userId`.
-- `getUsersForDomain(domainId)` — returns all saved users in a domain.
+**`webapp/src/routes/_app/_saved/_chrome/keys.tsx`** — Update keys page:
 
-**`webapp/src/server/user.functions.ts`** — Add server functions:
+- Show each key's generation and whether it matches the current password.
+- For locked keys: "Re-encrypt" button that opens a form to enter the old
+  password. Client-side: derives old encryption key, decrypts the private
+  key, re-encrypts with current encryption key, calls `reEncryptMyKey`.
+- After re-encryption, the key shows as decryptable.
 
-- `claimDomainFn(domain)` — requires session. Looks up the logged-in user's
-  full address, calls `claimDomain`. Returns the new domain record.
-- `getMyDomains()` — requires session. Returns domains administered by
-  the current user.
-- `getDomainUsers(domainId)` — requires session. Verifies caller is admin
-  of the domain, returns user list.
-- `createDomainUser(domainId, name, loginKey, publicKey, encryptedPrivateKey)`
-  — requires session. Verifies caller is admin. Creates a new saved user
-  under the domain (similar to the `saveMyUser` flow but for a different
-  user). The admin sets the initial password and key pair on behalf of
-  the new user.
+**`webapp/src/routes/_app/_saved/channel.$address.tsx`** — Update message
+decryption:
 
-**`webapp/src/routes/_app/_saved/_chrome/domains.tsx`** — New route:
+- When decryption fails due to a wrong key, check if the key's generation
+  differs from current. If so, show "Cannot decrypt — update password on
+  Keys page" with a link.
 
-Domain management page with two sections:
+**`webapp/src/lib/auth.ts`:**
 
-1. **Claim a domain** — input field for domain name, "Claim" button.
-   Shows success/error feedback. Explains that the domain must have a
-   `keypears.json` file with `admin` set to the current user's address.
-
-2. **My domains** — list of claimed domains. Each domain expands to show:
-   - Users under that domain (name, created date).
-   - "Add user" form (name, password fields) to create a new user.
+- `decryptPrivateKey` already throws on failure. No changes needed — the
+  caller determines the error message based on generation mismatch.
 
 #### Verification
 
-1. Log in as `ryan@keypears.test`.
-2. Navigate to Domains page.
-3. Claim `lockberries.test` — server fetches keypears.json, verifies
-   admin is `ryan@keypears.test`, domain appears in "My domains".
-4. Create user `alice` under `lockberries.test` (set password + name).
-5. Log out. Log in as `alice@lockberries.test` — succeeds.
-6. Send a message from `alice@lockberries.test` to `ryan@keypears.test` —
-   federation works (both are on the same server but different domains).
-7. Claiming a domain with wrong admin or wrong apiDomain fails with a
-   clear error message.
-8. Claiming a domain that doesn't serve keypears.json fails gracefully.
+1. Create account, set password. Key 1 is generation 1. All messages
+   decryptable.
+2. Rotate key. Key 2 is generation 1 (same password). Both keys
+   decryptable.
+3. Change password. `passwordGeneration` increments to 2.
+4. Rotate key. Key 3 is generation 2. Keys page shows keys 1-2 as locked
+   (generation 1), key 3 as active (generation 2).
+5. Send a message — uses key 3, decrypts fine.
+6. Old messages encrypted with keys 1-2 show "Cannot decrypt — update
+   password on Keys page".
+7. On keys page, click "Re-encrypt" on key 2. Enter old password. Key 2
+   updates to generation 2. Messages using key 2 now decrypt.
+8. Key 1 remains locked until re-encrypted the same way.
