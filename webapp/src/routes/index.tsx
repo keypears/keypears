@@ -21,9 +21,9 @@ export const Route = createFileRoute("/")({
 function LandingPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [pagePhase, setPagePhase] = useState<
-    "idle" | "fetching" | "creating"
-  >("idle");
+  const [pagePhase, setPagePhase] = useState<"idle" | "fetching" | "creating">(
+    "idle",
+  );
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   async function handleCreate() {
@@ -78,7 +78,9 @@ function LandingPage() {
             </picture>
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
-          <p className="text-muted-foreground mb-8">Secret Exchange</p>
+          <p className="text-muted-foreground mb-8">
+            Diffie-Hellman Key Exchange
+          </p>
 
           {pagePhase === "idle" && (
             <>
