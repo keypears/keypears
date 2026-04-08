@@ -18,6 +18,7 @@ import {
   getUserPowTotal,
   getAllEncryptedKeys,
   changePassword,
+  reEncryptKey,
   createSession,
   resolveSession,
   deleteSession,
@@ -227,14 +228,18 @@ export const rotateKey = createServerFn({ method: "POST" })
       row.id,
       input.publicKey,
       input.encryptedPrivateKey,
+      row.passwordHash,
     );
     return { keyNumber: result.keyNumber };
   });
 
 export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
   const userId = await getSessionUserId();
-  if (!userId) return [];
-  return getRecentKeys(userId, 10);
+  if (!userId) return { keys: [], passwordHash: null };
+  const user = await getUserById(userId);
+  if (!user) return { keys: [], passwordHash: null };
+  const keyList = await getRecentKeys(userId, 100);
+  return { keys: keyList, passwordHash: user.passwordHash };
 });
 
 export const getProfile = createServerFn({ method: "GET" })
@@ -288,5 +293,24 @@ export const changeMyPassword = createServerFn({ method: "POST" })
     if (currentHash) {
       await deleteAllSessionsExcept(row.id, currentHash);
     }
+    return { success: true };
+  });
+
+export const reEncryptMyKey = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      keyId: z.string(),
+      encryptedPrivateKey: z.string(),
+      loginKey: z.string(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const userId = await requireSessionUserId();
+    await reEncryptKey(
+      userId,
+      input.keyId,
+      input.encryptedPrivateKey,
+      input.loginKey,
+    );
     return { success: true };
   });

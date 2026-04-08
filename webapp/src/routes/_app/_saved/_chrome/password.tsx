@@ -57,26 +57,30 @@ function PasswordPage() {
       setStatus("Fetching keys...");
       const encryptedKeys = await getMyEncryptedKeys();
 
-      // 3. Decrypt all with old encryption key, re-encrypt with new
+      // 3. Decrypt only keys that match current password, re-encrypt with new
       setStatus("Re-encrypting keys...");
       const newPasswordKey = derivePasswordKey(newPassword);
       const newEncryptionKey =
         deriveEncryptionKeyFromPasswordKey(newPasswordKey);
       const newLoginKey = deriveLoginKeyFromPasswordKey(newPasswordKey);
 
-      const reEncryptedKeys = encryptedKeys.map(
-        (key: { id: number; encryptedPrivateKey: string }) => {
+      const reEncryptedKeys: { id: string; encryptedPrivateKey: string }[] =
+        [];
+      for (const key of encryptedKeys) {
+        try {
           const privateKey = decryptPrivateKey(
             key.encryptedPrivateKey,
             oldEncryptionKey,
           );
           const reEncrypted = acs2Encrypt(privateKey.buf, newEncryptionKey);
-          return {
+          reEncryptedKeys.push({
             id: key.id,
             encryptedPrivateKey: reEncrypted.toHex(),
-          };
-        },
-      );
+          });
+        } catch {
+          // Key encrypted with a different password — skip it
+        }
+      }
 
       // 4. Send to server
       setStatus("Updating password...");
@@ -107,7 +111,8 @@ function PasswordPage() {
     <div className="mx-auto max-w-md p-8 font-sans">
       <h1 className="text-foreground text-2xl font-bold">Change Password</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        All your encrypted keys will be re-encrypted with your new password.
+        Keys encrypted with your current password will be re-encrypted with
+        your new password. Keys under a different password will be unchanged.
       </p>
       {currentTier === "red" && (
         <p className="text-destructive mt-3 text-sm font-medium">

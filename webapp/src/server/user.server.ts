@@ -148,6 +148,7 @@ export async function insertKey(
   userId: string,
   publicKey: string,
   encryptedPrivateKey: string,
+  loginKeyHash?: string,
 ) {
   return db.transaction(async (tx) => {
     const [countResult] = await tx
@@ -172,6 +173,7 @@ export async function insertKey(
       keyNumber,
       publicKey,
       encryptedPrivateKey,
+      loginKeyHash: loginKeyHash ?? null,
     });
 
     return { keyNumber };
@@ -197,14 +199,17 @@ export async function saveUser(
     .update(users)
     .set({ name, domainId, passwordHash, expiresAt: null })
     .where(eq(users.id, id));
-  await insertKey(id, publicKey, encryptedPrivateKey);
+  await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
 }
 
 export async function getRecentKeys(userId: string, limit = 10) {
   return db
     .select({
+      id: keys.id,
       keyNumber: keys.keyNumber,
       publicKey: keys.publicKey,
+      encryptedPrivateKey: keys.encryptedPrivateKey,
+      loginKeyHash: keys.loginKeyHash,
       createdAt: keys.createdAt,
     })
     .from(keys)
@@ -240,10 +245,29 @@ export async function changePassword(
     for (const key of reEncryptedKeys) {
       await tx
         .update(keys)
-        .set({ encryptedPrivateKey: key.encryptedPrivateKey })
+        .set({
+          encryptedPrivateKey: key.encryptedPrivateKey,
+          loginKeyHash: newPasswordHash,
+        })
         .where(and(eq(keys.id, key.id), eq(keys.userId, userId)));
     }
   });
+}
+
+export async function reEncryptKey(
+  userId: string,
+  keyId: string,
+  encryptedPrivateKey: string,
+  loginKeyHex: string,
+) {
+  const loginKeyHash = hashLoginKey(loginKeyHex);
+  const result = await db
+    .update(keys)
+    .set({ encryptedPrivateKey, loginKeyHash })
+    .where(and(eq(keys.id, keyId), eq(keys.userId, userId)));
+  if (result[0].affectedRows === 0) {
+    throw new Error("Key not found");
+  }
 }
 
 export async function verifyLogin(

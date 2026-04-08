@@ -55,6 +55,7 @@ export const keys = mysqlTable("user_keys", {
   keyNumber: int("key_number").notNull(),
   publicKey: varchar("public_key", { length: 66 }).notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),
+  loginKeyHash: varchar("login_key_hash", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

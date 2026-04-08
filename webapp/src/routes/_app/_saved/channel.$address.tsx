@@ -409,13 +409,18 @@ function ChannelPage() {
                         {result.reason === "loading"
                           ? "Decrypting..."
                           : result.reason === "wrong-key"
-                            ? "Encrypted with a different key"
+                            ? "Cannot decrypt — update password on Keys page"
                             : "Unable to decrypt this message"}
                       </div>
                       {result.reason === "wrong-key" && (
                         <p className="text-muted-foreground mt-1 text-xs">
-                          This message may have been sent before a key rotation
-                          or password reset.
+                          This key may use a different password.{" "}
+                          <a
+                            href="/keys"
+                            className="text-accent hover:text-accent/80 no-underline"
+                          >
+                            Go to Keys
+                          </a>
                         </p>
                       )}
                       <p className="text-muted-foreground mt-1 text-xs">
