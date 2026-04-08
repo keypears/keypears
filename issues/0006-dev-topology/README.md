@@ -120,10 +120,15 @@ lockberries.test           → localhost:3520
 #### Description
 
 Rename `webapp/` to `keypears/`. Create `passapples/` and `lockberries/` as
-minimal Bun HTTP servers that serve a landing page and a
-`/.well-known/keypears.json` file. Move the passapples KeyPears server from
+minimal Astro static sites that serve a landing page and a
+`/.well-known/keypears.json` endpoint. Move the passapples KeyPears server from
 `passapples.test` to `keypears.passapples.test`. Update the top-level workspace
 to orchestrate everything.
+
+Astro is used for the landing pages because they will be hosted on Cloudflare
+in production (Astro has first-class Cloudflare Pages support). See
+`~/dev/rxc/homepage` for a working `.well-known/keypears.json.ts` endpoint
+example, and `~/dev/yafujifide` for a minimal Astro landing page.
 
 Third-party hosting (lockberries → keypears) doesn't need to fully work yet.
 The lockberries landing page and well-known file should exist, but the KeyPears
@@ -147,22 +152,24 @@ implemented.
 
 **Create `passapples/` project.**
 
-A minimal Bun HTTP server (`passapples/server.ts`):
-- Port 3510.
-- Serves `/.well-known/keypears.json` →
-  `{ "apiDomain": "keypears.passapples.test" }`.
-- Serves `/` → simple HTML landing page branded as KeyPears:
+A minimal Astro static site:
+- `astro.config.mjs` — static output, Tailwind CSS via Vite plugin.
+- `src/pages/index.astro` — landing page branded as KeyPears:
   "passapples.com — KeyPears test domain".
-- `passapples/package.json` with `"dev"` script.
+- `src/pages/.well-known/keypears.json.ts` — GET endpoint returning
+  `{ "apiDomain": "keypears.passapples.test" }` (dev) or
+  `keypears.passapples.com` (prod), using `import.meta.env.PROD`.
+- `package.json` with `"dev": "astro dev --port 3510"`.
+- Copy keypears logo files to `public/images/` for branding.
 
 **Create `lockberries/` project.**
 
-Same structure as passapples (`lockberries/server.ts`):
-- Port 3520.
-- Serves `/.well-known/keypears.json` → `{ "apiDomain": "keypears.test" }`.
-- Serves `/` → simple HTML landing page:
+Same Astro structure as passapples:
+- `src/pages/index.astro` — landing page:
   "lockberries.com — KeyPears test domain (hosted by keypears.com)".
-- `lockberries/package.json` with `"dev"` script.
+- `src/pages/.well-known/keypears.json.ts` — GET endpoint returning
+  `{ "apiDomain": "keypears.test" }` (dev) or `keypears.com` (prod).
+- `package.json` with `"dev": "astro dev --port 3520"`.
 
 **Update root `package.json`.**
 
