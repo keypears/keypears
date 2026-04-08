@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-08"
+closed = "2026-04-08"
 +++
 
 # Issue 6: Dev Topology for Three Deployment Patterns
@@ -302,3 +303,36 @@ Already updated: `KEYPEARS_DOMAIN=passapples.test`,
    `{ "apiDomain": "keypears.passapples.test" }` (served by Astro landing).
 7. Login at keypears.passapples.test accepts `bob@passapples.test`, not
    `bob@keypears.passapples.test`.
+
+**Result:** Pass
+
+#### Conclusion
+
+Added `KEYPEARS_API_DOMAIN` env var to separate the server domain from the
+address domain. The address domain (`KEYPEARS_DOMAIN`) goes after `@` in user
+addresses. The API domain (`KEYPEARS_API_DOMAIN`) is where the server runs and
+what gets served in `keypears.json`. For the primary server both are the same.
+For subdomain deployments they differ. Federation between keypears.test and
+passapples.test works correctly — addresses use the parent domain, not the
+subdomain.
+
+## Conclusion
+
+The dev environment now tests all three real-world deployment patterns:
+
+1. **Primary self-hosting** (`keypears.test`) — the KeyPears server owns its
+   domain directly. Address domain and API domain are the same.
+
+2. **Subdomain self-hosting** (`keypears.passapples.test`) — a business runs
+   KeyPears on a subdomain. Addresses are `@passapples.test`, the server runs
+   at `keypears.passapples.test`. The landing page at `passapples.test` serves
+   `keypears.json` pointing to the subdomain.
+
+3. **Third-party hosted** (`lockberries.test`) — landing page and
+   `keypears.json` exist, pointing to `keypears.test` as the host. Full
+   third-party hosting is not yet implemented (see issue 0005) but the
+   infrastructure is in place.
+
+Key changes: split `KEYPEARS_DOMAIN` (address) from `KEYPEARS_API_DOMAIN`
+(server), created Astro landing pages for passapples and lockberries, unified
+`bun dev` to run all four servers concurrently.
