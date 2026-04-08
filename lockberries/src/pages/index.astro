@@ -1,0 +1,58 @@
+---
+const isProd = import.meta.env.PROD;
+const keypearsDomain = isProd ? "keypears.com" : "keypears.test";
+const keypearsUrl = `https://${keypearsDomain}`;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lockberries.com — KeyPears</title>
+    <link
+      rel="icon"
+      href="/images/favicon-light.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      href="/images/favicon-dark.png"
+      media="(prefers-color-scheme: dark)"
+    />
+  </head>
+  <body
+    class="bg-background text-foreground m-0 flex min-h-screen flex-col p-0 font-sans"
+  >
+    <div class="flex flex-1 items-center justify-center">
+      <div class="w-full max-w-md text-center">
+        <div class="mb-6 flex items-center justify-center gap-3">
+          <picture>
+            <source
+              srcset="/images/keypears-dark-200.webp 1x, /images/keypears-dark-400.webp 2x"
+              media="(prefers-color-scheme: dark)"
+            />
+            <img
+              src="/images/keypears-light-200.webp"
+              srcset="/images/keypears-light-200.webp 1x, /images/keypears-light-400.webp 2x"
+              alt="KeyPears"
+              class="h-12 w-12"
+            />
+          </picture>
+          <h1 class="text-foreground text-4xl font-bold">KeyPears</h1>
+        </div>
+        <p class="text-muted-foreground mb-8">lockberries.com</p>
+
+        <a
+          href={keypearsUrl}
+          class="bg-accent text-accent-foreground hover:bg-accent/90 inline-block rounded px-8 py-3 text-lg no-underline transition-all duration-300"
+        >
+          Go to KeyPears
+        </a>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  @import "../styles/style.css";
+</style>

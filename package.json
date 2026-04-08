@@ -1,5 +1,17 @@
 {
   "name": "keypears",
   "private": true,
-  "workspaces": ["webapp", "packages/*"]
+  "workspaces": ["webapp", "passapples", "lockberries", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n kp,pa-land,pa-kp,lb -c blue,green,yellow,magenta \"bun run dev:keypears\" \"bun run dev:passapples\" \"bun run dev:passapples:kp\" \"bun run dev:lockberries\"",
+    "dev:keypears": "cd webapp && bun run dev:keypears",
+    "dev:passapples": "cd passapples && bun run dev",
+    "dev:passapples:kp": "cd webapp && bun run dev:passapples",
+    "dev:lockberries": "cd lockberries && bun run dev",
+    "db:push": "cd webapp && bun run db:push",
+    "db:clear": "cd webapp && bun run db:clear"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "@keypears/passapples",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3510"
+  },
+  "dependencies": {
+    "astro": "^6.1.2",
+    "tailwindcss": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
