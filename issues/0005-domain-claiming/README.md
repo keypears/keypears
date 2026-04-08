@@ -81,98 +81,104 @@ HTTPS alone.
 #### Description
 
 Before implementing domain claiming and admin-created accounts, we need the
-system to handle keys encrypted under different passwords. Currently, all
-keys are encrypted with one password and password change re-encrypts
-everything atomically. This breaks when:
+system to handle keys encrypted under different passwords. Currently, all keys
+are encrypted with one password and password change re-encrypts everything
+atomically. This breaks when:
 
 - An admin creates a user with an initial password (and key).
-- The user changes their password — new keys use the new password, but old
-  keys remain encrypted under the admin's password.
-- An admin resets a user's password — same situation.
-- A user forgets their old password — old keys are permanently locked unless
-  they remember.
+- A password reset occurs (user forgot their password) — old keys can't be
+  re-encrypted because nobody knows the old password.
+- A user remembers their old password later and wants to recover access to old
+  keys.
 
-The fix: track which password encrypted each key, decrypt selectively, and
-let users re-encrypt individual keys by entering the old password.
+The fix: let users change the password on individual keys, track whether each
+key's password matches the current login password, and decrypt selectively.
 
-**Password generation model:**
+**How it works:**
 
-Each user has a `passwordGeneration` counter (starts at 1, increments on
-every password change). Each key stores `encryptedWithGeneration` — the
-generation of the password used to encrypt it. The current encryption key
-(cached in localStorage) can only decrypt keys matching the current
-generation.
+Each key is encrypted with some password. The system doesn't track a generation
+counter — it simply tries to decrypt each key with the current login password
+(cached as the encryption key in localStorage). If decryption succeeds, the key
+is usable. If not, it's "locked."
 
-**How it works in the UI:**
+The user can change the password on any individual key to any password they
+want. The UI indicates whether the key's password matches the current login
+password:
 
-- Keys page shows all keys with their generation.
-- Keys matching the current generation show as decryptable.
-- Keys under an older generation show as "locked" with an option to
-  re-encrypt: enter the old password, the system derives the old encryption
-  key, decrypts the private key, re-encrypts with the current encryption
-  key, updates the key's generation.
-- Messages encrypted with a locked key show "Cannot decrypt — update
-  password on Keys page" instead of the current generic error.
+- **Matches login password** — key is decryptable, data encrypted with this key
+  auto-decrypts.
+- **Different password** — key is locked, data encrypted with this key shows as
+  undecryptable.
+
+This enables several scenarios:
+
+- **Password change** (user knows old password): re-encrypts only the keys that
+  are currently decryptable (those matching the current login password). Keys
+  under a different password are untouched.
+- **Password reset** (simulated): user changes password on an old key to
+  something different. Now that key is locked — its data can't be decrypted.
+  This is what happens when an admin resets a password.
+- **Recovery** (simulated): user enters the old password for a locked key,
+  re-encrypts it with the current login password. The key unlocks and all its
+  data becomes decryptable again.
 
 #### Changes
 
-**`webapp/src/db/schema.ts`** — Add generation tracking:
-
-- `users` table: add `passwordGeneration` column (int, default 1).
-- `user_keys` table: add `encryptedWithGeneration` column (int, default 1).
-
 **`webapp/src/server/user.server.ts`:**
 
-- `saveUser` — set `passwordGeneration = 1` when creating the account.
-  Set `encryptedWithGeneration = 1` on the initial key.
-- `changePassword` — increment `passwordGeneration`. New keys get the new
-  generation. Do NOT re-encrypt old keys (they stay under the old
-  generation).
-- `rotateKey` — new key gets `encryptedWithGeneration = currentGeneration`.
-- Add `reEncryptKey(keyId, encryptedPrivateKey, generation)` — updates a
-  single key's encrypted data and generation.
+- Add `reEncryptKey(userId, keyId, encryptedPrivateKey)` — updates a single
+  key's encrypted private key. Verifies the key belongs to the user.
 
 **`webapp/src/server/user.functions.ts`:**
 
-- `getMyKeys` — return `encryptedWithGeneration` and user's current
-  `passwordGeneration` so the UI can tell which keys are decryptable.
-- `changeMyPassword` — increment generation, only re-encrypt keys that
-  match the current generation (not all keys).
-- Add `reEncryptMyKey(keyId, encryptedPrivateKey)` — re-encrypts a single
-  key under the current password generation.
+- `changeMyPassword` — change to only re-encrypt keys that the client sends. The
+  client determines which keys it can decrypt (those matching the current
+  password) and sends their re-encrypted versions. Keys not included are left
+  unchanged.
+- Add `reEncryptMyKey(keyId, encryptedPrivateKey)` — server function for
+  re-encrypting a single key. The client decrypts with the old password,
+  re-encrypts with any new password, and sends the result.
+- `getMyKeys` — also return `encryptedPrivateKey` so the client can attempt
+  decryption to determine which keys are locked.
 
 **`webapp/src/routes/_app/_saved/_chrome/keys.tsx`** — Update keys page:
 
-- Show each key's generation and whether it matches the current password.
-- For locked keys: "Re-encrypt" button that opens a form to enter the old
-  password. Client-side: derives old encryption key, decrypts the private
-  key, re-encrypts with current encryption key, calls `reEncryptMyKey`.
-- After re-encryption, the key shows as decryptable.
+- For each key, attempt decryption with the current encryption key
+  (client-side). Show status: "Active" (decryptable) or "Locked" (different
+  password).
+- For any key (active or locked): "Change password" button. Opens a form with
+  two fields: "Current password for this key" and "New password." Client derives
+  old encryption key, decrypts, derives new encryption key, re-encrypts, calls
+  `reEncryptMyKey`.
+- Show a notice if the new password matches / doesn't match the login password:
+  "This key will auto-decrypt" vs "This key will not auto-decrypt — use your
+  login password to enable auto-decryption."
 
 **`webapp/src/routes/_app/_saved/channel.$address.tsx`** — Update message
 decryption:
 
-- When decryption fails due to a wrong key, check if the key's generation
-  differs from current. If so, show "Cannot decrypt — update password on
-  Keys page" with a link.
+- When decryption fails because the key has a different password, show "Cannot
+  decrypt — update password on Keys page" with a link, instead of the current
+  generic "Unable to decrypt" or "Encrypted with a different key."
 
-**`webapp/src/lib/auth.ts`:**
+**`webapp/src/routes/_app/_saved/_chrome/password.tsx`** — Update password
+change:
 
-- `decryptPrivateKey` already throws on failure. No changes needed — the
-  caller determines the error message based on generation mismatch.
+- Only re-encrypt keys that are currently decryptable. Fetch all keys, attempt
+  to decrypt each with the current encryption key. Re-encrypt only the ones that
+  succeed. Send only those to the server.
 
 #### Verification
 
-1. Create account, set password. Key 1 is generation 1. All messages
-   decryptable.
-2. Rotate key. Key 2 is generation 1 (same password). Both keys
-   decryptable.
-3. Change password. `passwordGeneration` increments to 2.
-4. Rotate key. Key 3 is generation 2. Keys page shows keys 1-2 as locked
-   (generation 1), key 3 as active (generation 2).
-5. Send a message — uses key 3, decrypts fine.
-6. Old messages encrypted with keys 1-2 show "Cannot decrypt — update
-   password on Keys page".
-7. On keys page, click "Re-encrypt" on key 2. Enter old password. Key 2
-   updates to generation 2. Messages using key 2 now decrypt.
-8. Key 1 remains locked until re-encrypted the same way.
+1. Create account, set password. Key 1 is active. All messages decryptable.
+2. Rotate key. Key 2 is active (same password). Both keys decryptable.
+3. On keys page, change key 1's password to something different. Key 1 shows as
+   "Locked." Key 2 still active.
+4. Old messages encrypted with key 1 show "Cannot decrypt — update password on
+   Keys page."
+5. On keys page, change key 1's password back to the login password. Key 1 shows
+   as "Active" again. Old messages decrypt.
+6. Change login password (via password page). Key 2 is re-encrypted with new
+   password (active). Key 1 was locked — stays locked, untouched.
+7. Enter key 1's password on keys page, re-encrypt with the new login password.
+   Key 1 becomes active. All messages decrypt.
