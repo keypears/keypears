@@ -227,9 +227,10 @@ user's public keys are checked, not just the active one.
 #### Description
 
 Add the ability for a logged-in user to claim a domain and manage users
-under it. The admin is verified against `keypears.json` on every privileged
-action — no admin is stored in the database. The `keypears.json` file is the
-live source of truth for who has admin rights.
+under it. The `adminUserId` is stored on the `domains` table for listing
+purposes, but re-verified against `keypears.json` on every privileged
+action. If the admin changes in `keypears.json`, the stored `adminUserId`
+is updated on the next verification.
 
 **Claiming a domain:**
 
@@ -237,8 +238,8 @@ live source of truth for who has admin rights.
 2. Server fetches `https://{domain}/.well-known/keypears.json`.
 3. Verifies `apiDomain` matches this server's `KEYPEARS_API_DOMAIN`.
 4. Verifies `admin` matches the logged-in user's full address.
-5. Domain is inserted into the `domains` table (no `adminUserId` stored —
-   admin is always checked live from `keypears.json`).
+5. Domain is inserted into the `domains` table with `adminUserId` set to
+   the current user.
 
 **Creating a user under a domain:**
 
@@ -267,11 +268,17 @@ live source of truth for who has admin rights.
 
 #### Changes
 
+**`webapp/src/db/schema.ts`:**
+
+- Add `adminUserId` column (nullable binaryId) to `domains` table. Null
+  for the primary domain. Set when a domain is claimed.
+
 **`webapp/src/server/user.server.ts`:**
 
 - Add `verifyDomainAdmin(domain, adminAddress)` — fetches `keypears.json`
   from the domain, verifies `apiDomain` matches `getApiDomain()`, verifies
-  `admin` matches `adminAddress`. Returns true/false.
+  `admin` matches `adminAddress`. If the admin has changed, updates
+  `adminUserId` on the domain record. Returns true/false.
 - Add `createUserForDomain(name, domainId, loginKeyHex, publicKey,
   encryptedPrivateKey)` — creates a saved user under a specific domain.
   Similar to `saveUser` but creates a new user row directly (no unsaved
@@ -285,9 +292,8 @@ live source of truth for who has admin rights.
 - Add `claimDomain(domain)` — requires session. Builds admin address from
   logged-in user. Calls `verifyDomainAdmin`. Inserts domain via
   `getOrCreateDomain`.
-- Add `getMyDomains()` — returns all domains in the `domains` table where
-  this server is the API domain (i.e. all locally hosted domains). The
-  admin check happens when they try to do something, not when listing.
+- Add `getMyDomains()` — returns domains where `adminUserId` matches the
+  current user. Used for listing on the Domains page.
 - Add `getDomainUsers(domainId)` — returns saved users for a domain.
   Requires admin verification.
 - Add `createDomainUser({ domain, name, loginKey, publicKey,
