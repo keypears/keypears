@@ -13,8 +13,8 @@ const FAVICON_SIZE = 64;
 
 // Files that should generate a favicon PNG (basename -> output name)
 const FAVICON_MAP: Record<string, string> = {
-  "keypears-6-dark": "favicon-dark.png",
-  "keypears-6-light": "favicon-light.png",
+  "keypears-dark": "favicon-dark.png",
+  "keypears-light": "favicon-light.png",
 };
 
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
