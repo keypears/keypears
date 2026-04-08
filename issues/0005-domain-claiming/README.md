@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-07"
+closed = "2026-04-08"
 +++
 
 # Issue 5: Domain Claiming via keypears.json
@@ -356,3 +357,20 @@ creates a new key; old keys stay under the old password. Login now accepts
 any hosted domain, not just the primary. The navbar and profile page show the
 user's actual domain. Also fixed several places that hardcoded the primary
 domain where the user's domain should have been used.
+
+## Conclusion
+
+Domain claiming via `keypears.json` works end to end. A KeyPears user can
+claim a custom domain by placing a `keypears.json` file with their address as
+`admin` and the server's `apiDomain`. The admin can create users and reset
+passwords for that domain. Users log in with their full `name@domain` address.
+
+Per-key password management ensures the system handles keys encrypted under
+different passwords — admin-created accounts, password resets, and user-chosen
+passwords all coexist. Each key tracks its `loginKeyHash` to identify which
+password encrypted it. Users can re-encrypt individual keys when they remember
+an old password.
+
+The UI was updated throughout: login accepts any hosted domain, the navbar
+shows the user's actual domain, and the message view uses a key map to decrypt
+with the correct key per message.
