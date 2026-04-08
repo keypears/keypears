@@ -306,7 +306,7 @@ verification.
 
 **`lockberries/src/pages/.well-known/keypears.json.ts`:**
 
-- Add `admin` field: `admin@keypears.test` (dev) / `admin@keypears.com` (prod).
+- Add `admin` field: `lockberries@keypears.test` (dev) / `lockberries@keypears.com` (prod).
 
 **`webapp/src/routes/_app/_saved/_chrome/domains.tsx`** — New page:
 
@@ -326,21 +326,21 @@ verification.
 
 #### Verification
 
-1. Create account `admin@keypears.test`.
+1. Create account `lockberries@keypears.test`.
 2. Navigate to Domains page. Claim `lockberries.test` — succeeds (admin
    matches).
 3. Create user `alice` under `lockberries.test` with a password.
 4. Log out. Log in as `alice@lockberries.test` — succeeds.
-5. Send a message from `alice@lockberries.test` to `admin@keypears.test`.
+5. Send a message from `alice@lockberries.test` to `lockberries@keypears.test`.
    Message arrives and decrypts (both on same server, different domains).
-6. Log back in as `admin@keypears.test`. Go to Domains, reset Alice's password.
+6. Log back in as `lockberries@keypears.test`. Go to Domains, reset Alice's password.
 7. Log out. Log in as `alice@lockberries.test` with the NEW password — succeeds.
    Old messages show "Cannot decrypt" (old key under old password). New messages
    work.
 8. Alice re-encrypts old key with old password on Keys page — old messages
    decrypt again.
 9. Change `admin` field in lockberries `keypears.json` to a different user.
-   `admin@keypears.test` can no longer perform admin actions on lockberries —
+   `lockberries@keypears.test` can no longer perform admin actions on lockberries —
    server re-checks and rejects.
 10. Claiming a domain with wrong `apiDomain` or wrong `admin` fails with clear
     error.
