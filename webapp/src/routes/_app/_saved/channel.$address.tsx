@@ -62,16 +62,21 @@ function ChannelPage() {
     publicKey: string;
     encryptedPrivateKey: string;
   } | null>(null);
-  const [allMyKeys, setAllMyKeys] = useState<
-    { publicKey: string; encryptedPrivateKey: string; loginKeyHash: string | null }[]
-  >([]);
-  const [myPublicKeys, setMyPublicKeys] = useState<Set<string>>(new Set());
+  const [keyMap, setKeyMap] = useState<
+    Map<string, { encryptedPrivateKey: string; loginKeyHash: string | null }>
+  >(new Map());
   const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(null);
   useEffect(() => {
     getMyActiveEncryptedKey().then(setMyKeyData);
     getMyKeys().then((data) => {
-      setAllMyKeys(data.keys);
-      setMyPublicKeys(new Set(data.keys.map((k) => k.publicKey)));
+      const map = new Map<string, { encryptedPrivateKey: string; loginKeyHash: string | null }>();
+      for (const k of data.keys) {
+        map.set(k.publicKey, {
+          encryptedPrivateKey: k.encryptedPrivateKey,
+          loginKeyHash: k.loginKeyHash,
+        });
+      }
+      setKeyMap(map);
       setCurrentPasswordHash(data.passwordHash);
       return data;
     });
@@ -186,19 +191,16 @@ function ChannelPage() {
     senderPubKey: string;
     recipientPubKey: string;
   }): DecryptResult {
-    if (!encryptionKey || allMyKeys.length === 0)
+    if (!encryptionKey || keyMap.size === 0)
       return { ok: false, reason: "loading" };
 
-    // Find which of my keys was used for this message
-    const isSender = myPublicKeys.has(msg.senderPubKey);
+    const isSender = keyMap.has(msg.senderPubKey);
     const myPubKeyHex = isSender ? msg.senderPubKey : msg.recipientPubKey;
     const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
 
-    // Find the matching key data
-    const matchingKey = allMyKeys.find((k) => k.publicKey === myPubKeyHex);
+    const matchingKey = keyMap.get(myPubKeyHex);
     if (!matchingKey) return { ok: false, reason: "wrong-key" };
 
-    // Check if this key is encrypted with the current password
     if (matchingKey.loginKeyHash !== currentPasswordHash) {
       return { ok: false, reason: "wrong-key" };
     }
@@ -404,7 +406,7 @@ function ChannelPage() {
               </div>
             )}
             {messageList.map((msg) => {
-              const isMine = myPublicKeys.has(msg.senderPubKey);
+              const isMine = keyMap.has(msg.senderPubKey);
               const result = tryDecrypt(msg);
               return (
                 <div
