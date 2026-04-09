@@ -1,6 +1,10 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { createUser, getMyUser } from "~/server/user.functions";
+import {
+  createUser,
+  getMyUser,
+  isRegistrationOpen,
+} from "~/server/user.functions";
 import { getPowChallenge } from "~/server/pow.functions";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
@@ -14,11 +18,14 @@ export const Route = createFileRoute("/")({
     const user = await getMyUser();
     if (user?.hasPassword) throw redirect({ to: "/inbox" });
     if (user) throw redirect({ to: "/welcome" });
+    const registrationOpen = await isRegistrationOpen();
+    return { registrationOpen };
   },
   component: LandingPage,
 });
 
 function LandingPage() {
+  const { registrationOpen } = Route.useLoaderData();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [pagePhase, setPagePhase] = useState<"idle" | "fetching" | "creating">(
@@ -82,7 +89,7 @@ function LandingPage() {
             Diffie-Hellman Key Exchange
           </p>
 
-          {pagePhase === "idle" && (
+          {pagePhase === "idle" && registrationOpen && (
             <>
               <button
                 onClick={handleCreate}
@@ -91,6 +98,23 @@ function LandingPage() {
                 Create an Account
               </button>
               {error && <p className="text-danger mt-4 text-sm">{error}</p>}
+              <p className="text-muted-foreground mt-4 text-sm">
+                Already have an account?{" "}
+                <a
+                  href="/login"
+                  className="text-accent hover:text-accent/80 no-underline"
+                >
+                  Log in
+                </a>
+              </p>
+            </>
+          )}
+
+          {pagePhase === "idle" && !registrationOpen && (
+            <>
+              <p className="text-muted-foreground text-sm">
+                Registration is closed. Contact the administrator.
+              </p>
               <p className="text-muted-foreground mt-4 text-sm">
                 Already have an account?{" "}
                 <a

@@ -46,11 +46,12 @@ function WelcomePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function extractName(): string | null {
+  function extractParsed(): { name: string; domain: string } | null {
     const parsed = parseAddress(address);
     if (!parsed) return null;
-    if (parsed.domain !== data.domain) return null;
-    return parsed.name;
+    const result = nameSchema.safeParse(parsed.name);
+    if (!result.success) return null;
+    return parsed;
   }
 
   function handleAddressChange(value: string) {
@@ -67,10 +68,6 @@ function WelcomePage() {
       setAddressError(`Enter a full address (e.g. yourname@${data.domain})`);
       return;
     }
-    if (parsed.domain !== data.domain) {
-      setAddressError(`Domain must be ${data.domain}`);
-      return;
-    }
 
     const result = nameSchema.safeParse(parsed.name);
     if (!result.success) {
@@ -81,13 +78,15 @@ function WelcomePage() {
   }
 
   async function handleAddressBlur() {
-    const name = extractName();
-    if (!name || addressError) return;
+    const parsed = extractParsed();
+    if (!parsed || addressError) return;
 
     setCheckingName(true);
     setNameAvailable(null);
     try {
-      const result = await checkNameAvailable({ data: name });
+      const result = await checkNameAvailable({
+        data: { name: parsed.name, domain: parsed.domain },
+      });
       if (result.error) {
         setAddressError(result.error);
       } else {
@@ -104,8 +103,8 @@ function WelcomePage() {
     e.preventDefault();
     setError("");
 
-    const name = extractName();
-    if (!name) {
+    const parsed = extractParsed();
+    if (!parsed) {
       setError("Please enter a valid address.");
       return;
     }
@@ -133,7 +132,13 @@ function WelcomePage() {
       const entropy = calculatePasswordEntropy(password);
       cacheEntropyTier(entropyTier(entropy));
       await saveMyUser({
-        data: { name, loginKey, publicKey, encryptedPrivateKey },
+        data: {
+          name: parsed.name,
+          domain: parsed.domain,
+          loginKey,
+          publicKey,
+          encryptedPrivateKey,
+        },
       });
       // Full reload so the sidebar picks up the new entropy tier from localStorage
       window.location.href = "/inbox";

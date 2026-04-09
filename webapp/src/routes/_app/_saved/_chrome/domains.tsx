@@ -7,6 +7,8 @@ import {
   createDomainUserFn,
   resetDomainUserPasswordFn,
   checkNameAvailable,
+  toggleOpenRegistrationFn,
+  toggleAllowThirdPartyDomainsFn,
 } from "~/server/user.functions";
 import {
   derivePasswordKey,
@@ -118,7 +120,16 @@ function DomainsPage() {
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             {domainList.map((d) => (
-              <DomainCard key={d.id} domain={d.domain} />
+              <DomainCard
+                key={d.id}
+                domain={d.domain}
+                openRegistration={d.openRegistration}
+                allowThirdPartyDomains={d.allowThirdPartyDomains}
+                onUpdate={async () => {
+                  const updated = await getMyDomains();
+                  setDomainList(updated);
+                }}
+              />
             ))}
           </div>
         )}
@@ -127,7 +138,17 @@ function DomainsPage() {
   );
 }
 
-function DomainCard({ domain }: { domain: string }) {
+function DomainCard({
+  domain,
+  openRegistration,
+  allowThirdPartyDomains,
+  onUpdate,
+}: {
+  domain: string;
+  openRegistration: boolean;
+  allowThirdPartyDomains: boolean;
+  onUpdate: () => Promise<void>;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [users, setUsers] = useState<
     { id: string; name: string | null; createdAt: Date }[]
@@ -195,7 +216,9 @@ function DomainCard({ domain }: { domain: string }) {
     setCheckingName(true);
     setNameAvailable(null);
     try {
-      const result = await checkNameAvailable({ data: name });
+      const result = await checkNameAvailable({
+        data: { name, domain },
+      });
       if (result.error) {
         setAddressError(result.error);
       } else {
@@ -347,6 +370,54 @@ function DomainCard({ domain }: { domain: string }) {
 
       {expanded && (
         <div className="border-border/30 border-t px-4 py-3">
+          {/* Settings toggles */}
+          <div className="mb-4 flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={openRegistration}
+                onChange={async (e) => {
+                  try {
+                    await toggleOpenRegistrationFn({
+                      data: { domain, value: e.target.checked },
+                    });
+                    await onUpdate();
+                  } catch {
+                    // revert on error
+                  }
+                }}
+                className="accent-accent"
+              />
+              <span className="text-foreground">Open registration</span>
+              <span className="text-muted-foreground text-xs">
+                (anyone can create an account)
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={allowThirdPartyDomains}
+                onChange={async (e) => {
+                  try {
+                    await toggleAllowThirdPartyDomainsFn({
+                      data: e.target.checked,
+                    });
+                    await onUpdate();
+                  } catch {
+                    // revert on error
+                  }
+                }}
+                className="accent-accent"
+              />
+              <span className="text-foreground">
+                Allow third-party domains
+              </span>
+              <span className="text-muted-foreground text-xs">
+                (users can claim external domains)
+              </span>
+            </label>
+          </div>
+
           {loading && (
             <p className="text-muted-foreground text-sm">Loading users...</p>
           )}

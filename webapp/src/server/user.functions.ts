@@ -33,6 +33,9 @@ import {
   claimDomain,
   createUserForDomain,
   resetUserPassword,
+  getPrimaryDomain,
+  toggleOpenRegistration,
+  toggleAllowThirdPartyDomains,
 } from "./user.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
@@ -40,7 +43,7 @@ import { PowSolutionSchema, nameSchema } from "./schemas";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
-import { getDomain, makeAddress, parseAddress } from "~/lib/config";
+import { makeAddress, parseAddress } from "~/lib/config";
 
 const COOKIE_NAME = "session";
 const ONE_DAY = 60 * 60 * 24;
@@ -80,6 +83,11 @@ function hashCurrentToken(): string | null {
 export const createUser = createServerFn({ method: "POST" })
   .inputValidator(PowSolutionSchema)
   .handler(async ({ data: pow }) => {
+    // Check if open registration is allowed
+    const primaryDomain = await getPrimaryDomain();
+    if (primaryDomain && !primaryDomain.openRegistration) {
+      throw new Error("Registration is closed. Contact the administrator.");
+    }
     const powResult = await verifyAndConsumePow(
       pow.solvedHeader,
       pow.target,
@@ -136,15 +144,22 @@ export const getOrCreateUser = createServerFn({ method: "GET" }).handler(
 );
 
 export const checkNameAvailable = createServerFn({ method: "GET" })
-  .inputValidator(z.string())
-  .handler(async ({ data: name }) => {
-    const parsed = nameSchema.safeParse(name);
+  .inputValidator(
+    z.object({
+      name: z.string(),
+      domain: z.string(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const parsed = nameSchema.safeParse(input.name);
     if (!parsed.success) {
       return { available: false, error: parsed.error.issues[0]?.message };
     }
-    // Check within the primary domain
-    const domain = await getOrCreateDomain(getDomain());
-    const existing = await getUserByNameAndDomain(name, domain.id);
+    const domain = await getDomainByName(input.domain);
+    if (!domain) {
+      return { available: false, error: "Domain not hosted on this server" };
+    }
+    const existing = await getUserByNameAndDomain(input.name, domain.id);
     return { available: !existing, error: null };
   });
 
@@ -152,6 +167,7 @@ export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       name: nameSchema,
+      domain: z.string(),
       loginKey: z.string(),
       publicKey: z.string(),
       encryptedPrivateKey: z.string(),
@@ -162,8 +178,7 @@ export const saveMyUser = createServerFn({ method: "POST" })
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
-    // Create primary domain on first use
-    const domain = await getOrCreateDomain(getDomain());
+    const domain = await getOrCreateDomain(input.domain);
     await saveUser(
       row.id,
       input.name,
@@ -342,6 +357,11 @@ async function getMyAddress(): Promise<string> {
 export const claimDomainFn = createServerFn({ method: "POST" })
   .inputValidator(z.string())
   .handler(async ({ data: domainName }) => {
+    // Check if third-party domain hosting is allowed
+    const primaryDomain = await getPrimaryDomain();
+    if (primaryDomain && !primaryDomain.allowThirdPartyDomains) {
+      throw new Error("Third-party domain hosting is disabled.");
+    }
     const userId = await requireSessionUserId();
     const adminAddress = await getMyAddress();
     const result = await verifyDomainAdmin(domainName, adminAddress);
@@ -414,5 +434,47 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
       input.publicKey,
       input.encryptedPrivateKey,
     );
+    return { success: true };
+  });
+
+export const isRegistrationOpen = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const primaryDomain = await getPrimaryDomain();
+    if (!primaryDomain) return true; // No domain yet = first boot, allow
+    return primaryDomain.openRegistration;
+  },
+);
+
+export const toggleOpenRegistrationFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      domain: z.string(),
+      value: z.boolean(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const adminAddress = await getMyAddress();
+    const result = await verifyDomainAdmin(input.domain, adminAddress);
+    if (!result.valid) throw new Error(result.message ?? "Not authorized");
+    const domain = await getDomainByName(input.domain);
+    if (!domain) throw new Error("Domain not found");
+    await toggleOpenRegistration(domain.id, input.value);
+    return { success: true };
+  });
+
+export const toggleAllowThirdPartyDomainsFn = createServerFn({
+  method: "POST",
+})
+  .inputValidator(z.boolean())
+  .handler(async ({ data: value }) => {
+    const adminAddress = await getMyAddress();
+    const primaryDomain = await getPrimaryDomain();
+    if (!primaryDomain) throw new Error("Primary domain not configured");
+    const result = await verifyDomainAdmin(
+      primaryDomain.domain,
+      adminAddress,
+    );
+    if (!result.valid) throw new Error(result.message ?? "Not authorized");
+    await toggleAllowThirdPartyDomains(primaryDomain.id, value);
     return { success: true };
   });

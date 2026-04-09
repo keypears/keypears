@@ -32,6 +32,10 @@ export const domains = mysqlTable("domains", {
   id: binaryId("id").primaryKey(),
   domain: varchar("domain", { length: 255 }).notNull().unique(),
   adminUserId: binaryId("admin_user_id"),
+  openRegistration: boolean("open_registration").notNull().default(true),
+  allowThirdPartyDomains: boolean("allow_third_party_domains")
+    .notNull()
+    .default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

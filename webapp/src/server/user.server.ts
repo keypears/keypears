@@ -16,9 +16,7 @@ const SERVER_KDF_ROUNDS = 100_000;
 
 // --- Domain management ---
 
-export async function getDomainByName(
-  domainName: string,
-): Promise<{ id: string; domain: string } | null> {
+export async function getDomainByName(domainName: string) {
   const [row] = await db
     .select()
     .from(domains)
@@ -43,9 +41,7 @@ export async function isLocalDomain(domainName: string): Promise<boolean> {
   return row != null;
 }
 
-export async function getDomainById(
-  id: string,
-): Promise<{ id: string; domain: string; adminUserId: string | null } | null> {
+export async function getDomainById(id: string) {
   const [row] = await db
     .select()
     .from(domains)
@@ -54,9 +50,36 @@ export async function getDomainById(
   return row ?? null;
 }
 
+export async function getPrimaryDomain() {
+  const { getDomain } = await import("~/lib/config");
+  return getDomainByName(getDomain());
+}
+
+export async function toggleOpenRegistration(domainId: string, value: boolean) {
+  await db
+    .update(domains)
+    .set({ openRegistration: value })
+    .where(eq(domains.id, domainId));
+}
+
+export async function toggleAllowThirdPartyDomains(
+  domainId: string,
+  value: boolean,
+) {
+  await db
+    .update(domains)
+    .set({ allowThirdPartyDomains: value })
+    .where(eq(domains.id, domainId));
+}
+
 export async function getDomainsForAdmin(userId: string) {
   return db
-    .select({ id: domains.id, domain: domains.domain })
+    .select({
+      id: domains.id,
+      domain: domains.domain,
+      openRegistration: domains.openRegistration,
+      allowThirdPartyDomains: domains.allowThirdPartyDomains,
+    })
     .from(domains)
     .where(eq(domains.adminUserId, userId));
 }
