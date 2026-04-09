@@ -100,24 +100,16 @@ export async function verifyDomainAdmin(
   domainName: string,
   adminAddress: string,
 ): Promise<{ valid: boolean; message?: string }> {
-  const { getApiDomain, safeFetch } = await import("~/lib/config");
+  const { getApiDomain } = await import("~/lib/config");
+  const { fetchKeypearsJson } = await import("./federation.server");
 
-  const url = `https://${domainName}/.well-known/keypears.json`;
-  let response: Response;
+  let json;
   try {
-    response = await safeFetch(url);
+    json = await fetchKeypearsJson(domainName);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return { valid: false, message: `Cannot reach ${domainName}: ${msg}` };
   }
-  if (!response.ok) {
-    return { valid: false, message: `No keypears.json at ${domainName}` };
-  }
-
-  const json = (await response.json()) as {
-    apiDomain?: string;
-    admin?: string;
-  };
 
   if (!json.apiDomain) {
     return { valid: false, message: "Missing apiDomain in keypears.json" };

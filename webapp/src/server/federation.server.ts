@@ -18,20 +18,25 @@ import type { apiRouter } from "./api.router";
 
 type ApiClient = RouterClient<typeof apiRouter>;
 
-// --- API domain discovery cache (1 minute TTL) ---
+// --- keypears.json cache (1 minute TTL) ---
+
+export interface KeypearsJson {
+  apiDomain?: string;
+  admin?: string;
+}
 
 const CACHE_TTL_MS = 60_000;
-const apiDomainCache = new Map<
+const keypearsJsonCache = new Map<
   string,
-  { apiDomain: string; fetchedAt: number }
+  { data: KeypearsJson; fetchedAt: number }
 >();
 
-export async function resolveApiUrl(domain: string): Promise<string> {
-  if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
-
-  const cached = apiDomainCache.get(domain);
+export async function fetchKeypearsJson(
+  domain: string,
+): Promise<KeypearsJson> {
+  const cached = keypearsJsonCache.get(domain);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    return apiUrlFromDomain(cached.apiDomain);
+    return cached.data;
   }
 
   const url = `https://${domain}/.well-known/keypears.json`;
@@ -39,16 +44,20 @@ export async function resolveApiUrl(domain: string): Promise<string> {
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const json = (await response.json()) as { apiDomain: string };
+  const data = (await response.json()) as KeypearsJson;
+  keypearsJsonCache.set(domain, { data, fetchedAt: Date.now() });
+  return data;
+}
+
+export async function resolveApiUrl(domain: string): Promise<string> {
+  if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
+
+  const json = await fetchKeypearsJson(domain);
   if (!json.apiDomain) {
     throw new Error(
       `Invalid keypears.json from ${domain}: missing apiDomain`,
     );
   }
-  apiDomainCache.set(domain, {
-    apiDomain: json.apiDomain,
-    fetchedAt: Date.now(),
-  });
   return apiUrlFromDomain(json.apiDomain);
 }
 
