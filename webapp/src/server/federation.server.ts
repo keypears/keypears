@@ -1,6 +1,7 @@
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -20,10 +21,12 @@ type ApiClient = RouterClient<typeof apiRouter>;
 
 // --- keypears.json cache (1 minute TTL) ---
 
-export interface KeypearsJson {
-  apiDomain?: string;
-  admin?: string;
-}
+const KeypearsJsonSchema = z.object({
+  apiDomain: z.string().optional(),
+  admin: z.string().optional(),
+});
+
+export type KeypearsJson = z.infer<typeof KeypearsJsonSchema>;
 
 const CACHE_TTL_MS = 60_000;
 const keypearsJsonCache = new Map<
@@ -44,7 +47,7 @@ export async function fetchKeypearsJson(
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const data = (await response.json()) as KeypearsJson;
+  const data = KeypearsJsonSchema.parse(await response.json());
   keypearsJsonCache.set(domain, { data, fetchedAt: Date.now() });
   return data;
 }
