@@ -2,7 +2,7 @@ import { os } from "@orpc/server";
 import { z } from "zod";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserByNameAndDomain, getDomainByName } from "./user.server";
@@ -150,6 +150,11 @@ const pullMessage = os
     await db
       .delete(pendingDeliveries)
       .where(eq(pendingDeliveries.id, delivery.id));
+
+    // Lazy cleanup: delete expired pending deliveries
+    await db
+      .delete(pendingDeliveries)
+      .where(lt(pendingDeliveries.expiresAt, new Date()));
 
     return {
       senderAddress: delivery.senderAddress,

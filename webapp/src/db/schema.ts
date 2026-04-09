@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  index,
   customType,
 } from "drizzle-orm/mysql-core";
 import { UUID } from "uuidv7";
@@ -28,16 +29,20 @@ const binaryId = customType<{ data: string }>({
 
 // --- Tables ---
 
-export const domains = mysqlTable("domains", {
-  id: binaryId("id").primaryKey(),
-  domain: varchar("domain", { length: 255 }).notNull().unique(),
-  adminUserId: binaryId("admin_user_id"),
-  openRegistration: boolean("open_registration").notNull().default(true),
-  allowThirdPartyDomains: boolean("allow_third_party_domains")
-    .notNull()
-    .default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const domains = mysqlTable(
+  "domains",
+  {
+    id: binaryId("id").primaryKey(),
+    domain: varchar("domain", { length: 255 }).notNull().unique(),
+    adminUserId: binaryId("admin_user_id"),
+    openRegistration: boolean("open_registration").notNull().default(true),
+    allowThirdPartyDomains: boolean("allow_third_party_domains")
+      .notNull()
+      .default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("admin_user_id_idx").on(table.adminUserId)],
+);
 
 export const users = mysqlTable(
   "users",
@@ -51,18 +56,23 @@ export const users = mysqlTable(
   },
   (table) => [
     uniqueIndex("name_domain_idx").on(table.name, table.domainId),
+    index("domain_id_idx").on(table.domainId),
   ],
 );
 
-export const keys = mysqlTable("user_keys", {
-  id: binaryId("id").primaryKey(),
-  userId: binaryId("user_id").notNull(),
-  keyNumber: int("key_number").notNull(),
-  publicKey: varchar("public_key", { length: 66 }).notNull(),
-  encryptedPrivateKey: text("encrypted_private_key").notNull(),
-  loginKeyHash: varchar("login_key_hash", { length: 255 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const keys = mysqlTable(
+  "user_keys",
+  {
+    id: binaryId("id").primaryKey(),
+    userId: binaryId("user_id").notNull(),
+    keyNumber: int("key_number").notNull(),
+    publicKey: varchar("public_key", { length: 66 }).notNull(),
+    encryptedPrivateKey: text("encrypted_private_key").notNull(),
+    loginKeyHash: varchar("login_key_hash", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("user_id_idx").on(table.userId)],
+);
 
 export const channels = mysqlTable(
   "channels",
@@ -83,34 +93,47 @@ export const channels = mysqlTable(
   ],
 );
 
-export const messages = mysqlTable("messages", {
-  id: binaryId("id").primaryKey(),
-  channelId: binaryId("channel_id").notNull(),
-  senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-  encryptedContent: text("encrypted_content").notNull(),
-  senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
-  recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
-  isRead: boolean("is_read").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const messages = mysqlTable(
+  "messages",
+  {
+    id: binaryId("id").primaryKey(),
+    channelId: binaryId("channel_id").notNull(),
+    senderAddress: varchar("sender_address", { length: 255 }).notNull(),
+    encryptedContent: text("encrypted_content").notNull(),
+    senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
+    recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+    isRead: boolean("is_read").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("channel_id_idx").on(table.channelId)],
+);
 
-export const pendingDeliveries = mysqlTable("pending_deliveries", {
-  id: binaryId("id").primaryKey(),
-  tokenHash: varchar("token_hash", { length: 64 }).notNull(),
-  senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-  recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
-  encryptedContent: text("encrypted_content").notNull(),
-  senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
-  recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const pendingDeliveries = mysqlTable(
+  "pending_deliveries",
+  {
+    id: binaryId("id").primaryKey(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    senderAddress: varchar("sender_address", { length: 255 }).notNull(),
+    recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
+    encryptedContent: text("encrypted_content").notNull(),
+    senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
+    recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("token_hash_idx").on(table.tokenHash)],
+);
 
-export const sessions = mysqlTable("sessions", {
-  tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
-  userId: binaryId("user_id").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const sessions = mysqlTable(
+  "sessions",
+  {
+    tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
+    userId: binaryId("user_id").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("session_user_id_idx").on(table.userId)],
+);
 
 export const usedPow = mysqlTable("used_pow", {
   solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
@@ -120,13 +143,17 @@ export const usedPow = mysqlTable("used_pow", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const powLog = mysqlTable("pow_log", {
-  id: binaryId("id").primaryKey(),
-  userId: binaryId("user_id").notNull(),
-  algorithm: varchar("algorithm", { length: 32 }).notNull(),
-  difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
-  cumulativeDifficulty: bigint("cumulative_difficulty", {
-    mode: "bigint",
-  }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const powLog = mysqlTable(
+  "pow_log",
+  {
+    id: binaryId("id").primaryKey(),
+    userId: binaryId("user_id").notNull(),
+    algorithm: varchar("algorithm", { length: 32 }).notNull(),
+    difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
+    cumulativeDifficulty: bigint("cumulative_difficulty", {
+      mode: "bigint",
+    }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("pow_user_id_idx").on(table.userId)],
+);

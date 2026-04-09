@@ -106,6 +106,7 @@ export async function deliverRemoteMessage(
   const token = generateToken();
   const tokenH = hashToken(token);
 
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   await db.insert(pendingDeliveries).values({
     id: newId(),
     tokenHash: tokenH,
@@ -114,6 +115,7 @@ export async function deliverRemoteMessage(
     encryptedContent,
     senderPubKey,
     recipientPubKey,
+    expiresAt,
   });
 
   // 2. Notify recipient's server, passing client-mined PoW if provided
