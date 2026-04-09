@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-09"
+closed = "2026-04-09"
 +++
 
 # Issue 8: Schema Indexes and Cleanup
@@ -102,3 +103,19 @@ new index to the existing callback. For tables without one, add a callback.
 9. `SHOW INDEX FROM domains` shows index on `adminUserId`.
 10. Pending deliveries have an `expiresAt` value 24 hours in the future.
 11. After pulling a message, expired pending deliveries are cleaned up.
+
+**Result:** Pass
+
+#### Conclusion
+
+All seven critical indexes added. Pending deliveries now expire after 24
+hours with lazy cleanup on pull. No full table scans remain for common
+query patterns.
+
+## Conclusion
+
+All missing indexes are in place: `user_keys.userId`, `messages.channelId`,
+`sessions.userId`, `pow_log.userId`, `pending_deliveries.tokenHash`,
+`users.domainId`, and `domains.adminUserId`. The `pending_deliveries` table
+now has an `expiresAt` column set to 24 hours from creation, with lazy
+cleanup on every pull. The schema is ready for production.
