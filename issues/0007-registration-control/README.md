@@ -30,16 +30,42 @@ business running their own KeyPears server wants to control who has accounts.
 This mirrors how most self-hosted software works: bootstrap your admin account
 while registration is open, then lock it down.
 
+### Two controls
+
+**1. Open registration (per domain).**
+
+Controls whether anyone can create an account on this domain via PoW, or only
+the admin can create users. Default: open. The admin toggles it off after
+bootstrapping their own account.
+
+**2. Third-party domain hosting (server-level).**
+
+Controls whether users on this server can claim external domains. If disabled,
+no one can add domains other than the primary domain. If enabled, any user who
+proves ownership via `keypears.json` can claim a domain.
+
+The `keypears.json` verification already proves domain ownership — if someone
+can set `keypears.json` on a domain, they legitimately control it. This toggle
+just controls whether the server accepts hosting duties for external domains.
+
+Default: off for self-hosted nodes (you probably don't want employees adding
+random domains to your server). On for keypears.com (that's the whole point of
+the hosted tier).
+
 ### What needs to change
 
 **Database:**
 
 - Add `openRegistration` boolean column to `domains` table (default true).
+- Add `allowThirdPartyDomains` boolean column to `domains` table (default
+  false). Only meaningful on the primary domain — controls server-wide behavior.
 
 **Server:**
 
 - `createUser` — check if the primary domain allows open registration. If not,
   reject with a clear error ("Registration is closed").
+- `claimDomain` — check if the primary domain allows third-party domains. If
+  not, reject with "Third-party domain hosting is disabled."
 - Admin can always create users via `createDomainUser` regardless of the
   registration setting.
 
@@ -48,12 +74,16 @@ while registration is open, then lock it down.
 - Landing page (`index.tsx`) — if registration is closed, hide the "Create an
   Account" button and show a message like "Registration is closed. Contact the
   administrator."
-- Domains page (`domains.tsx`) — add a toggle for open/closed registration per
-  domain the admin controls.
+- Domains page (`domains.tsx`) — add toggles for:
+  - Open/closed registration per domain the admin controls.
+  - Allow/disallow third-party domains (only shown to the primary domain's
+    admin).
 
 **API:**
 
 - Add a server function to toggle registration for a domain (admin only,
   re-verified against `keypears.json`).
+- Add a server function to toggle third-party domain hosting (primary domain
+  admin only).
 - Add a server function or modify existing ones to expose whether registration
   is open (needed by the landing page).
