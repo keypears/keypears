@@ -123,7 +123,6 @@ describe("PoW verification", () => {
       challenge.signature,
     );
     expect(result.valid).toBe(false);
-    // Will fail on signature since header is wrong size
-    expect(result.message).toBe("Invalid signature");
+    expect(result.message).toBe("Invalid header size");
   });
 });

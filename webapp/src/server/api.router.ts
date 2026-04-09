@@ -65,16 +65,15 @@ const notifyMessage = os
     try {
       // Verify recipient is local
       const recipientParsed = parseAddress(input.recipientAddress);
-      if (!recipientParsed) throw new Error("Invalid recipient address");
+      if (!recipientParsed) throw new Error("Not found");
       const recipientDomain = await getDomainByName(recipientParsed.domain);
-      if (!recipientDomain)
-        throw new Error("Recipient not found on this server");
+      if (!recipientDomain) throw new Error("Not found");
       const recipientUser = await getUserByNameAndDomain(
         recipientParsed.name,
         recipientDomain.id,
       );
       if (!recipientUser || !recipientUser.passwordHash)
-        throw new Error("Recipient not found");
+        throw new Error("Not found");
 
       // Always verify PoW — difficulty is set by getPowChallenge
       const powResult = await verifyAndConsumePow(
@@ -138,18 +137,22 @@ const pullMessage = os
   .handler(async ({ input }) => {
     const hash = hashToken(input.token);
 
-    const [delivery] = await db
-      .select()
-      .from(pendingDeliveries)
-      .where(eq(pendingDeliveries.tokenHash, hash))
-      .limit(1);
+    // Atomic select + delete to prevent race condition
+    const delivery = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(pendingDeliveries)
+        .where(eq(pendingDeliveries.tokenHash, hash))
+        .limit(1)
+        .for("update");
+      if (!row) return null;
+      await tx
+        .delete(pendingDeliveries)
+        .where(eq(pendingDeliveries.id, row.id));
+      return row;
+    });
 
-    if (!delivery) throw new Error("Message not found or already pulled");
-
-    // Delete after pulling (one-time use)
-    await db
-      .delete(pendingDeliveries)
-      .where(eq(pendingDeliveries.id, delivery.id));
+    if (!delivery) throw new Error("Not found");
 
     // Lazy cleanup: delete expired pending deliveries
     await db

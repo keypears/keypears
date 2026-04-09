@@ -50,6 +50,17 @@ export function verifyPowSolution(
   expiresAt: number,
   signatureHex: string,
 ): { valid: boolean; message?: string } {
+  // Validate input lengths before parsing to prevent memory exhaustion
+  if (solvedHeaderHex.length !== HEADER_SIZE * 2) {
+    return { valid: false, message: "Invalid header size" };
+  }
+  if (targetHex.length !== 64) {
+    return { valid: false, message: "Invalid target size" };
+  }
+  if (signatureHex.length !== 64) {
+    return { valid: false, message: "Invalid signature size" };
+  }
+
   if (Date.now() > expiresAt) {
     return { valid: false, message: "Challenge expired" };
   }
@@ -61,10 +72,6 @@ export function verifyPowSolution(
   const expectedSig = signChallenge(solvedHeader, target, expiresAt);
   if (signature.buf.toHex() !== expectedSig.buf.toHex()) {
     return { valid: false, message: "Invalid signature" };
-  }
-
-  if (solvedHeader.length !== HEADER_SIZE) {
-    return { valid: false, message: "Invalid header size" };
   }
 
   const hash = Pow5_64b_Wasm.elementaryIteration(

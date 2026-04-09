@@ -100,14 +100,15 @@ export async function verifyDomainAdmin(
   domainName: string,
   adminAddress: string,
 ): Promise<{ valid: boolean; message?: string }> {
-  const { getApiDomain } = await import("~/lib/config");
+  const { getApiDomain, safeFetch } = await import("~/lib/config");
 
   const url = `https://${domainName}/.well-known/keypears.json`;
   let response: Response;
   try {
-    response = await fetch(url);
-  } catch {
-    return { valid: false, message: `Cannot reach ${domainName}` };
+    response = await safeFetch(url);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return { valid: false, message: `Cannot reach ${domainName}: ${msg}` };
   }
   if (!response.ok) {
     return { valid: false, message: `No keypears.json at ${domainName}` };

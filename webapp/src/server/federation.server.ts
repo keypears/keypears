@@ -9,7 +9,7 @@ import { uuidv7 } from "uuidv7";
 function newId(): string {
   return uuidv7();
 }
-import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
+import { parseAddress, apiUrlFromDomain, getApiDomain, safeFetch } from "~/lib/config";
 import { isLocalDomain } from "./user.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -18,18 +18,24 @@ import type { apiRouter } from "./api.router";
 
 type ApiClient = RouterClient<typeof apiRouter>;
 
-// --- API domain discovery cache ---
+// --- API domain discovery cache (1 minute TTL) ---
 
-const apiDomainCache = new Map<string, string>();
+const CACHE_TTL_MS = 60_000;
+const apiDomainCache = new Map<
+  string,
+  { apiDomain: string; fetchedAt: number }
+>();
 
 export async function resolveApiUrl(domain: string): Promise<string> {
   if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
 
   const cached = apiDomainCache.get(domain);
-  if (cached) return apiUrlFromDomain(cached);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return apiUrlFromDomain(cached.apiDomain);
+  }
 
   const url = `https://${domain}/.well-known/keypears.json`;
-  const response = await fetch(url);
+  const response = await safeFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
@@ -39,7 +45,10 @@ export async function resolveApiUrl(domain: string): Promise<string> {
       `Invalid keypears.json from ${domain}: missing apiDomain`,
     );
   }
-  apiDomainCache.set(domain, json.apiDomain);
+  apiDomainCache.set(domain, {
+    apiDomain: json.apiDomain,
+    fetchedAt: Date.now(),
+  });
   return apiUrlFromDomain(json.apiDomain);
 }
 
