@@ -61,12 +61,20 @@ tab is hidden. This wastes bandwidth and battery.
 
 Fix: pause polling when `document.hidden` is true, resume on visibility change.
 
+**6. `blake3Pbkdf` duplicated across client/server (MEDIUM).**
+
+The identical `blake3Pbkdf` function exists in both `lib/auth.ts` (client)
+and `server/user.server.ts` (server). They can't import from each other due
+to the client/server boundary, but the function is pure crypto with no
+server dependencies.
+
+Fix: extract to `lib/kdf.ts` (pure `@webbuf/blake3` imports only). Both
+client and server import from it.
+
 ### Not issues
 
 - Lazy cleanup on every request — one indexed DELETE per request is fast. No
   background worker needed at this scale.
 - `_chrome` route naming — TanStack Router convention. Not worth renaming.
-- `blake3Pbkdf` in both client and server — can't share across the client/server
-  boundary. Not real duplication.
 - Three.js dependency — may be unused. Should verify and remove if so, but not
   an architecture issue.
