@@ -20,7 +20,7 @@ import {
   Send as SendIcon,
   LockKeyhole,
   Loader2,
-  Inbox,
+  Home,
   MessageSquare,
   Menu,
   X,
@@ -299,12 +299,12 @@ function ChannelPage() {
     return (
       <div className="flex flex-col">
         <a
-          href="/inbox"
+          href="/"
           onClick={onSelect}
           className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
         >
-          <Inbox className="h-4 w-4" />
-          Inbox
+          <Home className="h-4 w-4" />
+          Home
         </a>
         <div className="border-border/30 border-t" />
         <div className="flex-1 overflow-y-auto">
