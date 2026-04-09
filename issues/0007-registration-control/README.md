@@ -48,9 +48,8 @@ The `keypears.json` verification already proves domain ownership — if someone
 can set `keypears.json` on a domain, they legitimately control it. This toggle
 just controls whether the server accepts hosting duties for external domains.
 
-Default: off for self-hosted nodes (you probably don't want employees adding
-random domains to your server). On for keypears.com (that's the whole point of
-the hosted tier).
+Default: on. The first admin must manually disable it after bootstrapping
+if they don't want external domains hosted on their server.
 
 ### What needs to change
 
@@ -58,7 +57,7 @@ the hosted tier).
 
 - Add `openRegistration` boolean column to `domains` table (default true).
 - Add `allowThirdPartyDomains` boolean column to `domains` table (default
-  false). Only meaningful on the primary domain — controls server-wide behavior.
+  true). Only meaningful on the primary domain — controls server-wide behavior.
 
 **Server:**
 
