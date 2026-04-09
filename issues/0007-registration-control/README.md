@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-09"
+closed = "2026-04-09"
 +++
 
 # Issue 7: Registration Control
@@ -161,3 +162,22 @@ page to respect the registration setting.
    of the lockberries.test registration setting.
 10. Toggle lockberries.test open registration off. Direct signups for
     lockberries.test are blocked (if we ever add per-domain signup).
+
+**Result:** Pass
+
+#### Conclusion
+
+Both controls work. `openRegistration` gates the landing page and
+`createUser`. `allowThirdPartyDomains` gates `claimDomain`. Admin toggles
+re-verify against `keypears.json` on every action. Also fixed multi-domain
+signup: users can now create accounts on any hosted domain (not just the
+primary), and `checkNameAvailable` and `saveMyUser` accept the domain from
+the address.
+
+## Conclusion
+
+Registration and third-party hosting controls are implemented. Both default
+to on — the admin manually disables what they don't want after
+bootstrapping. The landing page respects the registration setting. The
+Domains page shows toggles for both controls. Signup now works for any
+domain hosted by the server, not just the primary domain.
