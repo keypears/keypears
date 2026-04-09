@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                                | Title                  | Opened     |
+| ------------------------------------------------ | ---------------------- | ---------- |
+| [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup   | 2026-04-09 |
 
 ## Closed
 
