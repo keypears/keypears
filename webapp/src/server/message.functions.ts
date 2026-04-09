@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 import {
   getOrCreateChannel,
   getOrCreateChannelPair,
@@ -16,13 +15,13 @@ import {
   getUserById,
   getUserByNameAndDomain,
   getActiveKey,
-  resolveSession,
   isLocalDomain,
   getDomainByName,
   getDomainById,
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
+import { getSessionUserId, requireSessionUserId } from "./session";
 import { z } from "zod";
 import { parseAddress, makeAddress } from "~/lib/config";
 import {
@@ -30,20 +29,6 @@ import {
   deliverRemoteMessage,
   fetchRemotePowChallenge,
 } from "./federation.server";
-
-const COOKIE_NAME = "session";
-
-async function getSessionUserId(): Promise<string | null> {
-  const token = getCookie(COOKIE_NAME);
-  if (!token) return null;
-  return resolveSession(token);
-}
-
-async function requireSessionUserId(): Promise<string> {
-  const userId = await getSessionUserId();
-  if (!userId) throw new Error("Not logged in");
-  return userId;
-}
 
 export const getPublicKeyForAddress = createServerFn({ method: "GET" })
   .inputValidator(z.string())

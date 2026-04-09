@@ -106,17 +106,19 @@ function ChannelPage() {
     let active = true;
     async function poll() {
       while (active) {
-        try {
-          const newMsgs = await pollNewMessages({
-            data: { counterpartyAddress: address, afterId: lastIdRef.current },
-          });
-          if (!active) break;
-          if (newMsgs.length > 0) {
-            setMessageList((prev) => [...prev, ...newMsgs]);
-            markChannelAsRead({ data: address });
+        if (!document.hidden) {
+          try {
+            const newMsgs = await pollNewMessages({
+              data: { counterpartyAddress: address, afterId: lastIdRef.current },
+            });
+            if (!active) break;
+            if (newMsgs.length > 0) {
+              setMessageList((prev) => [...prev, ...newMsgs]);
+              markChannelAsRead({ data: address });
+            }
+          } catch {
+            // ignore errors, retry after delay
           }
-        } catch {
-          // ignore errors, retry after delay
         }
         await new Promise((resolve) => setTimeout(resolve, 200));
       }

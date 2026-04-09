@@ -3,10 +3,9 @@ import { z } from "zod";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
-import { blake3Hash } from "@webbuf/blake3";
-import { WebBuf } from "@webbuf/webbuf";
 import { getActiveKey, getUserByNameAndDomain, getDomainByName } from "./user.server";
 import { getDomain, parseAddress } from "~/lib/config";
+import { hashToken } from "./utils";
 import {
   getOrCreateChannel,
   insertMessage,
@@ -16,10 +15,6 @@ import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { resolveApiUrl } from "./federation.server";
-
-function hashToken(token: string): string {
-  return blake3Hash(WebBuf.fromUtf8(token)).buf.toHex();
-}
 
 // --- oRPC Router ---
 

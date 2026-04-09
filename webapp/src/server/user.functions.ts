@@ -1,9 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-  getCookie,
-  setCookie,
-  deleteCookie,
-} from "@tanstack/react-start/server";
+import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 import {
   insertUser,
   getUserById,
@@ -20,7 +16,6 @@ import {
   changePassword,
   reEncryptKey,
   createSession,
-  resolveSession,
   deleteSession,
   deleteAllSessions,
   deleteAllSessionsExcept,
@@ -29,7 +24,6 @@ import {
   getDomainById,
   getDomainsForAdmin,
   getUsersForDomain,
-  verifyDomainAdmin,
   claimDomain,
   createUserForDomain,
   resetUserPassword,
@@ -37,15 +31,16 @@ import {
   toggleOpenRegistration,
   toggleAllowThirdPartyDomains,
 } from "./user.server";
+import { verifyDomainAdmin } from "./federation.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema, nameSchema } from "./schemas";
+import { getSessionUserId, requireSessionUserId, COOKIE_NAME } from "./session";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
 import { makeAddress, parseAddress } from "~/lib/config";
 
-const COOKIE_NAME = "session";
 const ONE_DAY = 60 * 60 * 24;
 const THIRTY_DAYS = 60 * 60 * 24 * 30;
 
@@ -57,20 +52,6 @@ function cookieOpts(maxAge: number) {
     maxAge,
     path: "/",
   };
-}
-
-/** Read session cookie, resolve to user ID. Returns null if invalid/expired. */
-async function getSessionUserId(): Promise<string | null> {
-  const token = getCookie(COOKIE_NAME);
-  if (!token) return null;
-  return resolveSession(token);
-}
-
-/** Read session cookie, resolve to user ID. Throws if not logged in. */
-async function requireSessionUserId(): Promise<string> {
-  const userId = await getSessionUserId();
-  if (!userId) throw new Error("Not logged in");
-  return userId;
 }
 
 /** Hash the current session token to identify it in the sessions table. */

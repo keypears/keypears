@@ -1,15 +1,13 @@
 import { db } from "~/db";
 import { users, keys, powLog, sessions, domains } from "~/db/schema";
 import { eq, desc, and, lt, isNull, max, count, sql, ne } from "drizzle-orm";
-import { blake3Hash, blake3Mac } from "@webbuf/blake3";
+import { blake3Hash } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
-import { uuidv7 } from "uuidv7";
-
-function newId(): string {
-  return uuidv7();
-}
+import { blake3Pbkdf } from "~/lib/kdf";
+import { getDomain } from "~/lib/config";
+import { newId } from "./utils";
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 100_000;
@@ -51,7 +49,6 @@ export async function getDomainById(id: string) {
 }
 
 export async function getPrimaryDomain() {
-  const { getDomain } = await import("~/lib/config");
   return getDomainByName(getDomain());
 }
 
@@ -94,43 +91,6 @@ export async function getUsersForDomain(domainId: string) {
     .from(users)
     .where(and(eq(users.domainId, domainId), sql`${users.passwordHash} IS NOT NULL`))
     .orderBy(users.name);
-}
-
-export async function verifyDomainAdmin(
-  domainName: string,
-  adminAddress: string,
-): Promise<{ valid: boolean; message?: string }> {
-  const { getApiDomain } = await import("~/lib/config");
-  const { fetchKeypearsJson } = await import("./federation.server");
-
-  let json;
-  try {
-    json = await fetchKeypearsJson(domainName);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return { valid: false, message: `Cannot reach ${domainName}: ${msg}` };
-  }
-
-  if (!json.apiDomain) {
-    return { valid: false, message: "Missing apiDomain in keypears.json" };
-  }
-  if (json.apiDomain !== getApiDomain()) {
-    return {
-      valid: false,
-      message: `apiDomain "${json.apiDomain}" does not match this server`,
-    };
-  }
-  if (!json.admin) {
-    return { valid: false, message: "Missing admin in keypears.json" };
-  }
-  if (json.admin !== adminAddress) {
-    return {
-      valid: false,
-      message: `Admin "${json.admin}" does not match your address`,
-    };
-  }
-
-  return { valid: true };
 }
 
 export async function claimDomain(
@@ -190,18 +150,6 @@ export async function resetUserPassword(
   await insertKey(userId, publicKey, encryptedPrivateKey, newPasswordHash);
   // Revoke all sessions for this user
   await db.delete(sessions).where(eq(sessions.userId, userId));
-}
-
-function blake3Pbkdf(
-  password: WebBuf,
-  salt: FixedBuf<32>,
-  rounds: number,
-): FixedBuf<32> {
-  let result = blake3Mac(salt, password);
-  for (let i = 1; i < rounds; i++) {
-    result = blake3Mac(salt, result.buf);
-  }
-  return result;
 }
 
 function deriveServerSalt(): FixedBuf<32> {

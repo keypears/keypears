@@ -2,15 +2,10 @@ import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { blake3Hash } from "@webbuf/blake3";
-import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
-import { uuidv7 } from "uuidv7";
-
-function newId(): string {
-  return uuidv7();
-}
-import { parseAddress, apiUrlFromDomain, getApiDomain, safeFetch } from "~/lib/config";
+import { newId, hashToken } from "./utils";
+import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
+import { safeFetch } from "./fetch";
 import { isLocalDomain } from "./user.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -77,14 +72,44 @@ async function getRemoteClient(domain: string): Promise<ApiClient> {
   return createRemoteClient(apiUrl);
 }
 
-// --- Token utilities ---
-
-function hashToken(token: string): string {
-  return blake3Hash(WebBuf.fromUtf8(token)).buf.toHex();
-}
-
 function generateToken(): string {
   return FixedBuf.fromRandom(32).buf.toHex();
+}
+
+// --- Domain verification ---
+
+export async function verifyDomainAdmin(
+  domainName: string,
+  adminAddress: string,
+): Promise<{ valid: boolean; message?: string }> {
+  let json;
+  try {
+    json = await fetchKeypearsJson(domainName);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return { valid: false, message: `Cannot reach ${domainName}: ${msg}` };
+  }
+
+  if (!json.apiDomain) {
+    return { valid: false, message: "Missing apiDomain in keypears.json" };
+  }
+  if (json.apiDomain !== getApiDomain()) {
+    return {
+      valid: false,
+      message: `apiDomain "${json.apiDomain}" does not match this server`,
+    };
+  }
+  if (!json.admin) {
+    return { valid: false, message: "Missing admin in keypears.json" };
+  }
+  if (json.admin !== adminAddress) {
+    return {
+      valid: false,
+      message: `Admin "${json.admin}" does not match your address`,
+    };
+  }
+
+  return { valid: true };
 }
 
 // --- Federation functions ---

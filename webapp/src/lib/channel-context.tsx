@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { getMyChannels } from "~/server/message.functions";
 
 interface Channel {
-  id: number;
+  id: string;
   counterpartyAddress: string;
   updatedAt: Date;
   unreadCount: number;
@@ -29,19 +29,36 @@ export function ChannelProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     async function poll() {
       while (active) {
-        try {
-          const list = await getMyChannels();
-          if (!active) break;
-          setChannels(list);
-        } catch {
-          // ignore
+        if (!document.hidden) {
+          try {
+            const list = await getMyChannels();
+            if (!active) break;
+            setChannels(list);
+          } catch {
+            // ignore
+          }
         }
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     }
+
+    // Resume polling immediately when tab becomes visible
+    function handleVisibility() {
+      if (!document.hidden && active) {
+        getMyChannels()
+          .then((list) => {
+            if (active) setChannels(list);
+            return list;
+          })
+          .catch(() => {});
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility);
     poll();
     return () => {
       active = false;
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 

@@ -3,6 +3,7 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { publicKeyCreate } from "@webbuf/secp256k1";
 import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { blake3Pbkdf } from "./kdf";
 
 const CLIENT_KDF_ROUNDS = 100_000;
 const ENCRYPTION_KEY_STORAGE_KEY = "keypears_encryption_key";
@@ -60,18 +61,6 @@ export function getCachedEntropyTier(): EntropyTier | null {
 
 export function clearCachedEntropyTier(): void {
   localStorage.removeItem(ENTROPY_TIER_STORAGE_KEY);
-}
-
-function blake3Pbkdf(
-  password: WebBuf,
-  salt: FixedBuf<32>,
-  rounds: number,
-): FixedBuf<32> {
-  let result = blake3Mac(salt, password);
-  for (let i = 1; i < rounds; i++) {
-    result = blake3Mac(salt, result.buf);
-  }
-  return result;
 }
 
 function derivePasswordSalt(password: string): FixedBuf<32> {

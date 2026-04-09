@@ -1,11 +1,7 @@
 import { db } from "~/db";
 import { channels, messages } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
-import { uuidv7 } from "uuidv7";
-
-function newId(): string {
-  return uuidv7();
-}
+import { newId } from "./utils";
 
 export async function getOrCreateChannel(
   ownerId: string,
