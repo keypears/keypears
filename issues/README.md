@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                              | Title                    | Opened     |
+| ---------------------------------------------- | ------------------------ | ---------- |
+| [0009](0009-protocol-security/README.md)       | Protocol Security Fixes  | 2026-04-09 |
 
 ## Closed
 
