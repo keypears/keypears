@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-09"
+closed = "2026-04-09"
 +++
 
 # Issue 9: Protocol Security Fixes
@@ -166,3 +167,26 @@ single generic message:
    was the issue.
 7. All existing functionality works: create account, send messages,
    federation, domain claiming.
+
+**Result:** Pass
+
+#### Conclusion
+
+All five findings fixed. `pullMessage` uses `FOR UPDATE` to prevent race
+conditions. `safeFetch` blocks private IPs with DNS resolution, 5s timeout,
+and 1MB size limit. PoW validates input lengths before parsing. The
+`keypears.json` cache uses a 1-minute TTL and caches the full response
+(validated with Zod). Generic error messages prevent user/domain
+enumeration. Also consolidated the `keypears.json` fetch into a single
+`fetchKeypearsJson` function shared by `resolveApiUrl` and
+`verifyDomainAdmin`.
+
+## Conclusion
+
+All protocol security issues identified in the pre-launch audit are fixed.
+The `pullMessage` race condition is eliminated via row locking. SSRF is
+blocked by `safeFetch` which resolves DNS and rejects private IPs before
+making requests. PoW input validation rejects oversized inputs before
+allocating memory. The `keypears.json` cache expires after 1 minute and
+validates responses with Zod. Error messages are generic to prevent
+enumeration.
