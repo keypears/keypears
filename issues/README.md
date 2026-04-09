@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                              | Title                  | Opened     |
+| ---------------------------------------------- | ---------------------- | ---------- |
+| [0008](0008-schema-indexes/README.md)          | Schema Indexes and Cleanup | 2026-04-09 |
 
 ## Closed
 
