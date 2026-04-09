@@ -2,8 +2,9 @@
 
 ## Open
 
-| # | Title | Opened |
-| - | ----- | ------ |
+| #                                                  | Title                  | Opened     |
+| -------------------------------------------------- | ---------------------- | ---------- |
+| [0007](0007-registration-control/README.md)        | Registration Control   | 2026-04-09 |
 
 ## Closed
 
