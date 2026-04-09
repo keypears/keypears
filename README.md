@@ -1,11 +1,11 @@
 # KeyPears
 
-**Secret sharing system.**
+**Diffie-Hellman Key Exchange System**
 
 KeyPears is an end-to-end encrypted secret sharing system built on federated
-Diffie-Hellman key exchange. Your identity is a KeyPears address
-(e.g. `1@keypears.com`) tied to a secp256k1 public key. Discover anyone's
-public key by their address, derive a shared secret, and communicate securely.
+Diffie-Hellman key exchange. Your identity is a KeyPears address (e.g.
+`1@keypears.com`) tied to a secp256k1 public key. Discover anyone's public key
+by their address, derive a shared secret, and communicate securely.
 
 ## How it works
 
