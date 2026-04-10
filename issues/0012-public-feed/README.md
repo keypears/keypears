@@ -249,6 +249,18 @@ an indexed column. Fast, bounded, no counting.
 4. Wait 10 minutes — difficulty drops back to 70M.
 5. The 10th post query is fast (EXPLAIN shows index usage).
 
+**Result:** Pass
+
+#### Conclusion
+
+Dynamic difficulty throttling works. The 10th most recent post's
+timestamp determines whether the feed is "hot." Difficulty scales
+exponentially when posts come faster than 1 per minute over a 10-minute
+window. Also fixed a MySQL timezone mismatch (server was non-UTC) by
+setting `SET time_zone = '+00:00'` on every connection, and fixed the
+shadcn theme so `--primary` is green (matching the brand) instead of
+blue.
+
 ### Experiment 3: No newlines, input box with preview
 
 #### Description
