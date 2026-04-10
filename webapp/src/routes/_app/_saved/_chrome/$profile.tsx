@@ -1,37 +1,38 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { getProfile, getPowHistoryForAddress } from "~/server/user.functions";
+import { getProfile } from "~/server/user.functions";
+import { getUserPostsByAddress } from "~/server/post.functions";
 import { parseAddress } from "~/lib/config";
 import { CircleUser, Copy, Check } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
+import { PostCard } from "~/components/PostCard";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   loader: async ({ params }) => {
     const parsed = parseAddress(params.profile);
     if (!parsed) throw notFound();
 
-    const [profileData, powHistory] = await Promise.all([
+    const [profileData, userPosts] = await Promise.all([
       getProfile({ data: params.profile }),
-      getPowHistoryForAddress({ data: { address: params.profile } }),
+      getUserPostsByAddress({ data: { address: params.profile } }),
     ]);
     if (!profileData) throw notFound();
 
     return {
       address: params.profile,
       powTotal: profileData.powTotal,
-      powHistory,
+      posts: userPosts,
     };
   },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { address, powTotal, powHistory: initialHistory } =
-    Route.useLoaderData();
+  const { address, powTotal, posts: initialPosts } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState(initialHistory);
+  const [postList, setPostList] = useState(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialHistory.length >= 20);
+  const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
 
   function handleCopy() {
     navigator.clipboard.writeText(address);
@@ -40,14 +41,14 @@ function ProfilePage() {
   }
 
   async function loadMore() {
-    if (loadingMore || !hasMore || history.length === 0) return;
+    if (loadingMore || !hasMore || postList.length === 0) return;
     setLoadingMore(true);
     try {
-      const older = await getPowHistoryForAddress({
-        data: { address, beforeId: history[history.length - 1].id },
+      const older = await getUserPostsByAddress({
+        data: { address, beforeId: postList[postList.length - 1].id },
       });
       if (older.length < 20) setHasMore(false);
-      setHistory((prev) => [...prev, ...older]);
+      setPostList((prev) => [...prev, ...older]);
     } catch {
       // ignore
     } finally {
@@ -56,60 +57,51 @@ function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col items-center pt-32 font-sans">
-      <CircleUser className="text-muted-foreground h-24 w-24" />
-      <button
-        onClick={handleCopy}
-        className="text-foreground hover:text-accent mt-6 inline-flex cursor-pointer items-center gap-2 text-2xl font-bold transition-colors"
-        title="Copy address"
-      >
-        {address}
-        {copied ? (
-          <Check className="h-5 w-5 text-green-500" />
-        ) : (
-          <Copy className="text-muted-foreground h-5 w-5" />
-        )}
-      </button>
-
-      {BigInt(powTotal) > 0n && (
-        <div className="mt-6">
-          <PowBadge difficulty={BigInt(powTotal)} label="total proof-of-work" />
-        </div>
-      )}
-
-      {history.length > 0 && (
-        <div className="mt-8 w-full max-w-sm">
-          <h2 className="text-foreground mb-3 text-center text-sm font-semibold">
-            Proof of Work History
-          </h2>
-          <div className="flex flex-col gap-1">
-            {history.map((entry) => (
-              <div
-                key={entry.id}
-                className="text-muted-foreground flex items-center justify-between px-2 py-1.5 text-xs"
-              >
-                <PowBadge difficulty={BigInt(entry.difficulty)} />
-                <span>
-                  {new Date(entry.createdAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-            ))}
+    <div className="mx-auto max-w-2xl font-sans">
+      <div className="flex flex-col items-center pt-16 pb-6">
+        <CircleUser className="text-muted-foreground h-20 w-20" />
+        <button
+          onClick={handleCopy}
+          className="text-foreground hover:text-accent mt-4 inline-flex cursor-pointer items-center gap-2 text-xl font-bold transition-colors"
+          title="Copy address"
+        >
+          {address}
+          {copied ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <Copy className="text-muted-foreground h-4 w-4" />
+          )}
+        </button>
+        {BigInt(powTotal) > 0n && (
+          <div className="mt-3">
+            <PowBadge
+              difficulty={BigInt(powTotal)}
+              label="total proof-of-work"
+            />
           </div>
+        )}
+      </div>
+
+      {/* User's posts */}
+      {postList.length === 0 ? (
+        <p className="text-muted-foreground px-4 py-8 text-center text-sm">
+          No posts yet.
+        </p>
+      ) : (
+        <>
+          {postList.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
           {hasMore && (
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="text-accent hover:text-accent/80 mt-3 w-full text-center text-xs disabled:opacity-50"
+              className="text-accent hover:text-accent/80 w-full py-4 text-center text-sm disabled:opacity-50"
             >
               {loadingMore ? "Loading..." : "Load more"}
             </button>
           )}
-        </div>
+        </>
       )}
     </div>
   );

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
   ssr: false,
   loader: async () => {
     const user = await getMyUser();
-    if (user?.hasPassword) throw redirect({ to: "/inbox" });
+    if (user?.hasPassword) throw redirect({ to: "/feed" });
     if (user) throw redirect({ to: "/welcome" });
     const registrationOpen = await isRegistrationOpen();
     return { registrationOpen };

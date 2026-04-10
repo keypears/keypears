@@ -28,9 +28,11 @@ import {
   User,
   Globe,
   Settings,
+  Newspaper,
 } from "lucide-react";
 
 const navItems = [
+  { name: "Feed", path: "/feed", icon: Newspaper },
   { name: "Inbox", path: "/inbox", icon: Inbox },
   { name: "Send", path: "/send", icon: Send },
   { name: "Vault", path: "/vault", icon: Lock },

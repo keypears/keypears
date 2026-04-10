@@ -75,7 +75,7 @@ function LoginPage() {
       const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
       cacheEntropyTier(entropyTier(calculatePasswordEntropy(creds.password)));
-      navigate({ to: "/inbox" });
+      navigate({ to: "/feed" });
     } catch {
       setError("Invalid KeyPears address or password.");
       setPagePhase("idle");
