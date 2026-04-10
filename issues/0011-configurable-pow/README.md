@@ -72,3 +72,112 @@ This is a natural extension but not needed immediately.
 - The mining flow (client mines on WebGPU, server verifies).
 - The challenge signing mechanism (BLAKE3 MAC).
 - Registration and login PoW (these stay at fixed global difficulty).
+
+## Experiments
+
+### Experiment 1: Per-user configurable PoW difficulty
+
+#### Description
+
+Add per-user `channelDifficulty` and `messageDifficulty` settings. The
+`getPowChallenge` endpoint accepts a recipient address and returns a
+challenge at the recipient's configured difficulty. A settings UI with
+sliders lets users control their difficulty preferences.
+
+**Server-enforced minimums:**
+
+- `MIN_CHANNEL_DIFFICULTY = 7_000_000n` (7M, ~1s)
+- `MIN_MESSAGE_DIFFICULTY = 7_000_000n` (7M, ~1s)
+
+**Defaults:**
+
+- Channel: `CHANNEL_DIFFICULTY = 70_000_000n` (70M, ~15s)
+- Message: `MESSAGE_DIFFICULTY = 7_000_000n` (7M, ~1s)
+
+Users can raise above the defaults or lower down to the minimums, but
+never below.
+
+**Slider presets (logarithmic scale):**
+
+- Low: 7M (~1 second)
+- Medium: 70M (~15 seconds)
+- High: 700M (~2 minutes)
+
+The API stores and transmits the raw bigint. The slider is purely a UI
+convenience.
+
+#### Changes
+
+**`webapp/src/db/schema.ts`:**
+
+- Add to `users` table:
+  - `channelDifficulty` bigint, nullable (null = use server default)
+  - `messageDifficulty` bigint, nullable (null = use server default)
+
+**`webapp/src/server/pow.server.ts`:**
+
+- Add `MIN_CHANNEL_DIFFICULTY = 7_000_000n`
+- Add `MIN_MESSAGE_DIFFICULTY = 7_000_000n`
+
+**`webapp/src/server/user.server.ts`:**
+
+- Add `updatePowSettings(userId, channelDifficulty, messageDifficulty)`
+  — validates both values are above minimums, stores in users table.
+- Add `getUserPowSettings(userId)` — returns the user's difficulty
+  preferences (or defaults if null).
+
+**`webapp/src/server/user.functions.ts`:**
+
+- Add `updateMyPowSettings({ channelDifficulty, messageDifficulty })`
+  — server function for the settings UI.
+- Add `getMyPowSettings()` — returns current user's settings for the UI.
+
+**`webapp/src/server/api.router.ts`:**
+
+- `getPowChallenge` — change from no-input to accepting
+  `{ recipientAddress: string }`. Parse the address, look up the
+  recipient's domain and user, read their `messageDifficulty` (or
+  default). Create challenge at that difficulty.
+- Need to determine whether this is a new channel or existing message.
+  For now, use `messageDifficulty` for all (channel difficulty
+  differentiation is a future enhancement when the sender's server
+  can indicate "new channel" vs "existing").
+
+**`webapp/src/server/federation.server.ts`:**
+
+- `fetchRemotePowChallenge` — pass the recipient address through to
+  the remote server's `getPowChallenge` endpoint.
+
+**`webapp/src/server/message.functions.ts`:**
+
+- `getRemotePowChallenge` — already passes recipient address. May need
+  to update to match new `getPowChallenge` input format.
+
+**`webapp/src/routes/_app/_saved/_chrome/settings.tsx`** — New page
+(or section on existing page):
+
+- Two sliders: "New conversations" and "Messages"
+- Each slider: Low / Medium / High with human-readable time estimates
+- Shows current values on load
+- Save button calls `updateMyPowSettings`
+- Server validates minimums — slider min position maps to server min
+
+**`webapp/src/components/Sidebar.tsx`:**
+
+- Add "Settings" link in user dropdown (if new page) or this could be
+  a section on the Keys page.
+
+#### Verification
+
+1. Create account. Default settings: channel 70M, message 7M.
+2. Open Settings. Sliders show at correct positions.
+3. Lower message difficulty to Low (7M) — already at minimum, works.
+4. Raise message difficulty to High (700M) — saves successfully.
+5. Send a message to this user from another account — PoW modal shows
+   700M difficulty, takes ~2 minutes.
+6. Lower message difficulty back to Low (7M) — PoW is fast again.
+7. Try to set difficulty below 7M via API — server rejects.
+8. User with no custom settings uses server defaults.
+9. Cross-domain: sender on keypears.test sends to user on
+   passapples.test who has custom difficulty — challenge reflects the
+   recipient's setting.
