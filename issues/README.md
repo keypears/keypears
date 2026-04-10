@@ -4,6 +4,7 @@
 
 | #                                                | Title                  | Opened     |
 | ------------------------------------------------ | ---------------------- | ---------- |
+| [0012](0012-public-feed/README.md)               | Public Feed            | 2026-04-10 |
 | [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup   | 2026-04-09 |
 
 ## Closed
