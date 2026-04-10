@@ -5,6 +5,8 @@ export const PowSolutionSchema = z.object({
   target: z.string(),
   expiresAt: z.number(),
   signature: z.string(),
+  senderAddress: z.string().optional(),
+  recipientAddress: z.string().optional(),
 });
 
 export const nameSchema = z

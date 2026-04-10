@@ -6,6 +6,8 @@ export interface PowChallenge {
   expiresAt: number;
   difficulty: number;
   signature: string;
+  senderAddress?: string;
+  recipientAddress?: string;
 }
 
 export interface PowSolution {
@@ -13,6 +15,8 @@ export interface PowSolution {
   target: string;
   expiresAt: number;
   signature: string;
+  senderAddress?: string;
+  recipientAddress?: string;
 }
 
 export type MinerPhase = "idle" | "mining" | "solved";
@@ -107,6 +111,8 @@ export function usePowMiner() {
         target: challenge.target,
         expiresAt: challenge.expiresAt,
         signature: challenge.signature,
+        senderAddress: challenge.senderAddress,
+        recipientAddress: challenge.recipientAddress,
       };
 
       setResult(solution);

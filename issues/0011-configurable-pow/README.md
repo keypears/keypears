@@ -282,3 +282,17 @@ unless you can produce a valid signature for one of them.
 6. Attacker tries unsigned request — rejected.
 7. Cross-domain: sender authenticated via federation public key lookup.
 8. Login and registration PoW unchanged (no sender identity needed).
+
+**Result:** Pass
+
+#### Conclusion
+
+PoW challenge requests are now authenticated. The sender signs the request
+with their secp256k1 private key, and the recipient's server verifies the
+signature via federation public key lookup before returning a challenge.
+Channel existence determines difficulty: new channels use
+`channelDifficulty` (default 70M), existing channels use
+`messageDifficulty` (default 7M). Both addresses are signed into the
+challenge payload, preventing reuse across different sender/recipient
+pairs. Privacy is preserved — you cannot probe channel existence without
+holding a valid private key.

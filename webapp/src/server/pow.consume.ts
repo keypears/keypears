@@ -15,6 +15,8 @@ export async function verifyAndConsumePow(
   targetHex: string,
   expiresAt: number,
   signatureHex: string,
+  senderAddress?: string,
+  recipientAddress?: string,
 ): Promise<{ valid: boolean; message?: string }> {
   // 1. Verify the solution
   const result = verifyPowSolution(
@@ -22,6 +24,8 @@ export async function verifyAndConsumePow(
     targetHex,
     expiresAt,
     signatureHex,
+    senderAddress,
+    recipientAddress,
   );
   if (!result.valid) return result;
 

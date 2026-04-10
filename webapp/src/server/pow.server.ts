@@ -22,21 +22,43 @@ function signChallenge(
   header: WebBuf,
   target: WebBuf,
   expiresAt: number,
+  senderAddress?: string,
+  recipientAddress?: string,
 ): FixedBuf<32> {
   const secret = getPowSigningKey();
   const nonNonce = header.slice(NONCE_SIZE);
   const expiresAtBuf = WebBuf.alloc(8);
   new DataView(expiresAtBuf.buffer).setBigUint64(0, BigInt(expiresAt));
-  const payload = WebBuf.from([...nonNonce, ...target, ...expiresAtBuf]);
-  return blake3Mac(secret, payload);
+  const parts: number[] = [
+    ...nonNonce,
+    ...target,
+    ...expiresAtBuf,
+  ];
+  if (senderAddress) {
+    parts.push(...WebBuf.fromUtf8(senderAddress));
+  }
+  if (recipientAddress) {
+    parts.push(...WebBuf.fromUtf8(recipientAddress));
+  }
+  return blake3Mac(secret, WebBuf.from(parts));
 }
 
-export function createPowChallenge(difficulty?: bigint) {
+export function createPowChallenge(
+  difficulty?: bigint,
+  senderAddress?: string,
+  recipientAddress?: string,
+) {
   const diff = difficulty ?? REGISTRATION_DIFFICULTY;
   const header = FixedBuf.fromRandom(HEADER_SIZE);
   const target = targetFromDifficulty(diff);
   const expiresAt = Date.now() + CHALLENGE_EXPIRY_MS;
-  const signature = signChallenge(header.buf, target.buf, expiresAt);
+  const signature = signChallenge(
+    header.buf,
+    target.buf,
+    expiresAt,
+    senderAddress,
+    recipientAddress,
+  );
 
   return {
     header: header.buf.toHex(),
@@ -44,6 +66,8 @@ export function createPowChallenge(difficulty?: bigint) {
     expiresAt,
     difficulty: Number(diff),
     signature: signature.buf.toHex(),
+    senderAddress,
+    recipientAddress,
   };
 }
 
@@ -52,6 +76,8 @@ export function verifyPowSolution(
   targetHex: string,
   expiresAt: number,
   signatureHex: string,
+  senderAddress?: string,
+  recipientAddress?: string,
 ): { valid: boolean; message?: string } {
   // Validate input lengths before parsing to prevent memory exhaustion
   if (solvedHeaderHex.length !== HEADER_SIZE * 2) {
@@ -72,7 +98,13 @@ export function verifyPowSolution(
   const target = WebBuf.fromHex(targetHex);
   const signature = FixedBuf.fromHex(32, signatureHex);
 
-  const expectedSig = signChallenge(solvedHeader, target, expiresAt);
+  const expectedSig = signChallenge(
+    solvedHeader,
+    target,
+    expiresAt,
+    senderAddress,
+    recipientAddress,
+  );
   if (signature.buf.toHex() !== expectedSig.buf.toHex()) {
     return { valid: false, message: "Invalid signature" };
   }
@@ -88,4 +120,3 @@ export function verifyPowSolution(
 
   return { valid: true };
 }
-

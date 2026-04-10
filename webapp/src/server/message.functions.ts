@@ -91,12 +91,14 @@ export const sendMessage = createServerFn({ method: "POST" })
         throw new Error("Cannot message yourself");
       if (!recipientUser.passwordHash) throw new Error("Recipient not found");
 
-      // Verify PoW locally
+      // Verify PoW locally (addresses bound in challenge signature)
       const powResult = await verifyAndConsumePow(
         input.pow.solvedHeader,
         input.pow.target,
         input.pow.expiresAt,
         input.pow.signature,
+        input.pow.senderAddress,
+        input.pow.recipientAddress,
       );
       if (!powResult.valid)
         throw new Error(`Invalid proof of work: ${powResult.message}`);
@@ -240,8 +242,16 @@ export const getMyActiveEncryptedKey = createServerFn({
   };
 });
 
-export const getRemotePowChallenge = createServerFn({ method: "GET" })
-  .inputValidator(z.string())
-  .handler(async ({ data: recipientAddress }) => {
-    return fetchRemotePowChallenge(recipientAddress);
+export const getRemotePowChallenge = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      recipientAddress: z.string(),
+      senderAddress: z.string(),
+      senderPubKey: z.string(),
+      signature: z.string(),
+      timestamp: z.number(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    return fetchRemotePowChallenge(input);
   });

@@ -10,8 +10,12 @@ import {
   pollNewMessages,
   markChannelAsRead,
 } from "~/server/message.functions";
-import { getMyKeys } from "~/server/user.functions";
-import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
+import { getMyKeys, getMyUser } from "~/server/user.functions";
+import {
+  getCachedEncryptionKey,
+  decryptPrivateKey,
+  signPowRequest,
+} from "~/lib/auth";
 import { encryptMessage, decryptMessage } from "~/lib/message";
 import { PowModal } from "~/components/PowModal";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
@@ -257,7 +261,25 @@ function ChannelPage() {
         recipientPubKey: recipientPubKeyHex,
       };
 
-      const challenge = await getRemotePowChallenge({ data: address });
+      // Build sender address and sign the challenge request
+      const me = await getMyUser();
+      if (!me?.name || !me.domain) throw new Error("Account not saved");
+      const senderAddress = `${me.name}@${me.domain}`;
+      const { signature: reqSig, timestamp } = signPowRequest(
+        senderAddress,
+        address,
+        myPrivKey,
+      );
+
+      const challenge = await getRemotePowChallenge({
+        data: {
+          recipientAddress: address,
+          senderAddress,
+          senderPubKey: myKeyData.publicKey,
+          signature: reqSig,
+          timestamp,
+        },
+      });
       setPowChallenge(challenge);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send.");

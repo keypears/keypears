@@ -1,7 +1,7 @@
 import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { publicKeyCreate } from "@webbuf/secp256k1";
+import { publicKeyCreate, sign } from "@webbuf/secp256k1";
 import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
 import { blake3Pbkdf } from "./kdf";
 
@@ -145,4 +145,22 @@ export function getCachedEncryptionKey(): FixedBuf<32> | null {
 
 export function clearCachedEncryptionKey(): void {
   localStorage.removeItem(ENCRYPTION_KEY_STORAGE_KEY);
+}
+
+/**
+ * Sign a PoW challenge request to prove sender identity.
+ * Returns the signature hex and timestamp used.
+ */
+export function signPowRequest(
+  senderAddress: string,
+  recipientAddress: string,
+  privateKey: FixedBuf<32>,
+): { signature: string; timestamp: number } {
+  const timestamp = Date.now();
+  const digest = blake3Hash(
+    WebBuf.fromUtf8(`${senderAddress}:${recipientAddress}:${timestamp}`),
+  );
+  const k = FixedBuf.fromRandom(32);
+  const sig = sign(digest, privateKey, k);
+  return { signature: sig.buf.toHex(), timestamp };
 }

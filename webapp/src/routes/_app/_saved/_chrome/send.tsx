@@ -6,7 +6,12 @@ import {
   getMyActiveEncryptedKey,
   getRemotePowChallenge,
 } from "~/server/message.functions";
-import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
+import { getMyUser } from "~/server/user.functions";
+import {
+  getCachedEncryptionKey,
+  decryptPrivateKey,
+  signPowRequest,
+} from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
 import { parseAddress } from "~/lib/config";
 import { PowModal } from "~/components/PowModal";
@@ -110,7 +115,25 @@ function SendPage() {
       };
       setStatus("");
 
-      const challenge = await getRemotePowChallenge({ data: recipient });
+      // Build sender address and sign the challenge request
+      const me = await getMyUser();
+      if (!me?.name || !me.domain) throw new Error("Account not saved");
+      const senderAddress = `${me.name}@${me.domain}`;
+      const { signature: reqSig, timestamp } = signPowRequest(
+        senderAddress,
+        recipient,
+        myPrivKey,
+      );
+
+      const challenge = await getRemotePowChallenge({
+        data: {
+          recipientAddress: recipient,
+          senderAddress,
+          senderPubKey: myKeyData.publicKey,
+          signature: reqSig,
+          timestamp,
+        },
+      });
       setPowChallenge(challenge);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send message.");

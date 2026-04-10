@@ -125,11 +125,17 @@ export async function fetchRemotePublicKey(
   return result.publicKey;
 }
 
-export async function fetchRemotePowChallenge(recipientAddress: string) {
-  const parsed = parseAddress(recipientAddress);
+export async function fetchRemotePowChallenge(input: {
+  recipientAddress: string;
+  senderAddress: string;
+  senderPubKey: string;
+  signature: string;
+  timestamp: number;
+}) {
+  const parsed = parseAddress(input.recipientAddress);
   if (!parsed) throw new Error("Invalid recipient address");
   const client = await getRemoteClient(parsed.domain);
-  return client.getPowChallenge({ recipientAddress });
+  return client.getPowChallenge(input);
 }
 
 export async function deliverRemoteMessage(

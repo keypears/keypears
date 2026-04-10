@@ -10,7 +10,8 @@ import {
   getOrCreateChannel,
   insertMessage,
 } from "./message.server";
-import { createPowChallenge, MESSAGE_DIFFICULTY } from "./pow.server";
+import { createPowChallenge, MESSAGE_DIFFICULTY, CHANNEL_DIFFICULTY } from "./pow.server";
+import { channelExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -39,27 +40,90 @@ const getPublicKey = os
   });
 
 const getPowChallengeEndpoint = os
-  .input(z.object({ recipientAddress: z.string().optional() }))
+  .input(
+    z.object({
+      senderAddress: z.string(),
+      recipientAddress: z.string(),
+      senderPubKey: z.string(),
+      signature: z.string(),
+      timestamp: z.number(),
+    }),
+  )
   .handler(async ({ input }) => {
-    let difficulty = MESSAGE_DIFFICULTY;
-
-    if (input.recipientAddress) {
-      const parsed = parseAddress(input.recipientAddress);
-      if (parsed) {
-        const domain = await getDomainByName(parsed.domain);
-        if (domain) {
-          const user = await getUserByNameAndDomain(parsed.name, domain.id);
-          if (user) {
-            const settings = await getUserPowSettings(user.id);
-            if (settings?.messageDifficulty) {
-              difficulty = settings.messageDifficulty;
-            }
-          }
-        }
-      }
+    // Verify timestamp is recent (5 minutes)
+    if (Math.abs(Date.now() - input.timestamp) > 5 * 60 * 1000) {
+      throw new Error("Request expired");
     }
 
-    return createPowChallenge(difficulty);
+    // Look up sender's public key from their domain via federation
+    const senderParsed = parseAddress(input.senderAddress);
+    if (!senderParsed) throw new Error("Invalid sender address");
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
+    const link = new RPCLink({ url: senderApiUrl });
+    const remoteClient: {
+      getPublicKey: (input: { address: string }) => Promise<{
+        publicKey: string | null;
+      }>;
+    } = createORPCClient(link);
+    const senderKeyResult = await remoteClient.getPublicKey({
+      address: input.senderAddress,
+    });
+    if (!senderKeyResult.publicKey) throw new Error("Sender not found");
+
+    // Verify the provided public key matches the federation lookup
+    if (senderKeyResult.publicKey !== input.senderPubKey) {
+      throw new Error("Public key mismatch");
+    }
+
+    // Verify the signature
+    const { verify } = await import("@webbuf/secp256k1");
+    const { blake3Hash } = await import("@webbuf/blake3");
+    const { WebBuf } = await import("@webbuf/webbuf");
+    const { FixedBuf } = await import("@webbuf/fixedbuf");
+
+    const digest = blake3Hash(
+      WebBuf.fromUtf8(
+        `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
+      ),
+    );
+    const sig = FixedBuf.fromHex(64, input.signature);
+    const pubKey = FixedBuf.fromHex(33, input.senderPubKey);
+
+    if (!verify(sig, digest, pubKey)) {
+      throw new Error("Invalid signature");
+    }
+
+    // Look up recipient and their PoW settings
+    const recipientParsed = parseAddress(input.recipientAddress);
+    if (!recipientParsed) throw new Error("Invalid recipient address");
+    const recipientDomain = await getDomainByName(recipientParsed.domain);
+    if (!recipientDomain) throw new Error("Not found");
+    const recipientUser = await getUserByNameAndDomain(
+      recipientParsed.name,
+      recipientDomain.id,
+    );
+    if (!recipientUser) throw new Error("Not found");
+
+    const settings = await getUserPowSettings(recipientUser.id);
+
+    // Check if channel exists → message difficulty, otherwise channel difficulty
+    const hasChannel = await channelExists(
+      recipientUser.id,
+      input.senderAddress,
+    );
+
+    let difficulty: bigint;
+    if (hasChannel) {
+      difficulty = settings?.messageDifficulty ?? MESSAGE_DIFFICULTY;
+    } else {
+      difficulty = settings?.channelDifficulty ?? CHANNEL_DIFFICULTY;
+    }
+
+    return createPowChallenge(
+      difficulty,
+      input.senderAddress,
+      input.recipientAddress,
+    );
   });
 
 const notifyMessage = os
@@ -96,6 +160,8 @@ const notifyMessage = os
         input.pow.target,
         input.pow.expiresAt,
         input.pow.signature,
+        input.senderAddress,
+        input.recipientAddress,
       );
       if (!powResult.valid)
         throw new Error(`Invalid proof of work: ${powResult.message}`);
