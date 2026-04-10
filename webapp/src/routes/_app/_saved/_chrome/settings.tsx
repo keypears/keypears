@@ -11,6 +11,13 @@ const PRESETS = [
   { label: "High", value: 700_000_000n, time: "~2 minutes" },
 ];
 
+function formatDifficulty(value: bigint): string {
+  if (value >= 1_000_000_000n) return `${value / 1_000_000_000n}B`;
+  if (value >= 1_000_000n) return `${value / 1_000_000n}M`;
+  if (value >= 1_000n) return `${value / 1_000n}k`;
+  return value.toString();
+}
+
 const CHANNEL_DEFAULT = 70_000_000n;
 const MESSAGE_DEFAULT = 7_000_000n;
 
@@ -70,7 +77,8 @@ function SettingsPage() {
       <h1 className="text-foreground text-2xl font-bold">Settings</h1>
       <p className="text-muted-foreground mt-2 text-sm">
         Control how much proof of work senders must compute to reach you.
-        Higher difficulty means more spam protection but slower delivery.
+        Higher difficulty means stronger spam protection, but may
+        discourage legitimate senders.
       </p>
 
       <section className="mt-8">
@@ -96,7 +104,7 @@ function SettingsPage() {
             ))}
           </div>
           <p className="text-foreground mt-2 text-sm">
-            {PRESETS[channelIdx].label} — {PRESETS[channelIdx].time}
+            {PRESETS[channelIdx].label} — {formatDifficulty(PRESETS[channelIdx].value)} — {PRESETS[channelIdx].time}
           </p>
         </div>
       </section>
@@ -122,7 +130,7 @@ function SettingsPage() {
             ))}
           </div>
           <p className="text-foreground mt-2 text-sm">
-            {PRESETS[messageIdx].label} — {PRESETS[messageIdx].time}
+            {PRESETS[messageIdx].label} — {formatDifficulty(PRESETS[messageIdx].value)} — {PRESETS[messageIdx].time}
           </p>
         </div>
       </section>
