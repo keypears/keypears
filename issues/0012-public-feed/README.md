@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-10"
+closed = "2026-04-10"
 +++
 
 # Issue 12: Public Feed
@@ -295,3 +296,21 @@ input showing how the post will render, including auto-linked URLs.
 3. Preview below input shows auto-linked URLs in real-time.
 4. Server rejects posts with newlines via Zod.
 5. 240 char limit still enforced.
+
+**Result:** Pass
+
+#### Conclusion
+
+Posts are single-line only. Zod transforms input (trim, replace newlines
+with spaces, collapse whitespace) then validates. The compose box is a
+standard text input with a live preview showing auto-linked URLs.
+
+## Conclusion
+
+The public feed is complete. Users can post 240-character public messages
+gated by proof-of-work. The feed is the home page (`/`). Posts show on
+both the global feed and the author's profile page, each with a PowBadge
+showing the difficulty. Dynamic difficulty throttling caps volume to ~1
+post per minute — beyond that, difficulty rises exponentially. URLs are
+auto-linked. Newlines are prohibited. The feed is a discovery layer that
+complements the encrypted messaging system.

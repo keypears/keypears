@@ -4,13 +4,13 @@
 
 | #                                                | Title                  | Opened     |
 | ------------------------------------------------ | ---------------------- | ---------- |
-| [0012](0012-public-feed/README.md)               | Public Feed            | 2026-04-10 |
 | [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup   | 2026-04-09 |
 
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
+| [0012](0012-public-feed/README.md)             | Public Feed                                | 2026-04-10 | 2026-04-10 |
 | [0011](0011-configurable-pow/README.md)        | Configurable Proof of Work                 | 2026-04-09 | 2026-04-10 |
 | [0009](0009-protocol-security/README.md)       | Protocol Security Fixes                    | 2026-04-09 | 2026-04-09 |
 | [0008](0008-schema-indexes/README.md)          | Schema Indexes and Cleanup                 | 2026-04-09 | 2026-04-09 |
