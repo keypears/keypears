@@ -52,11 +52,15 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
     return publicKey ? { publicKey } : null;
   });
 
+const MAX_CIPHERTEXT_LENGTH = 50_000; // hex chars (~25KB plaintext)
+
 export const sendMessage = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       recipientAddress: z.string(),
-      encryptedContent: z.string(),
+      encryptedContent: z
+        .string()
+        .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
       senderPubKey: z.string(),
       recipientPubKey: z.string(),
       pow: PowSolutionSchema,

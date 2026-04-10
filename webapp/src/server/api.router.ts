@@ -185,6 +185,10 @@ const notifyMessage = os
       const messageData = await remoteClient.pullMessage({
         token: input.pullToken,
       });
+      // Verify message size
+      if (messageData.encryptedContent.length > 50_000) {
+        throw new Error("Message too large");
+      }
       // Verify the message matches the notification
       if (messageData.senderAddress !== input.senderAddress)
         throw new Error("Sender address mismatch");
