@@ -2,9 +2,10 @@
 
 ## Open
 
-| #                                                | Title                  | Opened     |
-| ------------------------------------------------ | ---------------------- | ---------- |
-| [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup   | 2026-04-09 |
+| #                                                | Title                          | Opened     |
+| ------------------------------------------------ | ------------------------------ | ---------- |
+| [0013](0013-boost/README.md)                     | Boost Posts with Proof of Work | 2026-04-10 |
+| [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup           | 2026-04-09 |
 
 ## Closed
 
