@@ -39,7 +39,7 @@ import { getSessionUserId, requireSessionUserId, COOKIE_NAME } from "./session";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
-import { makeAddress, parseAddress } from "~/lib/config";
+import { getDomain, makeAddress, parseAddress } from "~/lib/config";
 
 const ONE_DAY = 60 * 60 * 24;
 const THIRTY_DAYS = 60 * 60 * 24 * 30;
@@ -138,7 +138,14 @@ export const checkNameAvailable = createServerFn({ method: "GET" })
     }
     const domain = await getDomainByName(input.domain);
     if (!domain) {
+      // Primary domain may not exist in DB yet (first startup)
+      if (input.domain === getDomain()) {
+        return { available: true, error: null };
+      }
       return { available: false, error: "Domain not hosted on this server" };
+    }
+    if (!domain.openRegistration) {
+      return { available: false, error: "Registration is closed for this domain" };
     }
     const existing = await getUserByNameAndDomain(input.name, domain.id);
     return { available: !existing, error: null };
