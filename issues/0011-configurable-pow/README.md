@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-09"
+closed = "2026-04-10"
 +++
 
 # Issue 11: Configurable Proof of Work
@@ -296,3 +297,33 @@ Channel existence determines difficulty: new channels use
 challenge payload, preventing reuse across different sender/recipient
 pairs. Privacy is preserved — you cannot probe channel existence without
 holding a valid private key.
+
+## Conclusion
+
+PoW difficulty is now fully configurable per user. Two sliders (Low /
+Medium / High) let users control their channel and message difficulty.
+The server enforces minimums (7M for both). The `getPowChallenge` endpoint
+is authenticated — senders sign requests with their secp256k1 private key,
+verified via federation. Channel existence determines difficulty (70M for
+new, 7M for existing by default).
+
+### Known limitations (won't fix)
+
+**Signed request replay within 5 minutes.** The signed challenge request
+has a 5-minute timestamp window but no unique nonce for replay prevention.
+An attacker who intercepts the request could replay it to learn the
+difficulty. However, TLS protects the transport, and learning the
+difficulty alone is not useful — the attacker cannot mine the challenge
+without the sender's private key.
+
+**Federation call amplification.** Every challenge request triggers a
+cross-domain fetch to verify the sender's public key. An attacker could
+spam requests to force outbound federation calls. However, `safeFetch`
+has a 5-second timeout, and the attacker still needs valid signatures,
+limiting this to authenticated users.
+
+**Server learns communication intent.** The recipient's server learns
+that sender X wants to message recipient Y during the challenge request.
+This is inherent to any message delivery system — the server must know
+who is talking to route messages. Only onion routing could prevent this,
+which is out of scope.

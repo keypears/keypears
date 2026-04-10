@@ -2,15 +2,15 @@
 
 ## Open
 
-| #                                                | Title                    | Opened     |
-| ------------------------------------------------ | ------------------------ | ---------- |
-| [0011](0011-configurable-pow/README.md)          | Configurable Proof of Work | 2026-04-09 |
-| [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup     | 2026-04-09 |
+| #                                                | Title                  | Opened     |
+| ------------------------------------------------ | ---------------------- | ---------- |
+| [0010](0010-architecture-cleanup/README.md)      | Architecture Cleanup   | 2026-04-09 |
 
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
+| [0011](0011-configurable-pow/README.md)        | Configurable Proof of Work                 | 2026-04-09 | 2026-04-10 |
 | [0009](0009-protocol-security/README.md)       | Protocol Security Fixes                    | 2026-04-09 | 2026-04-09 |
 | [0008](0008-schema-indexes/README.md)          | Schema Indexes and Cleanup                 | 2026-04-09 | 2026-04-09 |
 | [0007](0007-registration-control/README.md)    | Registration Control                       | 2026-04-09 | 2026-04-09 |
