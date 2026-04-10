@@ -27,6 +27,7 @@ import {
   LogOut,
   User,
   Globe,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -71,6 +72,12 @@ function UserDropdown({ userName }: { userName: string }) {
           <a href="/domains" className="cursor-pointer no-underline">
             <Globe className="mr-2 h-4 w-4" />
             Domains
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/settings" className="cursor-pointer no-underline">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

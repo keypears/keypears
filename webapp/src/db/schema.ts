@@ -51,6 +51,8 @@ export const users = mysqlTable(
     domainId: binaryId("domain_id"),
     name: varchar("name", { length: 255 }),
     passwordHash: varchar("password_hash", { length: 255 }),
+    channelDifficulty: bigint("channel_difficulty", { mode: "bigint" }),
+    messageDifficulty: bigint("message_difficulty", { mode: "bigint" }),
     expiresAt: timestamp("expires_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

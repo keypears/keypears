@@ -30,6 +30,8 @@ import {
   getPrimaryDomain,
   toggleOpenRegistration,
   toggleAllowThirdPartyDomains,
+  updatePowSettings,
+  getUserPowSettings,
 } from "./user.server";
 import { verifyDomainAdmin } from "./federation.server";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
@@ -464,5 +466,35 @@ export const toggleAllowThirdPartyDomainsFn = createServerFn({
     );
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     await toggleAllowThirdPartyDomains(primaryDomain.id, value);
+    return { success: true };
+  });
+
+// --- PoW settings ---
+
+export const getMyPowSettings = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const userId = await requireSessionUserId();
+    const settings = await getUserPowSettings(userId);
+    return {
+      channelDifficulty: settings?.channelDifficulty?.toString() ?? null,
+      messageDifficulty: settings?.messageDifficulty?.toString() ?? null,
+    };
+  },
+);
+
+export const updateMyPowSettings = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      channelDifficulty: z.string(),
+      messageDifficulty: z.string(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const userId = await requireSessionUserId();
+    await updatePowSettings(
+      userId,
+      BigInt(input.channelDifficulty),
+      BigInt(input.messageDifficulty),
+    );
     return { success: true };
   });

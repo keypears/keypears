@@ -419,6 +419,47 @@ export async function getUserPowTotal(userId: string): Promise<bigint> {
   return row?.cumulativeDifficulty ?? 0n;
 }
 
+// --- PoW settings ---
+
+export async function updatePowSettings(
+  userId: string,
+  channelDifficulty: bigint,
+  messageDifficulty: bigint,
+) {
+  const {
+    MIN_CHANNEL_DIFFICULTY,
+    MIN_MESSAGE_DIFFICULTY,
+  } = await import("./pow.server");
+
+  if (channelDifficulty < MIN_CHANNEL_DIFFICULTY) {
+    throw new Error(
+      `Channel difficulty must be at least ${MIN_CHANNEL_DIFFICULTY}`,
+    );
+  }
+  if (messageDifficulty < MIN_MESSAGE_DIFFICULTY) {
+    throw new Error(
+      `Message difficulty must be at least ${MIN_MESSAGE_DIFFICULTY}`,
+    );
+  }
+
+  await db
+    .update(users)
+    .set({ channelDifficulty, messageDifficulty })
+    .where(eq(users.id, userId));
+}
+
+export async function getUserPowSettings(userId: string) {
+  const [row] = await db
+    .select({
+      channelDifficulty: users.channelDifficulty,
+      messageDifficulty: users.messageDifficulty,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row ?? null;
+}
+
 // --- Session management ---
 
 function hashSessionToken(token: string): string {

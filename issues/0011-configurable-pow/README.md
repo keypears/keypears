@@ -181,3 +181,16 @@ convenience.
 9. Cross-domain: sender on keypears.test sends to user on
    passapples.test who has custom difficulty — challenge reflects the
    recipient's setting.
+
+**Result:** Fail
+
+#### Conclusion
+
+The settings UI, database columns, server functions, and per-user
+`messageDifficulty` lookup all work correctly. However, the experiment
+neglected to implement channel difficulty: the `getPowChallenge` endpoint
+always returns `messageDifficulty` regardless of whether the sender is
+opening a new channel or messaging in an existing one. To use
+`channelDifficulty`, the endpoint needs the sender's address so it can
+check whether a channel already exists between the two users. The next
+experiment must add this sender identification to the challenge request.

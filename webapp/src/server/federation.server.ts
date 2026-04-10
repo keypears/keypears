@@ -129,7 +129,7 @@ export async function fetchRemotePowChallenge(recipientAddress: string) {
   const parsed = parseAddress(recipientAddress);
   if (!parsed) throw new Error("Invalid recipient address");
   const client = await getRemoteClient(parsed.domain);
-  return client.getPowChallenge();
+  return client.getPowChallenge({ recipientAddress });
 }
 
 export async function deliverRemoteMessage(

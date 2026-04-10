@@ -13,6 +13,8 @@ export const REGISTRATION_DIFFICULTY = 70_000_000n;
 export const CHANNEL_DIFFICULTY = 70_000_000n;
 export const LOGIN_DIFFICULTY = 7_000_000n;
 export const MESSAGE_DIFFICULTY = 7_000_000n;
+export const MIN_CHANNEL_DIFFICULTY = 7_000_000n;
+export const MIN_MESSAGE_DIFFICULTY = 7_000_000n;
 const NONCE_SIZE = 32; // bytes 0-31 are nonce
 const HEADER_SIZE = 64 as const;
 

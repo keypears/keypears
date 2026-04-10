@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
-import { getActiveKey, getUserByNameAndDomain, getDomainByName } from "./user.server";
+import { getActiveKey, getUserByNameAndDomain, getDomainByName, getUserPowSettings } from "./user.server";
 import { getDomain, parseAddress } from "~/lib/config";
 import { hashToken } from "./utils";
 import {
@@ -38,9 +38,29 @@ const getPublicKey = os
     return { publicKey: key.publicKey };
   });
 
-const getPowChallengeEndpoint = os.handler(async () => {
-  return createPowChallenge(MESSAGE_DIFFICULTY);
-});
+const getPowChallengeEndpoint = os
+  .input(z.object({ recipientAddress: z.string().optional() }))
+  .handler(async ({ input }) => {
+    let difficulty = MESSAGE_DIFFICULTY;
+
+    if (input.recipientAddress) {
+      const parsed = parseAddress(input.recipientAddress);
+      if (parsed) {
+        const domain = await getDomainByName(parsed.domain);
+        if (domain) {
+          const user = await getUserByNameAndDomain(parsed.name, domain.id);
+          if (user) {
+            const settings = await getUserPowSettings(user.id);
+            if (settings?.messageDifficulty) {
+              difficulty = settings.messageDifficulty;
+            }
+          }
+        }
+      }
+    }
+
+    return createPowChallenge(difficulty);
+  });
 
 const notifyMessage = os
   .input(
