@@ -215,6 +215,13 @@ Each message stored on the server contains:
 Both public keys are stored so the recipient knows which keys to use for
 ECDH decryption, even after key rotation.
 
+### Message Size Limit
+
+The `encryptedContent` field is limited to 50,000 hex characters (~25KB
+of plaintext). This is enforced by both the sender's server (via Zod
+validation) and the recipient's server (after pulling the message). For
+larger content, send a link.
+
 ## Proof of Work
 
 ### Registration PoW
