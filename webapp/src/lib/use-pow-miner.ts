@@ -109,14 +109,16 @@ export function usePowMiner() {
         signature: challenge.signature,
       };
 
+      setResult(solution);
+
       if (showSolved) {
         setPhase("solved");
         setProgress(100);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        // Don't auto-dismiss — the caller handles transition via onComplete
+      } else {
+        setPhase("idle");
       }
 
-      setResult(solution);
-      setPhase("idle");
       return solution;
     },
     [],

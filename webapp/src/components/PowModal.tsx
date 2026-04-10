@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import {
   usePowMiner,
   type PowChallenge,
@@ -27,19 +27,9 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
     if (startedRef.current === challengeKey) return;
     startedRef.current = challengeKey;
 
-    let cancelled = false;
-
     miner
       .mine(challenge, { showSolved: true })
-      .then((solution) => {
-        if (!cancelled) onComplete(solution);
-        return solution;
-      })
       .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
   }, [challenge]);
 
@@ -92,20 +82,9 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
         )}
 
         {miner.phase === "solved" && (
-          <div className="flex flex-col items-center py-2">
-            <CheckCircle2 className="text-accent mb-3 h-8 w-8" />
-            <p className="text-accent mb-4 text-sm font-medium">
-              Proof of work complete!
-            </p>
-            <button
-              onClick={() => {
-                if (miner.result) onComplete(miner.result);
-              }}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
-            >
-              Continue
-            </button>
-          </div>
+          <SolvedState onContinue={() => {
+            if (miner.result) onComplete(miner.result);
+          }} />
         )}
 
         {miner.phase === "idle" && (
@@ -115,6 +94,51 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SolvedState({ onContinue }: { onContinue: () => void }) {
+  const calledRef = useRef(false);
+
+  const handleContinue = useCallback(() => {
+    if (calledRef.current) return;
+    calledRef.current = true;
+    onContinue();
+  }, [onContinue]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleContinue();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+
+    // Auto-continue after 1.5 seconds
+    const timer = setTimeout(handleContinue, 1500);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      clearTimeout(timer);
+    };
+  }, [handleContinue]);
+
+  return (
+    <div className="flex flex-col items-center py-2">
+      <CheckCircle2 className="text-accent mb-3 h-8 w-8" />
+      <p className="text-accent mb-4 text-sm font-medium">
+        Proof of work complete!
+      </p>
+      <button
+        autoFocus
+        onClick={handleContinue}
+        className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
+      >
+        Continue
+      </button>
     </div>
   );
 }
