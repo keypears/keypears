@@ -67,3 +67,73 @@ making them a genuine signal of value.
 - Dynamic difficulty throttling (for posts, not boosts).
 - Profile page shows authored posts only (not boosts).
 - Total PoW counter on profile includes boost PoW.
+
+## Experiments
+
+### Experiment 1: Boost posts with PoW
+
+#### Description
+
+Add a `boosts` table, server functions for boosting, and UI on the
+PostCard to boost and view boosters.
+
+#### Changes
+
+**`webapp/src/db/schema.ts`:**
+
+- New `boosts` table:
+  - `id` binaryId PK
+  - `postId` binaryId NOT NULL (index)
+  - `userId` binaryId NOT NULL
+  - `senderAddress` varchar(255) NOT NULL
+  - `difficulty` bigint NOT NULL
+  - `createdAt` timestamp DEFAULT NOW() NOT NULL
+
+**`webapp/src/server/post.server.ts`:**
+
+- `insertBoost(postId, userId, senderAddress, difficulty)` — inserts
+  a boost.
+- `getBoostTotals(postIds)` — returns total boost difficulty per post
+  for a list of post IDs. Single query with GROUP BY.
+- `getBoostersForPost(postId)` — returns boosters grouped by user
+  with their total contribution, ordered by total desc.
+
+**`webapp/src/server/post.functions.ts`:**
+
+- `boostPost({ postId, pow })` — requires session. Verifies PoW (at
+  minimum MESSAGE_DIFFICULTY). Inserts boost. Logs PoW.
+- `getPostBoosters({ postId })` — returns booster list.
+- Update `getFeed` and `getUserPostsByAddress` to include total boost
+  per post. Fetch post IDs, then batch-query boost totals, merge.
+
+**`webapp/src/components/PostCard.tsx`:**
+
+- Add "Boost" button with a rocket/zap icon. Shows total boost amount
+  via PowBadge (or "0" if no boosts).
+- Clicking "Boost" triggers PowModal at MESSAGE_DIFFICULTY (7M).
+- After boosting, refresh the boost total on that card.
+- Clicking the boost total expands a collapsible list of boosters
+  (address linked to profile + their total boost, each with PowBadge).
+
+**`webapp/src/routes/_app/_saved/_chrome/feed.tsx`:**
+
+- Pass boost totals through to PostCard.
+- After a boost completes, refresh the feed (or just the boosted
+  post's total).
+
+**`webapp/src/routes/_app/_saved/_chrome/$profile.tsx`:**
+
+- Same — pass boost totals through to PostCard.
+
+#### Verification
+
+1. Post a message. Boost total shows 0 or is hidden.
+2. Click "Boost" — PowModal appears at 7M, mines, boost is recorded.
+3. Boost total updates on the post (shows 7M via PowBadge).
+4. Boost the same post again — total increases (14M).
+5. Another user boosts the same post — total includes both.
+6. Click the boost total — expands to show boosters with their
+   individual totals.
+7. Booster's profile total PoW includes their boost work.
+8. Boosts do NOT appear as posts on the booster's profile.
+9. Feed and profile pages both show boost totals on posts.
