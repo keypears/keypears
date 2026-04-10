@@ -131,14 +131,26 @@ auto-linked.
 - `getFeed({ beforeId? })` — paginated feed, 20 posts per page.
 - `getUserPostsByAddress({ address, beforeId? })` — posts by address.
 
+**`webapp/src/routes/index.tsx`:**
+
+- Change redirect from `/inbox` to `/feed` for logged-in users. The
+  feed is the home page.
+
 **`webapp/src/routes/_app/_saved/_chrome/feed.tsx`:**
 
 - Compose box at top: textarea with character counter (X/240), disabled
   Send button when empty or over limit.
 - Clicking Send triggers PoW (using PowModal), then creates the post.
 - Post list below: each post shows senderAddress (linked to profile),
-  content (with auto-linked URLs), timestamp, and PowBadge.
+  content (with auto-linked URLs), timestamp, and PowBadge showing
+  the PoW difficulty for that specific post.
 - "Load more" button at bottom.
+
+**`webapp/src/components/PostCard.tsx`:**
+
+- Reusable post card component used on both the feed and profile pages.
+- Shows: author address (clickable link to profile), content (with
+  auto-linked URLs), timestamp, PowBadge for that post's difficulty.
 
 **`webapp/src/components/PostContent.tsx`:**
 
@@ -147,24 +159,26 @@ auto-linked.
 
 **`webapp/src/components/Sidebar.tsx`:**
 
-- Add "Feed" link with an icon in the nav items (between Inbox and
-  Send, or at the top).
+- Add "Feed" link with an icon in the nav items (at the top, before
+  Inbox).
 
 **`webapp/src/routes/_app/_saved/_chrome/$profile.tsx`:**
 
-- Add a "Recent Posts" section below the PoW history, showing the
-  user's last few posts.
+- Remove PoW history list (keep total PoW counter).
+- Replace with the user's public posts, using PostCard. Paginated
+  with "Load more".
 
 #### Verification
 
-1. Log in. Navigate to Feed. Compose box is visible.
-2. Type a post over 240 chars — character counter turns red, Send
+1. Log in — redirected to `/feed` (not `/inbox`).
+2. Compose box is visible at top of feed.
+3. Type a post over 240 chars — character counter turns red, Send
    disabled.
-3. Type a valid post, click Send — PowModal appears, mines, post
-   appears in feed.
-4. Post with a URL — URL is clickable in the feed.
-5. Scroll down, click "Load more" — older posts appear.
-6. Click an author's address — navigates to their profile.
-7. Profile page shows the user's recent posts.
-8. PoW is logged against the poster (visible on profile).
+4. Type a valid post, click Send — PowModal appears, mines, post
+   appears in feed with PowBadge showing difficulty.
+5. Post with a URL — URL is clickable in the feed.
+6. Scroll down, click "Load more" — older posts appear.
+7. Click an author's address — navigates to their profile.
+8. Profile page shows the user's posts (not PoW history), each with
+   PowBadge. Total PoW counter still shown.
 9. Feed is reverse chronological — newest first.
