@@ -36,7 +36,13 @@ const navItems = [
   { name: "Vault", path: "/vault", icon: Lock },
 ];
 
-function UserDropdown({ userName }: { userName: string }) {
+function UserDropdown({
+  userName,
+  domain,
+}: {
+  userName: string;
+  domain: string | null;
+}) {
   const tier = getCachedEntropyTier();
   const showWarning = tier === "red" || tier === "yellow";
   const dotColor = tier === "red" ? "bg-destructive" : "bg-yellow-500";
@@ -57,7 +63,10 @@ function UserDropdown({ userName }: { userName: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <a href={`/@${userName}`} className="cursor-pointer no-underline">
+          <a
+            href={domain ? `/${userName}@${domain}` : `/${userName}`}
+            className="cursor-pointer no-underline"
+          >
             <User className="mr-2 h-4 w-4" />
             Profile
           </a>
@@ -174,7 +183,7 @@ function Address({
 }) {
   return (
     <a
-      href={`/@${userName}`}
+      href={domain ? `/${userName}@${domain}` : `/${userName}`}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
       {domain ? `${userName}@${domain}` : userName}
@@ -221,7 +230,7 @@ export function Sidebar({
         </div>
         <div className="flex items-center gap-3">
           {userName && <Address userName={userName} domain={domain} />}
-          {userName && <UserDropdown userName={userName} />}
+          {userName && <UserDropdown userName={userName} domain={domain} />}
         </div>
       </nav>
 
@@ -256,7 +265,7 @@ export function Sidebar({
           hasPassword={hasPassword}
         />
         <div className="mt-auto">
-          {userName && <UserDropdown userName={userName} />}
+          {userName && <UserDropdown userName={userName} domain={domain} />}
         </div>
       </div>
 
@@ -273,7 +282,7 @@ export function Sidebar({
       {/* Desktop top-right: address + user dropdown */}
       <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
         {userName && <Address userName={userName} domain={domain} />}
-        {userName && <UserDropdown userName={userName} />}
+        {userName && <UserDropdown userName={userName} domain={domain} />}
       </div>
     </>
   );

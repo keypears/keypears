@@ -1,41 +1,29 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { getMyUser, getProfile } from "~/server/user.functions";
-import { getServerDomain } from "~/server/config.functions";
+import { getProfile } from "~/server/user.functions";
+import { parseAddress } from "~/lib/config";
 import { CircleUser } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   loader: async ({ params }) => {
-    if (!params.profile.startsWith("@")) {
-      throw notFound();
-    }
-    const profileName = params.profile.slice(1);
-    if (!profileName) {
-      throw notFound();
-    }
-    const [me, primaryDomain] = await Promise.all([
-      getMyUser(),
-      getServerDomain(),
-    ]);
-    if (!me) throw notFound();
-    // Use the logged-in user's domain for profile lookup
-    const domain = me.domain ?? primaryDomain;
-    const profileData = await getProfile({
-      data: `${profileName}@${domain}`,
-    });
+    const parsed = parseAddress(params.profile);
+    if (!parsed) throw notFound();
+
+    const profileData = await getProfile({ data: params.profile });
+    if (!profileData) throw notFound();
+
     return {
-      profileName,
-      publicKey: profileData?.publicKey ?? null,
-      powTotal: profileData?.powTotal ?? "0",
-      domain,
+      address: params.profile,
+      publicKey: profileData.publicKey,
+      powTotal: profileData.powTotal,
     };
   },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { profileName, publicKey, powTotal, domain } = Route.useLoaderData();
+  const { address, publicKey, powTotal } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -53,9 +41,7 @@ function ProfilePage() {
   return (
     <div className="flex flex-col items-center pt-32 font-sans">
       <CircleUser className="text-muted-foreground h-24 w-24" />
-      <h1 className="text-foreground mt-6 text-2xl font-bold">
-        {profileName}@{domain}
-      </h1>
+      <h1 className="text-foreground mt-6 text-2xl font-bold">{address}</h1>
       {truncatedKey && (
         <button
           onClick={handleCopy}
