@@ -17,6 +17,7 @@ import { Route as AppSavedRouteImport } from './routes/_app/_saved'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
 import { Route as AppSavedChannelAddressRouteImport } from './routes/_app/_saved/channel.$address'
 import { Route as AppSavedChromeVaultRouteImport } from './routes/_app/_saved/_chrome/vault'
+import { Route as AppSavedChromeSettingsRouteImport } from './routes/_app/_saved/_chrome/settings'
 import { Route as AppSavedChromeSendRouteImport } from './routes/_app/_saved/_chrome/send'
 import { Route as AppSavedChromePasswordRouteImport } from './routes/_app/_saved/_chrome/password'
 import { Route as AppSavedChromeKeysRouteImport } from './routes/_app/_saved/_chrome/keys'
@@ -61,6 +62,11 @@ const AppSavedChromeVaultRoute = AppSavedChromeVaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => AppSavedChromeRoute,
 } as any)
+const AppSavedChromeSettingsRoute = AppSavedChromeSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppSavedChromeRoute,
+} as any)
 const AppSavedChromeSendRoute = AppSavedChromeSendRouteImport.update({
   id: '/send',
   path: '/send',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
   '/send': typeof AppSavedChromeSendRoute
+  '/settings': typeof AppSavedChromeSettingsRoute
   '/vault': typeof AppSavedChromeVaultRoute
   '/channel/$address': typeof AppSavedChannelAddressRoute
 }
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
   '/send': typeof AppSavedChromeSendRoute
+  '/settings': typeof AppSavedChromeSettingsRoute
   '/vault': typeof AppSavedChromeVaultRoute
   '/channel/$address': typeof AppSavedChannelAddressRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_app/_saved/_chrome/keys': typeof AppSavedChromeKeysRoute
   '/_app/_saved/_chrome/password': typeof AppSavedChromePasswordRoute
   '/_app/_saved/_chrome/send': typeof AppSavedChromeSendRoute
+  '/_app/_saved/_chrome/settings': typeof AppSavedChromeSettingsRoute
   '/_app/_saved/_chrome/vault': typeof AppSavedChromeVaultRoute
   '/_app/_saved/channel/$address': typeof AppSavedChannelAddressRoute
 }
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/keys'
     | '/password'
     | '/send'
+    | '/settings'
     | '/vault'
     | '/channel/$address'
   fileRoutesByTo: FileRoutesByTo
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/keys'
     | '/password'
     | '/send'
+    | '/settings'
     | '/vault'
     | '/channel/$address'
   id:
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_app/_saved/_chrome/keys'
     | '/_app/_saved/_chrome/password'
     | '/_app/_saved/_chrome/send'
+    | '/_app/_saved/_chrome/settings'
     | '/_app/_saved/_chrome/vault'
     | '/_app/_saved/channel/$address'
   fileRoutesById: FileRoutesById
@@ -244,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedChromeVaultRouteImport
       parentRoute: typeof AppSavedChromeRoute
     }
+    '/_app/_saved/_chrome/settings': {
+      id: '/_app/_saved/_chrome/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSavedChromeSettingsRouteImport
+      parentRoute: typeof AppSavedChromeRoute
+    }
     '/_app/_saved/_chrome/send': {
       id: '/_app/_saved/_chrome/send'
       path: '/send'
@@ -296,6 +315,7 @@ interface AppSavedChromeRouteChildren {
   AppSavedChromeKeysRoute: typeof AppSavedChromeKeysRoute
   AppSavedChromePasswordRoute: typeof AppSavedChromePasswordRoute
   AppSavedChromeSendRoute: typeof AppSavedChromeSendRoute
+  AppSavedChromeSettingsRoute: typeof AppSavedChromeSettingsRoute
   AppSavedChromeVaultRoute: typeof AppSavedChromeVaultRoute
 }
 
@@ -306,6 +326,7 @@ const AppSavedChromeRouteChildren: AppSavedChromeRouteChildren = {
   AppSavedChromeKeysRoute: AppSavedChromeKeysRoute,
   AppSavedChromePasswordRoute: AppSavedChromePasswordRoute,
   AppSavedChromeSendRoute: AppSavedChromeSendRoute,
+  AppSavedChromeSettingsRoute: AppSavedChromeSettingsRoute,
   AppSavedChromeVaultRoute: AppSavedChromeVaultRoute,
 }
 
