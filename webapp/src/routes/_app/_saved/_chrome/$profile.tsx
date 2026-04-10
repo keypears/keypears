@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getProfile } from "~/server/user.functions";
 import { parseAddress } from "~/lib/config";
-import { CircleUser } from "lucide-react";
+import { CircleUser, Copy, Check } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
 
     return {
       address: params.profile,
-      publicKey: profileData.publicKey,
       powTotal: profileData.powTotal,
     };
   },
@@ -23,34 +22,30 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
 });
 
 function ProfilePage() {
-  const { address, publicKey, powTotal } = Route.useLoaderData();
+  const { address, powTotal } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
-    if (publicKey) {
-      navigator.clipboard.writeText(publicKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
-
-  const truncatedKey = publicKey
-    ? `${publicKey.slice(0, 8)}...${publicKey.slice(-8)}`
-    : null;
 
   return (
     <div className="flex flex-col items-center pt-32 font-sans">
       <CircleUser className="text-muted-foreground h-24 w-24" />
-      <h1 className="text-foreground mt-6 text-2xl font-bold">{address}</h1>
-      {truncatedKey && (
-        <button
-          onClick={handleCopy}
-          className="text-muted-foreground hover:text-foreground mt-4 cursor-pointer font-mono text-sm transition-colors"
-          title={publicKey!}
-        >
-          {copied ? "Copied!" : truncatedKey}
-        </button>
-      )}
+      <button
+        onClick={handleCopy}
+        className="text-foreground hover:text-accent mt-6 inline-flex cursor-pointer items-center gap-2 text-2xl font-bold transition-colors"
+        title="Copy address"
+      >
+        {address}
+        {copied ? (
+          <Check className="h-5 w-5 text-green-500" />
+        ) : (
+          <Copy className="text-muted-foreground h-5 w-5" />
+        )}
+      </button>
       {BigInt(powTotal) > 0n && (
         <div className="mt-6">
           <PowBadge difficulty={BigInt(powTotal)} label="proof-of-work" />
