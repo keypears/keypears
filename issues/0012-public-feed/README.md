@@ -248,3 +248,38 @@ an indexed column. Fast, bounded, no counting.
    difficulty (visible in PowModal).
 4. Wait 10 minutes — difficulty drops back to 70M.
 5. The 10th post query is fast (EXPLAIN shows index usage).
+
+### Experiment 3: No newlines, input box with preview
+
+#### Description
+
+Replace the textarea with a single-line input box. Newlines are
+prohibited — Zod validation rejects them server-side, and the client
+trims + replaces any newlines with spaces. Add a live preview below the
+input showing how the post will render, including auto-linked URLs.
+
+#### Changes
+
+**`webapp/src/server/post.functions.ts`:**
+
+- `createPost` Zod validator: add `.regex(/^\S.*\S$|^\S$/, ...)` or
+  simply `.refine(s => !s.includes('\n'))` to reject newlines. Also
+  `.transform(s => s.trim().replace(/\s+/g, ' '))` to normalize
+  whitespace.
+
+**`webapp/src/routes/_app/_saved/_chrome/feed.tsx`:**
+
+- Replace `<textarea>` with `<input type="text">`.
+- Client-side: on change, trim and replace newlines/multiple spaces
+  with single space.
+- Add preview below the input using `PostContent` component — shows
+  auto-linked URLs as they'll appear.
+- Character counter stays.
+
+#### Verification
+
+1. Input box is single-line (not textarea).
+2. Pasting text with newlines — newlines replaced with spaces.
+3. Preview below input shows auto-linked URLs in real-time.
+4. Server rejects posts with newlines via Zod.
+5. 240 char limit still enforced.
