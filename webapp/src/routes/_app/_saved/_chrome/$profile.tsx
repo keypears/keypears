@@ -2,8 +2,8 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyUser, getProfile } from "~/server/user.functions";
 import { getServerDomain } from "~/server/config.functions";
-import { CircleUser, Cpu } from "lucide-react";
-import { formatNumber } from "~/lib/format";
+import { CircleUser } from "lucide-react";
+import { PowBadge } from "~/components/PowBadge";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   loader: async ({ params }) => {
@@ -66,11 +66,8 @@ function ProfilePage() {
         </button>
       )}
       {BigInt(powTotal) > 0n && (
-        <div className="text-muted-foreground mt-6 flex items-center gap-2 text-sm">
-          <Cpu className="h-4 w-4" />
-          <span>
-            {formatNumber(BigInt(powTotal))} proof-of-work
-          </span>
+        <div className="mt-6">
+          <PowBadge difficulty={BigInt(powTotal)} label="proof-of-work" />
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ import {
   getMyPowSettings,
   updateMyPowSettings,
 } from "~/server/user.functions";
-import { formatNumber } from "~/lib/format";
+import { PowBadge } from "~/components/PowBadge";
 
 const PRESETS = [
   { label: "Low", value: 7_000_000n, time: "~1 second" },
@@ -97,9 +97,12 @@ function SettingsPage() {
               <span key={p.label}>{p.label}</span>
             ))}
           </div>
-          <p className="text-foreground mt-2 text-sm">
-            {PRESETS[channelIdx].label} — {formatNumber(PRESETS[channelIdx].value)} — {PRESETS[channelIdx].time}
-          </p>
+          <div className="mt-2">
+            <PowBadge
+              difficulty={PRESETS[channelIdx].value}
+              label={`${PRESETS[channelIdx].label} — ${PRESETS[channelIdx].time}`}
+            />
+          </div>
         </div>
       </section>
 
@@ -123,9 +126,12 @@ function SettingsPage() {
               <span key={p.label}>{p.label}</span>
             ))}
           </div>
-          <p className="text-foreground mt-2 text-sm">
-            {PRESETS[messageIdx].label} — {formatNumber(PRESETS[messageIdx].value)} — {PRESETS[messageIdx].time}
-          </p>
+          <div className="mt-2">
+            <PowBadge
+              difficulty={PRESETS[messageIdx].value}
+              label={`${PRESETS[messageIdx].label} — ${PRESETS[messageIdx].time}`}
+            />
+          </div>
         </div>
       </section>
 

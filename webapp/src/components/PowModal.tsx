@@ -5,6 +5,7 @@ import {
   type PowSolution,
 } from "~/lib/use-pow-miner";
 import { Loader2, CheckCircle2, X } from "lucide-react";
+import { PowBadge } from "~/components/PowBadge";
 
 interface PowModalProps {
   challenge: PowChallenge | null;
@@ -65,11 +66,8 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
                 style={{ width: `${miner.progress}%` }}
               />
             </div>
-            <div className="text-muted-foreground flex w-full justify-between text-xs">
-              <span>
-                {(miner.hashCount / 1000).toFixed(0)}k /{" "}
-                {(miner.difficulty / 1000).toFixed(0)}k hashes
-              </span>
+            <div className="text-muted-foreground flex w-full items-center justify-between text-xs">
+              <PowBadge difficulty={miner.difficulty} />
               <span>{miner.timeRemaining} remaining</span>
             </div>
             <button
