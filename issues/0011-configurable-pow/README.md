@@ -194,90 +194,91 @@ sender's address so it can check whether a channel already exists between the
 two users. The next experiment must add this sender identification to the
 challenge request.
 
-### Experiment 2: Channel difficulty with sender-bound challenges
+### Experiment 2: Authenticated challenge requests
 
 #### Description
 
-Add `senderAddress` to the PoW challenge request. The recipient's server uses it
-to determine whether a channel exists (message difficulty) or not (channel
-difficulty). Both addresses are signed into the challenge so the sender can't
-reuse a challenge meant for a different sender/recipient pair.
+The sender must prove their identity to receive a PoW challenge. Without
+this, anyone can probe whether two users have a channel by requesting
+challenges with different sender addresses and observing the difficulty —
+a privacy violation that leaks social graph information.
 
 **How it works:**
 
-1. Sender requests challenge with `{ senderAddress, recipientAddress }`.
-2. Recipient's server checks if a channel exists between them:
-   - No channel → use recipient's `channelDifficulty` (default 70M)
-   - Channel exists → use recipient's `messageDifficulty` (default 7M)
-3. Both addresses are included in the signed payload of the challenge.
-4. When the message arrives, the server verifies the PoW signature matches the
-   actual sender and recipient addresses. If the sender lied about their
-   identity to get a lower difficulty, the signature check fails.
+1. Sender's client signs a challenge request with their secp256k1
+   private key: `sign({ senderAddress, recipientAddress, timestamp })`.
+2. Sender's server proxies this signed request to the recipient's
+   server via `getPowChallenge`.
+3. Recipient's server:
+   a. Fetches the sender's public key via federation (`getPublicKey`
+      on the sender's domain — verified by TLS).
+   b. Verifies the signature matches the claimed sender address.
+   c. Checks if a channel exists between sender and recipient.
+   d. Returns a challenge at the appropriate difficulty (channel or
+      message), with both addresses signed into the challenge payload.
+4. When the message arrives, the server verifies the PoW challenge
+   signature includes the correct sender and recipient addresses.
+
+**Privacy guarantee:** You cannot learn whether two users have a channel
+unless you can produce a valid signature for one of them.
 
 #### Changes
 
 **`webapp/src/server/pow.server.ts`:**
 
-- `signChallenge` — add optional `senderAddress` and `recipientAddress`
-  parameters. If provided, include them in the signed payload.
-- `createPowChallenge` — accept optional sender/recipient addresses, pass to
-  `signChallenge`, include them in the returned challenge object.
-- `verifyPowSolution` — accept optional sender/recipient addresses, pass to
-  `signChallenge` for verification. If the challenge was signed with addresses,
-  verification must include them.
-
-**`webapp/src/server/schemas.ts`:**
-
-- Add optional `senderAddress` and `recipientAddress` fields to
-  `PowSolutionSchema`.
+- `signChallenge` — include `senderAddress` and `recipientAddress` in
+  the signed payload.
+- `createPowChallenge` — accept sender/recipient addresses, pass to
+  `signChallenge`, include in returned challenge.
+- `verifyPowSolution` — accept sender/recipient addresses, verify
+  they match the challenge signature.
 
 **`webapp/src/server/api.router.ts`:**
 
-- `getPowChallenge` — require both `senderAddress` and `recipientAddress`. Look
-  up recipient user, check if channel exists from recipient's perspective for
-  sender's address. Choose channel or message difficulty. Pass both addresses to
-  `createPowChallenge`.
-- `notifyMessage` — when verifying PoW, pass `senderAddress` and
-  `recipientAddress` to `verifyPowSolution` so signature is checked against
-  actual addresses.
+- `getPowChallenge` — accept `{ senderAddress, recipientAddress,
+  senderPubKey, signature, timestamp }`. Fetch sender's public key
+  from sender's domain via federation. Verify signature. Check channel
+  existence. Return challenge at appropriate difficulty.
 
-**`webapp/src/server/message.functions.ts`:**
+**`webapp/src/server/schemas.ts`:**
 
-- `sendMessage` local path — pass `senderAddress` and `recipientAddress` to
-  `verifyAndConsumePow`.
+- Add `senderAddress` and `recipientAddress` to `PowSolutionSchema`.
 
 **`webapp/src/server/pow.consume.ts`:**
 
-- `verifyAndConsumePow` — accept and pass through optional addresses to
-  `verifyPowSolution`.
-
-**`webapp/src/server/federation.server.ts`:**
-
-- `fetchRemotePowChallenge` — accept `senderAddress`, pass both sender and
-  recipient to remote `getPowChallenge`.
+- `verifyAndConsumePow` — accept and pass through addresses.
 
 **`webapp/src/server/message.functions.ts`:**
 
-- `getRemotePowChallenge` — accept sender address, pass through.
+- `sendMessage` local path — pass addresses to PoW verification.
+- `getRemotePowChallenge` — accept sender address, public key. Client
+  signs the request before sending.
 
-**Client changes (send page, channel page):**
+**`webapp/src/server/federation.server.ts`:**
 
-- Include sender's own address when requesting PoW challenge.
-- `PowSolution` carries `senderAddress` and `recipientAddress` so they travel
-  with the solution to the server.
+- `fetchRemotePowChallenge` — pass signed request to remote
+  `getPowChallenge`.
+
+**Client changes:**
+
+- Send page and channel page sign the challenge request with the
+  user's private key before requesting PoW.
+- The `PowChallenge` and `PowSolution` types carry `senderAddress`
+  and `recipientAddress`.
 
 **`webapp/src/lib/use-pow-miner.ts`:**
 
-- `PowChallenge` and `PowSolution` types — add optional sender and recipient
-  address fields.
+- Types updated for address fields.
 
 #### Verification
 
 1. Alice sets channel difficulty to High (700M), message to Low (7M).
-2. Bob (new sender) sends to Alice — PoW shows 700M (~2 minutes). Channel opens.
-3. Bob sends again — PoW shows 7M (~1 second).
-4. Carol (new sender) sends to Alice — PoW shows 700M (no channel).
-5. Bob requests challenge claiming to be Carol — signed challenge won't match
-   when Bob sends. PoW rejected.
-6. Cross-domain: difficulty reflects recipient's settings.
-7. Login and registration PoW unchanged.
+2. Bob (new sender, authenticated) sends to Alice — PoW shows 700M.
+   Channel opens.
+3. Bob sends again — PoW shows 7M (channel exists).
+4. Carol (new sender, authenticated) sends to Alice — PoW shows 700M.
+5. Attacker tries to request challenge as Bob (without Bob's private
+   key) — signature verification fails, challenge denied.
+6. Attacker tries unsigned request — rejected.
+7. Cross-domain: sender authenticated via federation public key lookup.
+8. Login and registration PoW unchanged (no sender identity needed).
