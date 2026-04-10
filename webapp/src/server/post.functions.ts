@@ -23,7 +23,16 @@ export const getPostPowChallenge = createServerFn({ method: "GET" }).handler(
 export const createPost = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      content: z.string().min(1, "Post cannot be empty").max(240, "Post too long"),
+      content: z
+        .string()
+        .transform((s) => s.trim().replace(/[\n\r]+/g, " ").replace(/\s+/g, " "))
+        .pipe(
+          z
+            .string()
+            .min(1, "Post cannot be empty")
+            .max(240, "Post too long")
+            .refine((s) => !s.includes("\n"), "Newlines not allowed"),
+        ),
       pow: PowSolutionSchema,
     }),
   )

@@ -3,10 +3,15 @@ import { useState } from "react";
 import { createPost, getFeed, getPostPowChallenge } from "~/server/post.functions";
 import { PowModal } from "~/components/PowModal";
 import { PostCard } from "~/components/PostCard";
+import { PostContent } from "~/components/PostContent";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { Send as SendIcon } from "lucide-react";
 
 const MAX_LENGTH = 240;
+
+function normalizeText(s: string): string {
+  return s.replace(/[\n\r]+/g, " ").replace(/\s+/g, " ");
+}
 
 export const Route = createFileRoute("/_app/_saved/_chrome/feed")({
   loader: () => getFeed({ data: {} }),
@@ -23,12 +28,13 @@ function FeedPage() {
   const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
-  const charsLeft = MAX_LENGTH - text.length;
+  const normalized = normalizeText(text);
+  const charsLeft = MAX_LENGTH - normalized.length;
   const overLimit = charsLeft < 0;
 
   async function handlePost(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim() || overLimit) return;
+    if (!normalized.trim() || overLimit) return;
     setError("");
     setPosting(true);
 
@@ -46,7 +52,7 @@ function FeedPage() {
   async function handlePowComplete(solution: PowSolution) {
     setPowChallenge(null);
     try {
-      await createPost({ data: { content: text.trim(), pow: solution } });
+      await createPost({ data: { content: normalized.trim(), pow: solution } });
       setText("");
       // Refresh feed
       const updated = await getFeed({ data: {} });
@@ -87,13 +93,18 @@ function FeedPage() {
         onSubmit={handlePost}
         className="border-border/30 border-b px-4 py-4"
       >
-        <textarea
+        <input
+          type="text"
           placeholder="What's on your mind?"
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="bg-background-dark border-border text-foreground min-h-20 w-full resize-none rounded border px-3 py-2 text-sm"
-          rows={3}
+          onChange={(e) => setText(normalizeText(e.target.value))}
+          className="bg-background-dark border-border text-foreground w-full rounded border px-3 py-2 text-sm"
         />
+        {normalized.trim() && (
+          <div className="border-border/30 mt-2 rounded border px-3 py-2">
+            <PostContent text={normalized.trim()} />
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-between">
           <span
             className={`text-xs ${overLimit ? "text-destructive font-medium" : "text-muted-foreground"}`}
@@ -103,7 +114,7 @@ function FeedPage() {
           {error && <p className="text-danger text-xs">{error}</p>}
           <button
             type="submit"
-            disabled={posting || !text.trim() || overLimit}
+            disabled={posting || !normalized.trim() || overLimit}
             className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded px-4 py-1.5 text-sm transition-all disabled:opacity-50"
           >
             <SendIcon className="h-4 w-4" />
