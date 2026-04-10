@@ -274,13 +274,7 @@ function ChannelPage() {
       await sendMessage({
         data: { ...pending, pow: solution },
       });
-
-      const newMsgs = await pollNewMessages({
-        data: { counterpartyAddress: address, afterId: lastIdRef.current },
-      });
-      if (newMsgs.length > 0) {
-        setMessageList((prev) => [...prev, ...newMsgs]);
-      }
+      // Don't manually poll — the 200ms polling loop picks it up
       setText("");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send.");
