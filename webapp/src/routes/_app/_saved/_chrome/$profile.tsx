@@ -3,6 +3,7 @@ import { useState } from "react";
 import { getMyUser, getProfile } from "~/server/user.functions";
 import { getServerDomain } from "~/server/config.functions";
 import { CircleUser, Cpu } from "lucide-react";
+import { formatNumber } from "~/lib/format";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   loader: async ({ params }) => {
@@ -68,7 +69,7 @@ function ProfilePage() {
         <div className="text-muted-foreground mt-6 flex items-center gap-2 text-sm">
           <Cpu className="h-4 w-4" />
           <span>
-            {new Intl.NumberFormat().format(BigInt(powTotal))} proof-of-work
+            {formatNumber(BigInt(powTotal))} proof-of-work
           </span>
         </div>
       )}

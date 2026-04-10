@@ -4,19 +4,13 @@ import {
   getMyPowSettings,
   updateMyPowSettings,
 } from "~/server/user.functions";
+import { formatNumber } from "~/lib/format";
 
 const PRESETS = [
   { label: "Low", value: 7_000_000n, time: "~1 second" },
   { label: "Medium", value: 70_000_000n, time: "~15 seconds" },
   { label: "High", value: 700_000_000n, time: "~2 minutes" },
 ];
-
-function formatDifficulty(value: bigint): string {
-  if (value >= 1_000_000_000n) return `${value / 1_000_000_000n}B`;
-  if (value >= 1_000_000n) return `${value / 1_000_000n}M`;
-  if (value >= 1_000n) return `${value / 1_000n}k`;
-  return value.toString();
-}
 
 const CHANNEL_DEFAULT = 70_000_000n;
 const MESSAGE_DEFAULT = 7_000_000n;
@@ -104,7 +98,7 @@ function SettingsPage() {
             ))}
           </div>
           <p className="text-foreground mt-2 text-sm">
-            {PRESETS[channelIdx].label} — {formatDifficulty(PRESETS[channelIdx].value)} — {PRESETS[channelIdx].time}
+            {PRESETS[channelIdx].label} — {formatNumber(PRESETS[channelIdx].value)} — {PRESETS[channelIdx].time}
           </p>
         </div>
       </section>
@@ -130,7 +124,7 @@ function SettingsPage() {
             ))}
           </div>
           <p className="text-foreground mt-2 text-sm">
-            {PRESETS[messageIdx].label} — {formatDifficulty(PRESETS[messageIdx].value)} — {PRESETS[messageIdx].time}
+            {PRESETS[messageIdx].label} — {formatNumber(PRESETS[messageIdx].value)} — {PRESETS[messageIdx].time}
           </p>
         </div>
       </section>
