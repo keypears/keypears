@@ -35,12 +35,14 @@ keypears/
               keys.tsx      # key management (rotate, per-key passwords)
               password.tsx  # change password
               domains.tsx   # domain claiming + admin user management
+              settings.tsx  # PoW difficulty settings
               $profile.tsx  # profile page (/@N)
             channel.$address.tsx  # conversation view
       components/
         Sidebar.tsx     # responsive sidebar + user dropdown
         Footer.tsx      # astrohacker footer
         PowModal.tsx    # reusable PoW mining modal
+        PowBadge.tsx    # difficulty display (chip icon + formatted number)
         ui/             # shadcn components
       server/
         api.router.ts      # oRPC router (federation API at /api)
@@ -175,10 +177,20 @@ Password (never stored)
 ### Proof of work
 
 - Account creation requires PoW (difficulty 70M, ~15s on WebGPU).
-- Login requires lighter PoW (difficulty 7M, ~1-2s).
-- Every message requires PoW from the recipient's server (difficulty 7M).
+- Login requires PoW (difficulty 7M, ~1-2s).
+- Every message requires PoW. Difficulty is configurable per user:
+  - `channelDifficulty` — first message to a user (default 70M).
+  - `messageDifficulty` — subsequent messages (default 7M).
+  - Server-enforced minimums: 7M for both.
+  - Users configure via sliders on the Settings page.
+- Challenge requests are authenticated: sender signs with secp256k1,
+  recipient verifies via federation public key lookup. This prevents
+  probing channel existence (social graph privacy).
+- Both sender and recipient addresses are signed into the challenge
+  payload, preventing reuse across conversations.
 - Challenges are signed with BLAKE3 MAC — stateless until verified.
 - PoW solutions are tracked in `used_pow` table for replay prevention.
+- All PoW is logged against the user who did the work (`pow_log` table).
 - All PoW mining happens in the browser via WebGPU. Servers never mine.
 
 ### Key management
@@ -204,8 +216,8 @@ Password (never stored)
 
 ## Database schema
 
-- **domains**: id, domain, adminUserId, createdAt
-- **users**: id, domainId, name, passwordHash, expiresAt, createdAt
+- **domains**: id, domain, adminUserId, openRegistration, allowThirdPartyDomains, createdAt
+- **users**: id, domainId, name, passwordHash, channelDifficulty, messageDifficulty, expiresAt, createdAt
 - **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, loginKeyHash, createdAt
 - **sessions**: tokenHash (PK), userId, expiresAt, createdAt
 - **channels**: id, ownerId, counterpartyAddress, createdAt, updatedAt

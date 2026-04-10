@@ -122,7 +122,7 @@ the following public procedures:
 |-----------|-------------|
 | `serverInfo` | Returns domain info |
 | `getPublicKey` | Returns active public key for an address |
-| `getPowChallenge` | Issues a PoW challenge for messaging |
+| `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
 | `notifyMessage` | Notifies server of a new incoming message |
 | `pullMessage` | Serves a pending message delivery (one-time token) |
 
@@ -227,15 +227,40 @@ PoW challenges are signed with BLAKE3 MAC (derived from `KEYPEARS_SECRET`).
 They are stateless — no database entry is created until the PoW is verified.
 Solutions are tracked in `used_pow` for replay prevention.
 
-### Message PoW
+### Message PoW (Authenticated Challenges)
 
-Every message requires proof-of-work (difficulty 7M) from the recipient's
-server. The client mines PoW on WebGPU before sending. Servers never mine.
+Every message requires proof-of-work from the recipient's server.
+Difficulty is configurable per user:
+
+- **Channel difficulty** — first message to a user (default 70M, ~15s).
+  Higher barrier deters spam from new senders.
+- **Message difficulty** — subsequent messages (default 7M, ~1s).
+  Lower friction for existing conversations.
+- Server-enforced minimum: 7M for both.
+
+Challenge requests are **authenticated**: the sender must sign the
+request with their secp256k1 private key. The recipient's server
+verifies the signature by fetching the sender's public key via
+federation (`getPublicKey` on the sender's domain). This prevents
+probing channel existence — you cannot learn whether two users have
+a channel without holding a valid private key.
+
+Both sender and recipient addresses are signed into the challenge
+payload by the server's BLAKE3 MAC. This binds the challenge to a
+specific sender/recipient pair, preventing reuse.
+
+All PoW is mined client-side on WebGPU. Servers never mine.
 
 ### Login PoW
 
 Each login attempt requires PoW (difficulty 7M). This throttles brute-force
 password attacks without rate limiting or account lockouts.
+
+### PoW Logging
+
+All PoW is logged in the `pow_log` table against the user who performed
+the work (registration, login, and message sends). Cumulative difficulty
+is tracked and displayed on the user's profile.
 
 ## Migration
 
@@ -272,7 +297,8 @@ by the recipient independently resolving the sender's domain. No server
 signing keys or certificates needed beyond standard HTTPS.
 
 **PoW-gated messaging** — Every message requires proof of work. Difficulty
-is set by the recipient's server.
+is configurable per user and set by the recipient's server. Challenge
+requests are authenticated to prevent social graph probing.
 
 **Forward secrecy via key rotation** — Users can rotate keys at any time.
 Old messages remain encrypted with old keys. New messages use the current
