@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
+  head: ({ loaderData }) => ({
+    meta: [{ title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" }],
+  }),
   loader: async ({ params }) => {
     const address = params.address;
     const [msgs, channels] = await Promise.all([

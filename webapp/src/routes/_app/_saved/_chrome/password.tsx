@@ -18,6 +18,7 @@ import {
 import { acs2Encrypt } from "@webbuf/acs2";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/password")({
+  head: () => ({ meta: [{ title: "Change Password — KeyPears" }] }),
   component: PasswordPage,
 });
 

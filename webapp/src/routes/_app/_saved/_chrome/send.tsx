@@ -20,6 +20,7 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { Send as SendIcon, Check, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/send")({
+  head: () => ({ meta: [{ title: "Send — KeyPears" }] }),
   component: SendPage,
 });
 

@@ -14,6 +14,7 @@ function normalizeText(s: string): string {
 }
 
 export const Route = createFileRoute("/_app/_saved/_chrome/feed")({
+  head: () => ({ meta: [{ title: "Feed — KeyPears" }] }),
   loader: () => getFeed({ data: {} }),
   component: FeedPage,
 });

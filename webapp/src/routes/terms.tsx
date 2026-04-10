@@ -15,6 +15,7 @@ const loadTerms = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/terms")({
   ssr: false,
+  head: () => ({ meta: [{ title: "Terms of Service — KeyPears" }] }),
   loader: () => loadTerms(),
   component: TermsPage,
 });

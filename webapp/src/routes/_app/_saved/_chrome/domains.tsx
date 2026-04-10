@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/domains")({
+  head: () => ({ meta: [{ title: "Domains — KeyPears" }] }),
   loader: () => getMyDomains(),
   component: DomainsPage,
 });

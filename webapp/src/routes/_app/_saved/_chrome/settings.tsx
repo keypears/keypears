@@ -23,6 +23,7 @@ function presetIndex(value: bigint): number {
 }
 
 export const Route = createFileRoute("/_app/_saved/_chrome/settings")({
+  head: () => ({ meta: [{ title: "Settings — KeyPears" }] }),
   loader: () => getMyPowSettings(),
   component: SettingsPage,
 });

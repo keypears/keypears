@@ -14,6 +14,7 @@ import { acs2Encrypt } from "@webbuf/acs2";
 import { RotateCw, Lock, Unlock, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
+  head: () => ({ meta: [{ title: "Keys — KeyPears" }] }),
   loader: () => getMyKeys(),
   component: KeysPage,
 });

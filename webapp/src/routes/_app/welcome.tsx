@@ -31,6 +31,7 @@ export const Route = createFileRoute("/_app/welcome")({
     const domain = await getServerDomain();
     return { ...user, domain };
   },
+  head: () => ({ meta: [{ title: "Choose Your Address — KeyPears" }] }),
   component: WelcomePage,
 });
 

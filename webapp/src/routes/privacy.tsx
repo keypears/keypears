@@ -15,6 +15,7 @@ const loadPrivacy = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/privacy")({
   ssr: false,
+  head: () => ({ meta: [{ title: "Privacy Policy — KeyPears" }] }),
   loader: () => loadPrivacy(),
   component: PrivacyPage,
 });

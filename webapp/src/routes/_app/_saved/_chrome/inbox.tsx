@@ -3,6 +3,7 @@ import { useChannels } from "~/lib/channel-context";
 import { MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/inbox")({
+  head: () => ({ meta: [{ title: "Inbox — KeyPears" }] }),
   component: InboxPage,
 });
 

@@ -21,6 +21,7 @@ import { parseAddress } from "~/lib/config";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
+  head: () => ({ meta: [{ title: "Log In — KeyPears" }] }),
   loader: () => getServerDomain(),
   component: LoginPage,
 });

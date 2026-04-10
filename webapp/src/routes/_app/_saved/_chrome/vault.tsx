@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/vault")({
+  head: () => ({ meta: [{ title: "Vault — KeyPears" }] }),
   component: VaultPage,
 });
 
