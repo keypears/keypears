@@ -8,9 +8,17 @@ import {
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
-import { insertPost, getFeedPosts, getUserPosts } from "./post.server";
+import { insertPost, getFeedPosts, getUserPosts, getPostDifficulty } from "./post.server";
+import { createPowChallenge } from "./pow.server";
 import { getUserByNameAndDomain, getDomainByName } from "./user.server";
 import { makeAddress, parseAddress } from "~/lib/config";
+
+export const getPostPowChallenge = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const difficulty = await getPostDifficulty();
+    return createPowChallenge(difficulty);
+  },
+);
 
 export const createPost = createServerFn({ method: "POST" })
   .inputValidator(

@@ -182,3 +182,69 @@ auto-linked.
 8. Profile page shows the user's posts (not PoW history), each with
    PowBadge. Total PoW counter still shown.
 9. Feed is reverse chronological — newest first.
+
+### Experiment 2: Dynamic difficulty throttling
+
+#### Description
+
+Dynamically raise the PoW difficulty for posts when the feed is busy.
+This caps the volume of posts to a readable pace (~1 per minute) without
+any moderation or rate limiting infrastructure.
+
+**Algorithm:**
+
+Look at the timestamp of the 10th most recent post (one indexed query
+with `OFFSET 9`). If that post is within the last 10 minutes, the feed
+is "hot" and difficulty increases exponentially:
+
+```
+tenthPostTime = SELECT createdAt FROM posts ORDER BY id DESC LIMIT 1 OFFSET 9
+elapsed = NOW() - tenthPostTime (in seconds)
+
+if no result or elapsed >= 600:
+  difficulty = BASE_DIFFICULTY (70M)
+else:
+  difficulty = BASE_DIFFICULTY * 2^((600 - elapsed) / 60)
+```
+
+Examples at BASE = 70M:
+- 10th post was 9 min ago → 2^1 = 2x → 140M
+- 10th post was 5 min ago → 2^5 = 32x → 2.24B (~minutes to mine)
+- 10th post was 1 min ago → 2^9 = 512x → 35.8B (~hours to mine)
+
+Self-correcting: as difficulty rises, posting slows, the 10th post ages
+out, difficulty drops back. Per-server, not per-user — a single spammer
+raises difficulty for everyone, which is the correct incentive.
+
+**Performance:** One `SELECT ... ORDER BY id DESC LIMIT 1 OFFSET 9` on
+an indexed column. Fast, bounded, no counting.
+
+#### Changes
+
+**`webapp/src/server/post.server.ts`:**
+
+- Add `getPostDifficulty()` — runs the query, computes the dynamic
+  difficulty, returns the bigint.
+
+**`webapp/src/server/post.functions.ts`:**
+
+- Add `getPostPowChallenge()` — server function that computes dynamic
+  difficulty and returns a PoW challenge at that difficulty.
+- `createPost` — verify PoW against the dynamic difficulty (the
+  challenge was already issued at the right difficulty, so the existing
+  verification works).
+
+**`webapp/src/routes/_app/_saved/_chrome/feed.tsx`:**
+
+- Use `getPostPowChallenge` instead of `getPowChallenge` when posting.
+- Show the current difficulty in the compose area so the user knows
+  the cost before posting.
+
+#### Verification
+
+1. Empty feed — post difficulty is 70M (base).
+2. Post 10 times quickly — difficulty starts rising.
+3. After 10 posts in under 10 minutes, next challenge shows higher
+   difficulty (visible in PowModal).
+4. Wait 10 minutes — difficulty drops back to 70M.
+5. The 10th post query is fast (EXPLAIN shows index usage).

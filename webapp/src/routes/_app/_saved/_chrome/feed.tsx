@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { createPost, getFeed } from "~/server/post.functions";
+import { createPost, getFeed, getPostPowChallenge } from "~/server/post.functions";
 import { PowModal } from "~/components/PowModal";
 import { PostCard } from "~/components/PostCard";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
-import { getPowChallenge } from "~/server/pow.functions";
 import { Send as SendIcon } from "lucide-react";
 
 const MAX_LENGTH = 240;
@@ -36,7 +35,7 @@ function FeedPage() {
     try {
       // Get a PoW challenge (no sender auth needed for posts — just use
       // the simple registration-style challenge)
-      const challenge = await getPowChallenge();
+      const challenge = await getPostPowChallenge();
       setPowChallenge(challenge);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create post.");
