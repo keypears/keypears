@@ -133,7 +133,6 @@ function SolvedState({ onContinue }: { onContinue: () => void }) {
         Proof of work complete!
       </p>
       <button
-        autoFocus
         onClick={handleContinue}
         className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
       >
