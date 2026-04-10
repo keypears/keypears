@@ -100,7 +100,16 @@ function ProfilePage() {
       ) : (
         <>
           {postList.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onBoostComplete={async () => {
+                const updated = await getUserPostsByAddress({
+                  data: { address },
+                });
+                setPostList(updated);
+              }}
+            />
           ))}
           {hasMore && (
             <button

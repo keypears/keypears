@@ -132,7 +132,14 @@ function FeedPage() {
       ) : (
         <>
           {postList.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onBoostComplete={async () => {
+                const updated = await getFeed({ data: {} });
+                setPostList(updated);
+              }}
+            />
           ))}
           {hasMore && (
             <button

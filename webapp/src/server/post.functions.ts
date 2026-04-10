@@ -8,7 +8,7 @@ import {
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
-import { insertPost, getFeedPosts, getUserPosts, getPostDifficulty } from "./post.server";
+import { insertPost, getFeedPosts, getUserPosts, getPostDifficulty, insertBoost, getBoostersForPost } from "./post.server";
 import { createPowChallenge } from "./pow.server";
 import { getUserByNameAndDomain, getDomainByName } from "./user.server";
 import { makeAddress, parseAddress } from "~/lib/config";
@@ -77,6 +77,7 @@ export const getFeed = createServerFn({ method: "GET" })
       senderAddress: r.senderAddress,
       content: r.content,
       difficulty: r.difficulty.toString(),
+      totalBoost: r.totalBoost.toString(),
       createdAt: r.createdAt,
     }));
   });
@@ -101,6 +102,52 @@ export const getUserPostsByAddress = createServerFn({ method: "GET" })
       senderAddress: r.senderAddress,
       content: r.content,
       difficulty: r.difficulty.toString(),
+      totalBoost: r.totalBoost.toString(),
       createdAt: r.createdAt,
+    }));
+  });
+
+export const boostPost = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      postId: z.string(),
+      pow: PowSolutionSchema,
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const userId = await requireSessionUserId();
+    const user = await getUserById(userId);
+    if (!user?.name || !user.domainId) throw new Error("Account not saved");
+    const domain = await getDomainById(user.domainId);
+    if (!domain) throw new Error("Domain not found");
+    const senderAddress = makeAddress(user.name, domain.domain);
+
+    const powResult = await verifyAndConsumePow(
+      input.pow.solvedHeader,
+      input.pow.target,
+      input.pow.expiresAt,
+      input.pow.signature,
+    );
+    if (!powResult.valid)
+      throw new Error(`Invalid proof of work: ${powResult.message}`);
+
+    const { difficultyFromTarget } = await import("@keypears/pow5");
+    const { FixedBuf } = await import("@webbuf/fixedbuf");
+    const target = FixedBuf.fromHex(32, input.pow.target);
+    const difficulty = difficultyFromTarget(target);
+
+    await insertBoost(input.postId, userId, senderAddress, difficulty);
+    await insertPowLog(userId, "pow5-64b", difficulty);
+
+    return { success: true };
+  });
+
+export const getPostBoosters = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ postId: z.string() }))
+  .handler(async ({ data: input }) => {
+    const rows = await getBoostersForPost(input.postId);
+    return rows.map((r) => ({
+      senderAddress: r.senderAddress,
+      total: r.total?.toString() ?? "0",
     }));
   });

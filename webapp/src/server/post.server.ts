@@ -1,6 +1,6 @@
 import { db } from "~/db";
-import { posts } from "~/db/schema";
-import { eq, desc, and, lt } from "drizzle-orm";
+import { posts, boosts } from "~/db/schema";
+import { eq, desc, and, lt, sql, sum } from "drizzle-orm";
 import { newId } from "./utils";
 import { REGISTRATION_DIFFICULTY } from "./pow.server";
 
@@ -34,6 +34,7 @@ export async function getFeedPosts(limit = 20, beforeId?: string) {
       senderAddress: posts.senderAddress,
       content: posts.content,
       difficulty: posts.difficulty,
+      totalBoost: posts.totalBoost,
       createdAt: posts.createdAt,
     })
     .from(posts)
@@ -57,6 +58,7 @@ export async function getUserPosts(
       senderAddress: posts.senderAddress,
       content: posts.content,
       difficulty: posts.difficulty,
+      totalBoost: posts.totalBoost,
       createdAt: posts.createdAt,
     })
     .from(posts)
@@ -82,4 +84,39 @@ export async function getPostDifficulty(): Promise<bigint> {
     (THROTTLE_WINDOW_SECONDS - elapsed) / 60,
   );
   return BASE_POST_DIFFICULTY * (1n << BigInt(exponent));
+}
+
+// --- Boosts ---
+
+export async function insertBoost(
+  postId: string,
+  userId: string,
+  senderAddress: string,
+  difficulty: bigint,
+) {
+  const id = newId();
+  await db.insert(boosts).values({
+    id,
+    postId,
+    userId,
+    senderAddress,
+    difficulty,
+  });
+  // Atomically increment totalBoost on the post
+  await db
+    .update(posts)
+    .set({ totalBoost: sql`${posts.totalBoost} + ${difficulty}` })
+    .where(eq(posts.id, postId));
+}
+
+export async function getBoostersForPost(postId: string) {
+  return db
+    .select({
+      senderAddress: boosts.senderAddress,
+      total: sum(boosts.difficulty),
+    })
+    .from(boosts)
+    .where(eq(boosts.postId, postId))
+    .groupBy(boosts.senderAddress)
+    .orderBy(desc(sum(boosts.difficulty)));
 }
