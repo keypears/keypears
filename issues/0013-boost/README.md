@@ -81,7 +81,11 @@ PostCard to boost and view boosters.
 
 **`webapp/src/db/schema.ts`:**
 
-- New `boosts` table:
+- Add `totalBoost` bigint column to `posts` table (default 0). Pre-
+  computed aggregate — incremented on each boost. Feed queries read
+  this directly, no joins needed.
+
+- New `boosts` table (individual boost records):
   - `id` binaryId PK
   - `postId` binaryId NOT NULL (index)
   - `userId` binaryId NOT NULL
@@ -92,19 +96,18 @@ PostCard to boost and view boosters.
 **`webapp/src/server/post.server.ts`:**
 
 - `insertBoost(postId, userId, senderAddress, difficulty)` — inserts
-  a boost.
-- `getBoostTotals(postIds)` — returns total boost difficulty per post
-  for a list of post IDs. Single query with GROUP BY.
+  a boost record AND atomically increments `posts.totalBoost`:
+  `UPDATE posts SET totalBoost = totalBoost + difficulty WHERE id = ?`
 - `getBoostersForPost(postId)` — returns boosters grouped by user
   with their total contribution, ordered by total desc.
+- `getFeedPosts` and `getUserPosts` — already return all post columns,
+  so `totalBoost` is included automatically. No query changes needed.
 
 **`webapp/src/server/post.functions.ts`:**
 
 - `boostPost({ postId, pow })` — requires session. Verifies PoW (at
   minimum MESSAGE_DIFFICULTY). Inserts boost. Logs PoW.
 - `getPostBoosters({ postId })` — returns booster list.
-- Update `getFeed` and `getUserPostsByAddress` to include total boost
-  per post. Fetch post IDs, then batch-query boost totals, merge.
 
 **`webapp/src/components/PostCard.tsx`:**
 
