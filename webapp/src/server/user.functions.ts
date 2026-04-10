@@ -34,7 +34,7 @@ import {
   getUserPowSettings,
 } from "./user.server";
 import { verifyDomainAdmin } from "./federation.server";
-import { REGISTRATION_DIFFICULTY } from "./pow.server";
+import { REGISTRATION_DIFFICULTY, LOGIN_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema, nameSchema } from "./schemas";
 import { getSessionUserId, requireSessionUserId, COOKIE_NAME } from "./session";
@@ -218,6 +218,7 @@ export const login = createServerFn({ method: "POST" })
     const domain = await getDomainByName(input.domain);
     if (!domain) throw new Error("Invalid credentials");
     const result = await verifyLogin(input.name, domain.id, input.loginKey);
+    await insertPowLog(result.id, "pow5-64b", LOGIN_DIFFICULTY);
     const session = await createSession(result.id, THIRTY_DAYS);
     setCookie(COOKIE_NAME, session.token, cookieOpts(THIRTY_DAYS));
     return { id: result.id };

@@ -18,6 +18,7 @@ import {
   isLocalDomain,
   getDomainByName,
   getDomainById,
+  insertPowLog,
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
@@ -152,6 +153,13 @@ export const sendMessage = createServerFn({ method: "POST" })
         input.pow,
       );
     }
+
+    // Log PoW against the sender (they did the work)
+    const { difficultyFromTarget } = await import("@keypears/pow5");
+    const { FixedBuf } = await import("@webbuf/fixedbuf");
+    const target = FixedBuf.fromHex(32, input.pow.target);
+    const difficulty = difficultyFromTarget(target);
+    await insertPowLog(senderId, "pow5-64b", difficulty);
 
     return { success: true };
   });
