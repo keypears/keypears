@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   getMyUser,
   saveMyUser,
@@ -45,6 +46,7 @@ function WelcomePage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   function extractParsed(): { name: string; domain: string } | null {
     const parsed = parseAddress(address);
@@ -236,10 +238,46 @@ function WelcomePage() {
                 className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
                 required
               />
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="tos"
+                  checked={tosAccepted}
+                  onCheckedChange={(checked) =>
+                    setTosAccepted(checked === true)
+                  }
+                  className="mt-0.5"
+                />
+                <label
+                  htmlFor="tos"
+                  className="text-muted-foreground cursor-pointer text-sm leading-snug"
+                >
+                  I agree to the{" "}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    className="text-accent hover:text-accent/80 no-underline"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    className="text-accent hover:text-accent/80 no-underline"
+                  >
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
               {error && <p className="text-danger text-sm">{error}</p>}
               <button
                 type="submit"
-                disabled={saving || !!addressError || nameAvailable === false}
+                disabled={
+                  saving ||
+                  !!addressError ||
+                  nameAvailable === false ||
+                  !tosAccepted
+                }
                 className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}

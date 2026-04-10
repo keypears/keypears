@@ -19,6 +19,15 @@ export function Footer() {
         </picture>
         An Astrohacker Project
       </a>
+      <div className="flex gap-3">
+        <a href="/terms" className="hover:text-accent no-underline">
+          Terms
+        </a>
+        <span>&middot;</span>
+        <a href="/privacy" className="hover:text-accent no-underline">
+          Privacy
+        </a>
+      </div>
       <p>&copy; {new Date().getFullYear()} Astrohacker. All rights reserved.</p>
     </footer>
   );

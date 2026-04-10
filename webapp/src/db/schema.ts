@@ -53,6 +53,7 @@ export const users = mysqlTable(
     passwordHash: varchar("password_hash", { length: 255 }),
     channelDifficulty: bigint("channel_difficulty", { mode: "bigint" }),
     messageDifficulty: bigint("message_difficulty", { mode: "bigint" }),
+    tosAcceptedAt: timestamp("tos_accepted_at"),
     expiresAt: timestamp("expires_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

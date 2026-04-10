@@ -283,7 +283,7 @@ export async function saveUser(
   const passwordHash = hashLoginKey(loginKeyHex);
   await db
     .update(users)
-    .set({ name, domainId, passwordHash, expiresAt: null })
+    .set({ name, domainId, passwordHash, tosAcceptedAt: new Date(), expiresAt: null })
     .where(eq(users.id, id));
   await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
 }
