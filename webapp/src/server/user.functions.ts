@@ -32,6 +32,7 @@ import {
   toggleAllowThirdPartyDomains,
   updatePowSettings,
   getUserPowSettings,
+  getPowHistory,
 } from "./user.server";
 import { verifyDomainAdmin } from "./federation.server";
 import { REGISTRATION_DIFFICULTY, LOGIN_DIFFICULTY } from "./pow.server";
@@ -280,6 +281,28 @@ export const getProfile = createServerFn({ method: "GET" })
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
     };
+  });
+
+export const getPowHistoryForAddress = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      address: z.string(),
+      beforeId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const parsed = parseAddress(input.address);
+    if (!parsed) return [];
+    const domain = await getDomainByName(parsed.domain);
+    if (!domain) return [];
+    const row = await getUserByNameAndDomain(parsed.name, domain.id);
+    if (!row) return [];
+    const history = await getPowHistory(row.id, 20, input.beforeId);
+    return history.map((h) => ({
+      id: h.id,
+      difficulty: h.difficulty.toString(),
+      createdAt: h.createdAt,
+    }));
   });
 
 export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(

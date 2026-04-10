@@ -419,6 +419,27 @@ export async function getUserPowTotal(userId: string): Promise<bigint> {
   return row?.cumulativeDifficulty ?? 0n;
 }
 
+export async function getPowHistory(
+  userId: string,
+  limit = 20,
+  beforeId?: string,
+) {
+  const conditions = beforeId
+    ? and(eq(powLog.userId, userId), lt(powLog.id, beforeId))
+    : eq(powLog.userId, userId);
+
+  return db
+    .select({
+      id: powLog.id,
+      difficulty: powLog.difficulty,
+      createdAt: powLog.createdAt,
+    })
+    .from(powLog)
+    .where(conditions)
+    .orderBy(desc(powLog.id))
+    .limit(limit);
+}
+
 // --- PoW settings ---
 
 export async function updatePowSettings(
