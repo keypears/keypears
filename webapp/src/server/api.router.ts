@@ -10,7 +10,7 @@ import {
   getOrCreateChannel,
   insertMessage,
 } from "./message.server";
-import { createPowChallenge, LOGIN_DIFFICULTY } from "./pow.server";
+import { createPowChallenge, MESSAGE_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -39,7 +39,7 @@ const getPublicKey = os
   });
 
 const getPowChallengeEndpoint = os.handler(async () => {
-  return createPowChallenge(LOGIN_DIFFICULTY);
+  return createPowChallenge(MESSAGE_DIFFICULTY);
 });
 
 const notifyMessage = os
