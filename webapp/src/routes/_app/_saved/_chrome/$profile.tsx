@@ -3,7 +3,7 @@ import { useState } from "react";
 import { getProfile } from "~/server/user.functions";
 import { getUserPostsByAddress } from "~/server/post.functions";
 import { parseAddress } from "~/lib/config";
-import { CircleUser, Copy, Check } from "lucide-react";
+import { CircleUser, Copy, Check, MessageSquare } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 import { PostCard } from "~/components/PostCard";
 
@@ -75,6 +75,13 @@ function ProfilePage() {
             <Copy className="text-muted-foreground h-4 w-4" />
           )}
         </button>
+        <a
+          href={`/send?to=${encodeURIComponent(address)}`}
+          className="bg-accent text-accent-foreground hover:bg-accent/90 mt-4 inline-flex items-center gap-2 rounded px-4 py-1.5 text-sm no-underline transition-all"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Message
+        </a>
         {BigInt(powTotal) > 0n && (
           <div className="mt-3">
             <PowBadge

@@ -21,12 +21,16 @@ import { Send as SendIcon, Check, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/send")({
   head: () => ({ meta: [{ title: "Send — KeyPears" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    to: typeof search.to === "string" ? search.to : "",
+  }),
   component: SendPage,
 });
 
 function SendPage() {
+  const { to } = Route.useSearch();
   const navigate = useNavigate();
-  const [recipient, setRecipient] = useState("");
+  const [recipient, setRecipient] = useState(to);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -38,6 +42,12 @@ function SendPage() {
     "idle" | "checking" | "found" | "not-found" | "invalid"
   >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Validate pre-filled recipient on mount
+  useEffect(() => {
+    if (to) handleRecipientChange(to);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleRecipientChange(value: string) {
     setRecipient(value);
