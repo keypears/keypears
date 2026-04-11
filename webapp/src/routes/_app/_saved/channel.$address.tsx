@@ -284,7 +284,11 @@ function ChannelPage() {
     });
     // Mark as saved locally
     setMessageList((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, isSaved: true } : m)),
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, savedVaultEntryId: result.id }
+          : m,
+      ),
     );
     navigate({
       to: "/vault/$id",
@@ -537,11 +541,15 @@ function ChannelPage() {
                       {!isMine && (() => {
                         const sec = result.content.type === "secret" ? result.content.secret : null;
                         if (!sec) return null;
-                        if (msg.isSaved) {
+                        if (msg.savedVaultEntryId) {
                           return (
-                            <p className="text-muted-foreground mt-2 text-xs">
+                            <Link
+                              to="/vault/$id"
+                              params={{ id: msg.savedVaultEntryId }}
+                              className="text-accent hover:text-accent/80 mt-2 inline-block text-xs no-underline"
+                            >
                               Saved
-                            </p>
+                            </Link>
                           );
                         }
                         return (

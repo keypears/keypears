@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { channels, messages, vaultEntries } from "~/db/schema";
-import { eq, desc, and, gt, lt, count, sql } from "drizzle-orm";
+import { eq, desc, and, gt, lt, count } from "drizzle-orm";
 import { newId } from "./utils";
 
 export async function getOrCreateChannel(
@@ -144,7 +144,7 @@ export async function getChannelMessages(
       recipientPubKey: messages.recipientPubKey,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
-      isSaved: sql<boolean>`(${vaultEntries.id} IS NOT NULL)`,
+      savedVaultEntryId: vaultEntries.id,
     })
     .from(messages)
     .leftJoin(
@@ -176,7 +176,7 @@ export async function getNewMessages(
       recipientPubKey: messages.recipientPubKey,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
-      isSaved: sql<boolean>`(${vaultEntries.id} IS NOT NULL)`,
+      savedVaultEntryId: vaultEntries.id,
     })
     .from(messages)
     .leftJoin(
