@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { vaultEntries } from "~/db/schema";
-import { eq, and, desc, lt, or, like } from "drizzle-orm";
+import { eq, and, desc, lt, or, like, max, sql } from "drizzle-orm";
 import { newId } from "./utils";
 
 export async function createVaultEntry(
@@ -12,11 +12,14 @@ export async function createVaultEntry(
   encryptedData: string,
   sourceMessageId?: string,
   sourceAddress?: string,
-): Promise<string> {
+): Promise<{ id: string; secretId: string }> {
   const id = newId();
+  const secretId = newId();
   await db.insert(vaultEntries).values({
     id,
     userId,
+    secretId,
+    version: 1,
     name,
     type,
     searchTerms,
@@ -24,6 +27,40 @@ export async function createVaultEntry(
     encryptedData,
     sourceMessageId: sourceMessageId ?? null,
     sourceAddress: sourceAddress ?? null,
+  });
+  return { id, secretId };
+}
+
+export async function createNewVersion(
+  userId: string,
+  secretId: string,
+  name: string,
+  type: string,
+  searchTerms: string,
+  publicKey: string,
+  encryptedData: string,
+): Promise<string> {
+  const [maxRow] = await db
+    .select({ maxVersion: max(vaultEntries.version) })
+    .from(vaultEntries)
+    .where(
+      and(
+        eq(vaultEntries.userId, userId),
+        eq(vaultEntries.secretId, secretId),
+      ),
+    );
+  const nextVersion = (maxRow?.maxVersion ?? 0) + 1;
+  const id = newId();
+  await db.insert(vaultEntries).values({
+    id,
+    userId,
+    secretId,
+    version: nextVersion,
+    name,
+    type,
+    searchTerms,
+    publicKey,
+    encryptedData,
   });
   return id;
 }
@@ -34,6 +71,17 @@ export async function getVaultEntries(
   beforeId?: string,
   limit = 20,
 ) {
+  // Subquery: latest version per secret
+  const latest = db
+    .select({
+      secretId: vaultEntries.secretId,
+      maxVersion: max(vaultEntries.version).as("max_version"),
+    })
+    .from(vaultEntries)
+    .where(eq(vaultEntries.userId, userId))
+    .groupBy(vaultEntries.secretId)
+    .as("latest");
+
   const conditions = [eq(vaultEntries.userId, userId)];
 
   if (query) {
@@ -53,17 +101,25 @@ export async function getVaultEntries(
   return db
     .select({
       id: vaultEntries.id,
+      secretId: vaultEntries.secretId,
+      version: vaultEntries.version,
       name: vaultEntries.name,
       type: vaultEntries.type,
       searchTerms: vaultEntries.searchTerms,
       publicKey: vaultEntries.publicKey,
       encryptedData: vaultEntries.encryptedData,
       createdAt: vaultEntries.createdAt,
-      updatedAt: vaultEntries.updatedAt,
     })
     .from(vaultEntries)
+    .innerJoin(
+      latest,
+      and(
+        eq(vaultEntries.secretId, latest.secretId),
+        eq(vaultEntries.version, sql`${latest.maxVersion}`),
+      ),
+    )
     .where(and(...conditions))
-    .orderBy(desc(vaultEntries.updatedAt), desc(vaultEntries.id))
+    .orderBy(desc(vaultEntries.createdAt), desc(vaultEntries.id))
     .limit(limit);
 }
 
@@ -76,23 +132,41 @@ export async function getVaultEntry(userId: string, entryId: string) {
   return row ?? null;
 }
 
-export async function updateVaultEntry(
-  userId: string,
-  entryId: string,
-  name: string,
-  type: string,
-  searchTerms: string,
-  publicKey: string,
-  encryptedData: string,
-) {
-  await db
-    .update(vaultEntries)
-    .set({ name, type, searchTerms, publicKey, encryptedData, updatedAt: new Date() })
-    .where(and(eq(vaultEntries.id, entryId), eq(vaultEntries.userId, userId)));
-}
-
 export async function deleteVaultEntry(userId: string, entryId: string) {
   await db
     .delete(vaultEntries)
     .where(and(eq(vaultEntries.id, entryId), eq(vaultEntries.userId, userId)));
+}
+
+export async function deleteSecret(userId: string, secretId: string) {
+  await db
+    .delete(vaultEntries)
+    .where(
+      and(
+        eq(vaultEntries.userId, userId),
+        eq(vaultEntries.secretId, secretId),
+      ),
+    );
+}
+
+export async function getSecretHistory(userId: string, secretId: string) {
+  return db
+    .select({
+      id: vaultEntries.id,
+      version: vaultEntries.version,
+      name: vaultEntries.name,
+      type: vaultEntries.type,
+      searchTerms: vaultEntries.searchTerms,
+      publicKey: vaultEntries.publicKey,
+      encryptedData: vaultEntries.encryptedData,
+      createdAt: vaultEntries.createdAt,
+    })
+    .from(vaultEntries)
+    .where(
+      and(
+        eq(vaultEntries.userId, userId),
+        eq(vaultEntries.secretId, secretId),
+      ),
+    )
+    .orderBy(desc(vaultEntries.version));
 }

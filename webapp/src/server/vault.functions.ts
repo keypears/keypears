@@ -3,10 +3,12 @@ import { z } from "zod";
 import { authMiddleware } from "./auth-middleware";
 import {
   createVaultEntry,
+  createNewVersion,
   getVaultEntries,
   getVaultEntry,
-  updateVaultEntry,
   deleteVaultEntry,
+  deleteSecret,
+  getSecretHistory,
 } from "./vault.server";
 
 const MAX_ENCRYPTED_DATA_LENGTH = 20_000; // hex chars (~10KB)
@@ -25,7 +27,7 @@ export const createEntry = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context: { userId } }) => {
-    const id = await createVaultEntry(
+    const { id, secretId } = await createVaultEntry(
       userId,
       data.name,
       data.type,
@@ -35,7 +37,7 @@ export const createEntry = createServerFn({ method: "POST" })
       data.sourceMessageId,
       data.sourceAddress,
     );
-    return { id };
+    return { id, secretId };
   });
 
 export const getMyEntries = createServerFn({ method: "GET" })
@@ -63,7 +65,7 @@ export const updateEntry = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .inputValidator(
     z.object({
-      id: z.string(),
+      secretId: z.string(),
       name: z.string().min(1).max(255),
       type: z.string().min(1).max(32),
       searchTerms: z.string().max(255).default(""),
@@ -72,16 +74,16 @@ export const updateEntry = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context: { userId } }) => {
-    await updateVaultEntry(
+    const id = await createNewVersion(
       userId,
-      data.id,
+      data.secretId,
       data.name,
       data.type,
       data.searchTerms,
       data.publicKey,
       data.encryptedData,
     );
-    return { success: true };
+    return { id };
   });
 
 export const deleteEntry = createServerFn({ method: "POST" })
@@ -90,4 +92,19 @@ export const deleteEntry = createServerFn({ method: "POST" })
   .handler(async ({ data: entryId, context: { userId } }) => {
     await deleteVaultEntry(userId, entryId);
     return { success: true };
+  });
+
+export const deleteSecretFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .inputValidator(z.string())
+  .handler(async ({ data: secretId, context: { userId } }) => {
+    await deleteSecret(userId, secretId);
+    return { success: true };
+  });
+
+export const getHistory = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .inputValidator(z.string())
+  .handler(async ({ data: secretId, context: { userId } }) => {
+    return getSecretHistory(userId, secretId);
   });

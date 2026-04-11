@@ -203,7 +203,7 @@ function VaultPage() {
                     </span>
                   )}
                   <span className="text-muted-foreground text-xs">
-                    {new Date(entry.updatedAt).toLocaleDateString()}
+                    {new Date(entry.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </Link>

@@ -4,7 +4,7 @@ import {
   getMyEntries,
   getEntry,
   updateEntry,
-  deleteEntry,
+  deleteSecretFn,
 } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
 import {
@@ -341,7 +341,8 @@ function EntryDetail({
     sourceMessageId: string | null;
     sourceAddress: string | null;
     createdAt: Date;
-    updatedAt: Date;
+    secretId: string;
+    version: number;
   };
   keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
   activePublicKey: string | null;
@@ -429,9 +430,9 @@ function EntryDetail({
       }
 
       const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
-      await updateEntry({
+      const result = await updateEntry({
         data: {
-          id: entry.id,
+          secretId: entry.secretId,
           name: editName,
           type: entry.type,
           searchTerms: editSearchTerms,
@@ -440,7 +441,7 @@ function EntryDetail({
         },
       });
       setEditing(false);
-      onSaved(entry.id);
+      onSaved(result.id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {
@@ -450,7 +451,7 @@ function EntryDetail({
 
   async function handleDelete() {
     try {
-      await deleteEntry({ data: entry.id });
+      await deleteSecretFn({ data: entry.secretId });
       onDeleted();
     } catch {
       setError("Failed to delete.");
@@ -828,7 +829,7 @@ function EntryDetail({
                 <span className="text-yellow-500">older key</span>
               )}
             <span>
-              Updated {new Date(entry.updatedAt).toLocaleDateString()}
+              v{entry.version} — {new Date(entry.createdAt).toLocaleDateString()}
             </span>
           </div>
           {entry.sourceAddress && (

@@ -101,6 +101,8 @@ export const vaultEntries = mysqlTable(
   {
     id: binaryId("id").primaryKey(),
     userId: binaryId("user_id").notNull(),
+    secretId: binaryId("secret_id").notNull(),
+    version: int("version").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     type: varchar("type", { length: 32 }).notNull(),
     searchTerms: varchar("search_terms", { length: 255 })
@@ -111,9 +113,11 @@ export const vaultEntries = mysqlTable(
     sourceMessageId: binaryId("source_message_id"),
     sourceAddress: varchar("source_address", { length: 255 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("vault_user_id_idx").on(table.userId)],
+  (table) => [
+    index("vault_user_id_idx").on(table.userId),
+    uniqueIndex("vault_secret_version_idx").on(table.secretId, table.version),
+  ],
 );
 
 export const messages = mysqlTable(
