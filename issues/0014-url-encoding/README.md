@@ -84,3 +84,37 @@ export const Route = createFileRoute("/_app/_saved/channel/$address")({
 Document the rule: all routes with dynamic params MUST use the shared param
 config from `route-params.ts` to prevent over-encoding. New routes with new
 param names add a new helper to the file.
+
+## Experiments
+
+### Experiment 1: Shared param config
+
+#### Description
+
+Create `route-params.ts` with reusable param configs. Apply to all three
+parameterized routes. Update CLAUDE.md.
+
+#### Changes
+
+1. **Create `webapp/src/lib/route-params.ts`** — export `addressParam`,
+   `profileParam`, `idParam`. Each has `stringify` and `parse` that pass
+   through the param value without encoding.
+
+2. **`channel.$address.tsx`** — add `params: addressParam` to route config.
+
+3. **`$profile.tsx`** — add `params: profileParam` to route config.
+
+4. **`vault.$id.tsx`** — add `params: idParam` to route config.
+
+5. **CLAUDE.md** — add rule: all routes with dynamic params must use shared
+   param config from `route-params.ts`.
+
+#### Verification
+
+1. Navigate to `/channel/bob@passapples.test` — URL shows `@` not `%40`
+2. Navigate to `/bob@keypears.test` — profile URL shows `@` not `%40`
+3. Navigate to `/vault/<uuid>` — still works
+4. Click `<Link>` to channel from inbox — URL correct
+5. Click `<Link>` to profile from home — URL correct
+6. `bun run lint` — clean
+7. `bun run build` — passes
