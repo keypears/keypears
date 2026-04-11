@@ -314,3 +314,24 @@ save flow since `onSaved` navigates and re-runs the loader for the main entry.
   navigates and re-runs the loader. Removed `onUpdated` prop from
   `EntryDetail` entirely.
 - Lint clean, build passes.
+
+### Experiment 4: Auth middleware for server functions (#5)
+
+#### Description
+
+Finding #5 proposes using `createMiddleware` to replace repeated
+`requireSessionUserId()` calls. However, `createMiddleware` does not exist in
+the installed version of TanStack Start (1.167.16). The feature is documented
+but not yet shipped.
+
+#### Decision: Skip
+
+The current pattern — calling `requireSessionUserId()` at the top of each
+handler — is explicit, simple, and works. It's two lines per handler. Switching
+to middleware would save those two lines but add a new abstraction layer and
+require a version upgrade to an API that may still be unstable.
+
+When `createMiddleware` ships in a stable release, revisit this. Until then,
+the current pattern is fine.
+
+#### Result: Skipped — API not available in installed version
