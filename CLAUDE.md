@@ -170,6 +170,10 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
   interpolation like `` to={`/channel/${address}`} ``.
 - Search params: use `search={{ key: value }}` on `<Link>`, never manual
   query strings.
+- All routes with dynamic params MUST use the shared param config from
+  `~/lib/route-params.ts` (e.g. `params: addressParam`). This prevents
+  TanStack Router from over-encoding valid URL characters like `@` → `%40`.
+  New param names get a new export in `route-params.ts`.
 
 **Route data:**
 - Use `validateSearch` with Zod and `.catch()` for search params — never

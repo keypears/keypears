@@ -5,7 +5,10 @@ import { parseAddress } from "~/lib/config";
 import { CircleUser, Copy, Check, MessageSquare } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
+import { profileParam } from "~/lib/route-params";
+
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
+  params: profileParam,
   head: ({ loaderData }) => ({
     meta: [{ title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" }],
   }),
