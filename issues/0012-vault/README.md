@@ -76,6 +76,62 @@ renders — the encrypted blob is always freeform JSON.
 Adding a new type is purely a UI concern: define which fields to show in the
 create/edit form, add an icon, done. The storage layer doesn't change.
 
+## Encryption model
+
+### Vault key = user's secp256k1 private key
+
+Each user already has secp256k1 key pairs in `user_keys`, with a `keyNumber`
+(integer starting at 1, incrementing on each rotation). The vault reuses this
+system: the user's private key is the vault key.
+
+To avoid using the same key material for both ECDH messaging and symmetric vault
+encryption, derive a domain-separated symmetric key:
+
+```
+vaultKey = blake3Mac(privateKey, "vault-key")  →  32-byte ACS2 key
+```
+
+Each vault entry stores the `publicKey` it was encrypted with. The UI looks up
+the corresponding `keyNumber` to display "Key #3" etc.
+
+### No re-encryption on key rotation
+
+Key rotation works the same way as messages — instant, zero friction:
+
+- New vault entries are encrypted with the **active key** (latest key).
+- Old entries stay encrypted with whatever key was used. They're still readable
+  because old keys persist in `user_keys`.
+- Each entry shows its key number (e.g. "Key #2"). If the active key is #4, the
+  user can see that entry #2 is on an older key.
+- To upgrade a single entry: decrypt with old key, re-encrypt with active key,
+  save. User-initiated, one at a time. No batch migration.
+- Entries encrypted with a **locked key** (different password) show as locked —
+  same UX as messages.
+
+This means:
+
+- Key rotation is instant and cheap. No vault friction.
+- Password change re-encrypts `user_keys` (which hold the private keys). Vault
+  entries themselves don't need re-encryption — they're encrypted with the
+  derived vault key, not the password-derived encryption key.
+- The vault page uses the same key-loading pattern as the channel page: load all
+  user keys, decrypt them, build a key map keyed by `publicKey`.
+
+### Password change flow
+
+When a user changes their password:
+
+1. `user_keys` are re-encrypted (existing flow — old encryption key → new).
+2. Vault entries are **untouched**. They're encrypted with derived vault keys,
+   not the encryption key. As long as the user's private keys are accessible
+   (re-encrypted in step 1), vault entries remain readable.
+
+### Key compromise
+
+If a key is compromised, the user rotates to a new key. Old vault entries remain
+encrypted with the compromised key until the user manually re-encrypts them with
+the new key. A "re-encrypt with current key" button on each entry handles this.
+
 ## Storage design
 
 ### Plaintext vs encrypted split
@@ -87,8 +143,8 @@ Server stores:
 │ userId                                                   │
 │ name            ← plaintext (searchable)                 │
 │ type            ← plaintext ("login" | "text" | ...)     │
-│ encryptedData   ← ACS2 ciphertext (opaque to server)     │
-│ loginKeyHash    ← identifies which password encrypted it │
+│ publicKey       ← which key encrypted this entry         │
+│ encryptedData   ← ACS2 ciphertext (opaque to server)    │
 │ createdAt                                                │
 │ updatedAt                                                │
 └──────────────────────────────────────────────────────────┘
@@ -114,12 +170,12 @@ subject lines are visible to the mail server.
 
 ```sql
 vault_entries (
-  id              binary(16) PK     -- UUIDv7
+  id              binary(16) PK       -- UUIDv7
   user_id         binary(16) NOT NULL
   name            varchar(255) NOT NULL
   type            varchar(32) NOT NULL
+  public_key      varchar(66) NOT NULL  -- which key encrypted this
   encrypted_data  text NOT NULL
-  login_key_hash  varchar(255)
   created_at      timestamp NOT NULL DEFAULT NOW()
   updated_at      timestamp NOT NULL DEFAULT NOW()
 
@@ -127,28 +183,20 @@ vault_entries (
 )
 ```
 
-### Encryption model
+No `loginKeyHash` needed — the entry tracks `publicKey`, and the corresponding
+private key in `user_keys` tracks its own `loginKeyHash`. One level of
+indirection handles both key rotation and password changes.
 
-Vault entries are encrypted with the user's **encryption key** — the same key
-used to encrypt secp256k1 private keys. This key is derived from the password
-via three-tier BLAKE3 PBKDF and cached in localStorage.
+### CRUD operations
 
-- **Create**: client encrypts fields → sends name + type + ciphertext to server
-- **Read**: server returns name + type + ciphertext → client decrypts
-- **Update**: client encrypts new fields → sends to server
-- **Delete**: server deletes the row (hard delete, not tombstone)
-- **Search**: server filters by name (LIKE), client gets results with ciphertext
-
-### Key rotation
-
-When a user changes their password, vault entries are re-encrypted with the new
-encryption key, same pattern as `user_keys`. Each entry tracks `loginKeyHash` to
-identify which password encrypted it. Entries encrypted with a different
-password show as "locked" — same UX as the Keys page.
-
-The password change flow in `password.tsx` already re-encrypts `user_keys`.
-Vault entries follow the exact same pattern: fetch all entries, decrypt those
-matching current password, re-encrypt with new key, send back.
+- **Create**: derive vault key from active private key → encrypt fields → send
+  name + type + publicKey + ciphertext to server
+- **Read**: server returns metadata + ciphertext → find matching private key →
+  derive vault key → decrypt
+- **Update**: decrypt with old key → re-encrypt with same key (or active key if
+  upgrading) → send to server
+- **Delete**: server deletes the row (hard delete)
+- **Search**: server filters by name (LIKE), returns results with ciphertext
 
 ## Message integration
 
@@ -184,10 +232,39 @@ to vault" button. Clicking it:
 
 1. Decrypts the message (ECDH shared secret — already done for display)
 2. Extracts the secret payload (name, secretType, fields)
-3. Encrypts the fields with the user's own encryption key
-4. Saves to their vault via the create endpoint
+3. Derives vault key from active private key
+4. Encrypts the fields with the vault key
+5. Saves to their vault via the create endpoint
 
 The secret is now in their vault, independent of the message.
+
+## Vault page UX
+
+### Entry list
+
+- Search bar at top (filters by name, server-side LIKE)
+- Each entry shows: name, type icon, key number badge
+- Key number badge is subtle (e.g. "Key #2") — if it's not the active key, show
+  a small indicator that encryption can be upgraded
+- Entries with locked keys (password mismatch) show a lock icon with "unlock on
+  Keys page" link, same as messages
+
+### Entry detail
+
+- View mode: name, all fields. Secret fields (password, etc.) masked by default
+  with show/hide toggle.
+- Copy button on each field value.
+- Edit button → edit mode with same fields.
+- "Re-encrypt with Key #N" button if entry uses an older key.
+- Delete button with confirmation.
+
+### Create entry
+
+- Type selector: Login or Text
+- Name field (required)
+- Type-specific fields (Login: domain, username, email, password, notes. Text:
+  text area)
+- Encrypted and saved on submit
 
 ## Scope
 
@@ -198,8 +275,9 @@ The secret is now in their vault, independent of the message.
 - Vault page: list entries with search, create new, view/edit, delete
 - Support `login` and `text` types with appropriate field UIs
 - Copy to clipboard, show/hide secret fields
-- Entries encrypted client-side with encryption key
-- Re-encrypt vault entries on password change
+- Encryption with derived vault key from active secp256k1 private key
+- Key number display on each entry
+- Locked entries for keys under different password
 
 ### Must have (Experiment 2)
 
@@ -210,6 +288,7 @@ The secret is now in their vault, independent of the message.
 
 ### Future (not this issue)
 
+- Re-encrypt entry with newer key (upgrade encryption)
 - Additional types (card, crypto, ssh, env)
 - Browser extension for autofill
 - Import/export (1Password CSV, etc.)
