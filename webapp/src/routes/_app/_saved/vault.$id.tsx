@@ -20,6 +20,13 @@ import {
   tryDecryptVaultEntry,
   encryptVaultEntry,
 } from "~/lib/vault";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { encryptSecretMessage } from "~/lib/message";
 import {
   sendMessage,
@@ -48,6 +55,7 @@ import {
   Home,
   Send as SendIcon,
   ChevronLeft,
+  EllipsisVertical,
 } from "lucide-react";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
@@ -837,22 +845,9 @@ function EntryDetail({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSharing(!sharing)}
-            className="text-muted-foreground hover:text-foreground"
-            title="Share"
-          >
-            <SendIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={startEditing}
-            className="text-muted-foreground hover:text-foreground"
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
           {deleting ? (
             <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs">Delete?</span>
               <button
                 onClick={handleDelete}
                 className="text-destructive text-xs font-medium"
@@ -867,13 +862,37 @@ function EntryDetail({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setDeleting(true)}
-              className="text-muted-foreground hover:text-destructive"
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground cursor-pointer">
+                  <EllipsisVertical className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setSharing(!sharing)}
+                  className="cursor-pointer"
+                >
+                  <SendIcon className="mr-2 h-4 w-4" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={startEditing}
+                  className="cursor-pointer"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleting(true)}
+                  className="text-destructive cursor-pointer"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
