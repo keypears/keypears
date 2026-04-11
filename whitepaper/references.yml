@@ -34,12 +34,3 @@ moxie2016:
   author: Marlinspike, Moxie
   date: 2016-05-10
   url: https://signal.org/blog/the-ecosystem-is-moving/
-
-doubleratchet:
-  type: article
-  title: "The Double Ratchet Algorithm"
-  author:
-    - Perrin, Trevor
-    - Marlinspike, Moxie
-  date: 2016-11-20
-  url: https://signal.org/docs/specifications/doubleratchet/

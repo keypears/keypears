@@ -538,10 +538,15 @@ the compromised device.
 KeyPears does not protect against compromised endpoints (an attacker with access
 to the running client can read decrypted content), weak passwords (an entropy
 meter guides users but does not enforce a minimum), or DNS-level attacks such as
-BGP hijacking (mitigated by DNSSEC where deployed). The current protocol does
-not provide forward secrecy---messages encrypted with a compromised key can be
-decrypted retroactively. Forward secrecy via ratcheted key exchange is planned
-as future work.
+BGP hijacking (mitigated by DNSSEC where deployed). The protocol does not
+provide forward secrecy in the Signal sense. All communication is already
+transported over HTTPS/TLS, so an attacker cannot passively record ciphertext
+in transit. Forward secrecy protects against an attacker who records encrypted
+traffic and later compromises a key---but since KeyPears layers E2E encryption
+inside TLS, this scenario requires compromising both TLS and the user's key.
+Furthermore, KeyPears messages persist on the server for later retrieval,
+so the client must retain decryption keys, limiting the practical benefit of
+ephemeral key material.
 
 = Related Work
 
@@ -551,12 +556,12 @@ as future work.
     inset: 6pt,
     align: left,
     table.header([], [*PGP*], [*Signal*], [*Matrix*], [*KeyPears*]),
-    [Identity], [Email address], [Phone number], [User\@server], [`name@domain`],
+    [Identity], [Email address], [Phone number], [`\@user:server`], [`name@domain`],
     [Federation], [Key servers], [None], [Homeservers], [DNS + pull model],
     [E2E encryption], [Manual], [Automatic], [Automatic], [Automatic],
     [Spam mitigation], [None], [Phone reg.], [Rate limits], [Proof of work],
     [Key management], [Manual], [Automatic], [Automatic], [Automatic],
-    [Forward secrecy], [No], [Yes], [Yes], [No (planned)],
+    [Forward secrecy], [No], [Yes], [Yes], [No],
     [Open source], [Yes], [Yes], [Yes], [Yes],
   ),
   caption: [Comparison of encrypted communication systems.],
@@ -578,13 +583,17 @@ iteration in exchange for sovereignty: users who own their domain own their
 identity, and anyone can run a server.
 
 *Matrix* (2014) is the closest comparison. It is federated, end-to-end
-encrypted (via Olm and Megolm), and open-source. However, Matrix's
-architecture is substantially more complex: room state is maintained as a
-directed acyclic graph synchronized across homeservers, and the specification
-spans eight major components. KeyPears makes a deliberate tradeoff toward
-simplicity: no rooms, no DAG, no state synchronization. The federation layer is
-a single JSON file and one pull-token API. This limits KeyPears to pairwise
-communication but dramatically reduces implementation and operational
+encrypted (via Olm and Megolm), and open-source. However, Matrix uses a
+proprietary address format (`@user:domain`) that is incompatible with email,
+requiring users to learn and distribute a new identifier. KeyPears uses standard
+`name@domain` addresses---the same format as email. An organization with
+existing email addresses can adopt KeyPears without issuing new identifiers.
+Matrix's architecture is also substantially more complex: room state is
+maintained as a directed acyclic graph synchronized across homeservers, and the
+specification spans eight major components. KeyPears makes a deliberate tradeoff
+toward simplicity: no rooms, no DAG, no state synchronization. The federation
+layer is a single JSON file and one pull-token API. This limits KeyPears to
+pairwise communication but dramatically reduces implementation and operational
 complexity.
 
 *Keybase* (2014) combined social-proof identity verification with encrypted
@@ -597,13 +606,11 @@ company, and the protocol can be implemented by anyone.
 = Future Work
 
 Several extensions are planned. *Group messaging* with multi-party key
-agreement would extend the protocol beyond pairwise communication. *Forward
-secrecy* via ratcheted key exchange (in the style of Signal's Double
-Ratchet~#cite(<doubleratchet>)) would protect past messages if a key is
-compromised. *Public-key transparency logs* would provide auditability for key
-rotations, allowing users to detect unauthorized key changes. A *native mobile
-client* with hardware-backed key storage would improve security for the
-encryption key, which is currently cached in client storage.
+agreement would extend the protocol beyond pairwise communication. *Public-key
+transparency logs* would provide auditability for key rotations, allowing users
+to detect unauthorized key changes. A *native mobile client* with
+hardware-backed key storage would improve security for the encryption key,
+which is currently cached in client storage.
 
 = Conclusion
 
