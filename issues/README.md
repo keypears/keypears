@@ -4,6 +4,8 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0015](0015-vault-versioning/README.md)           | Vault Secret Versioning        | 2026-04-11 |
+
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
