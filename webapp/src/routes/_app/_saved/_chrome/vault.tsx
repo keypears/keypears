@@ -1,15 +1,402 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
+import { getMyEntries, createEntry } from "~/server/vault.functions";
+import { getMyKeys } from "~/server/user.functions";
+import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
+import { encryptVaultEntry } from "~/lib/vault";
+import type { VaultEntryData } from "~/lib/vault";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import {
+  KeyRound,
+  FileText,
+  Lock,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/vault")({
   head: () => ({ meta: [{ title: "Vault — KeyPears" }] }),
+  loader: async () => {
+    const [entries, keyData] = await Promise.all([
+      getMyEntries(),
+      getMyKeys(),
+    ]);
+    return { entries, keyData };
+  },
   component: VaultPage,
 });
 
 function VaultPage() {
+  const { entries: initialEntries, keyData } = Route.useLoaderData();
+  const [entries, setEntries] = useState(initialEntries);
+  const [query, setQuery] = useState("");
+  const [hasMore, setHasMore] = useState(initialEntries.length >= 20);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // Build key map
+  const encryptionKey = getCachedEncryptionKey();
+  const [keyMap, setKeyMap] = useState<
+    Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
+  >(new Map());
+  const [activePublicKey, setActivePublicKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!encryptionKey) return;
+    const map = new Map<
+      string,
+      { privateKey: FixedBuf<32>; keyNumber: number }
+    >();
+    for (const k of keyData.keys) {
+      if (k.loginKeyHash === keyData.passwordHash) {
+        try {
+          const priv = decryptPrivateKey(k.encryptedPrivateKey, encryptionKey);
+          map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
+        } catch {
+          // locked key
+        }
+      }
+    }
+    setKeyMap(map);
+    if (keyData.keys.length > 0) {
+      setActivePublicKey(keyData.keys[0].publicKey);
+    }
+  }, [encryptionKey, keyData]);
+
+  // Search with debounce
+  function handleSearch(value: string) {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const results = await getMyEntries({
+        data: { query: value || undefined },
+      });
+      setEntries(results);
+      setHasMore(results.length >= 20);
+    }, 300);
+  }
+
+  async function loadMore() {
+    if (loadingMore || !hasMore || entries.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const older = await getMyEntries({
+        data: {
+          query: query || undefined,
+          beforeId: entries[entries.length - 1].id,
+        },
+      });
+      if (older.length < 20) setHasMore(false);
+      setEntries((prev) => [...prev, ...older]);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function getKeyNumber(publicKey: string): number | null {
+    const k = keyMap.get(publicKey);
+    if (k) return k.keyNumber;
+    const match = keyData.keys.find((key) => key.publicKey === publicKey);
+    return match?.keyNumber ?? null;
+  }
+
+  function isLocked(publicKey: string): boolean {
+    return !keyMap.has(publicKey);
+  }
+
   return (
-    <div className="p-8 font-sans">
-      <h1 className="text-foreground text-2xl font-bold">Vault</h1>
-      <p className="text-muted-foreground mt-2">Coming soon.</p>
+    <div className="mx-auto max-w-2xl p-8 font-sans">
+      <div className="flex items-center justify-between">
+        <h1 className="text-foreground text-2xl font-bold">Vault</h1>
+        <button
+          onClick={() => setCreating(true)}
+          className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          New Entry
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mt-4">
+        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+        <input
+          type="text"
+          placeholder="Search vault..."
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="bg-background-dark border-border text-foreground w-full rounded border py-2 pr-4 pl-10 text-sm"
+        />
+      </div>
+
+      {/* Create form */}
+      {creating && (
+        <CreateEntryForm
+          activePublicKey={activePublicKey}
+          keyMap={keyMap}
+          onCreated={async () => {
+            setCreating(false);
+            const results = await getMyEntries({
+              data: { query: query || undefined },
+            });
+            setEntries(results);
+            setHasMore(results.length >= 20);
+          }}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
+      {/* Entry list */}
+      {entries.length === 0 ? (
+        <div className="mt-8 text-center">
+          <Lock className="text-muted-foreground mx-auto h-12 w-12" />
+          <p className="text-muted-foreground mt-4">
+            {query ? "No matching entries." : "Your vault is empty."}
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2">
+          {entries.map((entry) => {
+            const keyNum = getKeyNumber(entry.publicKey);
+            const locked = isLocked(entry.publicKey);
+            const Icon = entry.type === "login" ? KeyRound : FileText;
+            return (
+              <a
+                key={entry.id}
+                href={`/vault/${entry.id}`}
+                className="border-border/30 hover:bg-accent/5 flex items-center gap-3 rounded border px-4 py-3 no-underline transition-colors"
+              >
+                {locked ? (
+                  <Lock className="text-muted-foreground h-5 w-5 shrink-0" />
+                ) : (
+                  <Icon className="text-muted-foreground h-5 w-5 shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <span className="text-foreground block truncate text-sm font-medium">
+                    {entry.name}
+                  </span>
+                  {entry.searchTerms && (
+                    <span className="text-muted-foreground block truncate text-xs">
+                      {entry.searchTerms}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {keyNum !== null && (
+                    <span className="text-muted-foreground text-xs">
+                      Key #{keyNum}
+                    </span>
+                  )}
+                  <span className="text-muted-foreground text-xs">
+                    {new Date(entry.updatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </a>
+            );
+          })}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="text-accent hover:text-accent/80 w-full py-4 text-center text-sm disabled:opacity-50"
+            >
+              {loadingMore ? "Loading..." : "Show more"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function CreateEntryForm({
+  activePublicKey,
+  keyMap,
+  onCreated,
+  onCancel,
+}: {
+  activePublicKey: string | null;
+  keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
+  onCreated: () => void;
+  onCancel: () => void;
+}) {
+  const [type, setType] = useState<"login" | "text">("login");
+  const [name, setName] = useState("");
+  const [searchTerms, setSearchTerms] = useState("");
+  const [domain, setDomain] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [notes, setNotes] = useState("");
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activePublicKey) return;
+    const keyInfo = keyMap.get(activePublicKey);
+    if (!keyInfo) return;
+
+    setError("");
+    setSaving(true);
+    try {
+      let data: VaultEntryData;
+      if (type === "login") {
+        data = {
+          type: "login",
+          ...(domain && { domain }),
+          ...(username && { username }),
+          ...(email && { email }),
+          ...(password && { password }),
+          ...(notes && { notes }),
+        };
+      } else {
+        data = { type: "text", text };
+      }
+
+      const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
+      await createEntry({
+        data: {
+          name,
+          type,
+          searchTerms,
+          publicKey: activePublicKey,
+          encryptedData,
+        },
+      });
+      onCreated();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create entry.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="border-border/30 mt-4 rounded border p-4"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-foreground text-lg font-bold">New Entry</h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Type selector */}
+      <div className="mb-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setType("login")}
+          className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors ${
+            type === "login"
+              ? "bg-accent/15 text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <KeyRound className="h-4 w-4" />
+          Login
+        </button>
+        <button
+          type="button"
+          onClick={() => setType("text")}
+          className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors ${
+            type === "text"
+              ? "bg-accent/15 text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          Text
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <input
+          type="text"
+          placeholder="Name (required)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Search terms (optional)"
+          value={searchTerms}
+          onChange={(e) => setSearchTerms(e.target.value)}
+          className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+        />
+
+        {type === "login" ? (
+          <>
+            <input
+              type="text"
+              placeholder="Domain (e.g. google.com)"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            />
+            <textarea
+              placeholder="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+              rows={3}
+            />
+          </>
+        ) : (
+          <textarea
+            placeholder="Secret text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            rows={5}
+            required
+          />
+        )}
+
+        {error && <p className="text-danger text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={saving || !activePublicKey}
+          className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 text-sm transition-all disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </form>
   );
 }

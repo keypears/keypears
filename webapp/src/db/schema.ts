@@ -96,6 +96,24 @@ export const channels = mysqlTable(
   ],
 );
 
+export const vaultEntries = mysqlTable(
+  "vault_entries",
+  {
+    id: binaryId("id").primaryKey(),
+    userId: binaryId("user_id").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: varchar("type", { length: 32 }).notNull(),
+    searchTerms: varchar("search_terms", { length: 255 })
+      .notNull()
+      .default(""),
+    publicKey: varchar("public_key", { length: 66 }).notNull(),
+    encryptedData: text("encrypted_data").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("vault_user_id_idx").on(table.userId)],
+);
+
 export const messages = mysqlTable(
   "messages",
   {

@@ -32,13 +32,14 @@ keypears/
               home.tsx      # home page (greeting)
               inbox.tsx     # inbox (placeholder)
               send.tsx      # send message (with PoW)
-              vault.tsx     # vault (placeholder)
+              vault.tsx     # vault entry list (search, create, pagination)
               keys.tsx      # key management (rotate, per-key passwords)
               password.tsx  # change password
               domains.tsx   # domain claiming + admin user management
               settings.tsx  # PoW difficulty settings
               $profile.tsx  # profile page
             channel.$address.tsx  # conversation view
+            vault.$id.tsx         # vault entry detail (split layout)
       components/
         Sidebar.tsx     # responsive sidebar + user dropdown
         Footer.tsx      # astrohacker footer
@@ -51,6 +52,8 @@ keypears/
         user.server.ts     # DB logic (server-only)
         message.functions.ts # messaging server functions
         message.server.ts  # messaging DB logic
+        vault.functions.ts # vault CRUD server functions
+        vault.server.ts    # vault DB logic
         federation.server.ts # cross-domain delivery (pull model)
         pow.functions.ts   # PoW challenge server functions
         pow.server.ts      # PoW challenge creation + verification
@@ -66,6 +69,7 @@ keypears/
         auth.ts         # three-tier BLAKE3 KDF + encryption key caching
         config.ts       # domain config + derived secrets
         message.ts      # ECDH encryption/decryption
+        vault.ts        # vault key derivation + entry encrypt/decrypt
         channel-context.tsx # React context for channel polling
         use-pow-miner.ts   # shared PoW mining hook
         icons.ts        # auto-generated type-safe image paths
@@ -221,6 +225,7 @@ Password (never stored)
 - **users**: id, domainId, name, passwordHash, channelDifficulty, messageDifficulty, expiresAt, createdAt
 - **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, loginKeyHash, createdAt
 - **sessions**: tokenHash (PK), userId, expiresAt, createdAt
+- **vault_entries**: id, userId, name, type, searchTerms, publicKey, encryptedData, createdAt, updatedAt
 - **channels**: id, ownerId, counterpartyAddress, createdAt, updatedAt
 - **messages**: id, channelId, senderAddress, encryptedContent, senderPubKey, recipientPubKey, isRead, createdAt
 - **pending_deliveries**: id, tokenHash, senderAddress, recipientAddress, encryptedContent, senderPubKey, recipientPubKey, createdAt
