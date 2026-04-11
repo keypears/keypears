@@ -10,8 +10,6 @@
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
-| [0013](0013-boost/README.md)                   | Boost Posts with Proof of Work              | 2026-04-10 | 2026-04-10 |
-| [0012](0012-public-feed/README.md)             | Public Feed                                | 2026-04-10 | 2026-04-10 |
 | [0011](0011-configurable-pow/README.md)        | Configurable Proof of Work                 | 2026-04-09 | 2026-04-10 |
 | [0009](0009-protocol-security/README.md)       | Protocol Security Fixes                    | 2026-04-09 | 2026-04-09 |
 | [0008](0008-schema-indexes/README.md)          | Schema Indexes and Cleanup                 | 2026-04-09 | 2026-04-09 |
