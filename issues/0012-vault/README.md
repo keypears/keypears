@@ -65,7 +65,7 @@ structured type. API keys, tokens, license keys, one-off secrets, secure notes.
 
 These two cover the vast majority of use cases. More types can be added later
 without schema changes, since the type just determines which fields the UI
-renders — the encrypted blob is always freeform JSON.
+renders.
 
 ### Future types (not this issue)
 
@@ -151,15 +151,16 @@ Server stores:
 │ updatedAt                                                │
 └──────────────────────────────────────────────────────────┘
 
-Encrypted blob contains (after decryption):
+Encrypted blob contains (after decryption, Zod-validated):
 ┌──────────────────────────────────────────────────────────┐
 │ For type "login":                                        │
-│   { domain?, username?, email?, password?, notes? }      │
+│   { type: "login", domain?, username?, email?,           │
+│     password?, notes? }                                  │
 │                                                          │
 │ For type "text":                                         │
-│   { text }                                               │
+│   { type: "text", text }                                 │
 │                                                          │
-│ Future types add their own fields here.                  │
+│ Future types add their own discriminant here.             │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -187,6 +188,38 @@ vault_entries (
   INDEX (user_id)
 )
 ```
+
+### Encrypted blob validation
+
+The encrypted blob is validated client-side with Zod after decryption. The
+`type` field inside the blob is authoritative — the plaintext `type` column on
+the server is for search/filtering only. If they disagree, trust the blob.
+
+```typescript
+const LoginFields = z.object({
+  type: z.literal("login"),
+  domain: z.string().optional(),
+  username: z.string().optional(),
+  email: z.string().optional(),
+  password: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const TextFields = z.object({
+  type: z.literal("text"),
+  text: z.string(),
+});
+
+const VaultEntryData = z.discriminatedUnion("type", [
+  LoginFields,
+  TextFields,
+]);
+```
+
+If validation fails — corrupted data, a future type the current client doesn't
+understand, or a manually crafted blob — the UI shows a fallback: "Unable to
+display — show raw data" with the decrypted JSON. Nothing is lost; the user can
+still see what's there.
 
 No `loginKeyHash` needed — the entry tracks `publicKey`, and the corresponding
 private key in `user_keys` tracks its own `loginKeyHash`. One level of
