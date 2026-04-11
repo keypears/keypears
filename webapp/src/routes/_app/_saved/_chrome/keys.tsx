@@ -10,7 +10,7 @@ import {
   cacheEncryptionKey,
   decryptPrivateKey,
 } from "~/lib/auth";
-import { acs2Encrypt } from "@webbuf/acs2";
+import { acb3Encrypt } from "@webbuf/acb3";
 import { RotateCw, Lock, Unlock, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
@@ -101,7 +101,7 @@ function KeysPage() {
       );
 
       setKeyStatus("Re-encrypting...");
-      const reEncrypted = acs2Encrypt(privateKey.buf, newEncryptionKey);
+      const reEncrypted = acb3Encrypt(privateKey.buf, newEncryptionKey);
 
       setKeyStatus("Saving...");
       await reEncryptMyKey({

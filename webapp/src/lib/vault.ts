@@ -1,7 +1,7 @@
 import { blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
 import { z } from "zod";
 
 // --- Vault key derivation ---
@@ -40,7 +40,7 @@ export function encryptVaultEntry(
 ): string {
   const vaultKey = deriveVaultKey(privateKey);
   const json = JSON.stringify(data);
-  const encrypted = acs2Encrypt(WebBuf.fromUtf8(json), vaultKey);
+  const encrypted = acb3Encrypt(WebBuf.fromUtf8(json), vaultKey);
   return encrypted.toHex();
 }
 
@@ -49,7 +49,7 @@ export function decryptVaultEntry(
   privateKey: FixedBuf<32>,
 ): VaultEntryData {
   const vaultKey = deriveVaultKey(privateKey);
-  const decrypted = acs2Decrypt(WebBuf.fromHex(hex), vaultKey);
+  const decrypted = acb3Decrypt(WebBuf.fromHex(hex), vaultKey);
   return VaultEntryData.parse(JSON.parse(decrypted.toUtf8()));
 }
 
@@ -63,7 +63,7 @@ export function tryDecryptVaultEntry(
 ): DecryptResult {
   try {
     const vaultKey = deriveVaultKey(privateKey);
-    const decrypted = acs2Decrypt(WebBuf.fromHex(hex), vaultKey);
+    const decrypted = acb3Decrypt(WebBuf.fromHex(hex), vaultKey);
     const json = decrypted.toUtf8();
     const parsed = VaultEntryData.safeParse(JSON.parse(json));
     if (parsed.success) {

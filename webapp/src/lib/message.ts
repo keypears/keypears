@@ -2,7 +2,7 @@ import { blake3Hash } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { sharedSecret } from "@webbuf/secp256k1";
-import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
 import { z } from "zod";
 
 // --- Message schemas (no unions) ---
@@ -53,7 +53,7 @@ export function encryptMessage(
 ): string {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "text", text });
-  const encrypted = acs2Encrypt(WebBuf.fromUtf8(content), key);
+  const encrypted = acb3Encrypt(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
 }
 
@@ -64,7 +64,7 @@ export function encryptSecretMessage(
 ): string {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "secret", secret });
-  const encrypted = acs2Encrypt(WebBuf.fromUtf8(content), key);
+  const encrypted = acb3Encrypt(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
 }
 
@@ -76,7 +76,7 @@ export function decryptMessageContent(
   theirPubKey: FixedBuf<33>,
 ): MessageContent {
   const key = computeMessageKey(myPrivKey, theirPubKey);
-  const decrypted = acs2Decrypt(WebBuf.fromHex(encryptedHex), key);
+  const decrypted = acb3Decrypt(WebBuf.fromHex(encryptedHex), key);
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 

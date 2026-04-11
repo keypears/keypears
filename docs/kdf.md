@@ -33,7 +33,7 @@ localStorage or anywhere else.
 
 The encryption key is derived from the password key with a different salt and
 another 100,000 rounds of PBKDF. It is used to encrypt and decrypt private
-keys (secp256k1) using ACS2 (AES-256-CBC + BLAKE3-HMAC).
+keys (secp256k1) using ACB3 (AES-256-CBC + BLAKE3-MAC).
 
 The encryption key **never leaves the client**. It is not sent to the server.
 It is cached in localStorage after the user enters their password (on account
@@ -113,7 +113,7 @@ Server-side hashing is in `webapp/src/server/user.server.ts`:
 ## Algorithms
 
 - **Hash / KDF**: BLAKE3 (keyed MAC mode, via `@webbuf/blake3`)
-- **Encryption**: ACS2 (AES-256-CBC + BLAKE3-HMAC, via `@webbuf/acs2`)
+- **Encryption**: ACB3 (AES-256-CBC + BLAKE3-MAC, via `@webbuf/acb3`)
 - **Key pairs**: secp256k1 (via `@webbuf/secp256k1`)
 - **Rounds**: 100,000 per tier on client, 100,000 on server
 

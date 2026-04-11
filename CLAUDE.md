@@ -87,7 +87,7 @@ keypears/
 - **Styling**: Tailwind CSS v4, shadcn components
 - **Auth**: Three-tier BLAKE3 PBKDF (password key -> encryption key + login key)
 - **Sessions**: Random 32-byte tokens, BLAKE3-hashed in DB, 30-day expiry
-- **Crypto**: secp256k1 key pairs, ACS2 encryption, ECDH shared secrets (`@webbuf/*`)
+- **Crypto**: secp256k1 key pairs, ACB3 encryption (AES-256-CBC + BLAKE3-MAC), ECDH shared secrets (`@webbuf/*`)
 - **PoW**: pow5-64b algorithm (WebGPU), signed stateless challenges
 - **Federation**: Pull-model message delivery, domain verification via TLS
 - **Env**: dotenvx for encrypted env management

@@ -207,7 +207,7 @@ Each message stored on the server contains:
 | Field            | Description                                    |
 |------------------|------------------------------------------------|
 | senderAddress    | Full address (e.g. `alice@acme.com`)           |
-| encryptedContent | ACS2-encrypted message (hex)                   |
+| encryptedContent | ACB3-encrypted message (hex)                   |
 | senderPubKey     | Sender's public key at time of sending         |
 | recipientPubKey  | Recipient's public key at time of sending      |
 | isRead           | Whether the recipient has viewed this message  |

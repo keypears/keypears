@@ -2,7 +2,7 @@ import { blake3Hash, blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { publicKeyCreate, sign } from "@webbuf/secp256k1";
-import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
 import { blake3Pbkdf } from "./kdf";
 
 const CLIENT_KDF_ROUNDS = 100_000;
@@ -111,7 +111,7 @@ export function generateAndEncryptKeyPairFromEncryptionKey(
 } {
   const privateKey = FixedBuf.fromRandom(32);
   const publicKey = publicKeyCreate(privateKey);
-  const encryptedPrivateKey = acs2Encrypt(privateKey.buf, encryptionKey);
+  const encryptedPrivateKey = acb3Encrypt(privateKey.buf, encryptionKey);
   return {
     publicKey: publicKey.buf.toHex(),
     encryptedPrivateKey: encryptedPrivateKey.toHex(),
@@ -123,7 +123,7 @@ export function decryptPrivateKey(
   encryptionKey: FixedBuf<32>,
 ): FixedBuf<32> {
   const encryptedBuf = WebBuf.fromHex(encryptedPrivateKeyHex);
-  const decrypted = acs2Decrypt(encryptedBuf, encryptionKey);
+  const decrypted = acb3Decrypt(encryptedBuf, encryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
 }
 
