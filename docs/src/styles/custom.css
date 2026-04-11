@@ -37,3 +37,58 @@
   --sl-color-accent: hsl(109, 58%, 36%);
   --sl-color-accent-high: #1a3a1c;
 }
+
+/* Footer */
+.kp-footer {
+  margin-top: 3rem;
+}
+
+.kp-page-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-top: 1px solid var(--sl-color-gray-4);
+}
+
+.kp-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--sl-color-gray-1);
+  text-decoration: none;
+  font-size: var(--sl-text-sm);
+}
+
+.kp-nav-link:hover {
+  color: var(--sl-color-accent);
+}
+
+.kp-arrow {
+  font-size: var(--sl-text-base);
+}
+
+.kp-brand {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0.5rem;
+  border-top: 1px solid var(--sl-color-gray-4);
+}
+
+.kp-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--sl-color-gray-2);
+  text-decoration: none;
+  font-size: var(--sl-text-xs);
+  line-height: 1;
+}
+
+.kp-brand-link:hover {
+  color: var(--sl-color-accent);
+}
+
+.kp-brand-link img {
+  display: block;
+}
