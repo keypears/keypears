@@ -67,6 +67,15 @@ function ChannelPage() {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= 20);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Sync loader data into state on navigation
+  useEffect(() => {
+    setMessageList(initialMessages);
+    setHasMore(initialMessages.length >= 20);
+  }, [initialMessages]);
+  useEffect(() => {
+    setChannels(initialChannels);
+  }, [initialChannels]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 

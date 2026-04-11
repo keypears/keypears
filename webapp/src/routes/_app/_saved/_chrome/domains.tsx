@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   claimDomainFn,
   getMyDomains,
@@ -42,6 +42,12 @@ export const Route = createFileRoute("/_app/_saved/_chrome/domains")({
 function DomainsPage() {
   const initialDomains = Route.useLoaderData();
   const [domainList, setDomainList] = useState(initialDomains);
+
+  // Sync loader data into state on navigation
+  useEffect(() => {
+    setDomainList(initialDomains);
+  }, [initialDomains]);
+
   const [claimInput, setClaimInput] = useState("");
   const [claimError, setClaimError] = useState("");
   const [claimStatus, setClaimStatus] = useState("");

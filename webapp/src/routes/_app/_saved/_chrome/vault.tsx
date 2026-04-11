@@ -44,6 +44,12 @@ function VaultPage() {
   const [creating, setCreating] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Sync loader data into state on navigation
+  useEffect(() => {
+    setEntries(initialEntries);
+    setHasMore(initialEntries.length >= 20);
+  }, [initialEntries]);
+
   // Build key map
   const [keyMap, setKeyMap] = useState<
     Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>

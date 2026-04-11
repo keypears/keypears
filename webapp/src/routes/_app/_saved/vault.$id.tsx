@@ -80,6 +80,11 @@ function VaultDetailPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Sync loader data into state on navigation
+  useEffect(() => {
+    setEntries(initialEntries);
+  }, [initialEntries]);
+
   // Key map
   const [keyMap, setKeyMap] = useState<
     Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
