@@ -5,6 +5,10 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "KeyPears Docs",
+      logo: {
+        dark: "./src/assets/logo-dark.webp",
+        light: "./src/assets/logo-light.webp",
+      },
       customCss: ["./src/styles/custom.css"],
       social: [
         {
