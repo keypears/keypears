@@ -279,31 +279,43 @@ The secret is now in their vault, independent of the message.
 
 ## Vault page UX
 
-### Entry list
+### Routing
 
-- Search bar at top (filters by name and search terms, server-side LIKE)
-- Each entry shows: name, type icon, key number badge
-- Key number badge is subtle (e.g. "Key #2") — if it's not the active key, show
-  a small indicator that encryption can be upgraded
-- Entries with locked keys (password mismatch) show a lock icon with "unlock on
-  Keys page" link, same as messages
+Two routes, same pattern as inbox/channel:
 
-### Entry detail
+- **`/vault`** — full-screen entry list (search + entries, sorted by updatedAt
+  desc). "New Entry" button. Clicking an entry navigates to its detail page.
+- **`/vault/:id`** — split layout like `channel.$address.tsx`:
+  - **Desktop**: fixed left panel (search + entry list), detail on the right
+  - **Mobile**: burger menu opens a drawer with search + entry list, detail
+    fills the screen
+  - Clicking "Vault" in the sidebar goes back to the full list
 
-- View mode: name, all fields. Secret fields (password, etc.) masked by default
-  with show/hide toggle.
-- Copy button on each field value.
-- Edit button → edit mode with same fields.
-- "Re-encrypt with Key #N" button if entry uses an older key.
-- Delete button with confirmation.
+### Entry list (sidebar panel and full page)
+
+- Search input at top (debounced, server-side LIKE on name and search terms)
+- Entries sorted by updatedAt desc (recently changed first)
+- Each entry shows: name, type icon (KeyRound for login, FileText for text)
+- Active entry highlighted in the side panel (like active channel)
+- Entries with locked keys show lock icon
+
+### Entry detail (`/vault/:id`)
+
+- Name, search terms, type-specific fields
+- Secret fields (password, etc.) masked by default. Eye icon to toggle.
+- Copy button on each field value
+- Edit button → inline edit mode
+- Save button (encrypts and updates)
+- Delete button with confirmation
+- Key number shown. If not active key, show "encrypted with Key #N"
 
 ### Create entry
 
-- Type selector: Login or Text
-- Name field (required)
-- Type-specific fields (Login: domain, username, email, password, notes. Text:
-  text area)
-- Encrypted and saved on submit
+- Accessed via "New Entry" button on the vault list
+- Type selector (Login / Text)
+- Name (required), search terms (optional)
+- Type-specific fields
+- Save → encrypts with active key, creates entry, navigates to it
 
 ## Scope
 
@@ -433,42 +445,34 @@ function tryDecryptVaultEntry(hex: string, privateKey: FixedBuf<32>):
   VaultEntryData | { raw: string }
 ```
 
-#### UI — `webapp/src/routes/_app/_saved/_chrome/vault.tsx`
+#### UI — Routes
 
-Replace the placeholder. The vault page has three states:
+**`webapp/src/routes/_app/_saved/_chrome/vault.tsx`** — full-screen vault list.
 
-**1. Entry list (default)**
+- Replace the placeholder
+- Search input (debounced, calls `getMyEntries` with query)
+- "New Entry" button → create form (inline or modal)
+- Entry cards sorted by updatedAt desc: name, type icon (KeyRound for login,
+  FileText for text). Locked entries show lock icon.
+- Click an entry → navigate to `/vault/:id`
 
-- Search input at top (debounced, calls `getMyEntries` with query)
-- "New Entry" button
-- Entry cards: name, type icon (KeyRound for login, FileText for text),
-  key number badge. If key is locked, show lock icon + "unlock on Keys page"
-  link instead of entry content.
-- Click an entry → view mode
+**`webapp/src/routes/_app/_saved/vault.$id.tsx`** — entry detail with split
+layout (same pattern as `channel.$address.tsx`).
 
-**2. View/edit entry**
+- **Left panel** (desktop: fixed, mobile: drawer behind burger menu):
+  - Search input + entry list, same as vault page
+  - Active entry highlighted
+- **Right panel**: entry detail
+  - View mode: name, search terms, type-specific fields
+  - Secret fields masked, eye toggle, copy buttons
+  - Edit button → inline edit. Save re-encrypts and updates.
+  - Delete button with confirmation
+  - Key number badge if not active key
 
-- Back button to return to list
-- Name (editable)
-- Search terms (editable)
-- Type-specific fields:
-  - **Login**: domain, username, email, password, notes
-  - **Text**: text (textarea)
-- Password/secret fields masked by default. Eye icon to toggle. Copy button
-  on each field.
-- Save button (encrypts and updates)
-- Delete button with confirmation
-- Key number shown. If not active key, show "encrypted with Key #N"
+Note: `vault.$id.tsx` is under `_saved/` (not `_saved/_chrome/`) so it gets
+the full-screen split layout without the sidebar, same as channel pages.
 
-**3. Create entry**
-
-- Type selector (Login / Text tabs or radio)
-- Name (required)
-- Search terms (optional)
-- Type-specific fields (all optional except text for Text type)
-- Save button (encrypts with active key and creates)
-
-Key loading follows the same pattern as `channel.$address.tsx`:
+**Key loading** follows the same pattern as `channel.$address.tsx`:
 - On mount, load all user keys via `getMyKeys()`
 - Decrypt private keys using cached encryption key
 - Build a map of `publicKey → privateKey`
