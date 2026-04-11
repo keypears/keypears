@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Vault Secret Versioning
@@ -382,3 +383,34 @@ from `secret_versions` joined with `secrets`. The `entry` object passed to
 9. Channel view — "Saved" link still works
 10. `bun run lint` — clean
 11. `bun run build` — passes
+
+#### Result: Pass
+
+Split `vault_entries` into `secrets` + `secret_versions`. List query is now a
+simple select + join on `latestVersionId` — no GROUP BY subquery. All CRUD uses
+transactions. Delete secret removes all versions. Delete version updates
+`latestVersionId` or removes the secret if no versions remain. Message LEFT
+JOIN uses `secrets.sourceMessageId`. UI updated for new data shape. Lint clean,
+build passes.
+
+## Conclusion
+
+Made vault entries append-only with full version history. Three experiments:
+
+1. **Schema + server**: Added `secretId` and `version` to a single table.
+   Worked but list queries required a `GROUP BY` subquery.
+2. **Inline history UI**: Collapsible history section on detail page with
+   per-version expand, restore, and delete via dropdown menu.
+3. **Two-table architecture**: Split into `secrets` (metadata, one row per
+   secret) and `secret_versions` (encrypted data, one row per version).
+   `latestVersionId` pointer eliminates the subquery. List query is O(1)
+   regardless of version count.
+
+Key decisions:
+- Append-only edits — old versions are immutable
+- Hard delete only — no soft delete/tombstones
+- Delete secret removes all versions in a transaction
+- Individual versions deletable from the history UI
+- Restore creates a new version with old data
+- Metadata (name, type, searchTerms) lives on `secrets`, updated on each edit
+- Encrypted data + publicKey live on `secret_versions`
