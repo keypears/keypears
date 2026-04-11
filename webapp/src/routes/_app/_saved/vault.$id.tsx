@@ -47,6 +47,7 @@ import {
   Trash2,
   Home,
   Send as SendIcon,
+  ChevronLeft,
 } from "lucide-react";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
@@ -245,9 +246,13 @@ function VaultDetailPage() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-foreground text-sm font-medium">
-            {entry?.name ?? "Not found"}
-          </span>
+          <Link
+            to="/vault"
+            className="text-foreground flex items-center gap-1 text-sm font-medium no-underline"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Vault
+          </Link>
         </div>
 
         {/* Detail content */}
