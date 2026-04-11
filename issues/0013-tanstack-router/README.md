@@ -361,3 +361,25 @@ Sources:
 2. `bun run lint` — clean
 3. All authenticated flows still work (create account, login, send message,
    vault CRUD, key rotation, domain management)
+
+#### Result: Pass
+
+Created `auth-middleware.ts` with `authMiddleware` using `createMiddleware`.
+Converted all `requireSessionUserId()` calls across three files:
+- `vault.functions.ts` — 5 functions
+- `message.functions.ts` — 6 functions (sendMessage, getMessagesForChannel,
+  getOlderMessages, pollNewMessages, markChannelAsRead, getMyActiveEncryptedKey)
+- `user.functions.ts` — 11 functions (saveMyUser, deleteMyUser, rotateKey,
+  getMyEncryptedKeys, changeMyPassword, reEncryptMyKey, claimDomainFn,
+  getDomainUsersFn, createDomainUserFn, resetDomainUserPasswordFn,
+  toggleOpenRegistrationFn, toggleAllowThirdPartyDomainsFn, getMyPowSettings,
+  updateMyPowSettings)
+
+`getMyAddress` helper converted from calling `requireSessionUserId` to
+accepting `userId` as parameter.
+
+Functions using optional auth (`getSessionUserId`) left unchanged:
+getMyChannels, getMyUnreadCount, getMyUser, checkNameAvailable, getMyDomains.
+
+`requireSessionUserId` is now unused (only definition remains in session.ts).
+Lint clean, build passes.

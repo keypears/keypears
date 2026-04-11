@@ -22,7 +22,8 @@ import {
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema } from "./schemas";
-import { getSessionUserId, requireSessionUserId } from "./session";
+import { getSessionUserId } from "./session";
+import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { parseAddress, makeAddress } from "~/lib/config";
 import {
@@ -55,6 +56,7 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
 const MAX_CIPHERTEXT_LENGTH = 50_000; // hex chars (~25KB plaintext)
 
 export const sendMessage = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       recipientAddress: z.string(),
@@ -66,8 +68,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       pow: PowSolutionSchema,
     }),
   )
-  .handler(async ({ data: input }) => {
-    const senderId = await requireSessionUserId();
+  .handler(async ({ data: input, context: { userId: senderId } }) => {
     const senderUser = await getUserById(senderId);
     if (!senderUser || !senderUser.passwordHash)
       throw new Error("Account not saved");
@@ -188,48 +189,51 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
   },
 );
 
-async function resolveChannel(counterpartyAddress: string) {
-  const userId = await requireSessionUserId();
+async function resolveChannel(userId: string, counterpartyAddress: string) {
   const channel = await getChannelByCounterparty(userId, counterpartyAddress);
   if (!channel) throw new Error("Channel not found");
   return channel;
 }
 
 export const getMessagesForChannel = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: counterpartyAddress }) => {
-    const channel = await resolveChannel(counterpartyAddress);
+  .handler(async ({ data: counterpartyAddress, context: { userId } }) => {
+    const channel = await resolveChannel(userId, counterpartyAddress);
     return getChannelMessages(channel.id);
   });
 
 export const getOlderMessages = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       counterpartyAddress: z.string(),
       beforeId: z.string(),
     }),
   )
-  .handler(async ({ data }) => {
-    const channel = await resolveChannel(data.counterpartyAddress);
+  .handler(async ({ data, context: { userId } }) => {
+    const channel = await resolveChannel(userId, data.counterpartyAddress);
     return getChannelMessages(channel.id, undefined, data.beforeId);
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       counterpartyAddress: z.string(),
       afterId: z.string(),
     }),
   )
-  .handler(async ({ data }) => {
-    const channel = await resolveChannel(data.counterpartyAddress);
+  .handler(async ({ data, context: { userId } }) => {
+    const channel = await resolveChannel(userId, data.counterpartyAddress);
     return getNewMessages(channel.id, data.afterId);
   });
 
 export const markChannelAsRead = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: counterpartyAddress }) => {
-    const channel = await resolveChannel(counterpartyAddress);
+  .handler(async ({ data: counterpartyAddress, context: { userId } }) => {
+    const channel = await resolveChannel(userId, counterpartyAddress);
     await markChannelRead(channel.id);
     return { success: true };
   });
@@ -244,14 +248,15 @@ export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
 
 export const getMyActiveEncryptedKey = createServerFn({
   method: "GET",
-}).handler(async () => {
-  const userId = await requireSessionUserId();
-  const key = await getActiveKey(userId);
-  if (!key) throw new Error("No key found");
-  return {
-    publicKey: key.publicKey,
-    encryptedPrivateKey: key.encryptedPrivateKey,
-  };
+})
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
+    const key = await getActiveKey(userId);
+    if (!key) throw new Error("No key found");
+    return {
+      publicKey: key.publicKey,
+      encryptedPrivateKey: key.encryptedPrivateKey,
+    };
 });
 
 export const getRemotePowChallenge = createServerFn({ method: "POST" })

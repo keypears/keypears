@@ -38,7 +38,8 @@ import { verifyDomainAdmin } from "./federation.server";
 import { REGISTRATION_DIFFICULTY, LOGIN_DIFFICULTY } from "./pow.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { PowSolutionSchema, nameSchema } from "./schemas";
-import { getSessionUserId, requireSessionUserId, COOKIE_NAME } from "./session";
+import { getSessionUserId, COOKIE_NAME } from "./session";
+import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { blake3Hash } from "@webbuf/blake3";
 import { WebBuf } from "@webbuf/webbuf";
@@ -164,8 +165,8 @@ export const saveMyUser = createServerFn({ method: "POST" })
       encryptedPrivateKey: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const userId = await requireSessionUserId();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (row.passwordHash) throw new Error("Already saved");
@@ -186,9 +187,9 @@ export const saveMyUser = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const deleteMyUser = createServerFn({ method: "POST" }).handler(
-  async () => {
-    const userId = await requireSessionUserId();
+export const deleteMyUser = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
     await deleteAllSessions(userId);
     await deleteUnsavedUser(userId);
     deleteCookie(COOKIE_NAME);
@@ -239,8 +240,8 @@ export const rotateKey = createServerFn({ method: "POST" })
       encryptedPrivateKey: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const userId = await requireSessionUserId();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
@@ -305,12 +306,11 @@ export const getPowHistoryForAddress = createServerFn({ method: "GET" })
     }));
   });
 
-export const getMyEncryptedKeys = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const userId = await requireSessionUserId();
+export const getMyEncryptedKeys = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
     return getAllEncryptedKeys(userId);
-  },
-);
+  });
 
 export const changeMyPassword = createServerFn({ method: "POST" })
   .inputValidator(
@@ -324,8 +324,8 @@ export const changeMyPassword = createServerFn({ method: "POST" })
       ),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const userId = await requireSessionUserId();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
@@ -346,8 +346,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
       loginKey: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const userId = await requireSessionUserId();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
     await reEncryptKey(
       userId,
       input.keyId,
@@ -359,8 +359,7 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
 
 // --- Domain management ---
 
-async function getMyAddress(): Promise<string> {
-  const userId = await requireSessionUserId();
+async function getMyAddress(userId: string): Promise<string> {
   const user = await getUserById(userId);
   if (!user?.name || !user.domainId) throw new Error("Account not saved");
   const domain = await getDomainById(user.domainId);
@@ -369,15 +368,15 @@ async function getMyAddress(): Promise<string> {
 }
 
 export const claimDomainFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: domainName }) => {
+  .handler(async ({ data: domainName, context: { userId } }) => {
     // Check if third-party domain hosting is allowed
     const primaryDomain = await getPrimaryDomain();
     if (primaryDomain && !primaryDomain.allowThirdPartyDomains) {
       throw new Error("Third-party domain hosting is disabled.");
     }
-    const userId = await requireSessionUserId();
-    const adminAddress = await getMyAddress();
+    const adminAddress = await getMyAddress(userId);
     const result = await verifyDomainAdmin(domainName, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Verification failed");
     const domain = await claimDomain(domainName, userId);
@@ -393,9 +392,10 @@ export const getMyDomains = createServerFn({ method: "GET" }).handler(
 );
 
 export const getDomainUsersFn = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: domainName }) => {
-    const adminAddress = await getMyAddress();
+  .handler(async ({ data: domainName, context: { userId } }) => {
+    const adminAddress = await getMyAddress(userId);
     const result = await verifyDomainAdmin(domainName, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     const domain = await getDomainByName(domainName);
@@ -413,8 +413,9 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       encryptedPrivateKey: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const adminAddress = await getMyAddress();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
+    const adminAddress = await getMyAddress(userId);
     const result = await verifyDomainAdmin(input.domain, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     const domain = await getDomainByName(input.domain);
@@ -438,8 +439,9 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
       encryptedPrivateKey: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const adminAddress = await getMyAddress();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
+    const adminAddress = await getMyAddress(userId);
     const result = await verifyDomainAdmin(input.domain, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     await resetUserPassword(
@@ -460,14 +462,15 @@ export const isRegistrationOpen = createServerFn({ method: "GET" }).handler(
 );
 
 export const toggleOpenRegistrationFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       domain: z.string(),
       value: z.boolean(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const adminAddress = await getMyAddress();
+  .handler(async ({ data: input, context: { userId } }) => {
+    const adminAddress = await getMyAddress(userId);
     const result = await verifyDomainAdmin(input.domain, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     const domain = await getDomainByName(input.domain);
@@ -479,9 +482,10 @@ export const toggleOpenRegistrationFn = createServerFn({ method: "POST" })
 export const toggleAllowThirdPartyDomainsFn = createServerFn({
   method: "POST",
 })
+  .middleware([authMiddleware])
   .inputValidator(z.boolean())
-  .handler(async ({ data: value }) => {
-    const adminAddress = await getMyAddress();
+  .handler(async ({ data: value, context: { userId } }) => {
+    const adminAddress = await getMyAddress(userId);
     const primaryDomain = await getPrimaryDomain();
     if (!primaryDomain) throw new Error("Primary domain not configured");
     const result = await verifyDomainAdmin(
@@ -495,9 +499,9 @@ export const toggleAllowThirdPartyDomainsFn = createServerFn({
 
 // --- PoW settings ---
 
-export const getMyPowSettings = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const userId = await requireSessionUserId();
+export const getMyPowSettings = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
     const settings = await getUserPowSettings(userId);
     return {
       channelDifficulty: settings?.channelDifficulty?.toString() ?? null,
@@ -513,8 +517,8 @@ export const updateMyPowSettings = createServerFn({ method: "POST" })
       messageDifficulty: z.string(),
     }),
   )
-  .handler(async ({ data: input }) => {
-    const userId = await requireSessionUserId();
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
     await updatePowSettings(
       userId,
       BigInt(input.channelDifficulty),

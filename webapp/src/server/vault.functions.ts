@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSessionUserId } from "./session";
+import { authMiddleware } from "./auth-middleware";
 import {
   createVaultEntry,
   getVaultEntries,
@@ -12,6 +12,7 @@ import {
 const MAX_ENCRYPTED_DATA_LENGTH = 20_000; // hex chars (~10KB)
 
 export const createEntry = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       name: z.string().min(1).max(255),
@@ -21,8 +22,7 @@ export const createEntry = createServerFn({ method: "POST" })
       encryptedData: z.string().max(MAX_ENCRYPTED_DATA_LENGTH),
     }),
   )
-  .handler(async ({ data }) => {
-    const userId = await requireSessionUserId();
+  .handler(async ({ data, context: { userId } }) => {
     const id = await createVaultEntry(
       userId,
       data.name,
@@ -35,6 +35,7 @@ export const createEntry = createServerFn({ method: "POST" })
   });
 
 export const getMyEntries = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(
     z
       .object({
@@ -43,19 +44,19 @@ export const getMyEntries = createServerFn({ method: "GET" })
       })
       .optional(),
   )
-  .handler(async ({ data }) => {
-    const userId = await requireSessionUserId();
+  .handler(async ({ data, context: { userId } }) => {
     return getVaultEntries(userId, data?.query, data?.beforeId);
   });
 
 export const getEntry = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: entryId }) => {
-    const userId = await requireSessionUserId();
+  .handler(async ({ data: entryId, context: { userId } }) => {
     return getVaultEntry(userId, entryId);
   });
 
 export const updateEntry = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(
     z.object({
       id: z.string(),
@@ -66,8 +67,7 @@ export const updateEntry = createServerFn({ method: "POST" })
       encryptedData: z.string().max(MAX_ENCRYPTED_DATA_LENGTH),
     }),
   )
-  .handler(async ({ data }) => {
-    const userId = await requireSessionUserId();
+  .handler(async ({ data, context: { userId } }) => {
     await updateVaultEntry(
       userId,
       data.id,
@@ -81,9 +81,9 @@ export const updateEntry = createServerFn({ method: "POST" })
   });
 
 export const deleteEntry = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: entryId }) => {
-    const userId = await requireSessionUserId();
+  .handler(async ({ data: entryId, context: { userId } }) => {
     await deleteVaultEntry(userId, entryId);
     return { success: true };
   });
