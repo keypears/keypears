@@ -44,13 +44,13 @@ function VaultPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Build key map
-  const encryptionKey = getCachedEncryptionKey();
   const [keyMap, setKeyMap] = useState<
     Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
   >(new Map());
   const [activePublicKey, setActivePublicKey] = useState<string | null>(null);
 
   useEffect(() => {
+    const encryptionKey = getCachedEncryptionKey();
     if (!encryptionKey) return;
     const map = new Map<
       string,
@@ -70,7 +70,7 @@ function VaultPage() {
     if (keyData.keys.length > 0) {
       setActivePublicKey(keyData.keys[0].publicKey);
     }
-  }, [encryptionKey, keyData]);
+  }, [keyData]);
 
   // Search with debounce
   function handleSearch(value: string) {

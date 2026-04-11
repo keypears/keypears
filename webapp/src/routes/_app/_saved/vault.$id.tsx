@@ -69,13 +69,13 @@ function VaultDetailPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Key map
-  const encryptionKey = getCachedEncryptionKey();
   const [keyMap, setKeyMap] = useState<
     Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
   >(new Map());
   const [activePublicKey, setActivePublicKey] = useState<string | null>(null);
 
   useEffect(() => {
+    const encryptionKey = getCachedEncryptionKey();
     if (!encryptionKey) return;
     const map = new Map<
       string,
@@ -95,7 +95,7 @@ function VaultDetailPage() {
     if (keyData.keys.length > 0) {
       setActivePublicKey(keyData.keys[0].publicKey);
     }
-  }, [encryptionKey, keyData]);
+  }, [keyData]);
 
   // Search
   function handleSearch(value: string) {
@@ -120,26 +120,29 @@ function VaultDetailPage() {
     return !keyMap.has(publicKey);
   }
 
+  function navTo(path: string, onSelect?: () => void) {
+    onSelect?.();
+    navigate({ to: path });
+  }
+
   // Entry list panel (shared between desktop and mobile drawer)
   function EntryList({ onSelect }: { onSelect?: () => void }) {
     return (
       <div className="flex flex-col">
-        <a
-          href="/home"
-          onClick={onSelect}
-          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
+        <button
+          onClick={() => navTo("/home", onSelect)}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm transition-colors"
         >
           <Home className="h-4 w-4" />
           Home
-        </a>
-        <a
-          href="/vault"
-          onClick={onSelect}
-          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
+        </button>
+        <button
+          onClick={() => navTo("/vault", onSelect)}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm transition-colors"
         >
           <Lock className="h-4 w-4" />
           Vault
-        </a>
+        </button>
         <div className="border-border/30 border-t px-3 py-2">
           <div className="relative">
             <Search className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
@@ -158,11 +161,10 @@ function VaultDetailPage() {
             const locked = isLocked(e.publicKey);
             const Icon = locked ? Lock : e.type === "login" ? KeyRound : FileText;
             return (
-              <a
+              <button
                 key={e.id}
-                href={`/vault/${e.id}`}
-                onClick={onSelect}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm no-underline transition-colors ${
+                onClick={() => navTo(`/vault/${e.id}`, onSelect)}
+                className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors ${
                   e.id === entryId
                     ? "bg-accent/10 text-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
@@ -170,7 +172,7 @@ function VaultDetailPage() {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="truncate">{e.name}</span>
-              </a>
+              </button>
             );
           })}
         </div>
