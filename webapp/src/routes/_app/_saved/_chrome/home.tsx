@@ -24,7 +24,7 @@ function HomePage() {
 
   return (
     <div className="flex flex-1 items-center justify-center font-sans">
-      <div className="mt-32 text-center">
+      <div className="mt-16 text-center">
         <picture>
           <source
             srcSet={`${$icon("/images/keypears-dark-200.webp")} 1x, ${$icon("/images/keypears-dark-400.webp")} 2x`}
