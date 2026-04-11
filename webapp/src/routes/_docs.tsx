@@ -169,6 +169,15 @@ function DocsLayout() {
               <span className="text-foreground">KeyPears</span>
             </Link>
           </div>
+          <div className="flex items-center gap-3">
+            {user?.name && (
+              <UserDropdown
+                userName={user.name}
+                domain={user.domain}
+                hasPassword={user.hasPassword}
+              />
+            )}
+          </div>
         </nav>
 
         {/* Desktop top-right: address + user dropdown */}

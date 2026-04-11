@@ -183,9 +183,6 @@ export function Sidebar({
           onClick={() => setIsMenuOpen(false)}
           hasPassword={hasPassword}
         />
-        <div className="mt-auto">
-          {userName && <UserDropdown userName={userName} domain={domain} />}
-        </div>
       </div>
 
       {/* Desktop sidebar */}
