@@ -201,3 +201,11 @@ In `webapp/src/db/schema.ts`:
 - All encrypted/binary columns use `binaryHex` custom type.
 - `db:push` applies cleanly.
 - Tests and linter pass.
+
+### Result: Pass
+
+All `timestamp` columns replaced with `datetime` (using
+`default(sql\`NOW()\`)`)
+and all five`text`columns replaced with`binaryHex`custom type backed by`varbinary`.
+Databases cleared and schema pushed cleanly to both keypears and passapples.
+Linter: 0 errors, tests: 7/7 passed.

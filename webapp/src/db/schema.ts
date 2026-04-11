@@ -4,12 +4,12 @@ import {
   bigint,
   boolean,
   varchar,
-  text,
-  timestamp,
+  datetime,
   uniqueIndex,
   index,
   customType,
 } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 import { UUID } from "uuidv7";
 
 // --- Custom column types ---
@@ -27,6 +27,20 @@ const binaryId = customType<{ data: string }>({
   },
 });
 
+/** varbinary(N) in MySQL, hex string in TypeScript */
+const binaryHex = (name: string, length: number) =>
+  customType<{ data: string }>({
+    dataType() {
+      return `varbinary(${length})`;
+    },
+    toDriver(data: string) {
+      return Buffer.from(data, "hex");
+    },
+    fromDriver(data) {
+      return Buffer.from(data as Buffer).toString("hex");
+    },
+  })(name);
+
 // --- Tables ---
 
 export const domains = mysqlTable(
@@ -39,7 +53,7 @@ export const domains = mysqlTable(
     allowThirdPartyDomains: boolean("allow_third_party_domains")
       .notNull()
       .default(true),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [index("admin_user_id_idx").on(table.adminUserId)],
 );
@@ -53,9 +67,9 @@ export const users = mysqlTable(
     passwordHash: varchar("password_hash", { length: 255 }),
     channelDifficulty: bigint("channel_difficulty", { mode: "bigint" }),
     messageDifficulty: bigint("message_difficulty", { mode: "bigint" }),
-    tosAcceptedAt: timestamp("tos_accepted_at"),
-    expiresAt: timestamp("expires_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    tosAcceptedAt: datetime("tos_accepted_at"),
+    expiresAt: datetime("expires_at"),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     uniqueIndex("name_domain_idx").on(table.name, table.domainId),
@@ -71,9 +85,9 @@ export const keys = mysqlTable(
     userId: binaryId("user_id").notNull(),
     keyNumber: int("key_number").notNull(),
     publicKey: varchar("public_key", { length: 66 }).notNull(),
-    encryptedPrivateKey: text("encrypted_private_key").notNull(),
+    encryptedPrivateKey: binaryHex("encrypted_private_key", 256).notNull(),
     loginKeyHash: varchar("login_key_hash", { length: 255 }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [index("user_id_idx").on(table.userId)],
 );
@@ -86,8 +100,8 @@ export const channels = mysqlTable(
     counterpartyAddress: varchar("counterparty_address", {
       length: 255,
     }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
+    updatedAt: datetime("updated_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     uniqueIndex("owner_counterparty_idx").on(
@@ -111,8 +125,8 @@ export const secrets = mysqlTable(
     sourceMessageId: binaryId("source_message_id"),
     sourceAddress: varchar("source_address", { length: 255 }),
     latestVersionId: binaryId("latest_version_id"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
+    updatedAt: datetime("updated_at").default(sql`NOW()`).notNull(),
   },
   (table) => [index("secret_user_id_idx").on(table.userId)],
 );
@@ -124,8 +138,8 @@ export const secretVersions = mysqlTable(
     secretId: binaryId("secret_id").notNull(),
     version: int("version").notNull(),
     publicKey: varchar("public_key", { length: 66 }).notNull(),
-    encryptedData: text("encrypted_data").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    encryptedData: binaryHex("encrypted_data", 10000).notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     index("sv_secret_id_idx").on(table.secretId),
@@ -139,11 +153,11 @@ export const messages = mysqlTable(
     id: binaryId("id").primaryKey(),
     channelId: binaryId("channel_id").notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-    encryptedContent: text("encrypted_content").notNull(),
+    encryptedContent: binaryHex("encrypted_content", 25000).notNull(),
     senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
     recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
     isRead: boolean("is_read").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     index("channel_id_idx").on(table.channelId, table.id),
@@ -158,11 +172,11 @@ export const pendingDeliveries = mysqlTable(
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
     recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
-    encryptedContent: text("encrypted_content").notNull(),
+    encryptedContent: binaryHex("encrypted_content", 25000).notNull(),
     senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
     recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: datetime("expires_at").notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     index("token_hash_idx").on(table.tokenHash),
@@ -175,8 +189,8 @@ export const sessions = mysqlTable(
   {
     tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
     userId: binaryId("user_id").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: datetime("expires_at").notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [
     index("session_user_id_idx").on(table.userId),
@@ -188,10 +202,10 @@ export const usedPow = mysqlTable(
   "used_pow",
   {
     solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
-    solvedHeader: text("solved_header").notNull(),
+    solvedHeader: binaryHex("solved_header", 64).notNull(),
     target: varchar("target", { length: 64 }).notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: datetime("expires_at").notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [index("pow_expires_idx").on(table.expiresAt)],
 );
@@ -206,7 +220,7 @@ export const powLog = mysqlTable(
     cumulativeDifficulty: bigint("cumulative_difficulty", {
       mode: "bigint",
     }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
   },
   (table) => [index("pow_user_id_idx").on(table.userId)],
 );
