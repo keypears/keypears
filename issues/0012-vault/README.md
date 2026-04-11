@@ -146,7 +146,7 @@ Server stores:
 │ type            ← plaintext ("login" | "text" | ...)     │
 │ searchTerms     ← plaintext (searchable, user-chosen)    │
 │ publicKey       ← which key encrypted this entry         │
-│ encryptedData   ← ACS2 ciphertext (opaque to server)    │
+│ encryptedData   ← ACS2 ciphertext (opaque to server)     │
 │ createdAt                                                │
 │ updatedAt                                                │
 └──────────────────────────────────────────────────────────┘
@@ -160,7 +160,7 @@ Encrypted blob contains (after decryption, Zod-validated):
 │ For type "text":                                         │
 │   { type: "text", text }                                 │
 │                                                          │
-│ Future types add their own discriminant here.             │
+│ Future types add their own discriminant here.            │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -333,3 +333,158 @@ The secret is now in their vault, independent of the message.
 - Import/export (1Password CSV, etc.)
 - Vault folders/tags/organization
 - Generated passwords
+
+## Experiments
+
+### Experiment 1: Vault CRUD with client-side encryption
+
+#### Description
+
+Build the vault from schema to UI. Users can create, view, edit, search, and
+delete encrypted vault entries. Entries are encrypted with a key derived from
+the user's secp256k1 private key. Support `login` and `text` entry types.
+
+#### Schema
+
+Add to `webapp/src/db/schema.ts`:
+
+```typescript
+export const vaultEntries = mysqlTable(
+  "vault_entries",
+  {
+    id: binaryId("id").primaryKey(),
+    userId: binaryId("user_id").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: varchar("type", { length: 32 }).notNull(),
+    searchTerms: varchar("search_terms", { length: 255 }).notNull().default(""),
+    publicKey: varchar("public_key", { length: 66 }).notNull(),
+    encryptedData: text("encrypted_data").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("vault_user_id_idx").on(table.userId)],
+);
+```
+
+#### Server logic — `webapp/src/server/vault.server.ts`
+
+```typescript
+createVaultEntry(userId, name, type, searchTerms, publicKey, encryptedData)
+getVaultEntries(userId, query?)  // LIKE on name and search_terms
+getVaultEntry(userId, entryId)
+updateVaultEntry(userId, entryId, name, type, searchTerms, publicKey, encryptedData)
+deleteVaultEntry(userId, entryId)
+```
+
+All functions scope queries by `userId` — users can only access their own
+entries. Search uses `WHERE (name LIKE ? OR search_terms LIKE ?)` with `%`
+wrapping.
+
+#### Server functions — `webapp/src/server/vault.functions.ts`
+
+```typescript
+createEntry    — POST, Zod input: { name, type, searchTerms, publicKey, encryptedData }
+getMyEntries   — GET, optional query string for search
+getEntry       — GET, input: entry ID
+updateEntry    — POST, Zod input: { id, name, type, searchTerms, publicKey, encryptedData }
+deleteEntry    — POST, input: entry ID
+```
+
+All require `requireSessionUserId()`.
+
+#### Client crypto — `webapp/src/lib/vault.ts`
+
+```typescript
+import { blake3Mac } from "@webbuf/blake3";
+import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
+import { z } from "zod";
+
+// --- Vault key derivation ---
+
+function deriveVaultKey(privateKey: FixedBuf<32>): FixedBuf<32> {
+  return blake3Mac(privateKey, WebBuf.fromUtf8("vault-key"));
+}
+
+// --- Blob schemas ---
+
+const LoginFields = z.object({
+  type: z.literal("login"),
+  domain: z.string().optional(),
+  username: z.string().optional(),
+  email: z.string().optional(),
+  password: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const TextFields = z.object({
+  type: z.literal("text"),
+  text: z.string(),
+});
+
+const VaultEntryData = z.discriminatedUnion("type", [LoginFields, TextFields]);
+type VaultEntryData = z.infer<typeof VaultEntryData>;
+
+// --- Encrypt / decrypt ---
+
+function encryptVaultEntry(data: VaultEntryData, privateKey: FixedBuf<32>): string
+function decryptVaultEntry(hex: string, privateKey: FixedBuf<32>): VaultEntryData
+// Returns null instead of throwing if Zod validation fails
+function tryDecryptVaultEntry(hex: string, privateKey: FixedBuf<32>):
+  VaultEntryData | { raw: string }
+```
+
+#### UI — `webapp/src/routes/_app/_saved/_chrome/vault.tsx`
+
+Replace the placeholder. The vault page has three states:
+
+**1. Entry list (default)**
+
+- Search input at top (debounced, calls `getMyEntries` with query)
+- "New Entry" button
+- Entry cards: name, type icon (KeyRound for login, FileText for text),
+  key number badge. If key is locked, show lock icon + "unlock on Keys page"
+  link instead of entry content.
+- Click an entry → view mode
+
+**2. View/edit entry**
+
+- Back button to return to list
+- Name (editable)
+- Search terms (editable)
+- Type-specific fields:
+  - **Login**: domain, username, email, password, notes
+  - **Text**: text (textarea)
+- Password/secret fields masked by default. Eye icon to toggle. Copy button
+  on each field.
+- Save button (encrypts and updates)
+- Delete button with confirmation
+- Key number shown. If not active key, show "encrypted with Key #N"
+
+**3. Create entry**
+
+- Type selector (Login / Text tabs or radio)
+- Name (required)
+- Search terms (optional)
+- Type-specific fields (all optional except text for Text type)
+- Save button (encrypts with active key and creates)
+
+Key loading follows the same pattern as `channel.$address.tsx`:
+- On mount, load all user keys via `getMyKeys()`
+- Decrypt private keys using cached encryption key
+- Build a map of `publicKey → privateKey`
+- For each vault entry, look up its `publicKey` in the map to decrypt
+
+#### Verification
+
+1. `bun run db:clear && bun run db:push` — creates vault_entries table
+2. Create a login entry (e.g. "Google", domain google.com, password hunter2)
+3. Entry appears in vault list, encrypted on server
+4. Click entry → fields display, password masked. Toggle show. Copy works.
+5. Edit entry → change password → save. Verify re-encrypted correctly.
+6. Search "goo" → returns Google entry. Search "xyz" → empty.
+7. Delete entry → gone from list and database.
+8. Create a text entry (e.g. "OpenAI API Key"). Same CRUD flow works.
+9. Rotate key on Keys page → new entries use new key. Old entries still
+   readable with old key. Key number badge shows correctly.
+10. `bun run test` — existing tests pass
+11. `bun run lint` — no warnings
