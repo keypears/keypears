@@ -235,3 +235,10 @@ render inside the existing layout, so they inherit the app's styles.
 3. Manually trigger an error (e.g. navigate to a nonexistent vault entry) —
    error component renders
 4. Navigate to `/nonexistent` — not found component renders
+
+#### Result: Pass
+
+Added `defaultErrorComponent` (with "Try again" via `router.invalidate()`),
+`defaultPendingComponent` (Loader2 spinner), and `defaultNotFoundComponent`
+("Page not found" with Link home) to `router.tsx`. Finding #3 was already
+implemented. Lint clean, build passes.
