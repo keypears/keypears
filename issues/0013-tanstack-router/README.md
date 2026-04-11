@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # TanStack Router Best Practices
@@ -493,3 +494,20 @@ This is safe because:
 4. Claim a domain → navigate away → come back → domain list is current
 5. `bun run lint` — clean
 6. `bun run build` — passes
+
+#### Result: Pass
+
+Added `useEffect` sync to all four pages that copy loader data into state.
+Back navigation now shows fresh data. Also upgraded the "Saved" indicator on
+secret messages from plain text to a link that navigates to the vault entry
+(LEFT JOIN now returns `savedVaultEntryId` instead of boolean `isSaved`).
+
+## Conclusion
+
+Reopened to fix stale state on back navigation — four pages copied loader data
+into `useState` without syncing when the loader re-ran. Fixed with `useEffect`
+that resets state when loader data changes. Also added `savedVaultEntryId` link
+on saved secret messages.
+
+CLAUDE.md updated with the mandatory sync rule: when copying loader data into
+state, always add a `useEffect` to sync it.
