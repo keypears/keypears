@@ -296,3 +296,96 @@ Starlight-specific features. Move them from `src/content/docs/` to
 - Sidebar navigation works on desktop and mobile.
 - Prev/next links and astrohacker footer render correctly.
 - All existing content preserved.
+
+### Result: Pass
+
+Plain Astro + Tailwind site built with 9 pages, webapp color system, sidebar,
+prev/next, and astrohacker footer. Looks far better than Starlight. However,
+using a separate Astro app means we can't share React/shadcn components with
+the main webapp, and hosting on a separate domain adds infrastructure
+complexity. Addressed in Experiment 4.
+
+---
+
+## Experiment 4: Move docs into the main webapp at /docs
+
+### Hypothesis
+
+The simplest and most integrated approach is to serve docs as routes within the
+existing TanStack Start webapp at `keypears.com/docs`. This eliminates a
+separate app, a separate domain, a separate build, and a separate deployment.
+The docs pages use the same React components, the same shadcn UI, the same
+Sidebar, and the same Footer as the rest of the app. Logged-in users see the
+docs with their session intact; logged-out users see the docs without needing
+to authenticate.
+
+### Design
+
+**Route structure.** Docs live under a `_docs` layout route that provides a
+documentation-specific layout (sidebar navigation, content area) without
+requiring authentication. The layout is separate from `_app` (which requires
+login).
+
+```
+webapp/src/routes/
+  _docs.tsx                    # docs layout (sidebar + content, no auth)
+  _docs/
+    docs.tsx                   # /docs — welcome page
+    docs.protocol.addressing.tsx
+    docs.protocol.key-derivation.tsx
+    docs.protocol.encryption.tsx
+    docs.protocol.proof-of-work.tsx
+    docs.federation.tsx
+    docs.self-hosting.tsx
+    docs.security.tsx
+    docs.development.tsx
+```
+
+**Content.** The markdown content from `docs/src/content/docs/` is converted
+into React components. Options:
+
+1. Use `@mdx-js/rollup` to import `.mdx` files directly as components.
+2. Convert each markdown file to a React component with JSX.
+3. Use a runtime markdown renderer like `react-markdown`.
+
+Option 1 (MDX) is cleanest — the content stays as markdown with JSX support,
+and TanStack Start's Vite build handles the compilation.
+
+**Layout.** The `_docs.tsx` layout provides:
+
+- The existing Sidebar component (or a docs-specific variant) with doc
+  navigation
+- The existing Footer component with astrohacker branding
+- A content area styled with Tailwind typography (`prose`)
+- No authentication requirement — uses `getSessionUserId()` (optional auth)
+  so logged-in users see their session but logged-out users aren't redirected
+
+**Shared components.** The docs pages can use any component from the webapp:
+shadcn buttons, tables, code blocks, the Sidebar, the Footer, PowBadge, etc.
+This opens the door to interactive documentation (e.g., a live PoW demo, an
+address validator, a KDF calculator).
+
+**Delete the Astro docs app.** Remove `docs/` entirely. Remove `docs` from the
+bun workspace. Remove `dev:docs` from root `package.json`. Remove
+`docs.keypears.test` from CLAUDE.md dev topology.
+
+### Changes
+
+1. Add `@mdx-js/rollup` to webapp dependencies and configure in Vite.
+2. Create `_docs.tsx` layout route (sidebar, no auth required).
+3. Move markdown content from `docs/src/content/docs/` to
+   `webapp/src/routes/_docs/` as `.mdx` files (or convert to components).
+4. Create route files for each docs page.
+5. Delete `docs/` directory entirely.
+6. Remove `docs` from workspace, `dev:docs` from root scripts, and
+   `docs.keypears.test` from CLAUDE.md.
+7. Verify all docs pages render at `/docs/*`.
+
+### Pass criteria
+
+- `docs/` directory is deleted.
+- All 9 docs pages render at `/docs`, `/docs/protocol/addressing`, etc.
+- Docs are accessible without login.
+- Docs use the same components and styles as the rest of the webapp.
+- The existing app routes are unaffected.
+- Tests and linter pass.
