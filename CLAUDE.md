@@ -154,6 +154,10 @@ lockberries.test           → lockberries/ port 3520 (Astro landing, third-part
 - Use shadcn components for UI where appropriate.
 - Always capitalize "KeyPears" with capital K and P in user-facing text.
 - All address input fields require the full `name@domain` format.
+- **Navigation**: ALWAYS use TanStack Router's `<Link>` component or
+  `useNavigate` for client-side navigation. NEVER use raw `<a href="...">` tags
+  or `window.location.href` for internal links without explicit approval. Raw
+  navigation bypasses the router and breaks SPA behavior.
 
 ## Auth architecture
 
