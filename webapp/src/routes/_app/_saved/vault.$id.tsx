@@ -82,7 +82,7 @@ export const Route = createFileRoute("/_app/_saved/vault/$id")({
       getMyKeys(),
     ]);
     const history = entry
-      ? await getHistory({ data: entry.secretId })
+      ? await getHistory({ data: entry.id })
       : [];
     return { entryId: params.id, entry, entries, keyData, history };
   },
@@ -197,10 +197,10 @@ function VaultDetailPage() {
               <Link
                 key={e.id}
                 to="/vault/$id"
-                params={{ id: e.id }}
+                params={{ id: e.versionId }}
                 onClick={onSelect}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm no-underline transition-colors ${
-                  e.id === entryId
+                  e.versionId === entryId
                     ? "bg-accent/10 text-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
                 }`}
@@ -351,9 +351,12 @@ function EntryDetail({
     encryptedData: string;
     sourceMessageId: string | null;
     sourceAddress: string | null;
+    latestVersionId: string | null;
     createdAt: Date;
-    secretId: string;
+    updatedAt: Date;
+    versionId: string;
     version: number;
+    versionCreatedAt: Date;
   };
   keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
   activePublicKey: string | null;
@@ -380,7 +383,7 @@ function EntryDetail({
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
 
   // Filter out current version from history
-  const olderVersions = history.filter((v) => v.id !== entry.id);
+  const olderVersions = history.filter((v) => v.id !== entry.versionId);
   const [sharing, setSharing] = useState(false);
   const [shareAddress, setShareAddress] = useState("");
   const [shareStatus, setShareStatus] = useState("");
@@ -458,7 +461,7 @@ function EntryDetail({
       const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
       const result = await updateEntry({
         data: {
-          secretId: entry.secretId,
+          secretId: entry.id,
           name: editName,
           type: entry.type,
           searchTerms: editSearchTerms,
@@ -477,7 +480,7 @@ function EntryDetail({
 
   async function handleDelete() {
     try {
-      await deleteSecretFn({ data: entry.secretId });
+      await deleteSecretFn({ data: entry.id });
       onDeleted();
     } catch {
       setError("Failed to delete.");
@@ -855,7 +858,7 @@ function EntryDetail({
                 <span className="text-yellow-500">older key</span>
               )}
             <span>
-              v{entry.version} — {new Date(entry.createdAt).toLocaleDateString()}
+              v{entry.version} — {new Date(entry.versionCreatedAt).toLocaleDateString()}
             </span>
           </div>
           {entry.sourceAddress && (
@@ -1097,7 +1100,7 @@ function EntryDetail({
                               );
                               const result = await updateEntry({
                                 data: {
-                                  secretId: entry.secretId,
+                                  secretId: entry.id,
                                   name: ver.name,
                                   type: ver.type,
                                   searchTerms: ver.searchTerms,
@@ -1116,7 +1119,7 @@ function EntryDetail({
                           <DropdownMenuItem
                             onClick={async () => {
                               await deleteEntry({ data: ver.id });
-                              onSaved(entry.id);
+                              onSaved(entry.versionId);
                             }}
                             className="text-destructive cursor-pointer"
                           >

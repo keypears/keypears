@@ -96,27 +96,38 @@ export const channels = mysqlTable(
   ],
 );
 
-export const vaultEntries = mysqlTable(
-  "vault_entries",
+export const secrets = mysqlTable(
+  "secrets",
   {
     id: binaryId("id").primaryKey(),
     userId: binaryId("user_id").notNull(),
-    secretId: binaryId("secret_id").notNull(),
-    version: int("version").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     type: varchar("type", { length: 32 }).notNull(),
     searchTerms: varchar("search_terms", { length: 255 })
       .notNull()
       .default(""),
-    publicKey: varchar("public_key", { length: 66 }).notNull(),
-    encryptedData: text("encrypted_data").notNull(),
     sourceMessageId: binaryId("source_message_id"),
     sourceAddress: varchar("source_address", { length: 255 }),
+    latestVersionId: binaryId("latest_version_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("secret_user_id_idx").on(table.userId)],
+);
+
+export const secretVersions = mysqlTable(
+  "secret_versions",
+  {
+    id: binaryId("id").primaryKey(),
+    secretId: binaryId("secret_id").notNull(),
+    version: int("version").notNull(),
+    publicKey: varchar("public_key", { length: 66 }).notNull(),
+    encryptedData: text("encrypted_data").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    index("vault_user_id_idx").on(table.userId),
-    uniqueIndex("vault_secret_version_idx").on(table.secretId, table.version),
+    index("sv_secret_id_idx").on(table.secretId),
+    uniqueIndex("sv_secret_version_idx").on(table.secretId, table.version),
   ],
 );
 

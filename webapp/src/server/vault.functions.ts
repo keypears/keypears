@@ -6,7 +6,7 @@ import {
   createNewVersion,
   getVaultEntries,
   getVaultEntry,
-  deleteVaultEntry,
+  deleteVersion,
   deleteSecret,
   getSecretHistory,
 } from "./vault.server";
@@ -57,8 +57,8 @@ export const getMyEntries = createServerFn({ method: "GET" })
 export const getEntry = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: entryId, context: { userId } }) => {
-    return getVaultEntry(userId, entryId);
+  .handler(async ({ data: versionId, context: { userId } }) => {
+    return getVaultEntry(userId, versionId);
   });
 
 export const updateEntry = createServerFn({ method: "POST" })
@@ -89,8 +89,8 @@ export const updateEntry = createServerFn({ method: "POST" })
 export const deleteEntry = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .inputValidator(z.string())
-  .handler(async ({ data: entryId, context: { userId } }) => {
-    await deleteVaultEntry(userId, entryId);
+  .handler(async ({ data: versionId, context: { userId } }) => {
+    await deleteVersion(userId, versionId);
     return { success: true };
   });
 

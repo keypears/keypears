@@ -178,7 +178,7 @@ function VaultPage() {
               <Link
                 key={entry.id}
                 to="/vault/$id"
-                params={{ id: entry.id }}
+                params={{ id: entry.versionId }}
                 className="border-border/30 hover:bg-accent/5 flex items-center gap-3 rounded border px-4 py-3 no-underline transition-colors"
               >
                 {locked ? (

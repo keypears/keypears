@@ -1,5 +1,5 @@
 import { db } from "~/db";
-import { channels, messages, vaultEntries } from "~/db/schema";
+import { channels, messages, secrets } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
 import { newId } from "./utils";
 
@@ -144,14 +144,14 @@ export async function getChannelMessages(
       recipientPubKey: messages.recipientPubKey,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
-      savedVaultEntryId: vaultEntries.id,
+      savedVaultEntryId: secrets.latestVersionId,
     })
     .from(messages)
     .leftJoin(
-      vaultEntries,
+      secrets,
       and(
-        eq(vaultEntries.sourceMessageId, messages.id),
-        eq(vaultEntries.userId, userId),
+        eq(secrets.sourceMessageId, messages.id),
+        eq(secrets.userId, userId),
       ),
     )
     .where(conditions)
@@ -176,14 +176,14 @@ export async function getNewMessages(
       recipientPubKey: messages.recipientPubKey,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
-      savedVaultEntryId: vaultEntries.id,
+      savedVaultEntryId: secrets.latestVersionId,
     })
     .from(messages)
     .leftJoin(
-      vaultEntries,
+      secrets,
       and(
-        eq(vaultEntries.sourceMessageId, messages.id),
-        eq(vaultEntries.userId, userId),
+        eq(secrets.sourceMessageId, messages.id),
+        eq(secrets.userId, userId),
       ),
     )
     .where(and(eq(messages.channelId, channelId), gt(messages.id, afterId)))
