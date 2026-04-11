@@ -188,3 +188,22 @@ for data fetching. Our `_app.tsx` and `_saved.tsx` use loaders for auth checks
 No official testing docs exist. Community uses fragmented approaches. If we add
 tests for route behavior, set `defaultPendingMinMs: 0` in test router configs
 to avoid artificial delays.
+
+## Experiments
+
+### Experiment 1: Quick fixes (#1 and #7)
+
+#### Description
+
+Fix the two trivial issues: string interpolation in navigate, and the missing
+eslint-disable comment.
+
+#### Changes
+
+1. `send.tsx:166` — replace string interpolation with typed params:
+   `navigate({ to: "/channel/$address", params: { address: ... } })`
+2. `send.tsx:49` — add comment explaining why empty deps are safe.
+
+#### Result: Pass
+
+Both fixes applied. Lint clean, build passes.

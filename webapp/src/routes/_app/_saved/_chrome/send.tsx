@@ -43,7 +43,9 @@ function SendPage() {
   >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Validate pre-filled recipient on mount
+  // Pre-fill recipient from ?to= search param once on mount.
+  // handleRecipientChange is stable (no external deps) but defined after this
+  // hook, so eslint can't verify — safe to suppress.
   useEffect(() => {
     if (to) handleRecipientChange(to);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,7 +165,10 @@ function SendPage() {
       await sendMessage({
         data: { ...pending, pow: solution },
       });
-      navigate({ to: `/channel/${pending.recipientAddress}` });
+      navigate({
+        to: "/channel/$address",
+        params: { address: pending.recipientAddress },
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send message.");
       setStatus("");
