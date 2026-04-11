@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # TanStack Router Best Practices
