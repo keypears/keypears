@@ -483,21 +483,39 @@ function EntryDetail({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <input
-          type="text"
-          placeholder="Name"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Search terms"
-          value={editSearchTerms}
-          onChange={(e) => setEditSearchTerms(e.target.value)}
-          className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-        />
+        {/* Label section */}
+        <div>
+          <h3 className="text-foreground text-sm font-medium">Label</h3>
+          <p className="text-muted-foreground mb-2 text-xs">
+            Searchable. Visible to the server.
+          </p>
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Search terms"
+              value={editSearchTerms}
+              onChange={(e) => setEditSearchTerms(e.target.value)}
+              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Secret section */}
+        <div>
+          <h3 className="text-foreground text-sm font-medium">Secret</h3>
+          <p className="text-muted-foreground mb-2 text-xs">
+            Encrypted. Only you can see this.
+          </p>
+        </div>
+
         {data.type === "login" ? (
           <>
             <input
