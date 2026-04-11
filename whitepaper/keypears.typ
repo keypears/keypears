@@ -223,9 +223,11 @@ it.
 
 = Identity and Addressing
 
-A KeyPears address has the form `name@domain`. The name is a lowercase
-alphanumeric string (1--30 characters, starting with a letter). The domain is a
-standard DNS domain.
+A KeyPears address has the form `name@domain`---intentionally identical to an
+email address. The protocol places no restrictions on the local part beyond what
+email itself allows. An organization with existing email addresses can use the
+same addresses for KeyPears without any changes. The domain is a standard DNS
+domain.
 
 Each user holds one or more secp256k1 key pairs. The most recent key is the
 active key, used for ECDH key agreement in new messages. Users may rotate keys
@@ -556,7 +558,7 @@ ephemeral key material.
     inset: 6pt,
     align: left,
     table.header([], [*PGP*], [*Signal*], [*Matrix*], [*KeyPears*]),
-    [Identity], [Email address], [Phone number], [`\@user:server`], [`name@domain`],
+    [Identity], [Email address], [Phone number], [`@user:server`], [`name@domain`],
     [Federation], [Key servers], [None], [Homeservers], [DNS + pull model],
     [E2E encryption], [Manual], [Automatic], [Automatic], [Automatic],
     [Spam mitigation], [None], [Phone reg.], [Rate limits], [Proof of work],
