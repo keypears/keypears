@@ -3,8 +3,7 @@
   "private": true,
   "workspaces": ["webapp", "passapples", "lockberries", "packages/*"],
   "scripts": {
-    "dev": "concurrently -n kp,pa-land,pa-kp,lb,docs -c blue,green,yellow,magenta,cyan \"bun run dev:keypears\" \"bun run dev:passapples\" \"bun run dev:passapples:kp\" \"bun run dev:lockberries\" \"bun run dev:docs\"",
-    "dev:docs": "cd docs && bun run dev -- --port 3530",
+    "dev": "concurrently -n kp,pa-land,pa-kp,lb -c blue,green,yellow,magenta \"bun run dev:keypears\" \"bun run dev:passapples\" \"bun run dev:passapples:kp\" \"bun run dev:lockberries\"",
     "dev:keypears": "cd webapp && bun run dev:keypears",
     "dev:passapples": "cd passapples && bun run dev",
     "dev:passapples:kp": "cd webapp && bun run dev:passapples",

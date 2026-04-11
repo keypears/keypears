@@ -144,7 +144,6 @@ keypears.test              → webapp/ port 3500 (primary self-hosted)
 keypears.passapples.test   → webapp/ port 3512 (subdomain self-hosted)
 passapples.test            → passapples/ port 3510 (Astro landing page)
 lockberries.test           → lockberries/ port 3520 (Astro landing, third-party hosted)
-docs.keypears.test         → docs/ port 3530 (Astro + Starlight documentation)
 ```
 
 ## Key conventions

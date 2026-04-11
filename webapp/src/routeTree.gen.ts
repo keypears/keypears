@@ -12,11 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DocsRouteImport } from './routes/_docs'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsDocsRouteImport } from './routes/_docs/docs'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
+import { Route as DocsDocsSelfHostingRouteImport } from './routes/_docs/docs.self-hosting'
+import { Route as DocsDocsSecurityRouteImport } from './routes/_docs/docs.security'
+import { Route as DocsDocsFederationRouteImport } from './routes/_docs/docs.federation'
+import { Route as DocsDocsDevelopmentRouteImport } from './routes/_docs/docs.development'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
+import { Route as DocsDocsProtocolProofOfWorkRouteImport } from './routes/_docs/docs.protocol.proof-of-work'
+import { Route as DocsDocsProtocolKeyDerivationRouteImport } from './routes/_docs/docs.protocol.key-derivation'
+import { Route as DocsDocsProtocolEncryptionRouteImport } from './routes/_docs/docs.protocol.encryption'
+import { Route as DocsDocsProtocolAddressingRouteImport } from './routes/_docs/docs.protocol.addressing'
 import { Route as AppSavedVaultIdRouteImport } from './routes/_app/_saved/vault.$id'
 import { Route as AppSavedChannelAddressRouteImport } from './routes/_app/_saved/channel.$address'
 import { Route as AppSavedChromeVaultRouteImport } from './routes/_app/_saved/_chrome/vault'
@@ -44,6 +54,10 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/_docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -52,6 +66,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsDocsRoute = DocsDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => DocsRoute,
 } as any)
 const AppWelcomeRoute = AppWelcomeRouteImport.update({
   id: '/welcome',
@@ -62,10 +81,54 @@ const AppSavedRoute = AppSavedRouteImport.update({
   id: '/_saved',
   getParentRoute: () => AppRoute,
 } as any)
+const DocsDocsSelfHostingRoute = DocsDocsSelfHostingRouteImport.update({
+  id: '/self-hosting',
+  path: '/self-hosting',
+  getParentRoute: () => DocsDocsRoute,
+} as any)
+const DocsDocsSecurityRoute = DocsDocsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => DocsDocsRoute,
+} as any)
+const DocsDocsFederationRoute = DocsDocsFederationRouteImport.update({
+  id: '/federation',
+  path: '/federation',
+  getParentRoute: () => DocsDocsRoute,
+} as any)
+const DocsDocsDevelopmentRoute = DocsDocsDevelopmentRouteImport.update({
+  id: '/development',
+  path: '/development',
+  getParentRoute: () => DocsDocsRoute,
+} as any)
 const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
   id: '/_chrome',
   getParentRoute: () => AppSavedRoute,
 } as any)
+const DocsDocsProtocolProofOfWorkRoute =
+  DocsDocsProtocolProofOfWorkRouteImport.update({
+    id: '/protocol/proof-of-work',
+    path: '/protocol/proof-of-work',
+    getParentRoute: () => DocsDocsRoute,
+  } as any)
+const DocsDocsProtocolKeyDerivationRoute =
+  DocsDocsProtocolKeyDerivationRouteImport.update({
+    id: '/protocol/key-derivation',
+    path: '/protocol/key-derivation',
+    getParentRoute: () => DocsDocsRoute,
+  } as any)
+const DocsDocsProtocolEncryptionRoute =
+  DocsDocsProtocolEncryptionRouteImport.update({
+    id: '/protocol/encryption',
+    path: '/protocol/encryption',
+    getParentRoute: () => DocsDocsRoute,
+  } as any)
+const DocsDocsProtocolAddressingRoute =
+  DocsDocsProtocolAddressingRouteImport.update({
+    id: '/protocol/addressing',
+    path: '/protocol/addressing',
+    getParentRoute: () => DocsDocsRoute,
+  } as any)
 const AppSavedVaultIdRoute = AppSavedVaultIdRouteImport.update({
   id: '/vault/$id',
   path: '/vault/$id',
@@ -128,6 +191,11 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/docs': typeof DocsDocsRouteWithChildren
+  '/docs/development': typeof DocsDocsDevelopmentRoute
+  '/docs/federation': typeof DocsDocsFederationRoute
+  '/docs/security': typeof DocsDocsSecurityRoute
+  '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
@@ -139,6 +207,10 @@ export interface FileRoutesByFullPath {
   '/vault': typeof AppSavedChromeVaultRoute
   '/channel/$address': typeof AppSavedChannelAddressRoute
   '/vault/$id': typeof AppSavedVaultIdRoute
+  '/docs/protocol/addressing': typeof DocsDocsProtocolAddressingRoute
+  '/docs/protocol/encryption': typeof DocsDocsProtocolEncryptionRoute
+  '/docs/protocol/key-derivation': typeof DocsDocsProtocolKeyDerivationRoute
+  '/docs/protocol/proof-of-work': typeof DocsDocsProtocolProofOfWorkRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -146,6 +218,11 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/docs': typeof DocsDocsRouteWithChildren
+  '/docs/development': typeof DocsDocsDevelopmentRoute
+  '/docs/federation': typeof DocsDocsFederationRoute
+  '/docs/security': typeof DocsDocsSecurityRoute
+  '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
@@ -157,17 +234,27 @@ export interface FileRoutesByTo {
   '/vault': typeof AppSavedChromeVaultRoute
   '/channel/$address': typeof AppSavedChannelAddressRoute
   '/vault/$id': typeof AppSavedVaultIdRoute
+  '/docs/protocol/addressing': typeof DocsDocsProtocolAddressingRoute
+  '/docs/protocol/encryption': typeof DocsDocsProtocolEncryptionRoute
+  '/docs/protocol/key-derivation': typeof DocsDocsProtocolKeyDerivationRoute
+  '/docs/protocol/proof-of-work': typeof DocsDocsProtocolProofOfWorkRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/_docs': typeof DocsRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
+  '/_docs/docs': typeof DocsDocsRouteWithChildren
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
+  '/_docs/docs/development': typeof DocsDocsDevelopmentRoute
+  '/_docs/docs/federation': typeof DocsDocsFederationRoute
+  '/_docs/docs/security': typeof DocsDocsSecurityRoute
+  '/_docs/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
   '/_app/_saved/_chrome/domains': typeof AppSavedChromeDomainsRoute
   '/_app/_saved/_chrome/home': typeof AppSavedChromeHomeRoute
@@ -179,6 +266,10 @@ export interface FileRoutesById {
   '/_app/_saved/_chrome/vault': typeof AppSavedChromeVaultRoute
   '/_app/_saved/channel/$address': typeof AppSavedChannelAddressRoute
   '/_app/_saved/vault/$id': typeof AppSavedVaultIdRoute
+  '/_docs/docs/protocol/addressing': typeof DocsDocsProtocolAddressingRoute
+  '/_docs/docs/protocol/encryption': typeof DocsDocsProtocolEncryptionRoute
+  '/_docs/docs/protocol/key-derivation': typeof DocsDocsProtocolKeyDerivationRoute
+  '/_docs/docs/protocol/proof-of-work': typeof DocsDocsProtocolProofOfWorkRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -188,6 +279,11 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
+    | '/docs'
+    | '/docs/development'
+    | '/docs/federation'
+    | '/docs/security'
+    | '/docs/self-hosting'
     | '/$profile'
     | '/domains'
     | '/home'
@@ -199,6 +295,10 @@ export interface FileRouteTypes {
     | '/vault'
     | '/channel/$address'
     | '/vault/$id'
+    | '/docs/protocol/addressing'
+    | '/docs/protocol/encryption'
+    | '/docs/protocol/key-derivation'
+    | '/docs/protocol/proof-of-work'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -206,6 +306,11 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
+    | '/docs'
+    | '/docs/development'
+    | '/docs/federation'
+    | '/docs/security'
+    | '/docs/self-hosting'
     | '/$profile'
     | '/domains'
     | '/home'
@@ -217,16 +322,26 @@ export interface FileRouteTypes {
     | '/vault'
     | '/channel/$address'
     | '/vault/$id'
+    | '/docs/protocol/addressing'
+    | '/docs/protocol/encryption'
+    | '/docs/protocol/key-derivation'
+    | '/docs/protocol/proof-of-work'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/_docs'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/_app/_saved'
     | '/_app/welcome'
+    | '/_docs/docs'
     | '/_app/_saved/_chrome'
+    | '/_docs/docs/development'
+    | '/_docs/docs/federation'
+    | '/_docs/docs/security'
+    | '/_docs/docs/self-hosting'
     | '/_app/_saved/_chrome/$profile'
     | '/_app/_saved/_chrome/domains'
     | '/_app/_saved/_chrome/home'
@@ -238,11 +353,16 @@ export interface FileRouteTypes {
     | '/_app/_saved/_chrome/vault'
     | '/_app/_saved/channel/$address'
     | '/_app/_saved/vault/$id'
+    | '/_docs/docs/protocol/addressing'
+    | '/_docs/docs/protocol/encryption'
+    | '/_docs/docs/protocol/key-derivation'
+    | '/_docs/docs/protocol/proof-of-work'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  DocsRoute: typeof DocsRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -271,6 +391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_docs': {
+      id: '/_docs'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -284,6 +411,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_docs/docs': {
+      id: '/_docs/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsDocsRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/_app/welcome': {
       id: '/_app/welcome'
@@ -299,12 +433,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_docs/docs/self-hosting': {
+      id: '/_docs/docs/self-hosting'
+      path: '/self-hosting'
+      fullPath: '/docs/self-hosting'
+      preLoaderRoute: typeof DocsDocsSelfHostingRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/security': {
+      id: '/_docs/docs/security'
+      path: '/security'
+      fullPath: '/docs/security'
+      preLoaderRoute: typeof DocsDocsSecurityRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/federation': {
+      id: '/_docs/docs/federation'
+      path: '/federation'
+      fullPath: '/docs/federation'
+      preLoaderRoute: typeof DocsDocsFederationRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/development': {
+      id: '/_docs/docs/development'
+      path: '/development'
+      fullPath: '/docs/development'
+      preLoaderRoute: typeof DocsDocsDevelopmentRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
     '/_app/_saved/_chrome': {
       id: '/_app/_saved/_chrome'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppSavedChromeRouteImport
       parentRoute: typeof AppSavedRoute
+    }
+    '/_docs/docs/protocol/proof-of-work': {
+      id: '/_docs/docs/protocol/proof-of-work'
+      path: '/protocol/proof-of-work'
+      fullPath: '/docs/protocol/proof-of-work'
+      preLoaderRoute: typeof DocsDocsProtocolProofOfWorkRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/protocol/key-derivation': {
+      id: '/_docs/docs/protocol/key-derivation'
+      path: '/protocol/key-derivation'
+      fullPath: '/docs/protocol/key-derivation'
+      preLoaderRoute: typeof DocsDocsProtocolKeyDerivationRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/protocol/encryption': {
+      id: '/_docs/docs/protocol/encryption'
+      path: '/protocol/encryption'
+      fullPath: '/docs/protocol/encryption'
+      preLoaderRoute: typeof DocsDocsProtocolEncryptionRouteImport
+      parentRoute: typeof DocsDocsRoute
+    }
+    '/_docs/docs/protocol/addressing': {
+      id: '/_docs/docs/protocol/addressing'
+      path: '/protocol/addressing'
+      fullPath: '/docs/protocol/addressing'
+      preLoaderRoute: typeof DocsDocsProtocolAddressingRouteImport
+      parentRoute: typeof DocsDocsRoute
     }
     '/_app/_saved/vault/$id': {
       id: '/_app/_saved/vault/$id'
@@ -442,9 +632,46 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface DocsDocsRouteChildren {
+  DocsDocsDevelopmentRoute: typeof DocsDocsDevelopmentRoute
+  DocsDocsFederationRoute: typeof DocsDocsFederationRoute
+  DocsDocsSecurityRoute: typeof DocsDocsSecurityRoute
+  DocsDocsSelfHostingRoute: typeof DocsDocsSelfHostingRoute
+  DocsDocsProtocolAddressingRoute: typeof DocsDocsProtocolAddressingRoute
+  DocsDocsProtocolEncryptionRoute: typeof DocsDocsProtocolEncryptionRoute
+  DocsDocsProtocolKeyDerivationRoute: typeof DocsDocsProtocolKeyDerivationRoute
+  DocsDocsProtocolProofOfWorkRoute: typeof DocsDocsProtocolProofOfWorkRoute
+}
+
+const DocsDocsRouteChildren: DocsDocsRouteChildren = {
+  DocsDocsDevelopmentRoute: DocsDocsDevelopmentRoute,
+  DocsDocsFederationRoute: DocsDocsFederationRoute,
+  DocsDocsSecurityRoute: DocsDocsSecurityRoute,
+  DocsDocsSelfHostingRoute: DocsDocsSelfHostingRoute,
+  DocsDocsProtocolAddressingRoute: DocsDocsProtocolAddressingRoute,
+  DocsDocsProtocolEncryptionRoute: DocsDocsProtocolEncryptionRoute,
+  DocsDocsProtocolKeyDerivationRoute: DocsDocsProtocolKeyDerivationRoute,
+  DocsDocsProtocolProofOfWorkRoute: DocsDocsProtocolProofOfWorkRoute,
+}
+
+const DocsDocsRouteWithChildren = DocsDocsRoute._addFileChildren(
+  DocsDocsRouteChildren,
+)
+
+interface DocsRouteChildren {
+  DocsDocsRoute: typeof DocsDocsRouteWithChildren
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsDocsRoute: DocsDocsRouteWithChildren,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  DocsRoute: DocsRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
