@@ -126,8 +126,8 @@ KeyPears is guided by five principles:
 + *End-to-end encrypted.* Servers store only ciphertext. Plaintext never
   leaves the client. The server operator cannot read messages or vault entries.
 + *Client-side proof of work.* Every account creation, login, and message
-  requires proof of work computed in the user's browser. No CAPTCHAs, no
-  third-party verification services.
+  requires proof of work computed by the client. No CAPTCHAs, no third-party
+  verification services.
 + *DNS-based identity.* Addresses are `name@domain`. Identity is bound to DNS
   domain ownership, not to a phone number or a central registry. If you own
   your domain, you own your identity.
@@ -179,7 +179,7 @@ communicated before.
     content(((col-a + col-bs) / 2, y + 0.25), text(size: 7pt)[3. PoW challenge (signed)])
 
     y += step
-    content((col-a + 1.5, y), text(size: 7pt)[4. Mine PoW (WebGPU)  ·  5. ECDH + encrypt])
+    content((col-a + 1.5, y), text(size: 7pt)[4. Mine PoW (GPU)  ·  5. ECDH + encrypt])
 
     y += step
     line((col-a, y), (col-as, y), mark: (end: ">"))
@@ -203,11 +203,11 @@ communicated before.
   caption: [Message flow: Alice sends an encrypted message to Bob across two federated domains.],
 )
 
-+ Alice's browser asks her server for Bob's public key. Her server fetches it
++ Alice's client asks her server for Bob's public key. Her server fetches it
   from Bob's server via the federation API.
-+ Alice's browser requests a proof-of-work challenge from Bob's server. The
++ Alice's client requests a proof-of-work challenge from Bob's server. The
   request is signed with Alice's secp256k1 private key to prove her identity.
-+ Alice's browser mines the challenge on the GPU via WebGPU.
++ Alice's client mines the challenge on the GPU.
 + Alice computes a shared secret via ECDH (her private key, Bob's public key),
   derives an encryption key with BLAKE3, and encrypts the message with ACB3.
 + Alice sends the ciphertext and PoW solution to her server.
@@ -215,7 +215,7 @@ communicated before.
   Bob's server.
 + Bob's server independently resolves Alice's domain via DNS and TLS---it does
   not trust the notification. It pulls the ciphertext using the token.
-+ Bob's browser retrieves the ciphertext, re-derives the ECDH shared secret,
++ Bob's client retrieves the ciphertext, re-derives the ECDH shared secret,
   and decrypts.
 
 At no point does any server possess the plaintext or the keys needed to derive
@@ -279,7 +279,7 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
 
     rect((left-x - box-w / 2, fork-y - 1.0 - box-h), (left-x + box-w / 2, fork-y - 1.0))
     content((left-x, fork-y - 1.0 - box-h / 2), [*Encryption Key*])
-    content((left-x, fork-y - 1.0 - box-h - 0.4), text(size: 7pt)[cached in localStorage])
+    content((left-x, fork-y - 1.0 - box-h - 0.4), text(size: 7pt)[cached on client])
 
     // Fork right: Login Key
     line((center-x + 0.5, fork-y), (right-x, fork-y - 1.0), mark: (end: ">"))
@@ -312,7 +312,7 @@ discarded.
 
 *Tier 2a: Password Key #sym.arrow Encryption Key.* A second 100,000-round
 derivation with a distinct salt produces the encryption key. This key is cached
-in the browser's `localStorage` and used to encrypt and decrypt secp256k1
+on the client and used to encrypt and decrypt secp256k1
 private keys client-side. It is never sent to the server.
 
 *Tier 2b: Password Key #sym.arrow Login Key.* A parallel 100,000-round
@@ -322,7 +322,7 @@ client. The server hashes it with an additional 100,000 rounds before storage.
 
 The encryption key and login key are derived from the same parent with different
 salts, making them cryptographically independent. An attacker who compromises
-`localStorage` obtains the encryption key and can decrypt private keys on that
+client storage obtains the encryption key and can decrypt private keys on that
 device, but cannot derive the login key or impersonate the user on the server.
 
 *Vault key.* A separate vault key for encrypting stored secrets is derived as
@@ -438,9 +438,8 @@ including a 15-minute expiry. Challenges are stateless---no database entry is
 created until a valid solution is submitted. This prevents pre-computation
 attacks.
 
-*GPU mining.* All proof of work is computed client-side on the GPU via WebGPU
-using the `pow5-64b` algorithm. The mining shader runs natively on the GPU;
-servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
+*GPU mining.* All proof of work is computed client-side using the `pow5-64b`
+algorithm, designed for efficient GPU execution. Servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
 challenge takes approximately 1--2~seconds and a difficulty-7M challenge
 completes in under a second.
 
@@ -523,9 +522,9 @@ resolves Alice's domain via DNS and TLS, fetching `keypears.json` to discover
 the API endpoint. A malicious server cannot forge another domain's identity
 because TLS guarantees the response came from the real domain.
 
-== LocalStorage Theft
+== Client Storage Theft
 
-An attacker who compromises a user's `localStorage` obtains the encryption key,
+An attacker who compromises a user's client storage obtains the encryption key,
 which can decrypt the user's secp256k1 private keys. However, the login key is
 a cryptographic sibling of the encryption key (derived from the same parent with
 a different salt), not a child. The attacker cannot derive the login key,
@@ -536,7 +535,7 @@ the compromised device.
 == Limitations
 
 KeyPears does not protect against compromised endpoints (an attacker with access
-to the running browser can read decrypted content), weak passwords (an entropy
+to the running client can read decrypted content), weak passwords (an entropy
 meter guides users but does not enforce a minimum), or DNS-level attacks such as
 BGP hijacking (mitigated by DNSSEC where deployed). The current protocol does
 not provide forward secrecy---messages encrypted with a compromised key can be
@@ -603,7 +602,7 @@ Ratchet~#cite(<doubleratchet>)) would protect past messages if a key is
 compromised. *Public-key transparency logs* would provide auditability for key
 rotations, allowing users to detect unauthorized key changes. A *native mobile
 client* with hardware-backed key storage would improve security for the
-encryption key, which is currently cached in browser `localStorage`.
+encryption key, which is currently cached in client storage.
 
 = Conclusion
 
