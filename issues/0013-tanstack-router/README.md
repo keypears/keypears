@@ -207,3 +207,31 @@ eslint-disable comment.
 #### Result: Pass
 
 Both fixes applied. Lint clean, build passes.
+
+### Experiment 2: Error/pending components (#2, #3)
+
+#### Description
+
+Add default error, pending, and not-found components to the router config.
+Finding #3 (preloading) is already implemented — `defaultPreload: 'intent'` is
+set in `router.tsx`.
+
+#### Changes
+
+**`webapp/src/router.tsx`** — add three default components:
+
+- `defaultErrorComponent` — shows error message with a "Try again" button that
+  calls `router.invalidate()`. Minimal styling, matches the app's design.
+- `defaultPendingComponent` — centered spinner (Loader2 from lucide).
+- `defaultNotFoundComponent` — "Page not found" with a link back to home.
+
+These are global fallbacks. Individual routes can override them. The components
+render inside the existing layout, so they inherit the app's styles.
+
+#### Verification
+
+1. `bun run build` — passes
+2. `bun run lint` — clean
+3. Manually trigger an error (e.g. navigate to a nonexistent vault entry) —
+   error component renders
+4. Navigate to `/nonexistent` — not found component renders
