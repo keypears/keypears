@@ -111,3 +111,92 @@ Adapt `build-blog.ts` from kp1 into `webapp/build-blog.ts`. Run as part of the
 build process:
 `"build": "bun run build:whitepaper && bun run build:blog && vite build"`. Feeds
 are written to `webapp/public/blog/` and served as static files.
+
+---
+
+## Experiment 1: Import blog and render at /blog
+
+### Hypothesis
+
+The 14 existing blog posts can be imported from kp1, rendered at `/blog` using
+the same layout pattern as the docs pages, and the feed generation script can
+be adapted to run as part of the build. All existing URLs are preserved.
+
+### Changes
+
+**1. Copy blog content.**
+
+Copy all 14 markdown files from `kp1/web-kp/markdown/blog/` to
+`webapp/src/blog/`. These files use TOML frontmatter (`+++` delimiters) with
+`title`, `date`, and `author` fields.
+
+**2. Create a blog post loader.**
+
+Create `webapp/src/lib/blog.ts` with functions to:
+
+- Parse TOML frontmatter from blog markdown files (using `gray-matter` with
+  TOML engine, already used in kp1)
+- Return a list of posts sorted by date (most recent first) with slug, title,
+  date, and author
+- Return a single post by slug with its content
+
+Since we import markdown via `?raw`, the loader will import all blog files
+eagerly using `import.meta.glob` and parse them at runtime. This avoids
+creating a separate route file for each of the 14 posts.
+
+**3. Create blog layout (`_blog.tsx`).**
+
+Following the docs/channel pattern: top-level layout route outside `_app` and
+`_saved`. Builds its own sidebar with:
+
+- Logo + "KeyPears" at the top (links to `/`)
+- "Home" link
+- "Blog" section header
+- List of all posts by title, most recent first, active post highlighted
+- Burger menu on mobile, fixed sidebar on desktop
+- Optional auth (user dropdown if logged in)
+- Astrohacker footer
+
+**4. Create blog index (`_blog/blog.index.tsx`).**
+
+Route: `/blog`. Shows a list of all posts with title, date, and a short
+excerpt. Each links to `/blog/:slug`.
+
+**5. Create blog post route (`_blog/blog.$slug.tsx`).**
+
+Route: `/blog/:slug`. Loads the matching markdown file by slug, parses
+frontmatter, renders with `MarkdownRenderer`. Shows title, date, author at
+top. Prev/next navigation at bottom.
+
+**6. Adapt feed generation script.**
+
+Copy `kp1/web-kp/build-blog.ts` to `webapp/build-blog.ts`. Update paths:
+
+- Read from `src/blog/` instead of `markdown/blog/`
+- Write to `public/blog/` (same as kp1)
+- Add `feed`, `gray-matter`, `toml`, `remark`, `remark-parse`,
+  `remark-frontmatter`, `remark-rehype`, `rehype-stringify` as dependencies
+  (check which are already installed)
+
+Add `"build:blog": "bun build-blog.ts"` to `webapp/package.json` scripts.
+Update the `build` script to run `build:blog` before `vite build`.
+
+**7. Add "Blog" to main app sidebar.**
+
+Add `{ name: "Blog", path: "/blog", icon: Newspaper }` to the `navItems`
+array in `Sidebar.tsx`.
+
+**8. Add "Blog" link to Footer.**
+
+Add "Blog" to the footer links: "Terms · Privacy · Docs · Blog".
+
+### Pass criteria
+
+- All 14 blog posts render at their original URLs (`/blog/:slug`).
+- `/blog` shows a list of all posts.
+- Blog sidebar lists all posts with active highlighting.
+- Feed files are generated at `/blog/feed.xml`, `/blog/atom.xml`,
+  `/blog/feed.json`.
+- "Blog" appears in the main app sidebar.
+- Footer shows "Terms · Privacy · Docs · Blog".
+- Tests and linter pass.
