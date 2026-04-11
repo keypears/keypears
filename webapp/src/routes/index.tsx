@@ -1,4 +1,9 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  redirect,
+  useNavigate,
+  Link,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import {
   createUser,
@@ -85,9 +90,7 @@ function LandingPage() {
             </picture>
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
-          <p className="text-muted-foreground mb-8">
-            Diffie-Hellman Key Exchange
-          </p>
+          <p className="text-muted-foreground mb-8">Secret Exchange</p>
 
           {pagePhase === "idle" && registrationOpen && (
             <>
