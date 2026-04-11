@@ -1,0 +1,45 @@
+whitten1999:
+  type: article
+  title: "Why Johnny Can't Encrypt: A Usability Evaluation of PGP 5.0"
+  author:
+    - Whitten, Alma
+    - Tygar, J. D.
+  parent:
+    type: proceedings
+    title: "Proceedings of the 8th USENIX Security Symposium"
+  date: 1999-08
+
+back2002:
+  type: article
+  title: "Hashcash - A Denial of Service Counter-Measure"
+  author: Back, Adam
+  date: 2002-08-01
+  url: http://www.hashcash.org/papers/hashcash.pdf
+
+rfc7489:
+  type: article
+  title: "Domain-based Message Authentication, Reporting, and Conformance (DMARC)"
+  author:
+    - Kucherawy, M.
+    - Zwicky, E.
+  serial-number: RFC 7489
+  parent:
+    type: periodical
+    title: Internet Engineering Task Force
+  date: 2015-03
+
+moxie2016:
+  type: web
+  title: "Reflections: The ecosystem is moving"
+  author: Marlinspike, Moxie
+  date: 2016-05-10
+  url: https://signal.org/blog/the-ecosystem-is-moving/
+
+doubleratchet:
+  type: article
+  title: "The Double Ratchet Algorithm"
+  author:
+    - Perrin, Trevor
+    - Marlinspike, Moxie
+  date: 2016-11-20
+  url: https://signal.org/docs/specifications/doubleratchet/
