@@ -183,6 +183,13 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
 - Don't copy loader data into `useState` unless you need to modify it
   client-side (search, pagination). Read `Route.useLoaderData()` directly
   when the data is just rendered.
+- When you DO copy loader data into `useState`, you MUST add a `useEffect`
+  to sync it when the loader re-runs, or state goes stale on back navigation:
+  ```typescript
+  const { items: initialItems } = Route.useLoaderData();
+  const [items, setItems] = useState(initialItems);
+  useEffect(() => { setItems(initialItems); }, [initialItems]);
+  ```
 - NEVER use `getCachedEncryptionKey()` or similar functions that return new
   object references as useEffect dependencies — this causes infinite render
   loops. Read them inside the effect body instead.

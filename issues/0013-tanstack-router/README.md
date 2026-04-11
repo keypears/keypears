@@ -1,7 +1,6 @@
 +++
-status = "closed"
+status = "open"
 opened = "2026-04-11"
-closed = "2026-04-11"
 +++
 
 # TanStack Router Best Practices
@@ -66,7 +65,8 @@ navigate({
 This bypasses type safety — a renamed route param would silently break at
 runtime instead of failing at build time.
 
-Source: [TanStack Router typed routes](https://tanstack.com/router/latest/docs/guide/data-loading)
+Source:
+[TanStack Router typed routes](https://tanstack.com/router/latest/docs/guide/data-loading)
 
 ### 2. No error or pending components (High)
 
@@ -77,10 +77,11 @@ there's no fallback UI.
 router level in `__root.tsx` or the router config. These serve as global
 fallbacks. Individual routes can override with their own components.
 
-Be aware: `pendingComponent` only triggers during `loader` execution, NOT
-during `beforeLoad`. If `beforeLoad` is slow, users see nothing.
+Be aware: `pendingComponent` only triggers during `loader` execution, NOT during
+`beforeLoad`. If `beforeLoad` is slow, users see nothing.
 
-Source: [TanStack Router — Not Found Errors](https://tanstack.com/router/latest/docs/guide/not-found-errors),
+Source:
+[TanStack Router — Not Found Errors](https://tanstack.com/router/latest/docs/guide/not-found-errors),
 [GitHub #1104](https://github.com/TanStack/router/issues/1104)
 
 ### 3. No route preloading (Medium)
@@ -93,19 +94,21 @@ hover triggers a preload with 50ms delay, data expires after 30s.
 
 Be conservative with `'viewport'` or `'render'` strategies on mobile networks.
 
-Source: [TanStack Router — Preloading](https://tanstack.com/router/latest/docs/guide/preloading)
+Source:
+[TanStack Router — Preloading](https://tanstack.com/router/latest/docs/guide/preloading)
 
 ### 4. Manual refetching instead of router.invalidate() (Medium)
 
 After mutations (editing vault entries, sending messages), the app manually
 refetches data or reloads the page. TanStack Router provides
-`router.invalidate()` which reloads all current route matches in the
-background — existing data stays visible while fresh data loads.
+`router.invalidate()` which reloads all current route matches in the background
+— existing data stays visible while fresh data loads.
 
 **Fix**: Replace manual refetch patterns with `router.invalidate()`. Use
 `{ sync: true }` when the UI must wait for fresh data.
 
-Source: [TanStack Router — Data Mutations](https://tanstack.com/router/v1/docs/guide/data-mutations)
+Source:
+[TanStack Router — Data Mutations](https://tanstack.com/router/v1/docs/guide/data-mutations)
 
 ### 5. Auth middleware for server functions (Medium)
 
@@ -117,7 +120,8 @@ passed through `next()` context for type-safe access.
 **Fix**: Create `src/server/auth-middleware.ts` with a shared middleware that
 extracts and validates the session. Apply to all protected server functions.
 
-Source: [TanStack Start — Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware),
+Source:
+[TanStack Start — Middleware](https://tanstack.com/start/latest/docs/framework/react/guide/middleware),
 [DEV — Auth middleware](https://dev.to/hirotoshioi/how-to-protect-server-functions-with-auth-middleware-in-tanstack-start-opj)
 
 ### 6. Search param validation resilience (Low)
@@ -133,7 +137,8 @@ validateSearch: (search: Record<string, unknown>) => ({
 The official recommendation is to use Zod with `.catch()` over `.default()` for
 malformed params — avoids halting UX with error messages on bad URLs.
 
-Source: [TanStack Router — Search Params](https://tanstack.com/router/latest/docs/guide/search-params)
+Source:
+[TanStack Router — Search Params](https://tanstack.com/router/latest/docs/guide/search-params)
 
 ### 7. ESLint disable without explanation (Low)
 
@@ -151,7 +156,8 @@ Critical route options (`loader`, `beforeLoad`, `validateSearch`) stay in the
 main file. Non-critical options (`component`, `errorComponent`,
 `pendingComponent`) can be lazy-loaded.
 
-Source: [TanStack Router — Code Splitting](https://tanstack.com/router/latest/docs/guide/code-splitting)
+Source:
+[TanStack Router — Code Splitting](https://tanstack.com/router/latest/docs/guide/code-splitting)
 
 ### 9. Loaders are isomorphic — verify no secret leaks (Verify)
 
@@ -162,7 +168,8 @@ variables directly in a loader — always delegate to `createServerFn`.
 Our `_app.tsx` and `_saved.tsx` guards call server functions, so this is likely
 fine. But verify no loader directly imports from `.server.ts` files.
 
-Source: [TanStack Start — Code Execution Patterns](https://tanstack.com/start/latest/docs/framework/react/guide/code-execution-patterns)
+Source:
+[TanStack Start — Code Execution Patterns](https://tanstack.com/start/latest/docs/framework/react/guide/code-execution-patterns)
 
 ## Additional notes from research
 
@@ -173,22 +180,22 @@ Source: [TanStack Start — Code Execution Patterns](https://tanstack.com/start/
 3. **Regular queries** — data that depends on user interaction
 4. **Deferrable queries** — supplemental data (counts, previews)
 
-Our app uses tiers 1 and 3 well. Tier 2 (Suspense) and tier 4 (deferred) are
-not used but may not be needed at our scale.
+Our app uses tiers 1 and 3 well. Tier 2 (Suspense) and tier 4 (deferred) are not
+used but may not be needed at our scale.
 
 ### beforeLoad vs loader
 
 `beforeLoad` runs before child routes' `beforeLoad` — it's middleware for the
 subtree. Use it for auth guards, redirects, and context injection. Use `loader`
-for data fetching. Our `_app.tsx` and `_saved.tsx` use loaders for auth checks
-— these could arguably be `beforeLoad` with `redirect()` for a cleaner pattern
-(no flash of protected content), but the current approach works.
+for data fetching. Our `_app.tsx` and `_saved.tsx` use loaders for auth checks —
+these could arguably be `beforeLoad` with `redirect()` for a cleaner pattern (no
+flash of protected content), but the current approach works.
 
 ### Testing
 
 No official testing docs exist. Community uses fragmented approaches. If we add
-tests for route behavior, set `defaultPendingMinMs: 0` in test router configs
-to avoid artificial delays.
+tests for route behavior, set `defaultPendingMinMs: 0` in test router configs to
+avoid artificial delays.
 
 ## Experiments
 
@@ -271,13 +278,12 @@ does search and pagination, which modify the list beyond what the loader
 provides. `router.invalidate()` can't replace manual refetching here.
 
 Fix: after creating an entry, navigate to the new entry's detail page
-(`/vault/$id`) instead of refetching the list. The list refreshes naturally
-when the user navigates back (loader re-runs).
+(`/vault/$id`) instead of refetching the list. The list refreshes naturally when
+the user navigates back (loader re-runs).
 
-**`vault.$id.tsx`** — copies `entries` into state for the sidebar. The
-`onSaved` callback already navigates to the same entry, which re-runs the
-loader and provides fresh data. But the sidebar entry list is in state, so it
-goes stale.
+**`vault.$id.tsx`** — copies `entries` into state for the sidebar. The `onSaved`
+callback already navigates to the same entry, which re-runs the loader and
+provides fresh data. But the sidebar entry list is in state, so it goes stale.
 
 Fix: same pattern as vault.tsx — sidebar entries are client-managed (search).
 Keep the manual refetch for sidebar, but remove the redundant refetch from the
@@ -286,8 +292,8 @@ save flow since `onSaved` navigates and re-runs the loader for the main entry.
 #### Changes
 
 1. **`keys.tsx`**: Remove `keyList`/`passwordHash` state. Read
-   `Route.useLoaderData()` directly in render. After rotate and re-encrypt,
-   call `router.invalidate()` instead of `getMyKeys()` + `setKeyList()`.
+   `Route.useLoaderData()` directly in render. After rotate and re-encrypt, call
+   `router.invalidate()` instead of `getMyKeys()` + `setKeyList()`.
 
 2. **`vault.tsx`**: After create, navigate to the new entry's detail page
    (`/vault/$id`) instead of refetching the list.
@@ -312,8 +318,8 @@ save flow since `onSaved` navigates and re-runs the loader for the main entry.
   re-encrypt.
 - `vault.tsx`: after create, navigates to `/vault/$id` instead of refetching.
 - `vault.$id.tsx`: removed redundant `onUpdated` from save flow — `onSaved`
-  navigates and re-runs the loader. Removed `onUpdated` prop from
-  `EntryDetail` entirely.
+  navigates and re-runs the loader. Removed `onUpdated` prop from `EntryDetail`
+  entirely.
 - Lint clean, build passes.
 
 ### Experiment 4: Auth middleware for server functions (#5)
@@ -329,6 +335,7 @@ exported from `@tanstack/react-start`, implemented in
 Import: `import { createMiddleware } from '@tanstack/react-start'`
 
 Two middleware types exist:
+
 - **Request middleware** (default) — applies to all server requests
 - **Server function middleware** (`{ type: 'function' }`) — supports input
   validation and client-side logic
@@ -337,12 +344,14 @@ For auth, we want server function middleware. It extracts the session and passes
 the userId through `next()` context, making it type-safe in handlers.
 
 Known issues to watch for:
+
 - Server function middleware code leaking into client bundles
   ([#2783](https://github.com/TanStack/router/issues/2783))
 - Typing issues where adding request middleware causes `data` to become `never`
   ([#5238](https://github.com/TanStack/router/issues/5238))
 
 Sources:
+
 - [Middleware Guide](https://tanstack.com/start/latest/docs/framework/react/guide/middleware)
 - [createMiddleware API](https://tanstack.com/start/latest/docs/framework/react/middleware)
 - [Frontend Masters — Introducing TanStack Start Middleware](https://frontendmasters.com/blog/introducing-tanstack-start-middleware/)
@@ -353,8 +362,8 @@ Sources:
    extracts the session userId and passes it through context.
 2. Update all server functions that call `requireSessionUserId()` to use
    `.middleware([authMiddleware])` and read userId from context instead.
-3. Keep `getSessionUserId()` (nullable version) for functions that work with
-   or without auth (e.g. `getMyChannels`, `getMyUser`).
+3. Keep `getSessionUserId()` (nullable version) for functions that work with or
+   without auth (e.g. `getMyChannels`, `getMyUser`).
 
 #### Verification
 
@@ -367,6 +376,7 @@ Sources:
 
 Created `auth-middleware.ts` with `authMiddleware` using `createMiddleware`.
 Converted all `requireSessionUserId()` calls across three files:
+
 - `vault.functions.ts` — 5 functions
 - `message.functions.ts` — 6 functions (sendMessage, getMessagesForChannel,
   getOlderMessages, pollNewMessages, markChannelAsRead, getMyActiveEncryptedKey)
@@ -376,8 +386,8 @@ Converted all `requireSessionUserId()` calls across three files:
   toggleOpenRegistrationFn, toggleAllowThirdPartyDomainsFn, getMyPowSettings,
   updateMyPowSettings)
 
-`getMyAddress` helper converted from calling `requireSessionUserId` to
-accepting `userId` as parameter.
+`getMyAddress` helper converted from calling `requireSessionUserId` to accepting
+`userId` as parameter.
 
 Functions using optional auth (`getSessionUserId`) left unchanged:
 getMyChannels, getMyUnreadCount, getMyUser, checkNameAvailable, getMyDomains.
@@ -390,6 +400,7 @@ Lint clean, build passes.
 #### Description
 
 Three small items:
+
 - #6: Search param Zod validation in send.tsx
 - #8: Auto code splitting
 - #9: Verify loaders don't leak secrets
@@ -420,25 +431,65 @@ omitted from user config because it's always on. No action needed.
 **#9 — Verify loaders don't leak secrets: Verified clean.**
 
 No route file imports from `.server.ts`. All loaders call server functions
-(`getMyUser()`, `getMyKeys()`, etc.). No direct database or secret access in
-any loader. No action needed.
+(`getMyUser()`, `getMyKeys()`, etc.). No direct database or secret access in any
+loader. No action needed.
 
 #### Result: Pass
 
-## Conclusion
+### Experiment 6: Fix stale state on back navigation (#10)
 
-Audited the app against TanStack Router and TanStack Start best practices using
-official docs, community articles, and GitHub issues. Found 9 issues across 5
-categories. All resolved in 5 experiments:
+#### Description
 
-1. **Typed navigation** — replaced string interpolation with typed params.
-2. **Error/pending/not-found components** — added global defaults to the router.
-   Preloading was already enabled.
-3. **router.invalidate()** — keys page reads loader data directly instead of
-   copying to state. Vault pages navigate after mutations.
-4. **Auth middleware** — created `authMiddleware` using `createMiddleware`.
-   Replaced 22 `requireSessionUserId()` calls across 3 files.
-5. **Search param Zod** — replaced manual type checking with `z.object().catch()`.
-   Auto code splitting and loader security verified as already correct.
+Four pages copy loader data into `useState`. When the user navigates away and
+back, the loader re-runs with fresh data, but `useState` only reads its
+initializer once — stale state persists.
 
-Best practices documented in CLAUDE.md to prevent regression.
+Affected pages:
+- `channel.$address.tsx` — `messageList`, `channels`, `hasMore`
+- `vault.tsx` — `entries`, `hasMore`
+- `vault.$id.tsx` — `entries` (sidebar list)
+- `domains.tsx` — `domainList`
+
+#### Fix
+
+For each page, add a `useEffect` that resets state when loader data changes.
+Key the effect on a stable identifier that changes on navigation — the route
+param or a reference to the loader data itself.
+
+Pattern:
+```typescript
+const { entries: initialEntries } = Route.useLoaderData();
+const [entries, setEntries] = useState(initialEntries);
+
+// Sync loader data into state on navigation
+useEffect(() => {
+  setEntries(initialEntries);
+  setHasMore(initialEntries.length >= 20);
+}, [initialEntries]);
+```
+
+This is safe because:
+- Loader data is a new reference on each loader run (new array from DB query)
+- If the user hasn't navigated away, the reference is stable (no spurious
+  resets)
+- Client-side modifications (search, pagination, polling) update state
+  independently — the effect only fires when the loader re-runs
+
+#### Changes
+
+1. **`channel.$address.tsx`**: Sync `messageList`, `channels`, `hasMore` from
+   loader data. Key on `address` param to also reset on channel switch.
+2. **`vault.tsx`**: Sync `entries`, `hasMore` from loader data.
+3. **`vault.$id.tsx`**: Sync `entries` (sidebar) from loader data. Key on
+   `entryId` param.
+4. **`domains.tsx`**: Sync `domainList` from loader data.
+
+#### Verification
+
+1. Send a secret message → save to vault → navigate back to channel →
+   "Saved" shows (not green button)
+2. Create vault entry → navigate to vault list → new entry appears
+3. Switch between vault entries → sidebar highlights correctly
+4. Claim a domain → navigate away → come back → domain list is current
+5. `bun run lint` — clean
+6. `bun run build` — passes
