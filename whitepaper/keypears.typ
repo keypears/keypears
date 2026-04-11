@@ -398,7 +398,7 @@ patterns are supported:
     content((x3, -0.6 + box-h / 2), text(size: 8pt)[`keypears.com`\ hosted API])
 
     line((x3, 0.9), (x3, -0.6 + box-h), mark: (end: ">"))
-    content((x3 + 2.3, 0.5), text(size: 7pt)[keypears.json\ + admin field])
+    content((x3 + 2.8, 0.5), text(size: 7pt)[keypears.json + admin field])
     content((x3, -1.0), text(size: 7pt, weight: "bold")[Third-party hosted])
   }),
   caption: [Three federation patterns. In each case, the address domain (`acme.com`) may differ from the API server.],
