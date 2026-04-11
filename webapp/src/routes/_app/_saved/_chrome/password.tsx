@@ -18,7 +18,7 @@ import {
 import { acs2Encrypt } from "@webbuf/acs2";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/password")({
-  head: () => ({ meta: [{ title: "Change Password — KeyPears" }] }),
+  head: () => ({ meta: [{ title: "Password — KeyPears" }] }),
   component: PasswordPage,
 });
 
@@ -110,7 +110,7 @@ function PasswordPage() {
 
   return (
     <div className="mx-auto max-w-md p-8 font-sans">
-      <h1 className="text-foreground text-2xl font-bold">Change Password</h1>
+      <h1 className="text-foreground text-2xl font-bold">Password</h1>
       <p className="text-muted-foreground mt-2 text-sm">
         Keys encrypted with your current password will be re-encrypted with
         your new password. Keys under a different password will be unchanged.
@@ -177,7 +177,7 @@ function PasswordPage() {
           disabled={saving}
           className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
         >
-          {saving ? "Changing..." : "Change Password"}
+          {saving ? "Changing..." : "Password"}
         </button>
       </form>
     </div>

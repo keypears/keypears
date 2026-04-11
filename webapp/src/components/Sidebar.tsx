@@ -96,7 +96,7 @@ function UserDropdown({
         <DropdownMenuItem asChild>
           <a href="/password" className="cursor-pointer no-underline">
             <LockKeyhole className="mr-2 h-4 w-4" />
-            Change Password
+            Password
             {showWarning && (
               <span className={`${dotColor} ml-auto h-2 w-2 rounded-full`} />
             )}
