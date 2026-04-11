@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # URL Param Encoding
@@ -118,3 +119,28 @@ parameterized routes. Update CLAUDE.md.
 5. Click `<Link>` to profile from home — URL correct
 6. `bun run lint` — clean
 7. `bun run build` — passes
+
+#### Result: Pass
+
+The initial approach — per-route `params.stringify`/`params.parse` configs in a
+shared `route-params.ts` — was wrong. Those configs control how params are
+parsed from the URL on the route definition side, not how `<Link>` encodes
+params when building URLs. The `@` was still encoded as `%40` in every link.
+
+The correct solution is one line in `router.tsx`:
+
+```typescript
+pathParamsAllowedCharacters: ["@"]
+```
+
+This tells TanStack Router globally to not encode `@` in any route param URL.
+It works at the URL construction level — both `<Link>` and `navigate()` produce
+clean URLs. The per-route configs were removed, `route-params.ts` deleted.
+
+## Conclusion
+
+TanStack Router encodes route params with `encodeURIComponent` by default,
+converting `@` to `%40`. The fix is `pathParamsAllowedCharacters: ["@"]` on the
+router config — one line, global, applies to all routes and all `<Link>`/
+`navigate()` calls. No per-route configuration needed. If other characters need
+preserving in the future, add them to the array.
