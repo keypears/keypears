@@ -440,8 +440,9 @@ attacks.
 
 *GPU mining.* All proof of work is computed client-side on the GPU via WebGPU
 using the `pow5-64b` algorithm. The mining shader runs natively on the GPU;
-servers never mine. A modern GPU solves a difficulty-70M challenge in
-approximately 15~seconds and a difficulty-7M challenge in 1--2~seconds.
+servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
+challenge takes approximately 1--2~seconds and a difficulty-7M challenge
+completes in under a second.
 
 *Per-recipient configurability.* Each user can set their own PoW difficulty for
 incoming messages:
@@ -452,10 +453,10 @@ incoming messages:
     inset: 8pt,
     align: (left, right, left),
     table.header([*Action*], [*Difficulty*], [*Approx. time*]),
-    [Account creation], [70,000,000], [~15 s],
-    [Login], [7,000,000], [~1--2 s],
-    [First message to user], [70,000,000 (default)], [~15 s],
-    [Subsequent messages], [7,000,000 (default)], [~1--2 s],
+    [Account creation], [70,000,000], [~1--2 s],
+    [Login], [7,000,000], [< 1 s],
+    [First message to user], [70,000,000 (default)], [~1--2 s],
+    [Subsequent messages], [7,000,000 (default)], [< 1 s],
   ),
   caption: [Default proof-of-work difficulty levels. Message difficulties are configurable per recipient with a server-enforced minimum of 7M.],
 )
@@ -483,24 +484,25 @@ recover the login key, or 300,000 rounds to recover the password.
 == Password Brute-Force
 
 An offline attack against the stored hash requires 300,000 BLAKE3 rounds per
-guess. BLAKE3 processes approximately 1 billion hashes per second on a modern
-GPU. At this rate, a single password guess requires approximately 300
-microseconds. For an 8-character password drawn from lowercase letters and
+guess. On a modern CPU core, BLAKE3-MAC processes approximately 4.3~million
+rounds per second, so a single password guess takes approximately 70~milliseconds.
+For an 8-character password drawn from lowercase letters and
 digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive search takes
-approximately $2.8 times 10^(12) times 3 times 10^(-4) approx 8.4 times 10^8$
-seconds, or roughly 27~years on a single GPU. Longer or more complex passwords
-increase this cost exponentially. Online attacks are further throttled by the
-login PoW requirement (7M difficulty per attempt).
+approximately $2.8 times 10^(12) times 0.07 approx 2.0 times 10^(11)$
+seconds, or roughly 6,300~CPU-core-years. An attacker with 100 cores would
+still require over 60~years. Longer or more complex passwords increase this
+cost exponentially. Online attacks are further throttled by the login PoW
+requirement (7M difficulty per attempt).
 
 == Spam and Sybil Attacks
 
 Creating an account requires solving a difficulty-70M proof-of-work challenge,
-taking approximately 15~seconds on a modern GPU. Creating 1,000 accounts
-requires approximately 4~GPU-hours. Sending a first message to a new recipient
-requires an additional 70M-difficulty challenge. Mass spam is economically
-impractical: reaching 10,000 users requires approximately 42~GPU-hours of
-continuous computation, with no guarantee of delivery since recipients may set
-higher difficulty thresholds.
+taking approximately 1--2~seconds on a modern laptop GPU. Creating 1,000
+accounts requires approximately 20~minutes of continuous GPU computation.
+Sending a first message to a new recipient requires an additional 70M-difficulty
+challenge. Mass spam is costly: reaching 10,000 users requires approximately
+3.5~GPU-hours of continuous computation, with no guarantee of delivery since
+recipients may set higher difficulty thresholds.
 
 == Social-Graph Probing
 
