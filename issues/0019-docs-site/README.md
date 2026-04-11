@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Documentation site at docs.keypears.com
@@ -182,12 +183,14 @@ docs site covers everything, not just the protocol.
 Comparing the old docs against the new, the following information is missing:
 
 **From `kdf.md`:**
+
 - Implementation section — function names and file paths (`derivePasswordKey`,
   `deriveEncryptionKeyFromPasswordKey`, etc. in `webapp/src/lib/auth.ts`)
 - Key rotation mechanics — how new key pairs are generated, encrypted, and
   stored; how `loginKeyHash` tracks which password encrypted which key
 
 **From `federation.md`:**
+
 - `keypears.json` caching — TTL recommendation (1 hour suggested)
 - Key discovery — how to look up a user's public key via `getPublicKey`
 - Same-domain delivery — the simpler path when sender and recipient share a
@@ -199,13 +202,14 @@ Comparing the old docs against the new, the following information is missing:
   `KEYPEARS_API_DOMAIN`, `DATABASE_URL`, `KEYPEARS_SECRET`)
 
 **From `dev-setup.md`:**
+
 - The entire document — Caddy + dnsmasq local HTTPS setup, `.test` domain
   configuration, dev topology table, daily workflow
 
 ### Changes
 
-1. **`protocol/key-derivation.md`** — Add "Implementation" section with
-   function names and file paths. Add "Key rotation" section.
+1. **`protocol/key-derivation.md`** — Add "Implementation" section with function
+   names and file paths. Add "Key rotation" section.
 
 2. **`federation.md`** — Add caching, key discovery, same-domain delivery,
    message structure table, and message size limit sections.
@@ -214,13 +218,13 @@ Comparing the old docs against the new, the following information is missing:
    complete (already partially there).
 
 4. **New page: `development.md`** — Local development setup adapted from
-   `dev-setup.md`. Caddy + dnsmasq setup, dev topology, daily workflow. Add
-   to sidebar.
+   `dev-setup.md`. Caddy + dnsmasq setup, dev topology, daily workflow. Add to
+   sidebar.
 
 ### Pass criteria
 
-- Every piece of information from the three old docs exists somewhere in the
-  new docs site.
+- Every piece of information from the three old docs exists somewhere in the new
+  docs site.
 - New development page covers local HTTPS setup.
 - Site builds successfully.
 
@@ -240,15 +244,15 @@ aesthetic doesn't match the main app. Addressed in Experiment 3.
 Starlight provides search and auto-generated TOC but forces a design language
 that conflicts with the KeyPears brand. A plain Astro site styled with the same
 Tailwind CSS and color system as the main webapp will look cohesive and give
-full control over every element. Search can be added later with Pagefind
-(which works on any static site, not just Starlight).
+full control over every element. Search can be added later with Pagefind (which
+works on any static site, not just Starlight).
 
 ### Design
 
 **Style source.** Copy the KeyPears webapp's visual language:
 
-- Tailwind CSS v4 with the same `globals.css` color variables (Tokyo Night
-  base, sage green accent, green-tinted neutrals)
+- Tailwind CSS v4 with the same `globals.css` color variables (Tokyo Night base,
+  sage green accent, green-tinted neutrals)
 - Same font (Inter via `@fontsource-variable/geist` or system)
 - Same dark/light mode via `prefers-color-scheme`
 - Same border, muted, and accent colors
@@ -261,8 +265,8 @@ full control over every element. Search can be added later with Pagefind
 - Footer: prev/next links + "An Astrohacker Project" branding
 - Mobile: collapsible sidebar via hamburger menu
 
-The layout should feel like a natural extension of the main app, not a
-different website.
+The layout should feel like a natural extension of the main app, not a different
+website.
 
 **Content.** Preserve all 9 markdown files from the Starlight site as-is. They
 use standard markdown with YAML frontmatter (`title`, `description`) — no
@@ -301,9 +305,9 @@ Starlight-specific features. Move them from `src/content/docs/` to
 
 Plain Astro + Tailwind site built with 9 pages, webapp color system, sidebar,
 prev/next, and astrohacker footer. Looks far better than Starlight. However,
-using a separate Astro app means we can't share React/shadcn components with
-the main webapp, and hosting on a separate domain adds infrastructure
-complexity. Addressed in Experiment 4.
+using a separate Astro app means we can't share React/shadcn components with the
+main webapp, and hosting on a separate domain adds infrastructure complexity.
+Addressed in Experiment 4.
 
 ---
 
@@ -316,8 +320,8 @@ existing TanStack Start webapp at `keypears.com/docs`. This eliminates a
 separate app, a separate domain, a separate build, and a separate deployment.
 The docs pages use the same React components, the same shadcn UI, the same
 Sidebar, and the same Footer as the rest of the app. Logged-in users see the
-docs with their session intact; logged-out users see the docs without needing
-to authenticate.
+docs with their session intact; logged-out users see the docs without needing to
+authenticate.
 
 ### Design
 
@@ -348,8 +352,8 @@ into React components. Options:
 2. Convert each markdown file to a React component with JSX.
 3. Use a runtime markdown renderer like `react-markdown`.
 
-Option 1 (MDX) is cleanest — the content stays as markdown with JSX support,
-and TanStack Start's Vite build handles the compilation.
+Option 1 (MDX) is cleanest — the content stays as markdown with JSX support, and
+TanStack Start's Vite build handles the compilation.
 
 **Layout.** The `_docs.tsx` layout provides:
 
@@ -357,8 +361,8 @@ and TanStack Start's Vite build handles the compilation.
   navigation
 - The existing Footer component with astrohacker branding
 - A content area styled with Tailwind typography (`prose`)
-- No authentication requirement — uses `getSessionUserId()` (optional auth)
-  so logged-in users see their session but logged-out users aren't redirected
+- No authentication requirement — uses `getSessionUserId()` (optional auth) so
+  logged-in users see their session but logged-out users aren't redirected
 
 **Shared components.** The docs pages can use any component from the webapp:
 shadcn buttons, tables, code blocks, the Sidebar, the Footer, PowBadge, etc.
@@ -393,10 +397,10 @@ bun workspace. Remove `dev:docs` from root `package.json`. Remove
 ### Result: Pass
 
 Astro docs app deleted. All 9 docs pages render as TanStack Start routes at
-`/docs/*` using `react-markdown` for rendering. Separate `_docs` layout with
-its own sidebar and navbar. Linter: 0 errors, tests: 7/7 passed. However, the
-docs are isolated from the main app — separate layout, separate sidebar,
-separate navbar. Addressed in Experiment 5.
+`/docs/*` using `react-markdown` for rendering. Separate `_docs` layout with its
+own sidebar and navbar. Linter: 0 errors, tests: 7/7 passed. However, the docs
+are isolated from the main app — separate layout, separate sidebar, separate
+navbar. Addressed in Experiment 5.
 
 ---
 
@@ -405,17 +409,17 @@ separate navbar. Addressed in Experiment 5.
 ### Hypothesis
 
 The docs should feel like part of the main app, not a separate site bolted on.
-The same Sidebar, Footer, and user dropdown used in the authenticated app
-should appear on docs pages. Docs should be accessible to everyone (logged in
-or not), but logged-in users see their session.
+The same Sidebar, Footer, and user dropdown used in the authenticated app should
+appear on docs pages. Docs should be accessible to everyone (logged in or not),
+but logged-in users see their session.
 
 ### Design
 
 **Pattern.** The channel page (`channel.$address.tsx`) and vault detail page
-(`vault.$id.tsx`) both live outside `_chrome` and build their own custom
-sidebar — with burger menu, mobile drawer, and always-visible desktop sidebar.
-The docs pages follow the same pattern: a custom docs sidebar built into the
-docs layout, not a modification of the main `Sidebar` component.
+(`vault.$id.tsx`) both live outside `_chrome` and build their own custom sidebar
+— with burger menu, mobile drawer, and always-visible desktop sidebar. The docs
+pages follow the same pattern: a custom docs sidebar built into the docs layout,
+not a modification of the main `Sidebar` component.
 
 **Main app sidebar.** Add "Docs" as a 5th nav item in the existing Sidebar
 (`Home, Inbox, Send, Vault, Docs`). This is how users discover docs from the
@@ -425,40 +429,40 @@ main app.
 `_app.tsx` — outside both `_app` (which requires login) and `_saved` (which
 requires a password). It builds everything from scratch:
 
-- *Navbar:* Logo + "KeyPears Docs" on the left. If logged in, user address +
+- _Navbar:_ Logo + "KeyPears Docs" on the left. If logged in, user address +
   user dropdown on the right. If not logged in, just the logo.
-- *Sidebar:* "Home" link at top, then docs nav items grouped by section.
-  Burger menu on mobile, fixed on desktop. Same visual pattern as
+- _Sidebar:_ "Home" link at top, then docs nav items grouped by section. Burger
+  menu on mobile, fixed on desktop. Same visual pattern as
   `channel.$address.tsx`.
-- *Footer:* Astrohacker branding + terms/privacy/docs links.
+- _Footer:_ Astrohacker branding + terms/privacy/docs links.
 
 Uses optional auth via `getSessionUserId()` to detect login state — logged-in
 users see their dropdown, logged-out users see docs freely.
 
 **Auth states for docs:**
 
-1. *Logged in + password set:* Docs sidebar + user dropdown + address in
+1. _Logged in + password set:_ Docs sidebar + user dropdown + address in
    top-right.
-2. *Logged in + no password:* Docs sidebar + user dropdown (log out only).
-3. *Not logged in:* Docs sidebar + logo. No user dropdown.
+2. _Logged in + no password:_ Docs sidebar + user dropdown (log out only).
+3. _Not logged in:_ Docs sidebar + logo. No user dropdown.
 
-**Footer.** Add "Docs" link to the existing `Footer` component:
-"Terms · Privacy · Docs". This ensures `/docs` is discoverable from every
-page including the logged-out landing page.
+**Footer.** Add "Docs" link to the existing `Footer` component: "Terms · Privacy
+· Docs". This ensures `/docs` is discoverable from every page including the
+logged-out landing page.
 
 **Delete `DocsSidebar.tsx`.** Replace with the sidebar built directly into the
 `_docs.tsx` layout, following the channel/vault pattern.
 
 ### Changes
 
-1. **`Sidebar.tsx`** — Add `{ name: "Docs", path: "/docs", icon: BookOpen }`
-   to the `navItems` array.
+1. **`Sidebar.tsx`** — Add `{ name: "Docs", path: "/docs", icon: BookOpen }` to
+   the `navItems` array.
 
 2. **`_docs.tsx`** — Rewrite as a self-contained layout with its own navbar,
-   sidebar (burger + drawer + desktop fixed), and footer. Use optional auth
-   via `getSessionUserId()` to show user dropdown if logged in. The sidebar,
-   navbar, and footer are built directly in this file (or in helper
-   components), not imported from the `_chrome` layout.
+   sidebar (burger + drawer + desktop fixed), and footer. Use optional auth via
+   `getSessionUserId()` to show user dropdown if logged in. The sidebar, navbar,
+   and footer are built directly in this file (or in helper components), not
+   imported from the `_chrome` layout.
 
 3. **`Footer.tsx`** — Add "Docs" link to the main app footer.
 
@@ -467,9 +471,40 @@ page including the logged-out landing page.
 ### Pass criteria
 
 - "Docs" appears in the main app sidebar nav items.
-- Docs pages have their own custom sidebar with burger menu (mobile) and
-  fixed sidebar (desktop), following the channel/vault pattern.
+- Docs pages have their own custom sidebar with burger menu (mobile) and fixed
+  sidebar (desktop), following the channel/vault pattern.
 - Logged-in users see their user dropdown on docs pages.
 - Logged-out users see docs without being redirected to login.
 - Footer on all pages includes a "Docs" link.
 - Tests and linter pass.
+
+### Result: Pass
+
+Docs fully integrated into the main app chrome. "Docs" added as 5th sidebar nav
+item. Docs layout builds its own sidebar following the channel/vault pattern
+(burger menu on mobile, fixed on desktop). `UserDropdown` extracted as shared
+component. User address shown in top-right on desktop with domain lookup via
+`getMyUser`. Footer shows "Terms · Privacy · Docs" on all pages. Markdown links
+use client-side navigation via shared `MarkdownRenderer` component (also used by
+terms/privacy pages).
+
+---
+
+## Conclusion
+
+The documentation journey went through five experiments:
+
+1. **Starlight** — scaffolded quickly but fought against KeyPears brand colors
+   and component patterns at every turn. Abandoned.
+2. **Content migration** — ensured no information was lost from the old docs.
+3. **Plain Astro + Tailwind** — much better visually, but couldn't share React
+   components with the main app.
+4. **TanStack Start routes** — moved docs into the webapp as `/docs/*` routes
+   with `react-markdown` rendering. Same build, same deploy, same domain.
+5. **Full integration** — docs use the same sidebar pattern as channels/vault,
+   shared `UserDropdown` component, optional auth for logged-in users, and a
+   shared `MarkdownRenderer` with GFM and client-side link navigation.
+
+The final result: 9 documentation pages at `keypears.com/docs`, fully integrated
+into the main app, accessible to everyone (logged in or not), using the same
+components, styles, and navigation patterns as the rest of the application.
