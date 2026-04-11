@@ -444,22 +444,21 @@ servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
 challenge takes approximately 1--2~seconds and a difficulty-7M challenge
 completes in under a second.
 
-*Per-recipient configurability.* Each user can set their own PoW difficulty for
-incoming messages:
+*Configurable difficulty.* The protocol does not dictate fixed difficulty
+levels. Instead, difficulty is set independently at two layers:
 
-#figure(
-  table(
-    columns: (auto, auto, auto),
-    inset: 8pt,
-    align: (left, right, left),
-    table.header([*Action*], [*Difficulty*], [*Approx. time*]),
-    [Account creation], [70,000,000], [~1--2 s],
-    [Login], [7,000,000], [< 1 s],
-    [First message to user], [70,000,000 (default)], [~1--2 s],
-    [Subsequent messages], [7,000,000 (default)], [< 1 s],
-  ),
-  caption: [Default proof-of-work difficulty levels. Message difficulties are configurable per recipient with a server-enforced minimum of 7M.],
-)
+- *Server operators* set the difficulty for account creation and login. An
+  operator experiencing spam can raise the account-creation difficulty at any
+  time; an operator under a password-cracking attack can raise the login
+  difficulty. These are operational decisions, not protocol constants.
+- *Individual users* set the difficulty for incoming messages: one threshold for
+  first contact (channel opening) and another for subsequent messages. A user
+  receiving unwanted messages can raise their difficulty; a user who values
+  low-friction communication can lower it.
+
+On a modern laptop GPU (~55M hashes/s), a difficulty of 7M takes under a second
+and a difficulty of 70M takes 1--2~seconds, but operators and users are free to
+choose any value that suits their needs.
 
 *Authenticated challenges.* Challenge requests require the sender to sign with
 their secp256k1 private key. The recipient's server verifies the signature by
@@ -496,13 +495,15 @@ requirement (7M difficulty per attempt).
 
 == Spam and Sybil Attacks
 
-Creating an account requires solving a difficulty-70M proof-of-work challenge,
-taking approximately 1--2~seconds on a modern laptop GPU. Creating 1,000
-accounts requires approximately 20~minutes of continuous GPU computation.
-Sending a first message to a new recipient requires an additional 70M-difficulty
-challenge. Mass spam is costly: reaching 10,000 users requires approximately
-3.5~GPU-hours of continuous computation, with no guarantee of delivery since
-recipients may set higher difficulty thresholds.
+Every account creation, login, and message requires proof of work, and the
+difficulty is tunable. The cost of an attack scales linearly with the number
+of targets and with the difficulty level. For example, at a difficulty of 70M on
+a modern laptop GPU (~55M hashes/s), each action takes approximately
+1--2~seconds. Creating 1,000 accounts at this difficulty requires approximately
+20~minutes of continuous GPU computation. If an operator is under attack, they
+can raise the difficulty by an order of magnitude, making the same attack take
+hours instead of minutes. Recipients who set high message difficulty impose
+additional per-message costs that make targeted spam impractical.
 
 == Social-Graph Probing
 
