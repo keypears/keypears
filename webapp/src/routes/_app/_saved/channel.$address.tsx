@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
@@ -16,13 +16,20 @@ import {
   decryptPrivateKey,
   signPowRequest,
 } from "~/lib/auth";
-import { encryptMessage, decryptMessage } from "~/lib/message";
+import { encryptMessage, decryptMessageContent } from "~/lib/message";
+import type { MessageContent } from "~/lib/message";
+import { encryptVaultEntry } from "~/lib/vault";
+import type { VaultEntryData } from "~/lib/vault";
+import { createEntry } from "~/server/vault.functions";
 import { PowModal } from "~/components/PowModal";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import {
   Send as SendIcon,
   LockKeyhole,
+  KeyRound,
+  FileText,
+  Lock as LockIcon,
   Loader2,
   Home,
   MessageSquare,
@@ -46,6 +53,7 @@ export const Route = createFileRoute("/_app/_saved/channel/$address")({
 });
 
 function ChannelPage() {
+  const navigate = useNavigate();
   const {
     address,
     messages: initialMessages,
@@ -192,7 +200,7 @@ function ChannelPage() {
   }
 
   type DecryptResult =
-    | { ok: true; text: string }
+    | { ok: true; content: MessageContent }
     | { ok: false; reason: "loading" | "wrong-key" | "error" };
 
   function tryDecrypt(msg: {
@@ -222,11 +230,46 @@ function ChannelPage() {
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
       return {
         ok: true,
-        text: decryptMessage(msg.encryptedContent, myPrivKey, theirPubKey),
+        content: decryptMessageContent(
+          msg.encryptedContent,
+          myPrivKey,
+          theirPubKey,
+        ),
       };
     } catch {
       return { ok: false, reason: "error" };
     }
+  }
+
+  async function handleSaveSecret(secret: {
+    name: string;
+    secretType: string;
+    fields: Record<string, unknown>;
+  }) {
+    const fields = secret.fields as Record<string, string>;
+    if (!myKeyData || !encryptionKey) return;
+    const myPrivKey = decryptPrivateKey(
+      myKeyData.encryptedPrivateKey,
+      encryptionKey,
+    );
+    const data: VaultEntryData =
+      secret.secretType === "login"
+        ? { type: "login" as const, ...fields }
+        : { type: "text" as const, text: fields.text ?? "" };
+    const encryptedData = encryptVaultEntry(data, myPrivKey);
+    const result = await createEntry({
+      data: {
+        name: secret.name,
+        type: secret.secretType,
+        searchTerms: "",
+        publicKey: myKeyData.publicKey,
+        encryptedData,
+      },
+    });
+    navigate({
+      to: "/vault/$id",
+      params: { id: result.id },
+    });
   }
 
   const pendingSendRef = useRef<{
@@ -435,7 +478,7 @@ function ChannelPage() {
                   key={msg.id}
                   className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                 >
-                  {result.ok ? (
+                  {result.ok && result.content.type === "text" ? (
                     <div
                       className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
                         isMine
@@ -443,12 +486,52 @@ function ChannelPage() {
                           : "bg-background-highlight text-foreground"
                       }`}
                     >
-                      <p className="break-words">{result.text}</p>
+                      <p className="break-words">{result.content.text}</p>
                       <p className="text-muted-foreground mt-1 text-xs">
                         {new Date(msg.createdAt).toLocaleTimeString()}
                       </p>
                     </div>
-                  ) : (
+                  ) : result.ok && result.content.type === "secret" ? (
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 text-sm ${
+                        isMine
+                          ? "bg-accent/15 text-foreground"
+                          : "bg-background-highlight text-foreground"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {result.content.secret.secretType === "login" ? (
+                          <KeyRound className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 shrink-0" />
+                        )}
+                        <span className="font-medium">
+                          {result.content.secret.name}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {result.content.secret.secretType === "login"
+                          ? "Login"
+                          : "Secret"}
+                      </p>
+                      {!isMine && (() => {
+                        const sec = result.content.type === "secret" ? result.content.secret : null;
+                        if (!sec) return null;
+                        return (
+                          <button
+                            onClick={() => handleSaveSecret(sec)}
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 mt-2 inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs transition-all"
+                          >
+                            <LockIcon className="h-3 w-3" />
+                            Save to Vault
+                          </button>
+                        );
+                      })()}
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  ) : !result.ok ? (
                     <div className="border-border/30 max-w-[70%] rounded-lg border border-dashed px-4 py-2 text-sm">
                       <div className="text-muted-foreground flex items-center gap-2 italic">
                         <LockKeyhole className="h-3 w-3 shrink-0" />
@@ -473,7 +556,7 @@ function ChannelPage() {
                         {new Date(msg.createdAt).toLocaleTimeString()}
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })}

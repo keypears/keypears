@@ -20,6 +20,16 @@ import {
   tryDecryptVaultEntry,
   encryptVaultEntry,
 } from "~/lib/vault";
+import { encryptSecretMessage } from "~/lib/message";
+import {
+  sendMessage,
+  getPublicKeyForAddress,
+  getRemotePowChallenge,
+  getMyActiveEncryptedKey,
+} from "~/server/message.functions";
+import { getMyUser } from "~/server/user.functions";
+import { signPowRequest } from "~/lib/auth";
+import { PowModal } from "~/components/PowModal";
 import type { VaultEntryData } from "~/lib/vault";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import {
@@ -36,7 +46,9 @@ import {
   Pencil,
   Trash2,
   Home,
+  Send as SendIcon,
 } from "lucide-react";
+import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
 export const Route = createFileRoute("/_app/_saved/vault/$id")({
   head: ({ loaderData }) => ({
@@ -322,6 +334,16 @@ function EntryDetail({
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [shareAddress, setShareAddress] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
+  const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
+  const pendingShareRef = useRef<{
+    recipientAddress: string;
+    encryptedContent: string;
+    senderPubKey: string;
+    recipientPubKey: string;
+  } | null>(null);
 
   // Edit state
   const [editName, setEditName] = useState(entry.name);
@@ -413,6 +435,99 @@ function EntryDetail({
     } catch {
       setError("Failed to delete.");
     }
+  }
+
+  async function handleShare(e: React.FormEvent) {
+    e.preventDefault();
+    if (!decrypted?.ok || !keyInfo) return;
+    setError("");
+    setShareStatus("Looking up recipient...");
+    try {
+      const recipientKey = await getPublicKeyForAddress({
+        data: shareAddress,
+      });
+      if (!recipientKey) throw new Error("Recipient not found");
+
+      setShareStatus("Encrypting...");
+      const secret = {
+        name: entry.name,
+        secretType: entry.type,
+        fields:
+          decrypted.data.type === "login"
+            ? Object.fromEntries(
+                Object.entries(decrypted.data).filter(
+                  ([k]) => k !== "type",
+                ),
+              )
+            : { text: decrypted.data.text },
+      };
+      const theirPubKey = FixedBuf.fromHex(33, recipientKey.publicKey);
+      const encryptedContent = encryptSecretMessage(
+        secret,
+        keyInfo.privateKey,
+        theirPubKey,
+      );
+
+      // Get my active key for the message envelope
+      const myActiveKey = await getMyActiveEncryptedKey();
+      const encryptionKey = getCachedEncryptionKey();
+      if (!encryptionKey) throw new Error("Encryption key not found");
+      const myPrivKey = decryptPrivateKey(
+        myActiveKey.encryptedPrivateKey,
+        encryptionKey,
+      );
+
+      pendingShareRef.current = {
+        recipientAddress: shareAddress,
+        encryptedContent,
+        senderPubKey: myActiveKey.publicKey,
+        recipientPubKey: recipientKey.publicKey,
+      };
+
+      // Get PoW challenge
+      setShareStatus("Requesting proof of work...");
+      const me = await getMyUser();
+      if (!me?.name || !me.domain) throw new Error("Account not saved");
+      const senderAddress = `${me.name}@${me.domain}`;
+      const { signature, timestamp } = signPowRequest(
+        senderAddress,
+        shareAddress,
+        myPrivKey,
+      );
+      const challenge = await getRemotePowChallenge({
+        data: {
+          recipientAddress: shareAddress,
+          senderAddress,
+          senderPubKey: myActiveKey.publicKey,
+          signature,
+          timestamp,
+        },
+      });
+      setShareStatus("");
+      setPowChallenge(challenge);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to share.");
+      setShareStatus("");
+    }
+  }
+
+  async function handleSharePowComplete(solution: PowSolution) {
+    setPowChallenge(null);
+    const pending = pendingShareRef.current;
+    if (!pending) return;
+    try {
+      await sendMessage({ data: { ...pending, pow: solution } });
+      setSharing(false);
+      setShareAddress("");
+      pendingShareRef.current = null;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send.");
+    }
+  }
+
+  function handleSharePowCancel() {
+    setPowChallenge(null);
+    pendingShareRef.current = null;
   }
 
   function copyToClipboard(value: string, field: string) {
@@ -699,6 +814,13 @@ function EntryDetail({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setSharing(!sharing)}
+            className="text-muted-foreground hover:text-foreground"
+            title="Share"
+          >
+            <SendIcon className="h-4 w-4" />
+          </button>
+          <button
             onClick={startEditing}
             className="text-muted-foreground hover:text-foreground"
             title="Edit"
@@ -731,6 +853,46 @@ function EntryDetail({
           )}
         </div>
       </div>
+
+      {/* Share form */}
+      {sharing && (
+        <form
+          onSubmit={handleShare}
+          className="border-border/30 rounded border p-3"
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Recipient address (e.g. name@domain)"
+              value={shareAddress}
+              onChange={(e) => setShareAddress(e.target.value)}
+              className="bg-background-dark border-border text-foreground flex-1 rounded border px-3 py-1.5 text-sm"
+              required
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-3 py-1.5 text-sm transition-all"
+            >
+              Send
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSharing(false);
+                setShareAddress("");
+                setShareStatus("");
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {shareStatus && (
+            <p className="text-muted-foreground mt-2 text-xs">{shareStatus}</p>
+          )}
+        </form>
+      )}
 
       {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -803,6 +965,12 @@ function EntryDetail({
           <CopyButton value={data.text} field="text" />
         </div>
       )}
+
+      <PowModal
+        challenge={powChallenge}
+        onComplete={handleSharePowComplete}
+        onCancel={handleSharePowCancel}
+      />
     </div>
   );
 
