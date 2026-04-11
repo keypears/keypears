@@ -1,5 +1,5 @@
 #set document(
-  title: "KeyPears: A Federated Diffie-Hellman Key Exchange System",
+  title: "KeyPears: Federated Secret Exchange",
   author: "Ryan X. Charles",
 )
 
@@ -21,7 +21,7 @@
 
 #align(center)[
   #text(size: 16pt, weight: "bold")[
-    KeyPears: A Federated Diffie-Hellman Key Exchange System
+    KeyPears: Federated Secret Exchange
   ]
 
   #v(0.5em)
@@ -59,140 +59,180 @@
 
 = Introduction
 
-Secure communication today depends on centralized platforms that control
-identity, store plaintext, and can be compelled to surrender user data.
-Decentralized alternatives exist but typically sacrifice usability or require
-users to manage raw public keys.
+// The problem, not the solution. Spend the first page on what's broken.
+//
+// - Email got addressing and federation right (name@domain, MX records,
+//   ubiquity) but was designed for trusted networks.
+// - Two deficiencies can't be fixed retroactively:
+//   1. No key exchange -> PGP failed (cite Whitten & Tygar 1999)
+//   2. No cost to send -> Hashcash couldn't deploy on SMTP (cite Back 2002)
+// - Layering fixes hasn't worked: DMARC (cite RFC 7489) required three
+//   interlocking mechanisms just for authentication, still no encryption.
+// - Centralized alternatives traded one problem for another: Signal solved
+//   encryption but centralized identity; WhatsApp gave metadata to Facebook.
+//   Moxie's argument (cite Marlinspike 2016): centralization enables
+//   iteration, but surrenders sovereignty.
+// - Final paragraph: "We propose a federated protocol that keeps what email
+//   got right (name@domain addressing, DNS-based discovery) while adding what
+//   it couldn't: Diffie-Hellman key exchange for end-to-end encryption, and
+//   proof of work for spam mitigation."
 
-KeyPears bridges this gap with a federated model: users hold human-readable
-addresses (e.g., `alice@keypears.com`) backed by secp256k1 key pairs. Any
-domain operator can run a KeyPears server, and servers discover each other
-through DNS and a well-known configuration file. All message content is
-end-to-end encrypted via ECDH shared secrets, and all expensive
-operations---key derivation, mining, encryption---run entirely in the user's
-browser.
+= Design Principles
+
+// Five bullets, one sentence each:
+// - Federated: any domain can run a server; servers discover each other via DNS.
+// - End-to-end encrypted: servers store only ciphertext; plaintext never
+//   leaves the client.
+// - Client-side proof of work: Sybil resistance without CAPTCHAs or
+//   third-party services.
+// - DNS-based identity: addresses are name@domain; identity survives provider
+//   changes.
+// - No trusted third party: no certificate authority, no central key server,
+//   no phone-number registry.
+
+= Overview
+
+// One-page high-level walkthrough with a single diagram showing Alice@a.com
+// sending a secret to Bob@b.com.
+//
+// Diagram: end-to-end flow (Alice's browser -> Alice's server -> Bob's server
+// -> Bob's browser) showing key lookup, PoW, ECDH, encrypt, pull-model
+// delivery, decrypt.
+//
+// Brief prose walking through the diagram step by step. The reader should
+// understand the full system before any section dives into detail.
 
 = Identity and Addressing
 
-Each user's identity is an address of the form `name@domain`. The name is a
-short alphanumeric string; the domain is a standard DNS domain. This format is
-familiar, portable, and survives changes in hosting provider---if
-`acme.com` migrates from one server to another, its users' addresses remain
-valid.
-
-Key pairs use the secp256k1 elliptic curve. Users may rotate keys freely (up to
-100 per account), and the most recent key is the active one. Each key's
-encrypted private key is stored server-side, encrypted under a key that only the
-user can derive from their password. The server cannot decrypt it.
+// - Address format: name@domain
+// - Key pairs: secp256k1
+// - Key rotation (up to 100 keys per account)
+// - Active key = most recent
+// - Encrypted private key storage (server holds ciphertext only)
+// - Domain ownership = identity ownership
 
 = Key Derivation
 
-Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme:
-
-+ *Password #sym.arrow Password Key.* The user's password is stretched with
-  100,000 rounds of BLAKE3 in keyed-MAC mode. The result is ephemeral and never
-  stored.
-+ *Password Key #sym.arrow Encryption Key.* A second 100,000-round derivation
-  with a distinct salt produces the encryption key, which is cached in
-  `localStorage` and used to encrypt and decrypt secp256k1 private keys
-  client-side.
-+ *Password Key #sym.arrow Login Key.* A parallel 100,000-round derivation with
-  a different salt produces the login key, which is sent to the server once and
-  then discarded. The server hashes it with an additional 100,000 rounds before
-  storage.
-
-Because the encryption key and login key are derived from the same parent with
-different salts, compromising one does not reveal the other.
+// Three-tier BLAKE3 PBKDF:
+//
+// Diagram: KDF tree
+//   Password -> [100k rounds] -> Password Key (ephemeral)
+//     -> [100k rounds, salt A] -> Encryption Key (cached in localStorage)
+//     -> [100k rounds, salt B] -> Login Key (sent to server once, discarded)
+//   Server: Login Key -> [100k rounds, server salt] -> stored hash
+//
+// Vault key derivation: BLAKE3-MAC(private_key, "vault-key")
+//
+// Security properties:
+// - Encryption key and login key are siblings (compromising one doesn't
+//   reveal the other)
+// - Password key is ephemeral
+// - 300k total rounds from password to stored hash
 
 = Encryption
 
-KeyPears uses two encryption layers:
-
-*Message encryption.* When Alice sends a message to Bob, she computes a shared
-secret via ECDH (her private key, Bob's public key), hashes the resulting curve
-point with BLAKE3, and encrypts the message payload with ACS2 (AES-256-CBC with
-BLAKE3-HMAC authentication). Both the sender's and recipient's public keys are
-stored alongside the ciphertext so that either party can re-derive the shared
-secret after key rotation.
-
-*Vault encryption.* The vault stores secrets (passwords, notes, credentials)
-encrypted under a vault key derived as a BLAKE3-MAC of the user's private key
-with a fixed domain separator. Each vault entry is independently encrypted, and
-the server stores only ciphertext plus user-provided plaintext labels for
-search.
+// Two layers:
+//
+// Message encryption (ECDH):
+// - Shared secret = BLAKE3(ECDH(my_priv, their_pub))
+// - Encrypt with ACS2 (AES-256-CBC + BLAKE3-HMAC)
+// - Both public keys stored alongside ciphertext
+//
+// Vault encryption:
+// - Vault key = BLAKE3-MAC(private_key, "vault-key")
+// - Encrypt with ACS2
+// - Server stores ciphertext + plaintext labels for search
 
 = Federation
 
-Servers discover each other via a well-known configuration file served at
-`/.well-known/keypears.json`, which declares the domain's API endpoint and,
-optionally, an admin address for third-party hosting. Three deployment patterns
-are supported:
-
-- *Self-hosted:* The domain and API endpoint are the same host.
-- *Subdomain:* The domain's API runs on a subdomain (e.g.,
-  `keypears.acme.com`).
-- *Third-party hosted:* A domain delegates its KeyPears service to another
-  operator entirely.
-
-Message delivery uses a pull model. The sender's server stores the ciphertext
-and issues a one-time pull token. It then notifies the recipient's server, which
-independently resolves the sender's domain via DNS and TLS, verifying
-authenticity without server signing keys. The recipient pulls the message using
-the token, which is consumed on use. Messages never leave the network
-unencrypted.
+// Discovery: /.well-known/keypears.json
+//   - apiDomain (required)
+//   - admin (optional, for third-party hosting)
+//
+// Three deployment patterns:
+//   - Self-hosted (domain = API endpoint)
+//   - Subdomain (API on subdomain)
+//   - Third-party hosted (delegates to another operator)
+//
+// Diagram: federation topology showing all three patterns
+//
+// Pull-model message delivery:
+//   1. Sender encrypts, stores locally
+//   2. Sender's server issues one-time pull token
+//   3. Sender notifies recipient's server
+//   4. Recipient independently resolves sender's domain via DNS/TLS
+//   5. Recipient pulls message with token (consumed on use)
+//
+// Why pull, not push: recipient verifies sender's domain independently.
+// No trust in the sender's server. DNS/TLS replaces server signing keys.
 
 = Proof of Work
 
-Rather than CAPTCHAs, OAuth gates, or centralized rate limiters, KeyPears uses
-client-side proof of work (the `pow5-64b` algorithm, compiled from Rust to WASM
-and executed on the GPU via WebGPU). PoW is required for:
+// Hashcash lineage (cite Back 2002). KeyPears adapts the concept for an
+// interactive web protocol with GPU mining.
+//
+// What changed from Hashcash:
+//   - Interactive challenges (server-issued, not self-selected)
+//   - GPU mining (WebGPU via pow5-64b algorithm, compiled from Rust to WASM)
+//   - Per-recipient configurability
+//   - Authenticated challenges (secp256k1 signatures prevent probing)
+//
+// Difficulty levels:
+//   - Account creation: ~70M (~15s)
+//   - Login: ~7M (~1-2s)
+//   - First message to a user: ~70M (configurable, min 7M)
+//   - Subsequent messages: ~7M (configurable, min 7M)
+//
+// Diagram: PoW challenge/response flow
+//
+// Stateless challenges: BLAKE3-MAC signed, no DB write until verification.
+// Spent-token database for replay prevention (15-minute expiry).
 
-- *Account creation* (difficulty ~70M, approximately 15 seconds).
-- *Login* (difficulty ~7M, approximately 1--2 seconds).
-- *Messaging* (configurable per recipient: 70M for first contact, 7M for
-  subsequent messages, with server-enforced minimums).
+= Security Analysis
 
-Challenges are stateless: the server signs a challenge payload with BLAKE3-MAC
-and verifies the signature on submission, avoiding database writes until a valid
-solution arrives. Challenge requests are authenticated---the sender signs with
-their secp256k1 private key, and the recipient's server verifies the signature
-via federation public-key lookup---preventing social-graph probing.
+// One subsection per threat. Quantitative where possible.
+//
+// == Server Compromise
+// == Password Brute-Force
+//   - 300k BLAKE3 rounds. Compute cost for various password strengths.
+// == Spam and Sybil Attacks
+//   - Cost to create N accounts = N * 70M difficulty * GPU time per hash.
+//   - Cost to spam M messages = M * 7M difficulty * GPU time.
+// == Social-Graph Probing
+//   - Authenticated challenge requests (secp256k1 signature).
+// == Domain Spoofing
+//   - Pull model: recipient resolves sender domain independently.
+// == LocalStorage Theft
+//   - Encryption key vs login key: sibling derivation.
+// == Key Compromise
+// == Limitations
+//   - Compromised endpoints, weak passwords, DNS-level attacks.
 
-= Threat Model
+= Related Work
 
-KeyPears is designed to protect against the following threats:
-
-- *Server compromise:* The server stores only ciphertext and hashed credentials.
-  An attacker who captures the database cannot read messages or vault entries.
-- *Password brute-force:* 300,000 cumulative BLAKE3 rounds from password to
-  stored hash, plus per-action PoW, make offline and online attacks expensive.
-- *Social-graph probing:* Challenge requests require a valid secp256k1 signature,
-  preventing unauthenticated parties from discovering who communicates with
-  whom.
-- *Spam and Sybil attacks:* PoW imposes a real computational cost on account
-  creation and messaging, tunable per recipient.
-- *Domain spoofing:* The pull model forces recipients to independently resolve
-  sender domains via DNS/TLS, preventing impersonation without DNS compromise.
-- *LocalStorage theft:* An attacker who extracts the cached encryption key can
-  decrypt private keys but cannot derive the login key or impersonate the user
-  on the server.
-
-The system does not protect against compromised endpoints, weak passwords
-(though an entropy meter guides users), or DNS-level attacks such as BGP
-hijacking.
+// Comparison table: KeyPears vs PGP vs Signal vs Matrix vs Keybase
+//
+// Columns: Identity model, Federation, E2E encryption, Spam mitigation,
+//          Key management, Forward secrecy, Open source
+//
+// Prose: for each system, what tradeoff does it make and why did KeyPears
+// choose differently?
+//
+// - PGP: right cryptography, wrong usability (cite Whitten & Tygar)
+// - Signal: right encryption, centralized identity, no federation
+//   (cite Marlinspike 2016 for the rationale)
+// - Matrix: federated, but complex (Olm/Megolm, room state, DAG sync)
+// - Keybase: right UX, acquired by Zoom, shut down — cautionary tale of
+//   centralized hosting for a decentralized-aspirational product
 
 = Future Work
 
-Planned extensions include group messaging with multi-party key agreement,
-forward secrecy via ratcheted key exchange, public-key transparency logs for
-key rotation auditability, and a native mobile client with hardware-backed key
-storage.
+// - Group messaging with multi-party key agreement
+// - Forward secrecy via ratcheted key exchange
+// - Public-key transparency logs for key rotation auditability
+// - Native mobile client with hardware-backed key storage
 
 = Conclusion
 
-KeyPears demonstrates that federated, end-to-end encrypted communication can
-be built on standard web infrastructure---DNS, TLS, and browsers---without
-sacrificing usability or requiring users to manage raw cryptographic material.
-The combination of human-readable addresses, client-side proof of work, and a
-pull-based federation model provides a practical alternative to both
-centralized platforms and pure peer-to-peer systems.
+// One paragraph. Restate the problem, summarize the solution, state the
+// contribution. Like Bitcoin's conclusion: no marketing, just clarity.

@@ -90,7 +90,7 @@ function LandingPage() {
             </picture>
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
-          <p className="text-muted-foreground mb-8">Secret Exchange</p>
+          <p className="text-muted-foreground mb-8">Federated Secret Exchange</p>
 
           {pagePhase === "idle" && registrationOpen && (
             <>
