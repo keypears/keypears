@@ -280,3 +280,105 @@ Inline history section added to vault entry detail page. Collapsible, shows
 older versions with expand/restore/delete per version. Passwords masked in
 history view. Restore creates a new version with old data. Delete removes a
 single version. Lint clean, build passes.
+
+### Experiment 3: Two-table architecture
+
+#### Description
+
+Split `vault_entries` into two tables: `secrets` (one row per secret, holds
+metadata) and `secret_versions` (one row per version, holds encrypted data).
+This eliminates the `GROUP BY` subquery on every list page load.
+
+#### Schema
+
+Replace `vault_entries` with:
+
+```typescript
+export const secrets = mysqlTable("secrets", {
+  id: binaryId("id").primaryKey(),
+  userId: binaryId("user_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 32 }).notNull(),
+  searchTerms: varchar("search_terms", { length: 255 }).notNull().default(""),
+  sourceMessageId: binaryId("source_message_id"),
+  sourceAddress: varchar("source_address", { length: 255 }),
+  latestVersionId: binaryId("latest_version_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("secret_user_id_idx").on(table.userId),
+]);
+
+export const secretVersions = mysqlTable("secret_versions", {
+  id: binaryId("id").primaryKey(),
+  secretId: binaryId("secret_id").notNull(),
+  version: int("version").notNull(),
+  publicKey: varchar("public_key", { length: 66 }).notNull(),
+  encryptedData: text("encrypted_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("sv_secret_id_idx").on(table.secretId),
+  uniqueIndex("sv_secret_version_idx").on(table.secretId, table.version),
+]);
+```
+
+Key design decisions:
+- `secrets.latestVersionId` points to the current version — avoids any join
+  for listing. Updated on every edit.
+- `secrets.updatedAt` updated on every edit — pagination by updatedAt works.
+- Metadata (name, type, searchTerms, source*) lives on `secrets` — stored once.
+- Encrypted data + publicKey live on `secret_versions` — per-version.
+- Name/type/searchTerms can change per edit — update `secrets` on each edit.
+
+#### Server changes — `vault.server.ts`
+
+**`createVaultEntry`**: insert into `secrets` + `secret_versions` in a
+transaction. Set `latestVersionId`.
+
+**`createNewVersion`**: insert into `secret_versions`, update `secrets`
+(name, type, searchTerms, updatedAt, latestVersionId).
+
+**`getVaultEntries`**: simple `SELECT FROM secrets WHERE user_id = ?`. Join
+with `secret_versions` on `latestVersionId` to get encrypted data + publicKey.
+
+**`getVaultEntry`**: join `secrets` + `secret_versions` by version id.
+
+**`deleteSecret`**: delete from `secrets` (cascade or manual delete of
+versions).
+
+**`deleteVersion`**: delete from `secret_versions`. If it was the latest,
+update `secrets.latestVersionId` to the previous version. If no versions
+remain, delete the secret.
+
+**`getSecretHistory`**: `SELECT FROM secret_versions WHERE secret_id = ?`.
+
+#### Server functions — `vault.functions.ts`
+
+Same API as before — the split is internal. `createEntry`, `updateEntry`,
+`deleteEntry`, `deleteSecretFn`, `getHistory` all keep their signatures.
+
+#### Message LEFT JOIN
+
+`message.server.ts` LEFT JOIN changes from `vaultEntries.sourceMessageId` to
+`secrets.sourceMessageId`. Returns `secrets.id` as `savedVaultEntryId`.
+The detail page URL uses `secrets.latestVersionId` for navigation.
+
+#### UI changes
+
+Minimal — the server functions return the same shape. The detail page loads
+from `secret_versions` joined with `secrets`. The `entry` object passed to
+`EntryDetail` combines fields from both tables.
+
+#### Verification
+
+1. `bun run db:clear && bun run db:push` — new tables created
+2. Create a secret — row in both tables
+3. Edit — new version row, secret metadata updated
+4. Vault list — no subquery, simple select
+5. History — shows all versions
+6. Delete version — removes one version, updates latest
+7. Delete secret — removes secret + all versions
+8. Save from message — secret has sourceMessageId
+9. Channel view — "Saved" link still works
+10. `bun run lint` — clean
+11. `bun run build` — passes
