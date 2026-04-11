@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Vault — Encrypted Password Manager
@@ -685,3 +686,35 @@ message.
 7. Text messages unaffected
 8. `bun run lint` — clean
 9. `bun run build` — passes
+
+#### Result: Pass
+
+Added `sourceMessageId` (binaryId) and `sourceAddress` (varchar) to
+`vault_entries`. Message queries LEFT JOIN with vault_entries to return
+`isSaved` per message. Channel view shows "Saved" instead of the green button
+when a secret has already been saved. Vault detail shows "Received from
+address" linking to the channel. Initial implementation used varchar(36) for
+sourceMessageId which caused a type mismatch with the binary(16) message ID in
+the LEFT JOIN — fixed by switching to binaryId.
+
+## Conclusion
+
+Built a full encrypted password manager vault integrated with the messaging
+system. Vault entries are encrypted client-side with a domain-separated key
+derived from the user's secp256k1 private key (`blake3Mac(privKey, "vault-key")`).
+Two entry types: `login` and `text`. Server stores plaintext name, type, and
+search terms for server-side search; all secret fields are encrypted.
+
+Key decisions:
+- Vault key = user's existing secp256k1 key. No new key type. Key rotation
+  is instant — old entries stay readable, no re-encryption needed.
+- Plaintext metadata trade-off: name and search terms are visible to the
+  server for LIKE queries. Users control what goes in search terms.
+- Secret sharing via messages: ECDH-encrypted secret messages with PoW.
+  Recipients save to their own vault with one click.
+- Provenance tracking: each vault entry knows its origin (self-created or
+  received from an address). LEFT JOIN on message queries provides `isSaved`
+  flag to avoid duplicate saves.
+- Zod v4 lesson: `z.record(z.string())` requires two args in v4. Also,
+  `z.discriminatedUnion` and `z.union` crash with `_zod` errors — use manual
+  type dispatch with individual schemas instead.

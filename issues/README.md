@@ -4,12 +4,11 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
-| [0012](0012-vault/README.md)                     | Vault — Password Manager       | 2026-04-11 |
-
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
+| [0012](0012-vault/README.md)                   | Vault — Password Manager                   | 2026-04-11 | 2026-04-11 |
 | [0013](0013-tanstack-router/README.md)         | TanStack Router Best Practices             | 2026-04-11 | 2026-04-11 |
 | [0010](0010-architecture-cleanup/README.md)    | Architecture Cleanup                       | 2026-04-09 | 2026-04-11 |
 | [0011](0011-configurable-pow/README.md)        | Configurable Proof of Work                 | 2026-04-09 | 2026-04-10 |
