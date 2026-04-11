@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 export function Footer() {
   return (
     <footer className="border-border/30 text-muted-foreground mt-12 flex flex-col items-center gap-2 border-t pt-4 pb-6 text-xs">
@@ -20,13 +22,13 @@ export function Footer() {
         An Astrohacker Project
       </a>
       <div className="flex gap-3">
-        <a href="/terms" className="hover:text-accent no-underline">
+        <Link to="/terms" className="hover:text-accent no-underline">
           Terms
-        </a>
+        </Link>
         <span>&middot;</span>
-        <a href="/privacy" className="hover:text-accent no-underline">
+        <Link to="/privacy" className="hover:text-accent no-underline">
           Privacy
-        </a>
+        </Link>
       </div>
       <p>&copy; {new Date().getFullYear()} Astrohacker. All rights reserved.</p>
     </footer>

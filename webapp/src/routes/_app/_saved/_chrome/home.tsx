@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { getMyUser } from "~/server/user.functions";
 import { $icon } from "~/lib/icons";
 
@@ -39,12 +39,13 @@ function HomePage() {
         </picture>
         <p className="text-muted-foreground mt-8 text-lg">{greeting},</p>
         {address && (
-          <a
-            href={`/${address}`}
+          <Link
+            to="/$profile"
+            params={{ profile: address }}
             className="text-foreground mt-1 block text-lg no-underline hover:underline"
           >
             {address}
-          </a>
+          </Link>
         )}
       </div>
     </div>

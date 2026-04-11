@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { login } from "~/server/user.functions";
 import { getLoginPowChallenge } from "~/server/pow.functions";
@@ -95,9 +95,9 @@ function LoginPage() {
       <div className="flex justify-end px-6 py-4">
         <span className="text-muted-foreground text-sm">
           Don&apos;t have an account?{" "}
-          <a href="/" className="text-accent hover:text-accent/80 no-underline">
+          <Link to="/" className="text-accent hover:text-accent/80 no-underline">
             Create one
-          </a>
+          </Link>
         </span>
       </div>
 

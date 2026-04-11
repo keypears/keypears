@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   createUser,
@@ -100,12 +100,12 @@ function LandingPage() {
               {error && <p className="text-danger mt-4 text-sm">{error}</p>}
               <p className="text-muted-foreground mt-4 text-sm">
                 Already have an account?{" "}
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="text-accent hover:text-accent/80 no-underline"
                 >
                   Log in
-                </a>
+                </Link>
               </p>
             </>
           )}
@@ -117,12 +117,12 @@ function LandingPage() {
               </p>
               <p className="text-muted-foreground mt-4 text-sm">
                 Already have an account?{" "}
-                <a
-                  href="/login"
+                <Link
+                  to="/login"
                   className="text-accent hover:text-accent/80 no-underline"
                 >
                   Log in
-                </a>
+                </Link>
               </p>
             </>
           )}

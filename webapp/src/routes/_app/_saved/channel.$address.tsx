@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   getMessagesForChannel,
@@ -319,20 +319,21 @@ function ChannelPage() {
   function ChannelList({ onSelect }: { onSelect?: () => void }) {
     return (
       <div className="flex flex-col">
-        <a
-          href="/home"
+        <Link
+          to="/home"
           onClick={onSelect}
           className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
         >
           <Home className="h-4 w-4" />
           Home
-        </a>
+        </Link>
         <div className="border-border/30 border-t" />
         <div className="flex-1 overflow-y-auto">
           {channels.map((ch) => (
-            <a
+            <Link
               key={ch.id}
-              href={`/channel/${ch.counterpartyAddress}`}
+              to="/channel/$address"
+              params={{ address: ch.counterpartyAddress }}
               onClick={onSelect}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm no-underline transition-colors ${
                 ch.counterpartyAddress === address
@@ -347,7 +348,7 @@ function ChannelPage() {
                   {ch.unreadCount}
                 </span>
               )}
-            </a>
+            </Link>
           ))}
         </div>
       </div>
@@ -460,12 +461,12 @@ function ChannelPage() {
                       {result.reason === "wrong-key" && (
                         <p className="text-muted-foreground mt-1 text-xs">
                           This key may use a different password.{" "}
-                          <a
-                            href="/keys"
+                          <Link
+                            to="/keys"
                             className="text-accent hover:text-accent/80 no-underline"
                           >
                             Go to Keys
-                          </a>
+                          </Link>
                         </p>
                       )}
                       <p className="text-muted-foreground mt-1 text-xs">

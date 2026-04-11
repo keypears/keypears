@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
@@ -143,8 +143,7 @@ function WelcomePage() {
           encryptedPrivateKey,
         },
       });
-      // Full reload so the sidebar picks up the new entropy tier from localStorage
-      window.location.href = "/home";
+      navigate({ to: "/home" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {
@@ -253,21 +252,21 @@ function WelcomePage() {
                   className="text-muted-foreground cursor-pointer text-sm leading-snug"
                 >
                   I agree to the{" "}
-                  <a
-                    href="/terms"
+                  <Link
+                    to="/terms"
                     target="_blank"
                     className="text-accent hover:text-accent/80 no-underline"
                   >
                     Terms of Service
-                  </a>{" "}
+                  </Link>{" "}
                   and{" "}
-                  <a
-                    href="/privacy"
+                  <Link
+                    to="/privacy"
                     target="_blank"
                     className="text-accent hover:text-accent/80 no-underline"
                   >
                     Privacy Policy
-                  </a>
+                  </Link>
                 </label>
               </div>
               {error && <p className="text-danger text-sm">{error}</p>}

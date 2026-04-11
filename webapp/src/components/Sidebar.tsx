@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useChannels } from "~/lib/channel-context";
 import {
   DropdownMenu,
@@ -53,8 +53,13 @@ function UserDropdown({
     clearCachedEncryptionKey();
     clearCachedEntropyTier();
     await logout();
+    // Full reload intentional — clears all client state after logout
     window.location.href = "/";
   }
+
+  const profilePath = domain
+    ? `/${userName}@${domain}`
+    : `/${userName}`;
 
   return (
     <DropdownMenu>
@@ -65,40 +70,37 @@ function UserDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <a
-            href={domain ? `/${userName}@${domain}` : `/${userName}`}
-            className="cursor-pointer no-underline"
-          >
+          <Link to={profilePath} className="cursor-pointer no-underline">
             <User className="mr-2 h-4 w-4" />
             Profile
-          </a>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/keys" className="cursor-pointer no-underline">
+          <Link to="/keys" className="cursor-pointer no-underline">
             <KeyRound className="mr-2 h-4 w-4" />
             Keys
-          </a>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/domains" className="cursor-pointer no-underline">
+          <Link to="/domains" className="cursor-pointer no-underline">
             <Globe className="mr-2 h-4 w-4" />
             Domains
-          </a>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/settings" className="cursor-pointer no-underline">
+          <Link to="/settings" className="cursor-pointer no-underline">
             <Settings className="mr-2 h-4 w-4" />
             Settings
-          </a>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/password" className="cursor-pointer no-underline">
+          <Link to="/password" className="cursor-pointer no-underline">
             <LockKeyhole className="mr-2 h-4 w-4" />
             Password
             {showWarning && (
               <span className={`${dotColor} ml-auto h-2 w-2 rounded-full`} />
             )}
-          </a>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -129,9 +131,9 @@ function NavItems({
         const isActive = location.pathname === item.path;
 
         return (
-          <a
+          <Link
             key={item.name}
-            href={item.path}
+            to={item.path}
             onClick={onClick}
             className={`flex items-center gap-3 rounded px-3 py-2 text-sm no-underline transition-colors ${
               isActive
@@ -146,7 +148,7 @@ function NavItems({
                 {unreadCount}
               </span>
             )}
-          </a>
+          </Link>
         );
       })}
     </div>
@@ -155,8 +157,8 @@ function NavItems({
 
 function Logo() {
   return (
-    <a
-      href="/"
+    <Link
+      to="/"
       className="flex items-center gap-2 font-sans text-lg font-bold no-underline"
     >
       <picture>
@@ -172,7 +174,7 @@ function Logo() {
         />
       </picture>
       <span className="text-foreground">KeyPears</span>
-    </a>
+    </Link>
   );
 }
 
@@ -183,13 +185,16 @@ function Address({
   userName: string;
   domain: string | null;
 }) {
+  const path = domain
+    ? `/${userName}@${domain}`
+    : `/${userName}`;
   return (
-    <a
-      href={domain ? `/${userName}@${domain}` : `/${userName}`}
+    <Link
+      to={path}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
       {domain ? `${userName}@${domain}` : userName}
-    </a>
+    </Link>
   );
 }
 

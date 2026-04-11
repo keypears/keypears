@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useChannels } from "~/lib/channel-context";
 import { MessageSquare } from "lucide-react";
 
@@ -18,19 +18,21 @@ function InboxPage() {
         <div className="mt-8 text-center">
           <MessageSquare className="text-muted-foreground mx-auto h-12 w-12" />
           <p className="text-muted-foreground mt-4">No messages yet.</p>
-          <a
-            href="/send"
+          <Link
+            to="/send"
+            search={{ to: "" }}
             className="text-accent hover:text-accent/80 mt-2 inline-block text-sm no-underline"
           >
             Send your first message
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           {channels.map((ch) => (
-            <a
+            <Link
               key={ch.id}
-              href={`/channel/${ch.counterpartyAddress}`}
+              to="/channel/$address"
+              params={{ address: ch.counterpartyAddress }}
               className="border-border/30 hover:bg-accent/5 flex items-center gap-3 rounded border px-4 py-3 no-underline transition-colors"
             >
               <MessageSquare className="text-muted-foreground h-5 w-5" />
@@ -49,7 +51,7 @@ function InboxPage() {
                   </span>
                 )}
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       )}

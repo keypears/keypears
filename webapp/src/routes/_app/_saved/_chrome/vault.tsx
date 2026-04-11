@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { getMyEntries, createEntry } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
@@ -172,9 +172,10 @@ function VaultPage() {
             const locked = isLocked(entry.publicKey);
             const Icon = entry.type === "login" ? KeyRound : FileText;
             return (
-              <a
+              <Link
                 key={entry.id}
-                href={`/vault/${entry.id}`}
+                to="/vault/$id"
+                params={{ id: entry.id }}
                 className="border-border/30 hover:bg-accent/5 flex items-center gap-3 rounded border px-4 py-3 no-underline transition-colors"
               >
                 {locked ? (
@@ -202,7 +203,7 @@ function VaultPage() {
                     {new Date(entry.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
-              </a>
+              </Link>
             );
           })}
           {hasMore && (

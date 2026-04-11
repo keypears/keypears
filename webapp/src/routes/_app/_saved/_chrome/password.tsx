@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyEncryptedKeys, changeMyPassword } from "~/server/user.functions";
 import {
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_app/_saved/_chrome/password")({
 });
 
 function PasswordPage() {
+  const navigate = useNavigate();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -96,8 +97,7 @@ function PasswordPage() {
       cacheEncryptionKey(newEncryptionKey);
       cacheEntropyTier(entropyTier(calculatePasswordEntropy(newPassword)));
 
-      // Full reload so the sidebar re-reads the updated entropy tier from localStorage
-      window.location.href = "/home";
+      navigate({ to: "/home" });
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to change password.",
