@@ -500,3 +500,10 @@ full-screen split layout without the sidebar, same as channel pages.
    with old key. Key number badge shows correctly.
 10. `bun run test` — existing tests pass
 11. `bun run lint` — no warnings
+
+#### Result: Pass
+
+Vault CRUD works end-to-end. Entries are encrypted client-side with a
+domain-separated key derived from the user's secp256k1 private key. Search,
+pagination, create, edit, delete, show/hide, copy — all functional. Split
+layout detail page mirrors the channel view pattern. Lint clean, build passes.
