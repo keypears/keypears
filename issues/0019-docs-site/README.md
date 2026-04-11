@@ -60,8 +60,7 @@ Existing documentation that should be migrated or adapted:
 ### Project structure
 
 ```
-docs/                     # existing docs (source material)
-docs-site/                # new Astro + Starlight project
+docs/                     # Astro + Starlight project (replaces old docs/)
   src/
     content/
       docs/
@@ -80,5 +79,82 @@ docs-site/                # new Astro + Starlight project
   package.json
 ```
 
-The `docs-site/` directory is a standalone Astro project in the repo root,
-similar to `passapples/` and `lockberries/`.
+The `docs/` directory becomes the Astro project, replacing the current loose
+markdown files. The existing content in `docs/kdf.md`, `docs/federation.md`, and
+`docs/dev-setup.md` will be migrated into the Starlight content structure under
+`docs/src/content/docs/`. This is similar to how `passapples/` and
+`lockberries/` are standalone Astro projects.
+
+---
+
+## Experiment 1: Scaffold the docs site with initial content
+
+### Hypothesis
+
+A first-pass documentation site can be created by scaffolding an Astro +
+Starlight project in `docs/`, customizing it to match the KeyPears brand, and
+migrating the existing markdown docs into the Starlight content structure.
+
+### Design
+
+**Visual identity.** The docs site matches the KeyPears webapp brand:
+
+- Tokyo Night base theme (light: `#e1e2e7` bg, dark: `#151a16` bg)
+- Sage green accent (`hsl(109 58% 40%)` light, `hsl(115 54% 76%)` dark)
+- Green-tinted neutrals for text and borders (not pure gray)
+- Dark mode via `prefers-color-scheme`
+- Font: Inter (same as webapp) or system sans-serif
+
+Starlight supports custom CSS overrides for colors. The accent color and
+background can be set via Starlight's color configuration or a custom CSS file
+that maps to the KeyPears palette.
+
+**Initial content.** Migrate and adapt existing docs:
+
+1. **Welcome / Introduction** — Brief overview linking to the whitepaper. What
+   KeyPears is, who it's for, how to get started.
+
+2. **Protocol: Addressing** — Address format (`name@domain`), email
+   compatibility, domain ownership = identity ownership.
+
+3. **Protocol: Key Derivation** — Adapted from `docs/kdf.md`. Three-tier BLAKE3
+   PBKDF, encryption key caching, per-key password tracking.
+
+4. **Protocol: Encryption** — ECDH + ACB3 message encryption, vault encryption,
+   vault key derivation.
+
+5. **Protocol: Proof of Work** — pow5-64b algorithm, interactive challenges,
+   configurable difficulty, authenticated challenges, replay prevention.
+
+6. **Federation** — Adapted from `docs/federation.md`. Discovery via
+   `keypears.json`, three deployment patterns, pull-model delivery.
+
+7. **Self-Hosting** — Adapted from `docs/dev-setup.md`. Environment variables,
+   database setup, Caddy reverse proxy, domain configuration.
+
+8. **Security** — Threat model from the whitepaper expanded: server compromise,
+   brute-force, spam, social-graph probing, domain spoofing, client storage
+   theft, limitations.
+
+**Dev server.** Add a `dev:docs` script to the root `package.json` and configure
+Caddy to serve `docs.keypears.test` on a new port. Add the port to the
+concurrently `dev` script.
+
+### Changes
+
+1. Move existing `docs/*.md` files to a temporary location or directly into
+   `docs/src/content/docs/`.
+2. Scaffold the Astro + Starlight project in `docs/`.
+3. Customize Starlight theme colors to match KeyPears brand.
+4. Create initial content pages from the list above.
+5. Add `docs` to the bun workspace in root `package.json`.
+6. Add dev server configuration (port, Caddy, concurrently).
+7. Verify the site builds and runs locally at `docs.keypears.test`.
+
+### Pass criteria
+
+- `docs/` is a working Astro + Starlight project.
+- Site builds and runs at `docs.keypears.test`.
+- Brand colors match the KeyPears webapp (sage green accent, Tokyo Night base).
+- At least the welcome page and one protocol page render correctly.
+- Existing doc content is preserved (migrated into Starlight structure).
