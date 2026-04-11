@@ -242,3 +242,84 @@ Added `defaultErrorComponent` (with "Try again" via `router.invalidate()`),
 `defaultPendingComponent` (Loader2 spinner), and `defaultNotFoundComponent`
 ("Page not found" with Link home) to `router.tsx`. Finding #3 was already
 implemented. Lint clean, build passes.
+
+### Experiment 3: Use router.invalidate() after mutations (#4)
+
+#### Description
+
+After mutations, the app manually refetches data by calling server functions
+and updating local state. TanStack Router provides `router.invalidate()` which
+re-runs all current route loaders in the background.
+
+The blocker: every page copies loader data into `useState`:
+
+```typescript
+const initialData = Route.useLoaderData();
+const [keyList, setKeyList] = useState(initialData.keys);
+```
+
+`router.invalidate()` re-runs the loader, but `useState` only reads its
+initializer once — stale state persists. To make invalidation work, pages must
+read loader data directly instead of copying it.
+
+#### Pages to fix
+
+**`keys.tsx`** — copies `keys` and `passwordHash` into state. After rotate or
+re-encrypt, manually calls `getMyKeys()` and `setKeyList()`.
+
+Fix: read `Route.useLoaderData()` directly. Remove `keyList`/`passwordHash`
+state. After mutations, call `router.invalidate()`. Use state only for UI
+concerns (rotating, password input, changingKeyId, etc.).
+
+**`vault.tsx`** — copies `entries` into state. After creating an entry, manually
+calls `getMyEntries()` and `setEntries()`.
+
+Fix: read initial entries from loader. Keep `entries` in state because the page
+also does search and pagination — these modify the list beyond what the loader
+provides. After create, call `router.invalidate()` AND reset local state to
+force the loader's fresh data to take effect via a key reset or re-read.
+
+Actually, for vault.tsx the pattern is more nuanced: the loader provides the
+initial 20 entries. Search and pagination modify this list locally. So the
+state is intentional — it's not just a copy of loader data, it's accumulated
+user-driven state. `router.invalidate()` can't replace this.
+
+**Revised approach**: Only use `router.invalidate()` where the page truly just
+mirrors loader data. For pages with client-side list management (search,
+pagination), keep the manual refetch.
+
+**`keys.tsx`** — pure mirror of loader data. Use `router.invalidate()`.
+
+**`vault.tsx`** — client-managed list (search + pagination). Keep manual
+refetch, but simplify: after create, navigate to the new entry's detail page
+instead of refetching the list.
+
+**`vault.$id.tsx`** — `onUpdated` manually refetches the sidebar entry list.
+After save, call `router.invalidate()` to re-run the loader (which fetches
+entry + entries + keyData). But same problem: entries are in state. The
+`onSaved` callback already navigates to the same entry, which re-runs the
+loader. So `onUpdated` can just be dropped if we rely on `onSaved`.
+
+#### Changes
+
+1. **`keys.tsx`**: Remove `keyList`/`passwordHash` state. Read
+   `Route.useLoaderData()` directly in render. After rotate and re-encrypt,
+   call `router.invalidate()` instead of manual `getMyKeys()` + `setKeyList()`.
+
+2. **`vault.$id.tsx`**: After edit/save, the `onSaved` callback navigates to
+   the same entry (re-runs loader). Remove redundant `onUpdated` refetch from
+   the save flow. Keep `onUpdated` only for delete (which navigates away).
+
+3. **`vault.tsx`**: After create, navigate to the new entry's detail page
+   (`/vault/$id`) instead of refetching the list. The list will refresh when
+   the user navigates back (loader re-runs).
+
+#### Verification
+
+1. `bun run build` — passes
+2. `bun run lint` — clean
+3. Rotate a key on Keys page — list updates without manual refetch
+4. Re-encrypt a key — list updates
+5. Create a vault entry — navigates to detail page
+6. Edit a vault entry — data refreshes after save
+7. Delete a vault entry — navigates back to vault list
