@@ -4,7 +4,9 @@ import {
   getMyEntries,
   getEntry,
   updateEntry,
+  deleteEntry,
   deleteSecretFn,
+  getHistory,
 } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
 import {
@@ -55,7 +57,11 @@ import {
   Home,
   Send as SendIcon,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   EllipsisVertical,
+  RotateCcw,
+  History,
 } from "lucide-react";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
@@ -75,14 +81,17 @@ export const Route = createFileRoute("/_app/_saved/vault/$id")({
       getMyEntries(),
       getMyKeys(),
     ]);
-    return { entryId: params.id, entry, entries, keyData };
+    const history = entry
+      ? await getHistory({ data: entry.secretId })
+      : [];
+    return { entryId: params.id, entry, entries, keyData, history };
   },
   component: VaultDetailPage,
 });
 
 function VaultDetailPage() {
   const navigate = useNavigate();
-  const { entryId, entry, entries: initialEntries, keyData } =
+  const { entryId, entry, entries: initialEntries, keyData, history } =
     Route.useLoaderData();
   const [entries, setEntries] = useState(initialEntries);
   const [query, setQuery] = useState("");
@@ -279,6 +288,7 @@ function VaultDetailPage() {
                 onSaved={(id: string) =>
                   navigate({ to: "/vault/$id", params: { id } })
                 }
+                history={history}
               />
             )}
           </div>
@@ -330,6 +340,7 @@ function EntryDetail({
   isLocked,
   onDeleted,
   onSaved,
+  history,
 }: {
   entry: {
     id: string;
@@ -350,11 +361,26 @@ function EntryDetail({
   isLocked: (pk: string) => boolean;
   onDeleted: () => void;
   onSaved: (id: string) => void;
+  history: Array<{
+    id: string;
+    version: number;
+    name: string;
+    type: string;
+    searchTerms: string;
+    publicKey: string;
+    encryptedData: string;
+    createdAt: Date;
+  }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
+
+  // Filter out current version from history
+  const olderVersions = history.filter((v) => v.id !== entry.id);
   const [sharing, setSharing] = useState(false);
   const [shareAddress, setShareAddress] = useState("");
   const [shareStatus, setShareStatus] = useState("");
@@ -1007,6 +1033,158 @@ function EntryDetail({
             )}
           </button>
           <CopyButton value={data.text} field="text" />
+        </div>
+      )}
+
+      {/* History */}
+      {olderVersions.length > 0 && (
+        <div className="border-border/30 mt-6 rounded border">
+          <button
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors"
+          >
+            <History className="h-4 w-4" />
+            History ({olderVersions.length}{" "}
+            {olderVersions.length === 1 ? "version" : "versions"})
+            {historyOpen ? (
+              <ChevronUp className="ml-auto h-4 w-4" />
+            ) : (
+              <ChevronDown className="ml-auto h-4 w-4" />
+            )}
+          </button>
+          {historyOpen && (
+            <div className="border-border/30 border-t">
+              {olderVersions.map((ver) => {
+                const verKeyInfo = keyMap.get(ver.publicKey);
+                const verDecrypted = verKeyInfo
+                  ? tryDecryptVaultEntry(ver.encryptedData, verKeyInfo.privateKey)
+                  : null;
+                const isExpanded = expandedVersion === ver.version;
+
+                return (
+                  <div
+                    key={ver.id}
+                    className="border-border/30 border-b last:border-b-0"
+                  >
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <button
+                        onClick={() =>
+                          setExpandedVersion(isExpanded ? null : ver.version)
+                        }
+                        className="text-muted-foreground hover:text-foreground flex flex-1 items-center gap-2 text-sm transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                        v{ver.version} —{" "}
+                        {new Date(ver.createdAt).toLocaleString()}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!verDecrypted?.ok || !keyInfo) return;
+                          const encryptedData = encryptVaultEntry(
+                            verDecrypted.data,
+                            keyInfo.privateKey,
+                          );
+                          const result = await updateEntry({
+                            data: {
+                              secretId: entry.secretId,
+                              name: ver.name,
+                              type: ver.type,
+                              searchTerms: ver.searchTerms,
+                              publicKey: entry.publicKey,
+                              encryptedData,
+                            },
+                          });
+                          onSaved(result.id);
+                        }}
+                        className="text-accent hover:text-accent/80 text-xs"
+                        title="Restore this version"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await deleteEntry({ data: ver.id });
+                          onSaved(entry.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive text-xs"
+                        title="Delete this version"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {isExpanded && verDecrypted?.ok && (
+                      <div className="border-border/30 border-t px-4 py-3">
+                        <div className="flex flex-col gap-2">
+                          {verDecrypted.data.type === "login" ? (
+                            <>
+                              {verDecrypted.data.domain && (
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground text-xs">
+                                    Domain:{" "}
+                                  </span>
+                                  {verDecrypted.data.domain}
+                                </p>
+                              )}
+                              {verDecrypted.data.username && (
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground text-xs">
+                                    Username:{" "}
+                                  </span>
+                                  {verDecrypted.data.username}
+                                </p>
+                              )}
+                              {verDecrypted.data.email && (
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground text-xs">
+                                    Email:{" "}
+                                  </span>
+                                  {verDecrypted.data.email}
+                                </p>
+                              )}
+                              {verDecrypted.data.password && (
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground text-xs">
+                                    Password:{" "}
+                                  </span>
+                                  ••••••••
+                                </p>
+                              )}
+                              {verDecrypted.data.notes && (
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground text-xs">
+                                    Notes:{" "}
+                                  </span>
+                                  {verDecrypted.data.notes}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm">
+                              <span className="text-muted-foreground text-xs">
+                                Text:{" "}
+                              </span>
+                              ••••••••
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {isExpanded && !verDecrypted?.ok && (
+                      <div className="border-border/30 border-t px-4 py-3">
+                        <p className="text-muted-foreground text-xs italic">
+                          Cannot decrypt — key may be locked
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

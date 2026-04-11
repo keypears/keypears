@@ -273,3 +273,10 @@ data).
 5. Delete the only version → secret deleted, navigates to vault
 6. `bun run lint` — clean
 7. `bun run build` — passes
+
+#### Result: Pass
+
+Inline history section added to vault entry detail page. Collapsible, shows
+older versions with expand/restore/delete per version. Passwords masked in
+history view. Restore creates a new version with old data. Delete removes a
+single version. Lint clean, build passes.
