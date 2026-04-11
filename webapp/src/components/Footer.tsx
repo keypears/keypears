@@ -33,6 +33,10 @@ export function Footer() {
         <Link to="/docs" className="hover:text-accent no-underline">
           Docs
         </Link>
+        <span>&middot;</span>
+        <Link to="/blog" className="hover:text-accent no-underline">
+          Blog
+        </Link>
       </div>
       <p>&copy; {new Date().getFullYear()} Astrohacker. All rights reserved.</p>
     </footer>

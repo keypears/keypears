@@ -11,6 +11,7 @@ import {
   X,
   Home,
   BookOpen,
+  Newspaper,
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { name: "Send", path: "/send", icon: Send },
   { name: "Vault", path: "/vault", icon: Lock },
   { name: "Docs", path: "/docs", icon: BookOpen },
+  { name: "Blog", path: "/blog", icon: Newspaper },
 ];
 
 
