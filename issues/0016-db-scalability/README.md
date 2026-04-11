@@ -73,3 +73,53 @@ secret by the same user.
 - **`TEXT` vs `varbinary` for encrypted data** — `TEXT` incurs off-page storage
   overhead, but changing it requires a migration of existing data and is a
   separate decision.
+
+## Experiment 1: Add missing indexes
+
+### Hypothesis
+
+Every scalability problem identified in sections 1--3 that can be solved by
+adding an index should be solved now. Unbounded table growth (section 2) is
+acknowledged but deferred — adding indexes to the cleanup queries is sufficient
+for now; an archival or deletion strategy may be needed in the future. The
+user-recycling bottleneck (section 3) is also an index problem: the
+`SELECT ... FOR UPDATE` scans the full `users` table because there is no index
+on the filter columns.
+
+### Changes
+
+Add the following indexes to `webapp/src/db/schema.ts`:
+
+1. **`messages`** — composite `(channelId, id)` to cover keyset pagination
+   (`WHERE channelId = ? ORDER BY id DESC`). This replaces the existing
+   single-column `channel_id_idx`.
+
+2. **`messages`** — composite `(channelId, isRead)` to cover unread-count
+   queries (`WHERE channelId = ? AND isRead = false`).
+
+3. **`channels`** — composite `(ownerId, updatedAt)` to cover the channel-list
+   query (`WHERE ownerId = ? ORDER BY updatedAt DESC`). This is in addition to
+   the existing unique index on `(ownerId, counterpartyAddress)`.
+
+4. **`users`** — index on `(expiresAt)` to cover the user-recycling query
+   (`WHERE expiresAt < ? AND passwordHash IS NULL ... FOR UPDATE`). MySQL can
+   use this to range-scan expired rows and skip the rest of the table, removing
+   the full-table lock under concurrent signups.
+
+5. **`sessions`** — index on `(expiresAt)` to cover lazy cleanup
+   (`DELETE WHERE expiresAt < NOW()`).
+
+6. **`used_pow`** — index on `(expiresAt)` to cover lazy cleanup
+   (`DELETE WHERE expiresAt < NOW()`).
+
+7. **`pending_deliveries`** — index on `(expiresAt)` to cover lazy cleanup
+   (`DELETE WHERE expiresAt < NOW()`).
+
+After adding the indexes, run `bun run db:push` to apply, then `bun run test`
+and `bun run lint` to verify nothing breaks.
+
+### Pass criteria
+
+- All seven indexes exist in the schema.
+- `db:push` applies cleanly.
+- Tests and linter pass.
