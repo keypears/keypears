@@ -209,7 +209,7 @@ communicated before.
   request is signed with Alice's secp256k1 private key to prove her identity.
 + Alice's browser mines the challenge on the GPU via WebGPU.
 + Alice computes a shared secret via ECDH (her private key, Bob's public key),
-  derives an encryption key with BLAKE3, and encrypts the message with ACS2.
+  derives an encryption key with BLAKE3, and encrypts the message with ACB3.
 + Alice sends the ciphertext and PoW solution to her server.
 + Alice's server stores her copy, creates a one-time pull token, and notifies
   Bob's server.
@@ -232,7 +232,7 @@ active key, used for ECDH key agreement in new messages. Users may rotate keys
 freely, up to 100 per account. Old keys are retained so that messages encrypted
 under previous keys can still be decrypted.
 
-Private keys are encrypted client-side with ACS2 under the user's encryption
+Private keys are encrypted client-side with ACB3 under the user's encryption
 key (Section~5) and stored on the server as ciphertext. The server cannot
 decrypt them. If a user changes their password, keys encrypted under the old
 password are re-encrypted; keys from a different password remain "locked" until
@@ -327,11 +327,11 @@ device, but cannot derive the login key or impersonate the user on the server.
 
 *Vault key.* A separate vault key for encrypting stored secrets is derived as
 $"BLAKE3-MAC"("private key", "vault-key")$. Each vault entry is independently
-encrypted with ACS2 under this key.
+encrypted with ACB3 under this key.
 
 = Encryption
 
-KeyPears uses ACS2 (AES-256-CBC with BLAKE3-HMAC authentication) for all
+KeyPears uses ACB3 (AES-256-CBC with BLAKE3-MAC authentication) for all
 symmetric encryption. Two encryption modes are used.
 
 *Message encryption.* When Alice sends a message to Bob, she computes a shared
@@ -340,7 +340,7 @@ secret via elliptic-curve Diffie-Hellman on secp256k1:
 $ S = "BLAKE3"("ECDH"(a, B)) $
 
 where $a$ is Alice's private key and $B$ is Bob's public key. The message
-payload is encrypted with ACS2 using $S$ as the key. Both Alice's and Bob's
+payload is encrypted with ACB3 using $S$ as the key. Both Alice's and Bob's
 public keys are stored alongside the ciphertext, so that either party can
 re-derive the shared secret after key rotation.
 
@@ -438,10 +438,10 @@ including a 15-minute expiry. Challenges are stateless---no database entry is
 created until a valid solution is submitted. This prevents pre-computation
 attacks.
 
-*GPU mining.* All proof of work is computed client-side on the GPU via WebGPU,
-using the `pow5-64b` algorithm compiled from Rust to WebAssembly. Servers never
-mine. A modern GPU solves a difficulty-70M challenge in approximately 15~seconds
-and a difficulty-7M challenge in 1--2~seconds.
+*GPU mining.* All proof of work is computed client-side on the GPU via WebGPU
+using the `pow5-64b` algorithm. The mining shader runs natively on the GPU;
+servers never mine. A modern GPU solves a difficulty-70M challenge in
+approximately 15~seconds and a difficulty-7M challenge in 1--2~seconds.
 
 *Per-recipient configurability.* Each user can set their own PoW difficulty for
 incoming messages:
