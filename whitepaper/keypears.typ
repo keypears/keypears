@@ -150,59 +150,55 @@ communicated before.
     let col-b = 13.5
 
     // Column headers
-    content((col-a, 0), [*Alice's\ Browser*], anchor: "south")
-    content((col-as, 0), [*a.com\ Server*], anchor: "south")
-    content((col-bs, 0), [*b.com\ Server*], anchor: "south")
-    content((col-b, 0), [*Bob's\ Browser*], anchor: "south")
+    content((col-a, 0), text(size: 8pt)[*Alice's Browser*], anchor: "south")
+    content((col-as, 0), text(size: 8pt)[*a.com Server*], anchor: "south")
+    content((col-bs, 0), text(size: 8pt)[*b.com Server*], anchor: "south")
+    content((col-b, 0), text(size: 8pt)[*Bob's Browser*], anchor: "south")
 
     // Vertical lifelines
-    let y-start = -0.8
-    let y-end = -12.5
+    let y-start = -0.4
+    let y-end = -8.6
     for x in (col-a, col-as, col-bs, col-b) {
       line((x, y-start), (x, y-end), stroke: (dash: "dashed", paint: luma(180)))
     }
 
     // Steps
-    let y = -1.5
-    let step = -1.5
+    let y = -0.8
+    let step = -0.85
 
-    // 1. Look up Bob's public key
+    // 1
     line((col-a, y), (col-as, y), mark: (end: ">"))
-    content(((col-a + col-as) / 2, y + 0.3), text(size: 8pt)[1. Look up Bob's key])
+    content(((col-a + col-as) / 2, y + 0.25), text(size: 7pt)[1. Look up Bob's key])
 
     y += step
     line((col-as, y), (col-bs, y), mark: (end: ">"))
-    content(((col-as + col-bs) / 2, y + 0.3), text(size: 8pt)[2. `getPublicKey("bob@b.com")`])
+    content(((col-as + col-bs) / 2, y + 0.25), text(size: 7pt)[2. `getPublicKey`])
 
     y += step
     line((col-a, y), (col-bs, y), mark: (end: ">"), stroke: (dash: "dotted"))
-    content(((col-a + col-bs) / 2, y + 0.3), text(size: 8pt)[3. Request PoW challenge (signed)])
+    content(((col-a + col-bs) / 2, y + 0.25), text(size: 7pt)[3. PoW challenge (signed)])
 
     y += step
-    content((col-a, y), text(size: 8pt)[4. Mine PoW\ (WebGPU)])
-
-    y += step
-    line((col-a, y), (col-a + 0.01, y))
-    content(((col-a) / 2 + 3.5, y + 0.3), text(size: 8pt)[5. ECDH + ACS2 encrypt])
+    content((col-a + 1.5, y), text(size: 7pt)[4. Mine PoW (WebGPU)  ·  5. ECDH + encrypt])
 
     y += step
     line((col-a, y), (col-as, y), mark: (end: ">"))
-    content(((col-a + col-as) / 2, y + 0.3), text(size: 8pt)[6. Send ciphertext + PoW])
+    content(((col-a + col-as) / 2, y + 0.25), text(size: 7pt)[6. Ciphertext + PoW])
 
     y += step
     line((col-as, y), (col-bs, y), mark: (end: ">"))
-    content(((col-as + col-bs) / 2, y + 0.3), text(size: 8pt)[7. Notify + pull token])
+    content(((col-as + col-bs) / 2, y + 0.25), text(size: 7pt)[7. Notify + pull token])
 
-    y += step - 0.3
-    content((col-bs, y), text(size: 8pt)[8. Resolve a.com\ via DNS/TLS], anchor: "west")
+    y += step
+    content((col-bs + 1.8, y), text(size: 7pt)[8. Resolve a.com via DNS/TLS], anchor: "west")
 
-    y += step + 0.3
+    y += step
     line((col-bs, y), (col-as, y), mark: (end: ">"))
-    content(((col-as + col-bs) / 2, y + 0.3), text(size: 8pt)[9. Pull message (one-time token)])
+    content(((col-as + col-bs) / 2, y + 0.25), text(size: 7pt)[9. Pull (one-time token)])
 
     y += step
     line((col-bs, y), (col-b, y), mark: (end: ">"))
-    content(((col-bs + col-b) / 2, y + 0.3), text(size: 8pt)[10. Deliver ciphertext])
+    content(((col-bs + col-b) / 2, y + 0.25), text(size: 7pt)[10. Deliver ciphertext])
   }),
   caption: [Message flow: Alice sends an encrypted message to Bob across two federated domains.],
 )
