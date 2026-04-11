@@ -325,9 +325,10 @@ salts, making them cryptographically independent. An attacker who compromises
 client storage obtains the encryption key and can decrypt private keys on that
 device, but cannot derive the login key or impersonate the user on the server.
 
-*Vault key.* A separate vault key for encrypting stored secrets is derived as
-$"BLAKE3-MAC"("private key", "vault-key")$. Each vault entry is independently
-encrypted with ACB3 under this key.
+*Vault key.* A separate key for encrypting stored secrets is derived as
+$K_"vault" = "BLAKE3-MAC"(K_"private",$ `"vault-key"`$)$, where the second
+argument is a fixed domain-separation string. Each vault entry is independently
+encrypted with ACB3 under $K_"vault"$.
 
 = Encryption
 
