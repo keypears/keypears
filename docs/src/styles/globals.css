@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Tokyo Night Day (light) */
+:root {
+  --background: #e1e2e7;
+  --background-dark: #d5d6db;
+  --foreground: #2a3a2c;
+  --foreground-dark: #4a5c4d;
+  --primary: hsl(109 58% 40%);
+  --primary-foreground: #ffffff;
+  --accent: hsl(109 58% 40%);
+  --accent-foreground: #ffffff;
+  --muted: #c4c8da;
+  --muted-foreground: #7a8a7c;
+  --border: #a0b0a2;
+}
+
+/* Tokyo Night (dark) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #151a16;
+    --background-dark: #111614;
+    --foreground: #dce4da;
+    --foreground-dark: #b8c4b6;
+    --primary: hsl(115 54% 76%);
+    --primary-foreground: #151a16;
+    --accent: hsl(115 54% 76%);
+    --accent-foreground: #151a16;
+    --muted: #252e28;
+    --muted-foreground: #7a8a7c;
+    --border: #2e3e30;
+  }
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-background-dark: var(--background-dark);
+  --color-foreground: var(--foreground);
+  --color-foreground-dark: var(--foreground-dark);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+}
+
+html {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Prose styling for markdown content */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-bg: var(--background-dark);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground-dark);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+}
+
+.prose a {
+  text-decoration: none;
+}
+
+.prose a:hover {
+  text-decoration: underline;
+}
+
+.prose code:not(pre code) {
+  background: var(--background-dark);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose pre {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+.prose table {
+  font-size: 0.875rem;
+}
+
+.prose th {
+  text-align: left;
+}

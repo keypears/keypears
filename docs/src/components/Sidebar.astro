@@ -1,0 +1,90 @@
+---
+interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const groups: NavGroup[] = [
+  {
+    title: "",
+    items: [
+      { label: "Welcome", href: "/" },
+    ],
+  },
+  {
+    title: "Protocol",
+    items: [
+      { label: "Addressing", href: "/protocol/addressing/" },
+      { label: "Key Derivation", href: "/protocol/key-derivation/" },
+      { label: "Encryption", href: "/protocol/encryption/" },
+      { label: "Proof of Work", href: "/protocol/proof-of-work/" },
+    ],
+  },
+  {
+    title: "",
+    items: [
+      { label: "Federation", href: "/federation/" },
+      { label: "Self-Hosting", href: "/self-hosting/" },
+      { label: "Security", href: "/security/" },
+      { label: "Development", href: "/development/" },
+    ],
+  },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<aside id="sidebar" class="border-border/30 hidden w-56 shrink-0 border-r md:block">
+  <nav class="sticky top-12 overflow-y-auto p-4 text-sm">
+    {groups.map((group) => (
+      <div class="mb-4">
+        {group.title && (
+          <h3 class="text-foreground mb-1 text-xs font-bold uppercase tracking-wider">
+            {group.title}
+          </h3>
+        )}
+        <ul class="flex flex-col gap-0.5">
+          {group.items.map((item) => {
+            const active = currentPath === item.href || currentPath === item.href.slice(0, -1);
+            return (
+              <li>
+                <a
+                  href={item.href}
+                  class:list={[
+                    "block rounded px-2 py-1 no-underline transition-colors",
+                    active
+                      ? "bg-accent/15 text-accent font-medium"
+                      : "text-muted-foreground hover:text-foreground",
+                  ]}
+                >
+                  {item.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </nav>
+</aside>
+
+<script>
+  const toggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+  if (toggle && sidebar) {
+    toggle.addEventListener("click", () => {
+      sidebar.classList.toggle("hidden");
+      sidebar.classList.toggle("fixed");
+      sidebar.classList.toggle("inset-0");
+      sidebar.classList.toggle("top-12");
+      sidebar.classList.toggle("z-20");
+      sidebar.classList.toggle("w-full");
+      sidebar.classList.toggle("bg-background");
+    });
+  }
+</script>

@@ -1,40 +1,35 @@
 ---
-import type { Props } from "@astrojs/starlight/props";
+interface Props {
+  prev?: { label: string; href: string };
+  next?: { label: string; href: string };
+}
 
-const { prev, next } = Astro.locals.starlightRoute.pagination;
+const { prev, next } = Astro.props;
 ---
 
-<footer class="kp-footer not-content">
-  <nav class="kp-page-nav">
-    {prev ? (
-      <a href={prev.href} class="kp-nav-link">
-        <span class="kp-arrow">&larr;</span>
-        <span>{prev.label}</span>
-      </a>
-    ) : <span />}
-    {next ? (
-      <a href={next.href} class="kp-nav-link">
-        <span>{next.label}</span>
-        <span class="kp-arrow">&rarr;</span>
-      </a>
-    ) : <span />}
-  </nav>
+<footer class="mt-12">
+  {(prev || next) && (
+    <nav class="border-border/30 flex justify-between border-t py-4">
+      {prev ? (
+        <a href={prev.href} class="text-muted-foreground hover:text-accent text-sm no-underline">
+          &larr; {prev.label}
+        </a>
+      ) : <span />}
+      {next ? (
+        <a href={next.href} class="text-muted-foreground hover:text-accent text-sm no-underline">
+          {next.label} &rarr;
+        </a>
+      ) : <span />}
+    </nav>
+  )}
 
-  <div class="kp-brand">
-    <a href="https://astrohacker.com" class="kp-brand-link">
+  <div class="border-border/30 flex justify-center border-t py-6">
+    <a href="https://astrohacker.com" class="text-muted-foreground hover:text-accent flex items-center gap-2 text-xs no-underline">
       <picture>
-        <source
-          srcset="/images/astrohacker-6-dark-32.webp"
-          media="(prefers-color-scheme: dark)"
-        />
-        <img
-          src="/images/astrohacker-6-light-32.webp"
-          alt="Astrohacker logo"
-          width="20"
-          height="20"
-        />
+        <source srcset="/images/astrohacker-6-dark-32.webp" media="(prefers-color-scheme: dark)" />
+        <img src="/images/astrohacker-6-light-32.webp" alt="Astrohacker" width="20" height="20" class="block" />
       </picture>
-      <span>An Astrohacker Project</span>
+      An Astrohacker Project
     </a>
   </div>
 </footer>
