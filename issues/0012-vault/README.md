@@ -614,3 +614,74 @@ encrypted secret message via ECDH. Recipient sees secret card in channel with
 name, type icon, and "Save to Vault" button. Saving decrypts ECDH message,
 re-encrypts with vault key, creates entry, navigates to vault detail.
 Text messages continue to work normally.
+
+### Experiment 3: Secret provenance and save deduplication
+
+#### Description
+
+Track where each vault entry came from: created by the user, or received from
+someone via a message. Show "Saved" instead of the green "Save to Vault" button
+when a secret message has already been saved. Show the source on the vault
+entry detail page.
+
+#### Schema changes
+
+Add two columns to `vault_entries`:
+
+```typescript
+sourceMessageId: varchar("source_message_id", { length: 36 }),
+sourceAddress: varchar("source_address", { length: 255 }),
+```
+
+Both nullable. Null means the user created the entry themselves. Non-null means
+it was saved from a received message.
+
+Add a LEFT JOIN to message queries so each message knows if it's been saved.
+
+#### Server changes
+
+**`vault.server.ts`** — `createVaultEntry` accepts optional `sourceMessageId`
+and `sourceAddress`.
+
+**`vault.functions.ts`** — `createEntry` Zod input adds optional
+`sourceMessageId` and `sourceAddress`.
+
+**`message.server.ts`** — `getChannelMessages`, `getNewMessages` gain a
+`userId` parameter. LEFT JOIN with `vault_entries` on
+`sourceMessageId = messages.id AND userId = ?`. Return `isSaved` boolean per
+message.
+
+**`message.functions.ts`** — pass `userId` through to message query functions.
+
+#### Channel view changes
+
+**`channel.$address.tsx`**:
+- Each message now has `isSaved` from the server.
+- Secret messages: if `isSaved`, show "Saved" (grayed out text) instead of the
+  green "Save to Vault" button.
+- `handleSaveSecret` passes `sourceMessageId: msg.id` and
+  `sourceAddress: msg.senderAddress` to `createEntry`.
+- After saving, update the local message list to reflect `isSaved = true`
+  without a full refetch.
+
+#### Vault detail changes
+
+**`vault.$id.tsx`**:
+- Entry detail shows provenance below the header:
+  - Self-created entries: nothing (or "Created by you")
+  - Received entries: "Received from alice@keypears.com" as a Link to
+    `/channel/alice@keypears.com`
+
+#### Verification
+
+1. `bun run db:clear && bun run db:push` — schema updated
+2. Create a vault entry manually — `sourceMessageId` and `sourceAddress` are
+   null
+3. Receive a secret message — "Save to Vault" button is green
+4. Save it — button changes to "Saved", vault entry shows
+   "Received from sender@domain"
+5. Navigate away and back to the channel — "Saved" persists (from LEFT JOIN)
+6. Click "Received from sender@domain" — navigates to the channel
+7. Text messages unaffected
+8. `bun run lint` — clean
+9. `bun run build` — passes
