@@ -274,3 +274,253 @@ principles before the technical content.
 
 Research complete. These ten qualities should guide the structure and tone of
 the full whitepaper rewrite in the next experiment.
+
+---
+
+## Experiment 2: Study the problem space
+
+### Hypothesis
+
+KeyPears solves a suite of related problems that are well-documented
+individually but rarely synthesized together. The core insight is that email
+— the internet's original federated communication protocol — has two
+fundamental deficiencies that are nearly impossible to fix in a
+backwards-compatible way:
+
+1. No cryptographic key exchange, making end-to-end encryption impractical.
+2. No cost to send, making spam economically rational.
+
+Studying the prior art on these failures will sharpen the problem statement in
+the whitepaper's introduction and provide citable references.
+
+### Source materials
+
+Four documents were downloaded to `whitepaper/`:
+
+- `whitten-tygar-1999-why-johnny-cant-encrypt.pdf` — Whitten & Tygar, "Why
+  Johnny Can't Encrypt: A Usability Evaluation of PGP 5.0" (USENIX Security,
+  1999), 14 pages.
+- `back-2002-hashcash.pdf` — Back, "Hashcash - A Denial of Service
+  Counter-Measure" (2002), 10 pages.
+- `rfc7489-dmarc.txt` — Kucherawy & Zwicky, "Domain-based Message
+  Authentication, Reporting, and Conformance (DMARC)" (RFC 7489, 2015).
+- `marlinspike-2016-ecosystem-is-moving.html` — Marlinspike, "Reflections: The
+  ecosystem is moving" (Signal blog, 2016).
+
+### Analysis
+
+#### "Why Johnny Can't Encrypt" (Whitten & Tygar, 1999)
+
+The canonical demonstration that bolting encryption onto email doesn't work.
+
+**Key findings:**
+
+1. _Security is a secondary goal._ Users don't sit down to "do encryption" —
+   they sit down to send email. Security that requires extra steps will be
+   skipped. PGP's fundamental problem is that encryption is opt-in and requires
+   manual key management.
+
+2. _The user test was devastating._ Given 90 minutes with PGP 5.0, the majority
+   of participants could not successfully sign and encrypt a message. Many
+   accidentally sent plaintext, thought they had encrypted when they hadn't, or
+   encrypted to the wrong key.
+
+3. _Five problematic properties of security:_ unmotivated user (security is a
+   secondary goal), abstraction (key management is conceptually alien),
+   lack of feedback (hard to tell if you're secure), barn door (one mistake
+   exposes everything permanently), weakest link (one user's error compromises
+   the conversation).
+
+4. _Key management is the core failure._ Users couldn't understand the
+   relationship between public and private keys, couldn't use key servers
+   reliably, and confused encryption with signing. The web of trust was
+   incomprehensible to non-experts.
+
+**Lesson for KeyPears:** This paper validates our entire design philosophy.
+KeyPears eliminates every failure mode Whitten & Tygar identified:
+
+- Encryption is not opt-in — it's the only mode. There is no "send plaintext"
+  button.
+- Key management is invisible. The server stores encrypted private keys; the
+  user only knows their password. Key rotation, key lookup for recipients, and
+  ECDH computation happen automatically.
+- There is no web of trust. Identity is bound to DNS domains, which users
+  already understand from email.
+- Feedback is immediate — you either have a conversation or you don't. There's
+  no state where you think you're encrypted but aren't.
+
+The whitepaper should cite this paper when arguing that retrofitting encryption
+onto existing protocols has been tried and has failed, not due to cryptographic
+weakness but due to usability.
+
+#### Hashcash (Back, 2002)
+
+The foundational paper on proof-of-work as anti-spam. Hashcash was originally
+proposed for email in 1997 — the exact same idea KeyPears uses, but applied to
+SMTP.
+
+**Key concepts:**
+
+1. _Cost functions._ A cost function is "efficiently verifiable, but
+   parameterisably expensive to compute." The key properties are: publicly
+   auditable (anyone can verify), trapdoor-free (the server has no advantage in
+   minting), and probabilistic cost (expected time is predictable but actual
+   time is random).
+
+2. _Interactive vs non-interactive._ Non-interactive hashcash (for email) has
+   no challenge — the client chooses its own start value. Interactive hashcash
+   (for TCP/TLS) uses a server-issued challenge. KeyPears uses the interactive
+   variant: the server issues a BLAKE3-MAC-signed challenge with a 15-minute
+   expiry.
+
+3. _Hashcash-cookies._ Section 4.2 describes a technique where the server MACs
+   the challenge parameters so it doesn't need to store state. "The server
+   would not need to keep any state per connection prior to receiving the TCP
+   ACK." This is exactly what KeyPears does — stateless challenges via
+   BLAKE3-MAC, with no DB entry until verification.
+
+4. _The spent-token database._ Section 3 notes: "The server needs to keep a
+   double spending database of spent tokens." This is KeyPears' `used_pow`
+   table. Back even notes the expiry/cleanup pattern: "The server can discard
+   entries from the spent database after they have expired."
+
+5. _Why it wasn't adopted for email._ Hashcash was never widely deployed for
+   email because SMTP has no mechanism to negotiate PoW between sender and
+   receiver. You can't require PoW from senders who don't know about it, and
+   backwards compatibility means you can't reject mail without it. This is the
+   clean-sheet argument: a new protocol can make PoW mandatory from day one.
+
+**Lesson for KeyPears:** Hashcash is the most important citation for the PoW
+section. KeyPears' PoW system is a direct descendant of Hashcash, adapted for
+an interactive web protocol with GPU mining. The whitepaper should cite Back's
+original work and explain what changed: interactive challenges (server-issued,
+not self-selected), GPU mining (WebGPU instead of CPU), per-recipient
+configurability (users choose their own difficulty), and authenticated
+challenges (secp256k1 signatures prevent probing).
+
+The whitepaper should also use Hashcash's failure to gain adoption on email as
+evidence that the spam problem can only be solved by a clean-sheet protocol.
+
+#### DMARC (RFC 7489, 2015)
+
+The most recent attempt to retrofit authentication onto email. DMARC layers on
+top of two earlier mechanisms (SPF and DKIM) to let domain owners publish
+policies about how to handle unauthenticated mail.
+
+**Key observations:**
+
+1. _Three layers of complexity._ DMARC requires SPF (IP-based sender
+   authorization), DKIM (cryptographic message signing), and DMARC itself
+   (policy and reporting). Each has its own DNS records, failure modes, and
+   deployment challenges. This is the cost of backwards compatibility.
+
+2. _"Identifier alignment" is the core problem._ Section 3.1 spends multiple
+   pages defining when the domain in the From header "aligns" with the domain
+   authenticated by SPF or DKIM. The complexity arises because email has
+   multiple sender identifiers (MAIL FROM, From header, DKIM d= domain) that
+   can all be different. A clean-sheet protocol doesn't have this problem.
+
+3. _It's informational, not a standard._ The RFC header says "This document is
+   not an Internet Standards Track specification; it is published for
+   informational purposes." After years of effort, email authentication still
+   isn't a formal internet standard.
+
+4. _It doesn't encrypt anything._ DMARC authenticates the sender's domain but
+   provides zero confidentiality. The message content is still plaintext. This
+   is half a solution at best.
+
+**Lesson for KeyPears:** DMARC is the proof that even authentication alone
+(never mind encryption) is extraordinarily hard to retrofit onto email. The
+whitepaper should cite DMARC as evidence of the complexity cost of backwards
+compatibility, and contrast it with KeyPears' approach: authentication and
+encryption are built into the protocol from the start, not layered on after
+40 years.
+
+#### "The ecosystem is moving" (Marlinspike, 2016)
+
+Moxie's argument against federation and for centralization.
+
+**Key arguments:**
+
+1. _Federation freezes protocols in time._ "We got to HTTP version 1.1 in 1997,
+   and have been stuck there until now. Likewise, SMTP, IRC, DNS, XMPP, are
+   all similarly frozen in time circa the late 1990s." Federated protocols
+   can't evolve because all participants must agree on changes.
+
+2. _Centralization enables iteration._ "WhatsApp was able to introduce
+   end-to-end encryption to over a billion users with a single software
+   update." Federation can't do this.
+
+3. _XMPP's "extensible" federation failed._ Extensions don't matter if not
+   everyone implements them. "Fractured client support is often worse than no
+   client support at all."
+
+4. _Federation coalesces around one provider anyway._ "Every email I send or
+   receive seems to have Gmail on the other end of it." Self-hosting is the
+   worst of both worlds — you get the complexity of federation without the
+   metadata protection it promises.
+
+5. _Switching costs are now low._ Phone-number-based identity means users can
+   switch messaging apps easily, giving centralized services implicit
+   competitive pressure without needing federation.
+
+**Lesson for KeyPears:** This is the strongest counterargument to KeyPears'
+federated design, and the whitepaper should address it directly. KeyPears'
+response:
+
+- Federation doesn't have to freeze the protocol if the protocol is simple
+  enough. KeyPears' federation layer is minimal — `keypears.json` for
+  discovery, one pull-token API for message delivery. There are no XEPs.
+- KeyPears addresses the "coalesce around one provider" problem by making
+  identity domain-based rather than phone-number-based. If you own your
+  domain, you own your identity. Switching providers means changing a DNS
+  record, not changing your address.
+- KeyPears is explicitly not trying to compete with consumer messengers on
+  feature velocity. It's a protocol for secure secret exchange, not a social
+  network. The feature set is deliberately small and stable.
+- The tradeoff is real and should be stated honestly: KeyPears sacrifices
+  iteration speed for sovereignty. Organizations that need to control their
+  own communication infrastructure accept this tradeoff.
+
+### Synthesis: framing the problem statement
+
+The four sources converge on a single narrative for the whitepaper's
+introduction:
+
+1. **Email is the internet's original federated communication protocol.** It
+   got addressing right (`name@domain`), federation right (SMTP + MX records),
+   and ubiquity right. But it was designed in an era that assumed trusted
+   networks.
+
+2. **Two fundamental deficiencies have proven impossible to fix
+   retroactively:**
+   - _No key exchange._ Without cryptographic keys bound to identities, E2E
+     encryption requires manual key management (PGP), which Whitten & Tygar
+     proved unusable in 1999. 25+ years later, encrypted email is still a
+     niche practice.
+   - _No cost to send._ Without proof of work, spam is economically rational.
+     Hashcash (Back, 1997/2002) proposed the solution but couldn't deploy it
+     on SMTP because backwards compatibility prevents making it mandatory.
+
+3. **Layering fixes on top hasn't worked.** DMARC (2015) required three
+   interlocking mechanisms (SPF, DKIM, DMARC) just to authenticate the
+   sender's domain — and still doesn't encrypt anything. The complexity is a
+   direct consequence of backwards compatibility with 40 years of SMTP.
+
+4. **Centralized alternatives traded one problem for another.** Signal solved
+   encryption but centralized identity. WhatsApp solved usability but gave
+   metadata to Facebook. As Marlinspike argued (2016), centralization enables
+   iteration — but it also means a single entity controls your address, your
+   keys, and your social graph.
+
+5. **KeyPears is a clean-sheet protocol that keeps what email got right**
+   (federated `name@domain` addressing, domain-based discovery) **while adding
+   what it couldn't:** Diffie-Hellman key exchange for end-to-end encryption,
+   and proof of work for spam mitigation. Both are mandatory from day one, not
+   retrofitted.
+
+### Result
+
+Research complete. The five-point narrative above should structure the
+whitepaper's introduction. Citations: Whitten & Tygar 1999, Back 2002,
+RFC 7489 (DMARC), Marlinspike 2016.
