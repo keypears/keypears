@@ -424,3 +424,21 @@ No route file imports from `.server.ts`. All loaders call server functions
 any loader. No action needed.
 
 #### Result: Pass
+
+## Conclusion
+
+Audited the app against TanStack Router and TanStack Start best practices using
+official docs, community articles, and GitHub issues. Found 9 issues across 5
+categories. All resolved in 5 experiments:
+
+1. **Typed navigation** — replaced string interpolation with typed params.
+2. **Error/pending/not-found components** — added global defaults to the router.
+   Preloading was already enabled.
+3. **router.invalidate()** — keys page reads loader data directly instead of
+   copying to state. Vault pages navigate after mutations.
+4. **Auth middleware** — created `authMiddleware` using `createMiddleware`.
+   Replaced 22 `requireSessionUserId()` calls across 3 files.
+5. **Search param Zod** — replaced manual type checking with `z.object().catch()`.
+   Auto code splitting and loader security verified as already correct.
+
+Best practices documented in CLAUDE.md to prevent regression.

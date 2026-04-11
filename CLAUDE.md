@@ -331,6 +331,11 @@ comes next.
 3. Implement Experiment 1.
 4. Record the result — Pass, partial, or fail with a conclusion.
 5. Repeat until the goal is met.
-6. Close the issue — write Conclusion, update frontmatter.
+6. Close the issue — write a Conclusion section, update frontmatter.
+
+Every closed issue MUST have a `## Conclusion` section summarizing what was
+accomplished, what changed, and key decisions made. The conclusion is the
+permanent record of the work — someone reading only the conclusion should
+understand the outcome without reading every experiment.
 
 Closed issues are immutable and must NEVER be modified.
