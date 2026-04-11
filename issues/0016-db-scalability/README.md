@@ -126,9 +126,9 @@ and `bun run lint` to verify nothing breaks.
 
 ### Result: Pass
 
-All seven indexes added to `webapp/src/db/schema.ts`. `db:push` applied
-cleanly to both keypears and passapples databases. Linter reported 0 errors,
-all 7 tests passed. Commit `b89b06c4`.
+All seven indexes added to `webapp/src/db/schema.ts`. `db:push` applied cleanly
+to both keypears and passapples databases. Linter reported 0 errors, all 7 tests
+passed. Commit `b89b06c4`.
 
 ---
 
@@ -136,43 +136,68 @@ all 7 tests passed. Commit `b89b06c4`.
 
 ### Hypothesis
 
-Two data-type issues can be fixed now since we haven't launched and old data
-can be deleted:
+Two data-type issues can be fixed now since we haven't launched and old data can
+be deleted:
 
 1. **`TIMESTAMP` → `datetime`** — MySQL `TIMESTAMP` overflows in 2038.
    `datetime` supports dates through 9999. Every `timestamp` column in the
    schema should become `datetime`.
 
-2. **`TEXT` → `varchar`** — `TEXT` columns are stored off-page in InnoDB,
+2. **`TEXT` → `varbinary`** — `TEXT` columns are stored off-page in InnoDB,
    requiring an extra random read per row. Every `TEXT` column in the schema
-   has a known maximum size and should become `varchar` with an appropriate
-   length:
+   stores hex-encoded binary data with a known maximum size. Switching to
+   `varbinary` stores raw bytes instead of hex, cutting storage in half while
+   also keeping data inline in InnoDB pages.
 
-   | Table                | Column               | Current  | New type         | Rationale                                             |
-   | -------------------- | -------------------- | -------- | ---------------- | ----------------------------------------------------- |
-   | `user_keys`          | `encrypted_private_key` | `text` | `varchar(512)`   | ACS2-encrypted 32-byte key ≈ 192 hex chars max        |
-   | `secret_versions`    | `encrypted_data`     | `text`   | `varchar(20000)` | Server validates max 20,000 hex chars                  |
-   | `messages`           | `encrypted_content`  | `text`   | `varchar(50000)` | Server validates max 50,000 hex chars                  |
-   | `pending_deliveries` | `encrypted_content`  | `text`   | `varchar(50000)` | Same content as messages                               |
-   | `used_pow`           | `solved_header`      | `text`   | `varchar(128)`   | Fixed 64-byte header = 128 hex chars                   |
+   A Drizzle `customType` called `binaryHex` will handle the conversion
+   transparently: hex string in TypeScript, raw bytes in MySQL. This follows the
+   same pattern as the existing `binaryId` custom type. The rest of the codebase
+   continues to work with hex strings — no changes needed outside the schema.
+
+   | Table                | Column                  | Current | New type           | Rationale                                    |
+   | -------------------- | ----------------------- | ------- | ------------------ | -------------------------------------------- |
+   | `user_keys`          | `encrypted_private_key` | `text`  | `varbinary(256)`   | ACS2-encrypted 32-byte key ≈ 96 bytes        |
+   | `secret_versions`    | `encrypted_data`        | `text`  | `varbinary(10000)` | Server validates max 20,000 hex chars = 10KB |
+   | `messages`           | `encrypted_content`     | `text`  | `varbinary(25000)` | Server validates max 50,000 hex chars = 25KB |
+   | `pending_deliveries` | `encrypted_content`     | `text`  | `varbinary(25000)` | Same content as messages                     |
+   | `used_pow`           | `solved_header`         | `text`  | `varbinary(64)`    | Fixed 64-byte header                         |
 
 ### Changes
 
 In `webapp/src/db/schema.ts`:
 
-1. Replace every `timestamp(...)` call with `datetime(...)`. Import `datetime`
-   from `drizzle-orm/mysql-core` and remove `timestamp`.
+1. Add a `binaryHex` custom type that converts between hex strings (app) and raw
+   bytes (DB):
 
-2. Replace every `text(...)` call with the appropriate `varchar(...)` from the
+   ```ts
+   const binaryHex = (name: string, length: number) =>
+     customType<{ data: string }>({
+       dataType() {
+         return `varbinary(${length})`;
+       },
+       toDriver(data: string) {
+         return Buffer.from(data, "hex");
+       },
+       fromDriver(data) {
+         return Buffer.from(data as Buffer).toString("hex");
+       },
+     })(name);
+   ```
+
+2. Replace every `text(...)` call with the appropriate `binaryHex(...)` from the
    table above.
 
-3. Run `bun run db:clear && bun run db:push` to recreate tables (old data is
+3. Replace every `timestamp(...)` call with `datetime(...)`. Import `datetime`
+   from `drizzle-orm/mysql-core` and remove `timestamp`.
+
+4. Run `bun run db:clear && bun run db:push` to recreate tables (old data is
    deleted since we haven't launched).
 
-4. Run `bun run test` and `bun run lint`.
+5. Run `bun run test` and `bun run lint`.
 
 ### Pass criteria
 
 - No `timestamp` or `text` columns remain in the schema.
+- All encrypted/binary columns use `binaryHex` custom type.
 - `db:push` applies cleanly.
 - Tests and linter pass.
