@@ -50,17 +50,18 @@ but never the username, password, or any field values.
 
 **`login`** — Username/password for websites and services.
 
-- Plaintext metadata: name, type
+- Plaintext metadata: name, type, searchTerms
 - Encrypted fields: domain, username, email, password, notes
-- Example: "Google" → { domain: "google.com", email: "me@gmail.com", password:
-  "hunter2" }
+- Example: "Google" with searchTerms "gmail work" → { domain: "google.com",
+  email: "me@gmail.com", password: "hunter2" }
 
 **`text`** — Generic secret text. Catch-all for anything that doesn't fit a
 structured type. API keys, tokens, license keys, one-off secrets, secure notes.
 
-- Plaintext metadata: name, type
+- Plaintext metadata: name, type, searchTerms
 - Encrypted fields: text
-- Example: "OpenAI API Key" → { text: "sk-proj-abc123..." }
+- Example: "OpenAI API Key" with searchTerms "ai gpt" → { text:
+  "sk-proj-abc123..." }
 
 These two cover the vast majority of use cases. More types can be added later
 without schema changes, since the type just determines which fields the UI
@@ -143,6 +144,7 @@ Server stores:
 │ userId                                                   │
 │ name            ← plaintext (searchable)                 │
 │ type            ← plaintext ("login" | "text" | ...)     │
+│ searchTerms     ← plaintext (searchable, user-chosen)    │
 │ publicKey       ← which key encrypted this entry         │
 │ encryptedData   ← ACS2 ciphertext (opaque to server)    │
 │ createdAt                                                │
@@ -161,10 +163,12 @@ Encrypted blob contains (after decryption):
 └──────────────────────────────────────────────────────────┘
 ```
 
-The name is the only user-visible datum stored in plaintext. This enables
-server-side search (LIKE queries on name) without exposing secrets. Users should
-be aware that entry names are visible to the server operator, same as how email
-subject lines are visible to the mail server.
+Name and search terms are the only user-visible data stored in plaintext. This
+enables server-side search (LIKE queries on name and searchTerms) without
+exposing secrets. Users control what goes in search terms — they might add
+"gmail", "work", "production" without revealing credentials. Users should be
+aware that names and search terms are visible to the server operator, same as
+how email subject lines are visible to the mail server.
 
 ### Schema
 
@@ -174,6 +178,7 @@ vault_entries (
   user_id         binary(16) NOT NULL
   name            varchar(255) NOT NULL
   type            varchar(32) NOT NULL
+  search_terms    varchar(255) NOT NULL DEFAULT ''
   public_key      varchar(66) NOT NULL  -- which key encrypted this
   encrypted_data  text NOT NULL
   created_at      timestamp NOT NULL DEFAULT NOW()
@@ -190,13 +195,14 @@ indirection handles both key rotation and password changes.
 ### CRUD operations
 
 - **Create**: derive vault key from active private key → encrypt fields → send
-  name + type + publicKey + ciphertext to server
+  name + type + searchTerms + publicKey + ciphertext to server
 - **Read**: server returns metadata + ciphertext → find matching private key →
   derive vault key → decrypt
 - **Update**: decrypt with old key → re-encrypt with same key (or active key if
   upgrading) → send to server
 - **Delete**: server deletes the row (hard delete)
-- **Search**: server filters by name (LIKE), returns results with ciphertext
+- **Search**: server filters by name and searchTerms (LIKE on both), returns
+  results with ciphertext
 
 ## Message integration
 
@@ -242,7 +248,7 @@ The secret is now in their vault, independent of the message.
 
 ### Entry list
 
-- Search bar at top (filters by name, server-side LIKE)
+- Search bar at top (filters by name and search terms, server-side LIKE)
 - Each entry shows: name, type icon, key number badge
 - Key number badge is subtle (e.g. "Key #2") — if it's not the active key, show
   a small indicator that encryption can be upgraded
