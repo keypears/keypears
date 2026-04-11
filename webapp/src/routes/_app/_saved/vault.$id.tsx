@@ -1081,40 +1081,50 @@ function EntryDetail({
                         v{ver.version} —{" "}
                         {new Date(ver.createdAt).toLocaleString()}
                       </button>
-                      <button
-                        onClick={async () => {
-                          if (!verDecrypted?.ok || !keyInfo) return;
-                          const encryptedData = encryptVaultEntry(
-                            verDecrypted.data,
-                            keyInfo.privateKey,
-                          );
-                          const result = await updateEntry({
-                            data: {
-                              secretId: entry.secretId,
-                              name: ver.name,
-                              type: ver.type,
-                              searchTerms: ver.searchTerms,
-                              publicKey: entry.publicKey,
-                              encryptedData,
-                            },
-                          });
-                          onSaved(result.id);
-                        }}
-                        className="text-accent hover:text-accent/80 text-xs"
-                        title="Restore this version"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await deleteEntry({ data: ver.id });
-                          onSaved(entry.id);
-                        }}
-                        className="text-muted-foreground hover:text-destructive text-xs"
-                        title="Delete this version"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground cursor-pointer">
+                            <EllipsisVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              if (!verDecrypted?.ok || !keyInfo) return;
+                              const encryptedData = encryptVaultEntry(
+                                verDecrypted.data,
+                                keyInfo.privateKey,
+                              );
+                              const result = await updateEntry({
+                                data: {
+                                  secretId: entry.secretId,
+                                  name: ver.name,
+                                  type: ver.type,
+                                  searchTerms: ver.searchTerms,
+                                  publicKey: entry.publicKey,
+                                  encryptedData,
+                                },
+                              });
+                              onSaved(result.id);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Restore
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              await deleteEntry({ data: ver.id });
+                              onSaved(entry.id);
+                            }}
+                            className="text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     {isExpanded && verDecrypted?.ok && (
                       <div className="border-border/30 border-t px-4 py-3">
