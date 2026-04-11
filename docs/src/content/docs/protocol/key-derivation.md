@@ -107,6 +107,18 @@ re-encrypted:
 7. Cache new encryption key on client.
 8. Locked keys remain unchanged under their old password.
 
+## Key rotation
+
+When rotating keys, a new secp256k1 key pair is generated. The private key is
+encrypted with the cached encryption key and stored in the `user_keys` table
+alongside the public key. The most recent key is the active key. The new key's
+`loginKeyHash` is set to match the user's current password hash.
+
+If the cached encryption key is missing (cleared client storage, new device),
+the user is prompted for their password. The password key is derived, the
+encryption key is derived from it and cached, then the password key is
+discarded.
+
 ## Algorithms
 
 | Purpose          | Algorithm                        | Library          |
@@ -115,3 +127,18 @@ re-encrypted:
 | Encryption       | ACB3 (AES-256-CBC + BLAKE3-MAC)  | `@webbuf/acb3`   |
 | Key pairs        | secp256k1                        | `@webbuf/secp256k1` |
 | Rounds per tier  | 100,000 client-side, 100,000 server-side | |
+
+## Implementation
+
+All key derivation functions are in `webapp/src/lib/auth.ts`:
+
+- `derivePasswordKey(password)` — Tier 1 (ephemeral)
+- `deriveEncryptionKeyFromPasswordKey(passwordKey)` — Tier 2a
+- `deriveLoginKeyFromPasswordKey(passwordKey)` — Tier 2b (ephemeral)
+- `cacheEncryptionKey(encryptionKey)` — stores encryption key on client
+- `getCachedEncryptionKey()` — retrieves cached encryption key
+- `clearCachedEncryptionKey()` — clears on logout
+
+Server-side hashing is in `webapp/src/server/user.server.ts`:
+
+- `hashLoginKey(loginKeyHex)` — 100k rounds BLAKE3 PBKDF with server salt

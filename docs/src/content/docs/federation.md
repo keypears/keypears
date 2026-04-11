@@ -33,6 +33,12 @@ Response:
 The API URL is derived as `https://{apiDomain}/api`. All server-to-server
 communication goes through this endpoint.
 
+### Caching
+
+Servers should cache `keypears.json` responses. The file changes rarely (only
+when migrating hosting). A TTL of 1 hour is reasonable. On error, fall back to
+the cached value.
+
 ## Three deployment patterns
 
 ### 1. Self-hosted
@@ -77,9 +83,34 @@ The `admin` field names an existing KeyPears user who can manage users for this
 domain. The admin is verified against `keypears.json` on every privileged action.
 If the `admin` field changes, the old admin immediately loses access.
 
-## Pull-model message delivery
+## Key discovery
 
-Cross-domain messages use a pull model rather than server-to-server push.
+To find a user's current public key, the sender's server calls the recipient's
+server via oRPC:
+
+```typescript
+const client = createRemoteClient(recipientApiUrl);
+const result = await client.getPublicKey({ address: "alice@acme.com" });
+// result.publicKey = "02abc...def"
+```
+
+The server returns the user's **active** public key (the most recently rotated
+secp256k1 key). This is used to compute the ECDH shared secret for encryption.
+
+## Message delivery
+
+### Same domain
+
+When sender and recipient are on the same server (including different hosted
+domains on the same server), messages are stored directly. Each user has their
+own copy of the message in their own channel view. No pull token or
+cross-domain verification is needed.
+
+### Cross domain (pull model)
+
+All cross-domain communication is server-to-server. The client only talks to its
+own server. Cross-domain messages use a pull model rather than server-to-server
+push.
 
 When `alice@a.com` sends a message to `bob@b.com`:
 
@@ -121,6 +152,27 @@ The pull model provides **domain verification without signing keys**:
 Because the pull happens synchronously during the send, the sender receives
 immediate confirmation of delivery or an immediate error. There is no outbox
 queue, no silent retry, and no delayed bounce notification.
+
+### Message structure
+
+Each message stored on the server contains:
+
+| Field              | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `senderAddress`    | Full address (e.g. `alice@acme.com`)           |
+| `encryptedContent` | ACB3-encrypted message content                 |
+| `senderPubKey`     | Sender's public key at time of sending         |
+| `recipientPubKey`  | Recipient's public key at time of sending      |
+| `isRead`           | Whether the recipient has viewed this message  |
+
+Both public keys are stored so the recipient knows which keys to use for ECDH
+decryption, even after key rotation.
+
+### Message size limit
+
+The `encryptedContent` field is limited to 50,000 hex characters (~25KB of
+plaintext). This is enforced by both the sender's server (via Zod validation)
+and the recipient's server (after pulling the message).
 
 ## API procedures
 

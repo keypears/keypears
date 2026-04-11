@@ -34,6 +34,7 @@ export default defineConfig({
         { slug: "federation" },
         { slug: "self-hosting" },
         { slug: "security" },
+        { slug: "development" },
       ],
     }),
   ],
