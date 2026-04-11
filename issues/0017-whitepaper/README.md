@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # KeyPears Whitepaper
@@ -98,9 +99,9 @@ Three reference papers were downloaded to `whitepaper/`:
 **What makes it work:**
 
 1. _Problem-first introduction._ The entire first page is about what's broken
-   (trusted third parties, mediation costs, fraud, privacy). The solution
-   ("what is needed is...") appears only in the final paragraph of the
-   introduction. The reader understands the pain before seeing the fix.
+   (trusted third parties, mediation costs, fraud, privacy). The solution ("what
+   is needed is...") appears only in the final paragraph of the introduction.
+   The reader understands the pain before seeing the fix.
 
 2. _Each section builds on the last._ Transactions → Timestamp Server →
    Proof-of-Work → Network → Incentive. No section makes sense without the
@@ -116,11 +117,11 @@ Three reference papers were downloaded to `whitepaper/`:
    includes C code and numerical results. This isn't hand-waving — it's a
    concrete proof that the system works with specific numbers.
 
-5. _Concrete numbers for practical concerns._ "80 bytes × 6 × 24 × 365 =
-   4.2MB per year" (p4). The reader can verify this on the back of an envelope.
+5. _Concrete numbers for practical concerns._ "80 bytes × 6 × 24 × 365 = 4.2MB
+   per year" (p4). The reader can verify this on the back of an envelope.
 
-6. _No marketing language._ Zero adjectives like "revolutionary" or "novel."
-   The design speaks for itself. Credibility comes from precision, not claims.
+6. _No marketing language._ Zero adjectives like "revolutionary" or "novel." The
+   design speaks for itself. Credibility comes from precision, not claims.
 
 7. _Short references list._ 8 citations, all directly relevant. No padding.
 
@@ -154,16 +155,15 @@ Protocol, Security Considerations, IPR, Acknowledgements, References).
 
 4. _Thorough security considerations._ Eight subsections covering
    authentication, replay, key reuse, deniability, signatures, key compromise,
-   server trust, and identity binding. Each is 1--2 paragraphs, not exhaustive
-   — but each names the attack and states the mitigation or limitation.
+   server trust, and identity binding. Each is 1--2 paragraphs, not exhaustive —
+   but each names the attack and states the mitigation or limitation.
 
-5. _Explicit scope boundaries._ "Methods for doing this are outside the scope
-   of this document" appears multiple times. The paper knows what it is and
-   isn't.
+5. _Explicit scope boundaries._ "Methods for doing this are outside the scope of
+   this document" appears multiple times. The paper knows what it is and isn't.
 
 **Relevant for KeyPears:** The preliminaries section is something our draft
-completely lacks. We should define our notation (BLAKE3-MAC, ACS2, ECDH) and
-key types (password key, encryption key, login key, vault key) before describing
+completely lacks. We should define our notation (BLAKE3-MAC, ACS2, ECDH) and key
+types (password key, encryption key, login key, vault key) before describing
 protocols. The security considerations structure — one subsection per attack
 vector — is more rigorous than our current bullet list.
 
@@ -176,12 +176,12 @@ post-quantum).
 **What makes it work:**
 
 1. _Layered explanation._ Section 2 ("Overview") builds concepts incrementally:
-   KDF chains → symmetric-key ratchet → Diffie-Hellman ratchet → Double
-   Ratchet → out-of-order messages. Each subsection introduces one concept with
-   a diagram. Section 3 then gives the formal specification.
+   KDF chains → symmetric-key ratchet → Diffie-Hellman ratchet → Double Ratchet
+   → out-of-order messages. Each subsection introduces one concept with a
+   diagram. Section 3 then gives the formal specification.
 
-2. _Colored diagrams._ KDF chain diagrams use color to distinguish keys,
-   inputs, and outputs. The visual hierarchy makes complex key derivation chains
+2. _Colored diagrams._ KDF chain diagrams use color to distinguish keys, inputs,
+   and outputs. The visual hierarchy makes complex key derivation chains
    scannable.
 
 3. _Pseudocode for the protocol._ Sections 3.4/3.5 give encrypt/decrypt
@@ -195,8 +195,8 @@ post-quantum).
 **Relevant for KeyPears:** The layered explanation approach (overview with
 diagrams, then formal spec) is the right pattern for our KDF and message
 encryption sections. Our three-tier KDF would benefit from a diagram like the
-KDF chain diagrams. Pseudocode for the message send/receive flow would make
-the protocol implementable by third parties.
+KDF chain diagrams. Pseudocode for the message send/receive flow would make the
+protocol implementable by third parties.
 
 #### Matrix specification
 
@@ -227,24 +227,21 @@ principles before the technical content.
 ### Synthesis: qualities to adopt for the KeyPears whitepaper
 
 1. **Problem-first introduction** (Bitcoin). Spend the first page on what's
-   broken. Centralized messengers, PGP usability, Signal's centralized
-   identity, Matrix's complexity. The solution appears only after the problem
-   is felt.
+   broken. Centralized messengers, PGP usability, Signal's centralized identity,
+   Matrix's complexity. The solution appears only after the problem is felt.
 
-2. **Formal preliminaries** (Signal X3DH). Define notation, key types, and
-   roles before describing protocols. A table of cryptographic primitives
-   (BLAKE3, secp256k1, ACS2) with their parameters.
+2. **Formal preliminaries** (Signal X3DH). Define notation, key types, and roles
+   before describing protocols. A table of cryptographic primitives (BLAKE3,
+   secp256k1, ACS2) with their parameters.
 
 3. **Diagrams for every non-obvious flow** (Bitcoin, Signal). At minimum:
-   - Three-tier KDF tree (password → password key → encryption key / login
-     key)
-   - Message send/receive sequence diagram (ECDH, encrypt, pull-model
-     delivery)
+   - Three-tier KDF tree (password → password key → encryption key / login key)
+   - Message send/receive sequence diagram (ECDH, encrypt, pull-model delivery)
    - Federation topology (self-hosted, subdomain, third-party)
    - PoW challenge/response flow
 
-4. **Layered explanation** (Double Ratchet). Overview with intuition first,
-   then precise protocol steps. Don't mix the two.
+4. **Layered explanation** (Double Ratchet). Overview with intuition first, then
+   precise protocol steps. Don't mix the two.
 
 5. **Quantitative security analysis** (Bitcoin). Compute concrete numbers:
    - Cost to brute-force a password (300k BLAKE3 rounds × charset × length)
@@ -260,11 +257,11 @@ principles before the technical content.
    pretending the system handles everything.
 
 8. **Comparison to related work** (unique to our needs). A section comparing
-   KeyPears to Signal, Matrix, PGP, and Keybase — what tradeoffs each makes
-   and why KeyPears chose differently.
+   KeyPears to Signal, Matrix, PGP, and Keybase — what tradeoffs each makes and
+   why KeyPears chose differently.
 
-9. **No marketing language** (Bitcoin). Let the design speak. Credibility
-   comes from precision.
+9. **No marketing language** (Bitcoin). Let the design speak. Credibility comes
+   from precision.
 
 10. **Design principles upfront** (Matrix). A short list of core values
     (federated, E2E encrypted, client-side PoW, DNS-based identity) before
@@ -282,10 +279,9 @@ the full whitepaper rewrite in the next experiment.
 ### Hypothesis
 
 KeyPears solves a suite of related problems that are well-documented
-individually but rarely synthesized together. The core insight is that email
-— the internet's original federated communication protocol — has two
-fundamental deficiencies that are nearly impossible to fix in a
-backwards-compatible way:
+individually but rarely synthesized together. The core insight is that email —
+the internet's original federated communication protocol — has two fundamental
+deficiencies that are nearly impossible to fix in a backwards-compatible way:
 
 1. No cryptographic key exchange, making end-to-end encryption impractical.
 2. No cost to send, making spam economically rational.
@@ -326,10 +322,10 @@ The canonical demonstration that bolting encryption onto email doesn't work.
    encrypted to the wrong key.
 
 3. _Five problematic properties of security:_ unmotivated user (security is a
-   secondary goal), abstraction (key management is conceptually alien),
-   lack of feedback (hard to tell if you're secure), barn door (one mistake
-   exposes everything permanently), weakest link (one user's error compromises
-   the conversation).
+   secondary goal), abstraction (key management is conceptually alien), lack of
+   feedback (hard to tell if you're secure), barn door (one mistake exposes
+   everything permanently), weakest link (one user's error compromises the
+   conversation).
 
 4. _Key management is the core failure._ Users couldn't understand the
    relationship between public and private keys, couldn't use key servers
@@ -367,17 +363,17 @@ SMTP.
    minting), and probabilistic cost (expected time is predictable but actual
    time is random).
 
-2. _Interactive vs non-interactive._ Non-interactive hashcash (for email) has
-   no challenge — the client chooses its own start value. Interactive hashcash
-   (for TCP/TLS) uses a server-issued challenge. KeyPears uses the interactive
+2. _Interactive vs non-interactive._ Non-interactive hashcash (for email) has no
+   challenge — the client chooses its own start value. Interactive hashcash (for
+   TCP/TLS) uses a server-issued challenge. KeyPears uses the interactive
    variant: the server issues a BLAKE3-MAC-signed challenge with a 15-minute
    expiry.
 
 3. _Hashcash-cookies._ Section 4.2 describes a technique where the server MACs
-   the challenge parameters so it doesn't need to store state. "The server
-   would not need to keep any state per connection prior to receiving the TCP
-   ACK." This is exactly what KeyPears does — stateless challenges via
-   BLAKE3-MAC, with no DB entry until verification.
+   the challenge parameters so it doesn't need to store state. "The server would
+   not need to keep any state per connection prior to receiving the TCP ACK."
+   This is exactly what KeyPears does — stateless challenges via BLAKE3-MAC,
+   with no DB entry until verification.
 
 4. _The spent-token database._ Section 3 notes: "The server needs to keep a
    double spending database of spent tokens." This is KeyPears' `used_pow`
@@ -391,8 +387,8 @@ SMTP.
    clean-sheet argument: a new protocol can make PoW mandatory from day one.
 
 **Lesson for KeyPears:** Hashcash is the most important citation for the PoW
-section. KeyPears' PoW system is a direct descendant of Hashcash, adapted for
-an interactive web protocol with GPU mining. The whitepaper should cite Back's
+section. KeyPears' PoW system is a direct descendant of Hashcash, adapted for an
+interactive web protocol with GPU mining. The whitepaper should cite Back's
 original work and explain what changed: interactive challenges (server-issued,
 not self-selected), GPU mining (WebGPU instead of CPU), per-recipient
 configurability (users choose their own difficulty), and authenticated
@@ -417,8 +413,8 @@ policies about how to handle unauthenticated mail.
 2. _"Identifier alignment" is the core problem._ Section 3.1 spends multiple
    pages defining when the domain in the From header "aligns" with the domain
    authenticated by SPF or DKIM. The complexity arises because email has
-   multiple sender identifiers (MAIL FROM, From header, DKIM d= domain) that
-   can all be different. A clean-sheet protocol doesn't have this problem.
+   multiple sender identifiers (MAIL FROM, From header, DKIM d= domain) that can
+   all be different. A clean-sheet protocol doesn't have this problem.
 
 3. _It's informational, not a standard._ The RFC header says "This document is
    not an Internet Standards Track specification; it is published for
@@ -433,8 +429,8 @@ policies about how to handle unauthenticated mail.
 (never mind encryption) is extraordinarily hard to retrofit onto email. The
 whitepaper should cite DMARC as evidence of the complexity cost of backwards
 compatibility, and contrast it with KeyPears' approach: authentication and
-encryption are built into the protocol from the start, not layered on after
-40 years.
+encryption are built into the protocol from the start, not layered on after 40
+years.
 
 #### "The ecosystem is moving" (Marlinspike, 2016)
 
@@ -443,13 +439,13 @@ Moxie's argument against federation and for centralization.
 **Key arguments:**
 
 1. _Federation freezes protocols in time._ "We got to HTTP version 1.1 in 1997,
-   and have been stuck there until now. Likewise, SMTP, IRC, DNS, XMPP, are
-   all similarly frozen in time circa the late 1990s." Federated protocols
-   can't evolve because all participants must agree on changes.
+   and have been stuck there until now. Likewise, SMTP, IRC, DNS, XMPP, are all
+   similarly frozen in time circa the late 1990s." Federated protocols can't
+   evolve because all participants must agree on changes.
 
 2. _Centralization enables iteration._ "WhatsApp was able to introduce
-   end-to-end encryption to over a billion users with a single software
-   update." Federation can't do this.
+   end-to-end encryption to over a billion users with a single software update."
+   Federation can't do this.
 
 3. _XMPP's "extensible" federation failed._ Extensions don't matter if not
    everyone implements them. "Fractured client support is often worse than no
@@ -469,43 +465,41 @@ federated design, and the whitepaper should address it directly. KeyPears'
 response:
 
 - Federation doesn't have to freeze the protocol if the protocol is simple
-  enough. KeyPears' federation layer is minimal — `keypears.json` for
-  discovery, one pull-token API for message delivery. There are no XEPs.
+  enough. KeyPears' federation layer is minimal — `keypears.json` for discovery,
+  one pull-token API for message delivery. There are no XEPs.
 - KeyPears addresses the "coalesce around one provider" problem by making
-  identity domain-based rather than phone-number-based. If you own your
-  domain, you own your identity. Switching providers means changing a DNS
-  record, not changing your address.
+  identity domain-based rather than phone-number-based. If you own your domain,
+  you own your identity. Switching providers means changing a DNS record, not
+  changing your address.
 - KeyPears is explicitly not trying to compete with consumer messengers on
   feature velocity. It's a protocol for secure secret exchange, not a social
   network. The feature set is deliberately small and stable.
 - The tradeoff is real and should be stated honestly: KeyPears sacrifices
-  iteration speed for sovereignty. Organizations that need to control their
-  own communication infrastructure accept this tradeoff.
+  iteration speed for sovereignty. Organizations that need to control their own
+  communication infrastructure accept this tradeoff.
 
 ### Synthesis: framing the problem statement
 
 The four sources converge on a single narrative for the whitepaper's
 introduction:
 
-1. **Email is the internet's original federated communication protocol.** It
-   got addressing right (`name@domain`), federation right (SMTP + MX records),
-   and ubiquity right. But it was designed in an era that assumed trusted
-   networks.
+1. **Email is the internet's original federated communication protocol.** It got
+   addressing right (`name@domain`), federation right (SMTP + MX records), and
+   ubiquity right. But it was designed in an era that assumed trusted networks.
 
-2. **Two fundamental deficiencies have proven impossible to fix
-   retroactively:**
+2. **Two fundamental deficiencies have proven impossible to fix retroactively:**
    - _No key exchange._ Without cryptographic keys bound to identities, E2E
      encryption requires manual key management (PGP), which Whitten & Tygar
-     proved unusable in 1999. 25+ years later, encrypted email is still a
-     niche practice.
+     proved unusable in 1999. 25+ years later, encrypted email is still a niche
+     practice.
    - _No cost to send._ Without proof of work, spam is economically rational.
-     Hashcash (Back, 1997/2002) proposed the solution but couldn't deploy it
-     on SMTP because backwards compatibility prevents making it mandatory.
+     Hashcash (Back, 1997/2002) proposed the solution but couldn't deploy it on
+     SMTP because backwards compatibility prevents making it mandatory.
 
 3. **Layering fixes on top hasn't worked.** DMARC (2015) required three
-   interlocking mechanisms (SPF, DKIM, DMARC) just to authenticate the
-   sender's domain — and still doesn't encrypt anything. The complexity is a
-   direct consequence of backwards compatibility with 40 years of SMTP.
+   interlocking mechanisms (SPF, DKIM, DMARC) just to authenticate the sender's
+   domain — and still doesn't encrypt anything. The complexity is a direct
+   consequence of backwards compatibility with 40 years of SMTP.
 
 4. **Centralized alternatives traded one problem for another.** Signal solved
    encryption but centralized identity. WhatsApp solved usability but gave
@@ -522,8 +516,8 @@ introduction:
 ### Result
 
 Research complete. The five-point narrative above should structure the
-whitepaper's introduction. Citations: Whitten & Tygar 1999, Back 2002,
-RFC 7489 (DMARC), Marlinspike 2016.
+whitepaper's introduction. Citations: Whitten & Tygar 1999, Back 2002, RFC 7489
+(DMARC), Marlinspike 2016.
 
 ---
 
@@ -533,8 +527,8 @@ RFC 7489 (DMARC), Marlinspike 2016.
 
 The whitepaper makes several quantitative claims about computation times and
 costs. These should be verified empirically rather than estimated, and the
-numbers in the paper should be generated by a program so they can be updated
-as hardware changes.
+numbers in the paper should be generated by a program so they can be updated as
+hardware changes.
 
 ### Claims to verify
 
@@ -559,28 +553,29 @@ Write three programs in `whitepaper/`:
 
 **1. `bench-pow/`** — A small webapp (HTML + JS) that runs in Google Chrome.
 Uses the `@keypears/pow5` WebGPU implementation to mine PoW at several
-difficulty levels and measure the GPU hash rate. Displays results on the page
-in a copy-pasteable format. The user opens the page in Chrome, waits for the
+difficulty levels and measure the GPU hash rate. Displays results on the page in
+a copy-pasteable format. The user opens the page in Chrome, waits for the
 benchmarks to complete, and copies the output.
 
 **2. `bench-blake3.ts`** — CLI benchmark (runs with `bun`). Measures BLAKE3
-rounds per second by running `blake3Mac` in a loop for a fixed duration.
-Outputs the measured rate.
+rounds per second by running `blake3Mac` in a loop for a fixed duration. Outputs
+the measured rate.
 
 **3. `calc-whitepaper-numbers.ts`** — CLI calculator (runs with `bun`). Takes
 the GPU hash rate (from step 1, pasted as a CLI argument) and the BLAKE3 rate
 (from step 2) as inputs. Produces all derived numbers used in the whitepaper:
-   - PoW mining time for each difficulty level (7M, 70M)
-   - Time per password guess (300k BLAKE3 rounds)
-   - Exhaustive search time for various password strengths
-   - Spam cost (accounts and messages)
-   - Outputs a plain-text summary ready to be used when updating the whitepaper
+
+- PoW mining time for each difficulty level (7M, 70M)
+- Time per password guess (300k BLAKE3 rounds)
+- Exhaustive search time for various password strengths
+- Spam cost (accounts and messages)
+- Outputs a plain-text summary ready to be used when updating the whitepaper
 
 ### Workflow
 
 1. Run `bun whitepaper/bench-blake3.ts` — get BLAKE3 rate.
-2. Open `whitepaper/bench-pow/index.html` in Chrome — get GPU hash rate.
-   Copy the output and paste it back.
+2. Open `whitepaper/bench-pow/index.html` in Chrome — get GPU hash rate. Copy
+   the output and paste it back.
 3. Run `bun whitepaper/calc-whitepaper-numbers.ts <gpu-rate> <blake3-rate>` —
    get all whitepaper numbers.
 4. Update any incorrect claims in the whitepaper with the calculated values.
@@ -592,3 +587,38 @@ the GPU hash rate (from step 1, pasted as a CLI argument) and the BLAKE3 rate
   whitepaper's current claims.
 - Any incorrect claims in the whitepaper are updated with empirically derived
   values.
+
+### Result: Pass
+
+Benchmarks ran successfully. GPU hash rate measured at ~55M hashes/s, BLAKE3 at
+~4.3M rounds/s. The original whitepaper claims were significantly off (e.g., 70M
+PoW was claimed as ~15s but measured at ~1.3s; brute-force was claimed as 27
+GPU-years but is actually ~6,300 CPU-core-years). All quantitative claims in the
+whitepaper were updated with empirically derived values. Benchmark tools live in
+`packages/whitepaper-bench/`.
+
+---
+
+## Conclusion
+
+The whitepaper is complete at 8 pages with four figures, four references, and
+empirically verified quantitative claims. The paper was structured following
+lessons from studying the Bitcoin whitepaper (problem-first framing, diagrams,
+quantitative analysis), Signal X3DH (formal preliminaries, structured security
+analysis), and the Double Ratchet spec (layered explanation). The problem
+statement draws on four prior works: Whitten & Tygar 1999 (PGP usability
+failure), Back 2002 (Hashcash deployment failure on SMTP), RFC 7489 (DMARC
+complexity), and Marlinspike 2016 (the case against federation).
+
+Key editorial decisions made during drafting:
+
+- ACS2 replaced with ACB3 (BLAKE3-MAC instead of HMAC-SHA256) for consistency
+  with the rest of the protocol's use of BLAKE3.
+- Forward secrecy removed from future work — it doesn't apply because all
+  traffic is over TLS and messages persist for later retrieval.
+- PoW difficulty described as configurable by operators and users, not as fixed
+  protocol constants.
+- Browser-specific terms (localStorage, WebGPU) removed — the protocol is
+  implementation-agnostic.
+- Address format described as intentionally email-compatible, contrasted with
+  Matrix's incompatible `@user:domain` format.
