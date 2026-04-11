@@ -54,6 +54,7 @@ keypears/
         message.server.ts  # messaging DB logic
         vault.functions.ts # vault CRUD server functions
         vault.server.ts    # vault DB logic
+        auth-middleware.ts # TanStack Start auth middleware (createMiddleware)
         federation.server.ts # cross-domain delivery (pull model)
         pow.functions.ts   # PoW challenge server functions
         pow.server.ts      # PoW challenge creation + verification
@@ -154,10 +155,55 @@ lockberries.test           → lockberries/ port 3520 (Astro landing, third-part
 - Use shadcn components for UI where appropriate.
 - Always capitalize "KeyPears" with capital K and P in user-facing text.
 - All address input fields require the full `name@domain` format.
-- **Navigation**: ALWAYS use TanStack Router's `<Link>` component or
-  `useNavigate` for client-side navigation. NEVER use raw `<a href="...">` tags
-  or `window.location.href` for internal links without explicit approval. Raw
-  navigation bypasses the router and breaks SPA behavior.
+
+### TanStack Router / Start best practices
+
+These are mandatory. Violations break SPA behavior, type safety, or security.
+
+**Navigation:**
+- ALWAYS use `<Link>` or `useNavigate` for internal links. NEVER use raw
+  `<a href="...">` or `window.location.href` without explicit approval.
+- The only approved `window.location.href` is logout (intentional full reload
+  to clear all client state).
+- Use typed route paths with `params` for dynamic segments:
+  `<Link to="/channel/$address" params={{ address }}>` — NEVER string
+  interpolation like `` to={`/channel/${address}`} ``.
+- Search params: use `search={{ key: value }}` on `<Link>`, never manual
+  query strings.
+
+**Route data:**
+- Use `validateSearch` with Zod and `.catch()` for search params — never
+  manual type checking.
+- Route loaders are **isomorphic** (run on both server and client). NEVER
+  access secrets, env vars, or database directly in a loader. Always delegate
+  to `createServerFn`.
+- After mutations, use `router.invalidate()` to refresh route data when the
+  page reads loader data directly. For pages with client-managed state (search,
+  pagination), manual refetch is acceptable.
+- Don't copy loader data into `useState` unless you need to modify it
+  client-side (search, pagination). Read `Route.useLoaderData()` directly
+  when the data is just rendered.
+- NEVER use `getCachedEncryptionKey()` or similar functions that return new
+  object references as useEffect dependencies — this causes infinite render
+  loops. Read them inside the effect body instead.
+
+**Server functions:**
+- Protected server functions use `.middleware([authMiddleware])` and read
+  `context.userId` — don't call `requireSessionUserId()` directly.
+- Functions with optional auth (works with or without login) use
+  `getSessionUserId()` directly — these don't use middleware.
+- Use `.inputValidator()` with Zod for all server function inputs.
+
+**Error handling:**
+- `defaultErrorComponent`, `defaultPendingComponent`, and
+  `defaultNotFoundComponent` are set at the router level in `router.tsx`.
+- Individual routes can override with their own components.
+- `pendingComponent` only fires during `loader`, NOT during `beforeLoad`.
+
+**Preloading and caching:**
+- `defaultPreload: 'intent'` is set — hovering over `<Link>` preloads the
+  target route data automatically.
+- `autoCodeSplitting` is forced on by TanStack Start — no config needed.
 
 ## Auth architecture
 
