@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Pull token message loss on recipient failure
@@ -119,3 +120,24 @@ Same changes as the whitepaper.
 - Duplicate messages are not created if `notifyMessage` is called twice.
 - Tests and linter pass.
 - Whitepaper and federation docs updated.
+
+### Result: Pass
+
+All changes implemented in commit `b8797596`. `pullMessage` now selects without
+deleting. `notifyMessage` checks for duplicate messages via `messageExists()`
+before inserting. Whitepaper and `docs/federation.md` updated to describe
+idempotent pulls with time-limited expiry instead of one-time tokens. Linter:
+0 errors, tests: 7/7 passed.
+
+---
+
+## Conclusion
+
+The pull-model message delivery was vulnerable to message loss if the
+recipient's server failed between pulling and storing. The fix was simple: stop
+deleting pending deliveries on pull. The delivery persists until its 24-hour
+expiry, and lazy cleanup removes expired entries. A `messageExists()` check
+prevents duplicate messages if the same delivery is pulled and processed twice.
+The whitepaper was updated to describe the pull as idempotent rather than
+one-time, and to highlight the synchronous delivery model as an improvement
+over email's silent retry queues.
