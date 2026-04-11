@@ -591,3 +591,26 @@ ECDH shared secret, same as text messages. No vault key involved in transit.
 6. Saved entry matches original (same name, type, fields)
 7. Save the same secret again → creates a second copy
 8. Text messages still render and work normally
+
+#### Result: Fail
+
+Secret messages send but display as "unable to decrypt this message" on both
+sender and recipient channels. No browser errors visible. The message is stored
+in the database but cannot be decrypted by the channel view.
+
+Root cause: Zod v4's `z.record()` requires two arguments (key + value schema).
+`z.record(z.string())` created a malformed schema that crashed at parse time
+with `Cannot read properties of undefined (reading '_zod')`. Fixed with
+`z.record(z.string(), z.string())`.
+
+Also replaced `z.discriminatedUnion` / `z.union` with manual type dispatch:
+parse envelope first (`{ version, type }`), then validate type-specific content
+with individual Zod schemas. No unions needed.
+
+#### Result: Pass (after fix)
+
+Secret sharing works end-to-end. Share button on vault entry detail sends
+encrypted secret message via ECDH. Recipient sees secret card in channel with
+name, type icon, and "Save to Vault" button. Saving decrypts ECDH message,
+re-encrypts with vault key, creates entry, navigates to vault detail.
+Text messages continue to work normally.
