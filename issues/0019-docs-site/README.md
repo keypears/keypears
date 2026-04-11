@@ -158,3 +158,68 @@ concurrently `dev` script.
 - Brand colors match the KeyPears webapp (sage green accent, Tokyo Night base).
 - At least the welcome page and one protocol page render correctly.
 - Existing doc content is preserved (migrated into Starlight structure).
+
+### Result: Pass
+
+Astro + Starlight project scaffolded in `docs/` with 8 content pages, KeyPears
+brand colors, logo in navbar, astrohacker footer, and dev server on port 3530.
+Site builds (9 pages) and runs locally. However, some content from the old docs
+was not fully migrated — addressed in Experiment 2.
+
+---
+
+## Experiment 2: Migrate all remaining content from old docs
+
+### Hypothesis
+
+The old `docs/` directory contained three detailed documents (`kdf.md`,
+`federation.md`, `dev-setup.md`) with information that was only partially
+migrated into the new Starlight docs. All information must be preserved — the
+docs site covers everything, not just the protocol.
+
+### Missing content
+
+Comparing the old docs against the new, the following information is missing:
+
+**From `kdf.md`:**
+- Implementation section — function names and file paths (`derivePasswordKey`,
+  `deriveEncryptionKeyFromPasswordKey`, etc. in `webapp/src/lib/auth.ts`)
+- Key rotation mechanics — how new key pairs are generated, encrypted, and
+  stored; how `loginKeyHash` tracks which password encrypted which key
+
+**From `federation.md`:**
+- `keypears.json` caching — TTL recommendation (1 hour suggested)
+- Key discovery — how to look up a user's public key via `getPublicKey`
+- Same-domain delivery — the simpler path when sender and recipient share a
+  server
+- Message structure — the fields table (`senderAddress`, `encryptedContent`,
+  `senderPubKey`, `recipientPubKey`, `isRead`)
+- Message size limit — 50,000 hex chars (~25KB plaintext)
+- Server configuration — env vars table (`KEYPEARS_DOMAIN`,
+  `KEYPEARS_API_DOMAIN`, `DATABASE_URL`, `KEYPEARS_SECRET`)
+
+**From `dev-setup.md`:**
+- The entire document — Caddy + dnsmasq local HTTPS setup, `.test` domain
+  configuration, dev topology table, daily workflow
+
+### Changes
+
+1. **`protocol/key-derivation.md`** — Add "Implementation" section with
+   function names and file paths. Add "Key rotation" section.
+
+2. **`federation.md`** — Add caching, key discovery, same-domain delivery,
+   message structure table, and message size limit sections.
+
+3. **`self-hosting.md`** — Ensure server configuration env vars table is
+   complete (already partially there).
+
+4. **New page: `development.md`** — Local development setup adapted from
+   `dev-setup.md`. Caddy + dnsmasq setup, dev topology, daily workflow. Add
+   to sidebar.
+
+### Pass criteria
+
+- Every piece of information from the three old docs exists somewhere in the
+  new docs site.
+- New development page covers local HTTPS setup.
+- Site builds successfully.
