@@ -125,11 +125,19 @@ function VaultDetailPage() {
     return (
       <div className="flex flex-col">
         <a
-          href="/vault"
+          href="/home"
           onClick={onSelect}
           className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
         >
           <Home className="h-4 w-4" />
+          Home
+        </a>
+        <a
+          href="/vault"
+          onClick={onSelect}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
+        >
+          <Lock className="h-4 w-4" />
           Vault
         </a>
         <div className="border-border/30 border-t px-3 py-2">
