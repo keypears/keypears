@@ -7,7 +7,15 @@ import {
   deleteEntry,
 } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
-import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
+import {
+  getCachedEncryptionKey,
+  decryptPrivateKey,
+  calculatePasswordEntropy,
+  entropyTier,
+  entropyLabel,
+  entropyColor,
+} from "~/lib/auth";
+import { parseDomainInput, validateEmail } from "~/lib/vault-validation";
 import {
   tryDecryptVaultEntry,
   encryptVaultEntry,
@@ -518,13 +526,37 @@ function EntryDetail({
 
         {data.type === "login" ? (
           <>
-            <input
-              type="text"
-              placeholder="Domain"
-              value={editDomain}
-              onChange={(e) => setEditDomain(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <input
+                type="text"
+                placeholder="Domain"
+                value={editDomain}
+                onChange={(e) => setEditDomain(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {editDomain && (() => {
+                const { hint, domain: suggested } = parseDomainInput(editDomain);
+                if (!hint) return null;
+                return (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {suggested && suggested !== editDomain.trim() ? (
+                      <>
+                        {hint}{" "}
+                        <button
+                          type="button"
+                          onClick={() => setEditDomain(suggested)}
+                          className="text-accent hover:text-accent/80"
+                        >
+                          Use it
+                        </button>
+                      </>
+                    ) : (
+                      hint
+                    )}
+                  </p>
+                );
+              })()}
+            </div>
             <input
               type="text"
               placeholder="Username"
@@ -532,20 +564,46 @@ function EntryDetail({
               onChange={(e) => setEditUsername(e.target.value)}
               className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
             />
-            <input
-              type="email"
-              placeholder="Email"
-              value={editEmail}
-              onChange={(e) => setEditEmail(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
-            <input
-              type="text"
-              placeholder="Password"
-              value={editPassword}
-              onChange={(e) => setEditPassword(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <input
+                type="text"
+                placeholder="Email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {editEmail && validateEmail(editEmail) && (
+                <p className="mt-1 text-xs text-yellow-500">
+                  {validateEmail(editEmail)}
+                </p>
+              )}
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="Password"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {editPassword && (
+                <div className="mt-1 flex justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {editPassword.length} characters
+                  </span>
+                  <span
+                    className={entropyColor(
+                      entropyTier(calculatePasswordEntropy(editPassword)),
+                    )}
+                  >
+                    {calculatePasswordEntropy(editPassword).toFixed(1)} bits —{" "}
+                    {entropyLabel(
+                      entropyTier(calculatePasswordEntropy(editPassword)),
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
             <textarea
               placeholder="Notes"
               value={editNotes}

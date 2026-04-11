@@ -7,6 +7,13 @@ import { encryptVaultEntry } from "~/lib/vault";
 import type { VaultEntryData } from "~/lib/vault";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import {
+  calculatePasswordEntropy,
+  entropyTier,
+  entropyLabel,
+  entropyColor,
+} from "~/lib/auth";
+import { parseDomainInput, validateEmail } from "~/lib/vault-validation";
+import {
   KeyRound,
   FileText,
   Lock,
@@ -357,13 +364,37 @@ function CreateEntryForm({
 
         {type === "login" ? (
           <>
-            <input
-              type="text"
-              placeholder="Domain (e.g. google.com)"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <input
+                type="text"
+                placeholder="Domain (e.g. google.com)"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {domain && (() => {
+                const { hint, domain: suggested } = parseDomainInput(domain);
+                if (!hint) return null;
+                return (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {suggested && suggested !== domain.trim() ? (
+                      <>
+                        {hint}{" "}
+                        <button
+                          type="button"
+                          onClick={() => setDomain(suggested)}
+                          className="text-accent hover:text-accent/80"
+                        >
+                          Use it
+                        </button>
+                      </>
+                    ) : (
+                      hint
+                    )}
+                  </p>
+                );
+              })()}
+            </div>
             <input
               type="text"
               placeholder="Username"
@@ -371,20 +402,46 @@ function CreateEntryForm({
               onChange={(e) => setUsername(e.target.value)}
               className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
             />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <input
+                type="text"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {email && validateEmail(email) && (
+                <p className="mt-1 text-xs text-yellow-500">
+                  {validateEmail(email)}
+                </p>
+              )}
+            </div>
+            <div>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+              {password && (
+                <div className="mt-1 flex justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {password.length} characters
+                  </span>
+                  <span
+                    className={entropyColor(
+                      entropyTier(calculatePasswordEntropy(password)),
+                    )}
+                  >
+                    {calculatePasswordEntropy(password).toFixed(1)} bits —{" "}
+                    {entropyLabel(
+                      entropyTier(calculatePasswordEntropy(password)),
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
             <textarea
               placeholder="Notes"
               value={notes}
