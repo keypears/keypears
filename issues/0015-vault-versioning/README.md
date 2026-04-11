@@ -223,3 +223,53 @@ Returns `{ id }` (the new version's ID).
 5. Delete the entry — deletes the specific version
 6. `bun run lint` — clean
 7. `bun run build` — passes
+
+#### Result: Pass
+
+Schema updated with `secretId` and `version`. `createNewVersion` appends a new
+row. `getVaultEntries` uses subquery for latest versions. Delete from the menu
+deletes all versions via `deleteSecretFn`. Edit creates a new version and
+navigates to its ID. Lint clean, build passes.
+
+### Experiment 2: Inline history UI
+
+#### Description
+
+Add a collapsible "History" section to the vault entry detail page. Shows all
+versions of the current secret with timestamps. Each version is expandable to
+view its fields (read-only). Each version has a delete button (removes that
+single version) and a "Restore" button (creates a new version with the old
+data).
+
+#### Changes
+
+**`vault.$id.tsx`**:
+
+1. Load history in the route loader alongside the entry. Call `getHistory` with
+   the entry's `secretId`.
+
+2. Add a collapsible "History" section below the fields. Collapsed by default.
+   Header shows "History (N versions)".
+
+3. When expanded, list all versions ordered by version desc. Each version
+   shows:
+   - Version number and timestamp
+   - Expand button to view fields (decrypt and render read-only, same as the
+     main entry view)
+   - "Restore" button — calls `updateEntry` with the old version's data,
+     creating a new latest version. Navigates to the new version's ID.
+   - "Delete" button — calls `deleteEntry` with the version's `id`. If it's
+     the only version, deletes the whole secret and navigates to `/vault`.
+
+4. The current (latest) version is excluded from the history list — it's
+   already shown in the main view.
+
+#### Verification
+
+1. Create a secret, edit it twice → history shows 2 older versions
+2. Expand a version → see its fields read-only
+3. Click Restore → new version created with old data, navigates to it
+4. Click Delete on a version → that version removed, others persist
+5. Delete the only version → secret deleted, navigates to vault
+6. `bun run lint` — clean
+7. `bun run build` — passes
