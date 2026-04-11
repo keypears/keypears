@@ -29,6 +29,7 @@ keypears/
           _saved/
             _chrome.tsx # layout with sidebar + footer
             _chrome/
+              home.tsx      # home page (greeting)
               inbox.tsx     # inbox (placeholder)
               send.tsx      # send message (with PoW)
               vault.tsx     # vault (placeholder)
@@ -36,7 +37,7 @@ keypears/
               password.tsx  # change password
               domains.tsx   # domain claiming + admin user management
               settings.tsx  # PoW difficulty settings
-              $profile.tsx  # profile page (/@N)
+              $profile.tsx  # profile page
             channel.$address.tsx  # conversation view
       components/
         Sidebar.tsx     # responsive sidebar + user dropdown

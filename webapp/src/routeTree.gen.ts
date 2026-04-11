@@ -24,7 +24,7 @@ import { Route as AppSavedChromeSendRouteImport } from './routes/_app/_saved/_ch
 import { Route as AppSavedChromePasswordRouteImport } from './routes/_app/_saved/_chrome/password'
 import { Route as AppSavedChromeKeysRouteImport } from './routes/_app/_saved/_chrome/keys'
 import { Route as AppSavedChromeInboxRouteImport } from './routes/_app/_saved/_chrome/inbox'
-import { Route as AppSavedChromeFeedRouteImport } from './routes/_app/_saved/_chrome/feed'
+import { Route as AppSavedChromeHomeRouteImport } from './routes/_app/_saved/_chrome/home'
 import { Route as AppSavedChromeDomainsRouteImport } from './routes/_app/_saved/_chrome/domains'
 import { Route as AppSavedChromeProfileRouteImport } from './routes/_app/_saved/_chrome/$profile'
 
@@ -100,9 +100,9 @@ const AppSavedChromeInboxRoute = AppSavedChromeInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedChromeFeedRoute = AppSavedChromeFeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
+const AppSavedChromeHomeRoute = AppSavedChromeHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AppSavedChromeRoute,
 } as any)
 const AppSavedChromeDomainsRoute = AppSavedChromeDomainsRouteImport.update({
@@ -124,7 +124,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
-  '/feed': typeof AppSavedChromeFeedRoute
+  '/home': typeof AppSavedChromeHomeRoute
   '/inbox': typeof AppSavedChromeInboxRoute
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
@@ -141,7 +141,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
-  '/feed': typeof AppSavedChromeFeedRoute
+  '/home': typeof AppSavedChromeHomeRoute
   '/inbox': typeof AppSavedChromeInboxRoute
   '/keys': typeof AppSavedChromeKeysRoute
   '/password': typeof AppSavedChromePasswordRoute
@@ -162,7 +162,7 @@ export interface FileRoutesById {
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
   '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
   '/_app/_saved/_chrome/domains': typeof AppSavedChromeDomainsRoute
-  '/_app/_saved/_chrome/feed': typeof AppSavedChromeFeedRoute
+  '/_app/_saved/_chrome/home': typeof AppSavedChromeHomeRoute
   '/_app/_saved/_chrome/inbox': typeof AppSavedChromeInboxRoute
   '/_app/_saved/_chrome/keys': typeof AppSavedChromeKeysRoute
   '/_app/_saved/_chrome/password': typeof AppSavedChromePasswordRoute
@@ -181,7 +181,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/$profile'
     | '/domains'
-    | '/feed'
+    | '/home'
     | '/inbox'
     | '/keys'
     | '/password'
@@ -198,7 +198,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/$profile'
     | '/domains'
-    | '/feed'
+    | '/home'
     | '/inbox'
     | '/keys'
     | '/password'
@@ -218,7 +218,7 @@ export interface FileRouteTypes {
     | '/_app/_saved/_chrome'
     | '/_app/_saved/_chrome/$profile'
     | '/_app/_saved/_chrome/domains'
-    | '/_app/_saved/_chrome/feed'
+    | '/_app/_saved/_chrome/home'
     | '/_app/_saved/_chrome/inbox'
     | '/_app/_saved/_chrome/keys'
     | '/_app/_saved/_chrome/password'
@@ -343,11 +343,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedChromeInboxRouteImport
       parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/_chrome/feed': {
-      id: '/_app/_saved/_chrome/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof AppSavedChromeFeedRouteImport
+    '/_app/_saved/_chrome/home': {
+      id: '/_app/_saved/_chrome/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppSavedChromeHomeRouteImport
       parentRoute: typeof AppSavedChromeRoute
     }
     '/_app/_saved/_chrome/domains': {
@@ -370,7 +370,7 @@ declare module '@tanstack/react-router' {
 interface AppSavedChromeRouteChildren {
   AppSavedChromeProfileRoute: typeof AppSavedChromeProfileRoute
   AppSavedChromeDomainsRoute: typeof AppSavedChromeDomainsRoute
-  AppSavedChromeFeedRoute: typeof AppSavedChromeFeedRoute
+  AppSavedChromeHomeRoute: typeof AppSavedChromeHomeRoute
   AppSavedChromeInboxRoute: typeof AppSavedChromeInboxRoute
   AppSavedChromeKeysRoute: typeof AppSavedChromeKeysRoute
   AppSavedChromePasswordRoute: typeof AppSavedChromePasswordRoute
@@ -382,7 +382,7 @@ interface AppSavedChromeRouteChildren {
 const AppSavedChromeRouteChildren: AppSavedChromeRouteChildren = {
   AppSavedChromeProfileRoute: AppSavedChromeProfileRoute,
   AppSavedChromeDomainsRoute: AppSavedChromeDomainsRoute,
-  AppSavedChromeFeedRoute: AppSavedChromeFeedRoute,
+  AppSavedChromeHomeRoute: AppSavedChromeHomeRoute,
   AppSavedChromeInboxRoute: AppSavedChromeInboxRoute,
   AppSavedChromeKeysRoute: AppSavedChromeKeysRoute,
   AppSavedChromePasswordRoute: AppSavedChromePasswordRoute,

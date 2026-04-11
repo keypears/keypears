@@ -1,11 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { getProfile } from "~/server/user.functions";
-import { getUserPostsByAddress } from "~/server/post.functions";
 import { parseAddress } from "~/lib/config";
 import { CircleUser, Copy, Check, MessageSquare } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
-import { PostCard } from "~/components/PostCard";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   head: ({ loaderData }) => ({
@@ -15,48 +13,25 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
     const parsed = parseAddress(params.profile);
     if (!parsed) throw notFound();
 
-    const [profileData, userPosts] = await Promise.all([
-      getProfile({ data: params.profile }),
-      getUserPostsByAddress({ data: { address: params.profile } }),
-    ]);
+    const profileData = await getProfile({ data: params.profile });
     if (!profileData) throw notFound();
 
     return {
       address: params.profile,
       powTotal: profileData.powTotal,
-      posts: userPosts,
     };
   },
   component: ProfilePage,
 });
 
 function ProfilePage() {
-  const { address, powTotal, posts: initialPosts } = Route.useLoaderData();
+  const { address, powTotal } = Route.useLoaderData();
   const [copied, setCopied] = useState(false);
-  const [postList, setPostList] = useState(initialPosts);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length >= 20);
 
   function handleCopy() {
     navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }
-
-  async function loadMore() {
-    if (loadingMore || !hasMore || postList.length === 0) return;
-    setLoadingMore(true);
-    try {
-      const older = await getUserPostsByAddress({
-        data: { address, beforeId: postList[postList.length - 1].id },
-      });
-      if (older.length < 20) setHasMore(false);
-      setPostList((prev) => [...prev, ...older]);
-    } catch {
-      // ignore
-    } finally {
-      setLoadingMore(false);
-    }
   }
 
   return (
@@ -91,37 +66,6 @@ function ProfilePage() {
           </div>
         )}
       </div>
-
-      {/* User's posts */}
-      {postList.length === 0 ? (
-        <p className="text-muted-foreground px-4 py-8 text-center text-sm">
-          No posts yet.
-        </p>
-      ) : (
-        <>
-          {postList.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onBoostComplete={async () => {
-                const updated = await getUserPostsByAddress({
-                  data: { address },
-                });
-                setPostList(updated);
-              }}
-            />
-          ))}
-          {hasMore && (
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="text-accent hover:text-accent/80 w-full py-4 text-center text-sm disabled:opacity-50"
-            >
-              {loadingMore ? "Loading..." : "Load more"}
-            </button>
-          )}
-        </>
-      )}
     </div>
   );
 }

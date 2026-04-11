@@ -96,38 +96,6 @@ export const channels = mysqlTable(
   ],
 );
 
-export const posts = mysqlTable(
-  "posts",
-  {
-    id: binaryId("id").primaryKey(),
-    userId: binaryId("user_id").notNull(),
-    senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-    content: varchar("content", { length: 240 }).notNull(),
-    difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
-    totalBoost: bigint("total_boost", { mode: "bigint" })
-      .notNull()
-      .default(0),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    index("post_user_id_idx").on(table.userId),
-    index("post_created_at_idx").on(table.createdAt),
-  ],
-);
-
-export const boosts = mysqlTable(
-  "boosts",
-  {
-    id: binaryId("id").primaryKey(),
-    postId: binaryId("post_id").notNull(),
-    userId: binaryId("user_id").notNull(),
-    senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-    difficulty: bigint("difficulty", { mode: "bigint" }).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [index("boost_post_id_idx").on(table.postId)],
-);
-
 export const messages = mysqlTable(
   "messages",
   {
