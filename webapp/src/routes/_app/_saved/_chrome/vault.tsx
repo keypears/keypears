@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { getMyEntries, createEntry } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_app/_saved/_chrome/vault")({
 });
 
 function VaultPage() {
+  const navigate = useNavigate();
   const { entries: initialEntries, keyData } = Route.useLoaderData();
   const [entries, setEntries] = useState(initialEntries);
   const [query, setQuery] = useState("");
@@ -145,13 +146,8 @@ function VaultPage() {
         <CreateEntryForm
           activePublicKey={activePublicKey}
           keyMap={keyMap}
-          onCreated={async () => {
-            setCreating(false);
-            const results = await getMyEntries({
-              data: { query: query || undefined },
-            });
-            setEntries(results);
-            setHasMore(results.length >= 20);
+          onCreated={(id: string) => {
+            navigate({ to: "/vault/$id", params: { id } });
           }}
           onCancel={() => setCreating(false)}
         />
@@ -229,7 +225,7 @@ function CreateEntryForm({
 }: {
   activePublicKey: string | null;
   keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
-  onCreated: () => void;
+  onCreated: (id: string) => void;
   onCancel: () => void;
 }) {
   const [type, setType] = useState<"login" | "text">("login");
@@ -268,7 +264,7 @@ function CreateEntryForm({
       }
 
       const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
-      await createEntry({
+      const result = await createEntry({
         data: {
           name,
           type,
@@ -277,7 +273,7 @@ function CreateEntryForm({
           encryptedData,
         },
       });
-      onCreated();
+      onCreated(result.id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create entry.");
     } finally {

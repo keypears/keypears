@@ -248,12 +248,6 @@ function VaultDetailPage() {
                 onSaved={(id: string) =>
                   navigate({ to: "/vault/$id", params: { id } })
                 }
-                onUpdated={async () => {
-                  const results = await getMyEntries({
-                    data: { query: query || undefined },
-                  });
-                  setEntries(results);
-                }}
               />
             )}
           </div>
@@ -305,7 +299,6 @@ function EntryDetail({
   isLocked,
   onDeleted,
   onSaved,
-  onUpdated,
 }: {
   entry: {
     id: string;
@@ -323,7 +316,6 @@ function EntryDetail({
   isLocked: (pk: string) => boolean;
   onDeleted: () => void;
   onSaved: (id: string) => void;
-  onUpdated: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -405,7 +397,6 @@ function EntryDetail({
         },
       });
       setEditing(false);
-      onUpdated();
       onSaved(entry.id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");

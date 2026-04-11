@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { getMyKeys, rotateKey, reEncryptMyKey } from "~/server/user.functions";
 import {
@@ -20,9 +20,8 @@ export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
 });
 
 function KeysPage() {
-  const initialData = Route.useLoaderData();
-  const [keyList, setKeyList] = useState(initialData.keys);
-  const [passwordHash] = useState(initialData.passwordHash);
+  const { keys: keyList, passwordHash } = Route.useLoaderData();
+  const router = useRouter();
   const [rotating, setRotating] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -62,12 +61,10 @@ function KeysPage() {
     try {
       const { publicKey, encryptedPrivateKey } =
         generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
-      const result = await rotateKey({
+      await rotateKey({
         data: { publicKey, encryptedPrivateKey },
       });
-      const data = await getMyKeys();
-      setKeyList(data.keys);
-      void result;
+      await router.invalidate();
       setPassword("");
       setNeedsPassword(false);
     } catch (err: unknown) {
@@ -115,9 +112,7 @@ function KeysPage() {
         },
       });
 
-      // Refresh key list
-      const data = await getMyKeys();
-      setKeyList(data.keys);
+      await router.invalidate();
       setChangingKeyId(null);
       setOldKeyPassword("");
       setNewKeyPassword("");

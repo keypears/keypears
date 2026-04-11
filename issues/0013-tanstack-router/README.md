@@ -303,3 +303,14 @@ save flow since `onSaved` navigates and re-runs the loader for the main entry.
 5. Create a vault entry — navigates to detail page
 6. Edit a vault entry — data refreshes after save
 7. Delete a vault entry — navigates back to vault list
+
+#### Result: Pass
+
+- `keys.tsx`: removed `keyList`/`passwordHash` state, reads
+  `Route.useLoaderData()` directly, uses `router.invalidate()` after rotate and
+  re-encrypt.
+- `vault.tsx`: after create, navigates to `/vault/$id` instead of refetching.
+- `vault.$id.tsx`: removed redundant `onUpdated` from save flow — `onSaved`
+  navigates and re-runs the loader. Removed `onUpdated` prop from
+  `EntryDetail` entirely.
+- Lint clean, build passes.
