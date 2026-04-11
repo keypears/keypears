@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { getMyUser } from "~/server/user.functions";
 import { UserDropdown } from "~/components/UserDropdown";
+import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
 import {
   Home,
@@ -141,25 +142,43 @@ function DocsLayout() {
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden lg:ml-56">
         {/* Mobile header */}
-        <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3 lg:hidden">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <span className="text-foreground text-sm font-medium">
-            Docs
-          </span>
-          <div className="flex-1" />
-          {user?.name && (
-            <UserDropdown
-              userName={user.name}
-              domain={user.domain}
-              hasPassword={user.hasPassword}
-            />
-          )}
-        </div>
+        <nav className="border-border/30 flex items-center justify-between border-b px-4 py-3 lg:hidden">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Link
+              to="/"
+              className="flex items-center gap-2 font-sans text-lg font-bold no-underline"
+            >
+              <picture>
+                <source
+                  srcSet={`${$icon("/images/keypears-dark-64.webp")} 1x, ${$icon("/images/keypears-dark-128.webp")} 2x`}
+                  media="(prefers-color-scheme: dark)"
+                />
+                <img
+                  src={$icon("/images/keypears-light-64.webp")}
+                  srcSet={`${$icon("/images/keypears-light-64.webp")} 1x, ${$icon("/images/keypears-light-128.webp")} 2x`}
+                  alt="KeyPears"
+                  className="h-8 w-8"
+                />
+              </picture>
+              <span className="text-foreground">KeyPears</span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            {user?.name && (
+              <UserDropdown
+                userName={user.name}
+                domain={user.domain}
+                hasPassword={user.hasPassword}
+              />
+            )}
+          </div>
+        </nav>
 
         {/* Desktop top-right: address + user dropdown */}
         <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
@@ -184,30 +203,7 @@ function DocsLayout() {
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-3xl px-6 py-8 md:px-10">
             <Outlet />
-
-            {/* Footer */}
-            <footer className="border-border/30 mt-12 border-t pt-4 pb-6">
-              <div className="flex justify-center">
-                <a
-                  href="https://astrohacker.com"
-                  className="text-muted-foreground hover:text-accent flex items-center gap-2 text-xs no-underline"
-                >
-                  <picture>
-                    <source
-                      srcSet="/images/astrohacker-6-dark-32.webp 1x, /images/astrohacker-6-dark-64.webp 2x"
-                      media="(prefers-color-scheme: dark)"
-                    />
-                    <img
-                      src="/images/astrohacker-6-light-32.webp"
-                      srcSet="/images/astrohacker-6-light-32.webp 1x, /images/astrohacker-6-light-64.webp 2x"
-                      alt="Astrohacker logo"
-                      className="h-5 w-5"
-                    />
-                  </picture>
-                  An Astrohacker Project
-                </a>
-              </div>
-            </footer>
+            <Footer />
           </div>
         </div>
       </div>
