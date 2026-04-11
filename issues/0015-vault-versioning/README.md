@@ -130,7 +130,9 @@ Three levels of delete:
 - **No soft delete**: all deletes are hard deletes. Simpler, matches current
   behavior. If you want to keep something, don't delete it.
 
-### Open questions
+### History UI
 
-- **History UI**: inline on the detail page, or a separate route? Inline is
-  simpler — a collapsible section below the fields.
+Inline on the detail page — a collapsible "History" section below the fields.
+Shows a list of versions with version number and timestamp. Click a version to
+expand and view its fields (read-only). Each version has a delete button and a
+"Restore" button (creates a new version with the old data).
