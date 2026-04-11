@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>KeyPears PoW GPU Benchmark</title>
+  <style>
+    body { font-family: monospace; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #111; color: #eee; }
+    h1 { font-size: 18px; }
+    #status { color: #aaa; margin: 20px 0; }
+    #results { white-space: pre-wrap; background: #222; padding: 16px; border-radius: 4px; margin: 20px 0; display: none; }
+    button { background: #333; color: #eee; border: 1px solid #555; padding: 8px 16px; cursor: pointer; font-family: monospace; font-size: 14px; }
+    button:hover { background: #444; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h1>KeyPears PoW GPU Benchmark</h1>
+  <p>Measures GPU hash rate using the pow5-64b WebGPU algorithm.</p>
+  <button id="start">Start Benchmark</button>
+  <div id="status"></div>
+  <div id="results"></div>
+  <script type="module" src="./src/bench-pow.ts"></script>
+</body>
+</html>

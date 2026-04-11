@@ -1,0 +1,21 @@
+{
+  "name": "@keypears/whitepaper-bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:blake3": "bun src/bench-blake3.ts",
+    "bench:pow": "bunx vite --open",
+    "calc": "bun src/calc-whitepaper-numbers.ts"
+  },
+  "dependencies": {
+    "@keypears/pow5": "workspace:*",
+    "@webbuf/blake3": "^3.5.0",
+    "@webbuf/fixedbuf": "^3.5.0",
+    "@webbuf/webbuf": "^3.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.4",
+    "vite-tsconfig-paths": "^4.3.2"
+  }
+}
