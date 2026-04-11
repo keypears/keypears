@@ -389,3 +389,94 @@ bun workspace. Remove `dev:docs` from root `package.json`. Remove
 - Docs use the same components and styles as the rest of the webapp.
 - The existing app routes are unaffected.
 - Tests and linter pass.
+
+### Result: Pass
+
+Astro docs app deleted. All 9 docs pages render as TanStack Start routes at
+`/docs/*` using `react-markdown` for rendering. Separate `_docs` layout with
+its own sidebar and navbar. Linter: 0 errors, tests: 7/7 passed. However, the
+docs are isolated from the main app — separate layout, separate sidebar,
+separate navbar. Addressed in Experiment 5.
+
+---
+
+## Experiment 5: Integrate docs into the main app chrome
+
+### Hypothesis
+
+The docs should feel like part of the main app, not a separate site bolted on.
+The same Sidebar, Footer, and user dropdown used in the authenticated app
+should appear on docs pages. Docs should be accessible to everyone (logged in
+or not), but logged-in users see their session.
+
+### Design
+
+**Sidebar integration.** The existing `Sidebar` component gets a "Docs" nav
+item (with a `BookOpen` icon) that links to `/docs`. When the user is on a
+`/docs/*` route, the sidebar switches to show docs navigation:
+
+- "Home" at the top (links back to `/home` or `/` depending on auth state)
+- Then the docs nav items grouped by section (Protocol, Federation, etc.)
+
+This mirrors how the sidebar already changes context for channel and vault
+detail pages.
+
+**Route structure.** Remove the `_docs` layout route. Instead, docs pages use
+the existing `_app/_saved/_chrome` layout (for logged-in users with passwords)
+OR a new public layout that shows the sidebar without requiring auth.
+
+The cleanest approach: make docs a top-level layout `_docs.tsx` that reuses
+the same `Sidebar` component but with docs-specific nav items, and uses
+optional auth (not required). The Sidebar component needs to accept a `mode`
+prop: `"app"` (current behavior) or `"docs"` (docs nav items).
+
+**Auth states for docs:**
+
+1. *Logged in + password set:* Full sidebar with user dropdown, address, docs
+   nav. User menu has all options (Profile, Keys, Domains, Settings, Password,
+   Log out).
+2. *Logged in + no password:* Sidebar with user dropdown. User menu has only
+   Log out.
+3. *Not logged in:* Sidebar with logo and docs nav. No user dropdown. No
+   address.
+
+**Footer.** The existing `Footer` component already shows "Terms · Privacy".
+Add "Docs" link: "Terms · Privacy · Docs". This ensures `/docs` is
+discoverable from every page, including the logged-out landing page.
+
+**Landing page.** The logged-out landing page (`index.tsx`) footer already has
+Terms and Privacy. Add Docs there too.
+
+**Navigation to/from docs:**
+
+- Main app → Docs: Click "Docs" in the sidebar nav items.
+- Docs → Main app: Click "Home" in the docs sidebar, which links to `/home`
+  (if logged in) or `/` (if not).
+
+### Changes
+
+1. **`Sidebar.tsx`** — Add `mode` prop (`"app" | "docs"`). When `"docs"`, show
+   docs nav items instead of app nav items (Home/Inbox/Send/Vault). Add
+   "Docs" to the app nav items list. Keep Logo, Address, UserDropdown, and
+   mobile drawer behavior unchanged.
+
+2. **`_docs.tsx`** — Rewrite to use the `Sidebar` component with `mode="docs"`
+   and optional auth. Use `getSessionUserId()` to detect login state. Load
+   user data if logged in. Pass user info to Sidebar (or null if logged out).
+
+3. **`Footer.tsx`** — Add "Docs" link between Privacy and the copyright line.
+
+4. **`DocsContent.tsx`** — Remove the separate prev/next nav (the Sidebar
+   provides navigation). Or keep it — your call.
+
+5. **Delete `DocsSidebar.tsx`** — No longer needed; the main Sidebar handles
+   both modes.
+
+### Pass criteria
+
+- "Docs" appears in the main app sidebar nav items.
+- Docs pages use the main Sidebar with docs-specific nav items.
+- Logged-in users see their user dropdown on docs pages.
+- Logged-out users see docs without being redirected to login.
+- Footer on all pages includes a "Docs" link.
+- Tests and linter pass.
