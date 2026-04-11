@@ -382,7 +382,7 @@ export const vaultEntries = mysqlTable(
 
 ```typescript
 createVaultEntry(userId, name, type, searchTerms, publicKey, encryptedData)
-getVaultEntries(userId, query?)  // LIKE on name and search_terms
+getVaultEntries(userId, query?, beforeId?)  // LIKE on name/search_terms, cursor pagination
 getVaultEntry(userId, entryId)
 updateVaultEntry(userId, entryId, name, type, searchTerms, publicKey, encryptedData)
 deleteVaultEntry(userId, entryId)
@@ -396,7 +396,7 @@ wrapping.
 
 ```typescript
 createEntry    — POST, Zod input: { name, type, searchTerms, publicKey, encryptedData }
-getMyEntries   — GET, optional query string for search
+getMyEntries   — GET, optional query string for search, optional beforeId for pagination
 getEntry       — GET, input: entry ID
 updateEntry    — POST, Zod input: { id, name, type, searchTerms, publicKey, encryptedData }
 deleteEntry    — POST, input: entry ID
@@ -454,6 +454,8 @@ function tryDecryptVaultEntry(hex: string, privateKey: FixedBuf<32>):
 - "New Entry" button → create form (inline or modal)
 - Entry cards sorted by updatedAt desc: name, type icon (KeyRound for login,
   FileText for text). Locked entries show lock icon.
+- Load 20 entries at a time. "Show more" button at bottom fetches next batch
+  (cursor-based pagination on id, same pattern as channel messages).
 - Click an entry → navigate to `/vault/:id`
 
 **`webapp/src/routes/_app/_saved/vault.$id.tsx`** — entry detail with split
@@ -469,10 +471,11 @@ layout (same pattern as `channel.$address.tsx`).
   - Delete button with confirmation
   - Key number badge if not active key
 
-Note: `vault.$id.tsx` is under `_saved/` (not `_saved/_chrome/`) so it gets
-the full-screen split layout without the sidebar, same as channel pages.
+Note: `vault.$id.tsx` is under `_saved/` (not `_saved/_chrome/`) so it gets the
+full-screen split layout without the sidebar, same as channel pages.
 
 **Key loading** follows the same pattern as `channel.$address.tsx`:
+
 - On mount, load all user keys via `getMyKeys()`
 - Decrypt private keys using cached encryption key
 - Build a map of `publicKey → privateKey`
@@ -488,7 +491,7 @@ the full-screen split layout without the sidebar, same as channel pages.
 6. Search "goo" → returns Google entry. Search "xyz" → empty.
 7. Delete entry → gone from list and database.
 8. Create a text entry (e.g. "OpenAI API Key"). Same CRUD flow works.
-9. Rotate key on Keys page → new entries use new key. Old entries still
-   readable with old key. Key number badge shows correctly.
+9. Rotate key on Keys page → new entries use new key. Old entries still readable
+   with old key. Key number badge shows correctly.
 10. `bun run test` — existing tests pass
 11. `bun run lint` — no warnings
