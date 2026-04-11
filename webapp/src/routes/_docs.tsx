@@ -82,9 +82,12 @@ function DocsLayout() {
   return (
     <div className="fixed inset-0 flex font-sans">
       {/* Desktop sidebar */}
-      <div className="bg-background border-border/30 hidden w-64 flex-col border-r lg:flex">
-        <div className="border-border/30 flex items-center gap-2 border-b px-4 py-3">
-          <Link to="/docs" className="flex items-center gap-2 no-underline">
+      <nav className="border-border/30 bg-background hidden lg:fixed lg:top-0 lg:left-0 lg:flex lg:h-screen lg:w-56 lg:flex-col lg:border-r lg:px-4 lg:pt-8">
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-sans text-lg font-bold no-underline"
+          >
             <picture>
               <source
                 srcSet={`${$icon("/images/keypears-dark-64.webp")} 1x, ${$icon("/images/keypears-dark-128.webp")} 2x`}
@@ -94,16 +97,16 @@ function DocsLayout() {
                 src={$icon("/images/keypears-light-64.webp")}
                 srcSet={`${$icon("/images/keypears-light-64.webp")} 1x, ${$icon("/images/keypears-light-128.webp")} 2x`}
                 alt="KeyPears"
-                className="h-6 w-6"
+                className="h-8 w-8"
               />
             </picture>
-            <span className="text-foreground text-sm font-bold">Docs</span>
+            <span className="text-foreground">KeyPears</span>
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto">
           <NavList />
         </div>
-      </div>
+      </nav>
 
       {/* Mobile drawer backdrop */}
       <button
@@ -136,7 +139,7 @@ function DocsLayout() {
       </div>
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:ml-56">
         {/* Mobile header */}
         <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3 lg:hidden">
           <button

@@ -1,4 +1,5 @@
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Link } from "@tanstack/react-router";
 
 interface NavEntry {
@@ -41,7 +42,7 @@ export function DocsContent({
     <>
       <h1 className="text-foreground mb-6 text-3xl font-bold">{title}</h1>
       <article className="prose-sm prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-a:text-accent prose-code:text-foreground prose-pre:bg-background-dark prose-pre:border-border prose-pre:border prose-li:text-foreground prose-td:text-foreground prose-th:text-foreground prose-th:text-left max-w-none">
-        <Markdown>{content}</Markdown>
+        <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
       </article>
       {(prev || next) && (
         <nav className="border-border/30 mt-12 flex justify-between border-t pt-4">
