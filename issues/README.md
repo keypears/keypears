@@ -4,6 +4,8 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0014](0014-url-encoding/README.md)              | URL Param Encoding             | 2026-04-11 |
+
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
