@@ -1,7 +1,7 @@
 +++
 title = "What We Found in Our Codebase Audit"
 date = "2025-12-06T12:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 We recently paused feature development to audit our entire codebase. KeyPears

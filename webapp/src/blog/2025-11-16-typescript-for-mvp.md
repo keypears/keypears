@@ -1,7 +1,7 @@
 +++
 title = "TypeScript for the KeyPears MVP: Why We're Not Really Using Rust (Yet)"
 date = "2025-11-16T06:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager and

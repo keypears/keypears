@@ -1,7 +1,7 @@
 +++
 title = "Server-Generated Public Keys: How KeyPears Keeps Private Keys Client-Side"
 date = "2025-12-13T06:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager and

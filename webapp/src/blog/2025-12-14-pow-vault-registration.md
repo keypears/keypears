@@ -1,7 +1,7 @@
 +++
 title = "Why and How KeyPears Uses Proof-of-Work for Vault Registration"
 date = "2025-12-14T06:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager and

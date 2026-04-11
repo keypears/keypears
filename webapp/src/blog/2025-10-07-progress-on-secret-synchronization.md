@@ -1,7 +1,7 @@
 +++
 title = "Progress on Secret Synchronization: A Future-Proof Schema"
 date = "2025-10-07T06:00:00-05:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager. The

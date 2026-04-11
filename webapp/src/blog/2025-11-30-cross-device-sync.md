@@ -1,7 +1,7 @@
 +++
 title = "Building Secure Cross-Device Sync for a Decentralized Password Manager"
 date = "2025-11-30T18:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 After weeks of intensive development, KeyPears now has a fully functional

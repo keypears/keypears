@@ -1,7 +1,7 @@
 +++
 title = "Why We Switched from Blake3 to SHA-256"
 date = "2025-12-09T06:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager and

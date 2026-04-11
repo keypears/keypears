@@ -1,7 +1,7 @@
 +++
 title = "Third-Party Hosting: Making KeyPears as Easy as Hosted Email"
 date = "2025-12-01T12:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 Imagine you own `example.com`. You run your own website there, but you don't run

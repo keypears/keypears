@@ -1,7 +1,7 @@
 +++
 title = "Building KeyPears with Rust: Backend Architecture and Blake3 Proof-of-Concept"
 date = "2025-10-25T06:00:00-05:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 **Note:** KeyPears is a work-in-progress open-source password manager and cryptocurrency wallet. The design decisions described here represent our development approach and may evolve before our official release.

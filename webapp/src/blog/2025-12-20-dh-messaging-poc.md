@@ -1,7 +1,7 @@
 +++
 title = "A Proof-of-Concept of a Diffie-Hellman-Based Messaging System for KeyPears"
 date = "2025-12-20T12:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 KeyPears is a password manager, but its true foundation is something more

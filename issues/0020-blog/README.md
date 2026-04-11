@@ -32,13 +32,13 @@ The new webapp already has the infrastructure for rendering markdown content:
 +++
 title = "Post Title"
 date = "2025-10-03T06:00:00-05:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 Markdown content here...
 ```
 
-14 existing posts from 2025-10-03 to 2025-12-21, all by "KeyPears Team".
+14 existing posts from 2025-10-03 to 2025-12-21, all by "Ryan X. Charles".
 
 ### Feed generation
 

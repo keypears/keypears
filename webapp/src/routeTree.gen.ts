@@ -13,15 +13,18 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocsRouteImport } from './routes/_docs'
+import { Route as BlogRouteImport } from './routes/_blog'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DocsDocsRouteImport } from './routes/_docs/docs'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
+import { Route as DocsDocsIndexRouteImport } from './routes/_docs/docs.index'
+import { Route as BlogBlogIndexRouteImport } from './routes/_blog/blog.index'
 import { Route as DocsDocsSelfHostingRouteImport } from './routes/_docs/docs.self-hosting'
 import { Route as DocsDocsSecurityRouteImport } from './routes/_docs/docs.security'
 import { Route as DocsDocsFederationRouteImport } from './routes/_docs/docs.federation'
 import { Route as DocsDocsDevelopmentRouteImport } from './routes/_docs/docs.development'
+import { Route as BlogBlogSlugRouteImport } from './routes/_blog/blog.$slug'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
 import { Route as DocsDocsProtocolProofOfWorkRouteImport } from './routes/_docs/docs.protocol.proof-of-work'
 import { Route as DocsDocsProtocolKeyDerivationRouteImport } from './routes/_docs/docs.protocol.key-derivation'
@@ -58,6 +61,10 @@ const DocsRoute = DocsRouteImport.update({
   id: '/_docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/_blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -66,11 +73,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DocsDocsRoute = DocsDocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => DocsRoute,
 } as any)
 const AppWelcomeRoute = AppWelcomeRouteImport.update({
   id: '/welcome',
@@ -81,25 +83,40 @@ const AppSavedRoute = AppSavedRouteImport.update({
   id: '/_saved',
   getParentRoute: () => AppRoute,
 } as any)
+const DocsDocsIndexRoute = DocsDocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const BlogBlogIndexRoute = BlogBlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => BlogRoute,
+} as any)
 const DocsDocsSelfHostingRoute = DocsDocsSelfHostingRouteImport.update({
-  id: '/self-hosting',
-  path: '/self-hosting',
-  getParentRoute: () => DocsDocsRoute,
+  id: '/docs/self-hosting',
+  path: '/docs/self-hosting',
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsDocsSecurityRoute = DocsDocsSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => DocsDocsRoute,
+  id: '/docs/security',
+  path: '/docs/security',
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsDocsFederationRoute = DocsDocsFederationRouteImport.update({
-  id: '/federation',
-  path: '/federation',
-  getParentRoute: () => DocsDocsRoute,
+  id: '/docs/federation',
+  path: '/docs/federation',
+  getParentRoute: () => DocsRoute,
 } as any)
 const DocsDocsDevelopmentRoute = DocsDocsDevelopmentRouteImport.update({
-  id: '/development',
-  path: '/development',
-  getParentRoute: () => DocsDocsRoute,
+  id: '/docs/development',
+  path: '/docs/development',
+  getParentRoute: () => DocsRoute,
+} as any)
+const BlogBlogSlugRoute = BlogBlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => BlogRoute,
 } as any)
 const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
   id: '/_chrome',
@@ -107,27 +124,27 @@ const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
 } as any)
 const DocsDocsProtocolProofOfWorkRoute =
   DocsDocsProtocolProofOfWorkRouteImport.update({
-    id: '/protocol/proof-of-work',
-    path: '/protocol/proof-of-work',
-    getParentRoute: () => DocsDocsRoute,
+    id: '/docs/protocol/proof-of-work',
+    path: '/docs/protocol/proof-of-work',
+    getParentRoute: () => DocsRoute,
   } as any)
 const DocsDocsProtocolKeyDerivationRoute =
   DocsDocsProtocolKeyDerivationRouteImport.update({
-    id: '/protocol/key-derivation',
-    path: '/protocol/key-derivation',
-    getParentRoute: () => DocsDocsRoute,
+    id: '/docs/protocol/key-derivation',
+    path: '/docs/protocol/key-derivation',
+    getParentRoute: () => DocsRoute,
   } as any)
 const DocsDocsProtocolEncryptionRoute =
   DocsDocsProtocolEncryptionRouteImport.update({
-    id: '/protocol/encryption',
-    path: '/protocol/encryption',
-    getParentRoute: () => DocsDocsRoute,
+    id: '/docs/protocol/encryption',
+    path: '/docs/protocol/encryption',
+    getParentRoute: () => DocsRoute,
   } as any)
 const DocsDocsProtocolAddressingRoute =
   DocsDocsProtocolAddressingRouteImport.update({
-    id: '/protocol/addressing',
-    path: '/protocol/addressing',
-    getParentRoute: () => DocsDocsRoute,
+    id: '/docs/protocol/addressing',
+    path: '/docs/protocol/addressing',
+    getParentRoute: () => DocsRoute,
   } as any)
 const AppSavedVaultIdRoute = AppSavedVaultIdRouteImport.update({
   id: '/vault/$id',
@@ -191,11 +208,13 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
-  '/docs': typeof DocsDocsRouteWithChildren
+  '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/federation': typeof DocsDocsFederationRoute
   '/docs/security': typeof DocsDocsSecurityRoute
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
+  '/blog/': typeof BlogBlogIndexRoute
+  '/docs/': typeof DocsDocsIndexRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
@@ -218,11 +237,13 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
-  '/docs': typeof DocsDocsRouteWithChildren
+  '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/federation': typeof DocsDocsFederationRoute
   '/docs/security': typeof DocsDocsSecurityRoute
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
+  '/blog': typeof BlogBlogIndexRoute
+  '/docs': typeof DocsDocsIndexRoute
   '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
@@ -243,18 +264,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/_blog': typeof BlogRouteWithChildren
   '/_docs': typeof DocsRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
-  '/_docs/docs': typeof DocsDocsRouteWithChildren
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
+  '/_blog/blog/$slug': typeof BlogBlogSlugRoute
   '/_docs/docs/development': typeof DocsDocsDevelopmentRoute
   '/_docs/docs/federation': typeof DocsDocsFederationRoute
   '/_docs/docs/security': typeof DocsDocsSecurityRoute
   '/_docs/docs/self-hosting': typeof DocsDocsSelfHostingRoute
+  '/_blog/blog/': typeof BlogBlogIndexRoute
+  '/_docs/docs/': typeof DocsDocsIndexRoute
   '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
   '/_app/_saved/_chrome/domains': typeof AppSavedChromeDomainsRoute
   '/_app/_saved/_chrome/home': typeof AppSavedChromeHomeRoute
@@ -279,11 +303,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
-    | '/docs'
+    | '/blog/$slug'
     | '/docs/development'
     | '/docs/federation'
     | '/docs/security'
     | '/docs/self-hosting'
+    | '/blog/'
+    | '/docs/'
     | '/$profile'
     | '/domains'
     | '/home'
@@ -306,11 +332,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
-    | '/docs'
+    | '/blog/$slug'
     | '/docs/development'
     | '/docs/federation'
     | '/docs/security'
     | '/docs/self-hosting'
+    | '/blog'
+    | '/docs'
     | '/$profile'
     | '/domains'
     | '/home'
@@ -330,18 +358,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/_blog'
     | '/_docs'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/_app/_saved'
     | '/_app/welcome'
-    | '/_docs/docs'
     | '/_app/_saved/_chrome'
+    | '/_blog/blog/$slug'
     | '/_docs/docs/development'
     | '/_docs/docs/federation'
     | '/_docs/docs/security'
     | '/_docs/docs/self-hosting'
+    | '/_blog/blog/'
+    | '/_docs/docs/'
     | '/_app/_saved/_chrome/$profile'
     | '/_app/_saved/_chrome/domains'
     | '/_app/_saved/_chrome/home'
@@ -362,6 +393,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  BlogRoute: typeof BlogRouteWithChildren
   DocsRoute: typeof DocsRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -398,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_blog': {
+      id: '/_blog'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -411,13 +450,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_docs/docs': {
-      id: '/_docs/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsDocsRouteImport
-      parentRoute: typeof DocsRoute
     }
     '/_app/welcome': {
       id: '/_app/welcome'
@@ -433,33 +465,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_docs/docs/': {
+      id: '/_docs/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsDocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/_blog/blog/': {
+      id: '/_blog/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogBlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/_docs/docs/self-hosting': {
       id: '/_docs/docs/self-hosting'
-      path: '/self-hosting'
+      path: '/docs/self-hosting'
       fullPath: '/docs/self-hosting'
       preLoaderRoute: typeof DocsDocsSelfHostingRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/security': {
       id: '/_docs/docs/security'
-      path: '/security'
+      path: '/docs/security'
       fullPath: '/docs/security'
       preLoaderRoute: typeof DocsDocsSecurityRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/federation': {
       id: '/_docs/docs/federation'
-      path: '/federation'
+      path: '/docs/federation'
       fullPath: '/docs/federation'
       preLoaderRoute: typeof DocsDocsFederationRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/development': {
       id: '/_docs/docs/development'
-      path: '/development'
+      path: '/docs/development'
       fullPath: '/docs/development'
       preLoaderRoute: typeof DocsDocsDevelopmentRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
+    }
+    '/_blog/blog/$slug': {
+      id: '/_blog/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogBlogSlugRouteImport
+      parentRoute: typeof BlogRoute
     }
     '/_app/_saved/_chrome': {
       id: '/_app/_saved/_chrome'
@@ -470,31 +523,31 @@ declare module '@tanstack/react-router' {
     }
     '/_docs/docs/protocol/proof-of-work': {
       id: '/_docs/docs/protocol/proof-of-work'
-      path: '/protocol/proof-of-work'
+      path: '/docs/protocol/proof-of-work'
       fullPath: '/docs/protocol/proof-of-work'
       preLoaderRoute: typeof DocsDocsProtocolProofOfWorkRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/protocol/key-derivation': {
       id: '/_docs/docs/protocol/key-derivation'
-      path: '/protocol/key-derivation'
+      path: '/docs/protocol/key-derivation'
       fullPath: '/docs/protocol/key-derivation'
       preLoaderRoute: typeof DocsDocsProtocolKeyDerivationRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/protocol/encryption': {
       id: '/_docs/docs/protocol/encryption'
-      path: '/protocol/encryption'
+      path: '/docs/protocol/encryption'
       fullPath: '/docs/protocol/encryption'
       preLoaderRoute: typeof DocsDocsProtocolEncryptionRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_docs/docs/protocol/addressing': {
       id: '/_docs/docs/protocol/addressing'
-      path: '/protocol/addressing'
+      path: '/docs/protocol/addressing'
       fullPath: '/docs/protocol/addressing'
       preLoaderRoute: typeof DocsDocsProtocolAddressingRouteImport
-      parentRoute: typeof DocsDocsRoute
+      parentRoute: typeof DocsRoute
     }
     '/_app/_saved/vault/$id': {
       id: '/_app/_saved/vault/$id'
@@ -632,38 +685,40 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface DocsDocsRouteChildren {
+interface BlogRouteChildren {
+  BlogBlogSlugRoute: typeof BlogBlogSlugRoute
+  BlogBlogIndexRoute: typeof BlogBlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogBlogSlugRoute: BlogBlogSlugRoute,
+  BlogBlogIndexRoute: BlogBlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
+interface DocsRouteChildren {
   DocsDocsDevelopmentRoute: typeof DocsDocsDevelopmentRoute
   DocsDocsFederationRoute: typeof DocsDocsFederationRoute
   DocsDocsSecurityRoute: typeof DocsDocsSecurityRoute
   DocsDocsSelfHostingRoute: typeof DocsDocsSelfHostingRoute
+  DocsDocsIndexRoute: typeof DocsDocsIndexRoute
   DocsDocsProtocolAddressingRoute: typeof DocsDocsProtocolAddressingRoute
   DocsDocsProtocolEncryptionRoute: typeof DocsDocsProtocolEncryptionRoute
   DocsDocsProtocolKeyDerivationRoute: typeof DocsDocsProtocolKeyDerivationRoute
   DocsDocsProtocolProofOfWorkRoute: typeof DocsDocsProtocolProofOfWorkRoute
 }
 
-const DocsDocsRouteChildren: DocsDocsRouteChildren = {
+const DocsRouteChildren: DocsRouteChildren = {
   DocsDocsDevelopmentRoute: DocsDocsDevelopmentRoute,
   DocsDocsFederationRoute: DocsDocsFederationRoute,
   DocsDocsSecurityRoute: DocsDocsSecurityRoute,
   DocsDocsSelfHostingRoute: DocsDocsSelfHostingRoute,
+  DocsDocsIndexRoute: DocsDocsIndexRoute,
   DocsDocsProtocolAddressingRoute: DocsDocsProtocolAddressingRoute,
   DocsDocsProtocolEncryptionRoute: DocsDocsProtocolEncryptionRoute,
   DocsDocsProtocolKeyDerivationRoute: DocsDocsProtocolKeyDerivationRoute,
   DocsDocsProtocolProofOfWorkRoute: DocsDocsProtocolProofOfWorkRoute,
-}
-
-const DocsDocsRouteWithChildren = DocsDocsRoute._addFileChildren(
-  DocsDocsRouteChildren,
-)
-
-interface DocsRouteChildren {
-  DocsDocsRoute: typeof DocsDocsRouteWithChildren
-}
-
-const DocsRouteChildren: DocsRouteChildren = {
-  DocsDocsRoute: DocsDocsRouteWithChildren,
 }
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
@@ -671,6 +726,7 @@ const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  BlogRoute: BlogRouteWithChildren,
   DocsRoute: DocsRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,

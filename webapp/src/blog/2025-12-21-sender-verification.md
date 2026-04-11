@@ -1,7 +1,7 @@
 +++
 title = "Proving Who You Are: Sender Verification in Federated Messaging"
 date = "2025-12-21T12:00:00-06:00"
-author = "KeyPears Team"
+author = "Ryan X. Charles"
 +++
 
 In our [previous post](/blog/2025-12-20-dh-messaging-poc), we introduced
