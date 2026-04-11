@@ -383,3 +383,43 @@ getMyChannels, getMyUnreadCount, getMyUser, checkNameAvailable, getMyDomains.
 
 `requireSessionUserId` is now unused (only definition remains in session.ts).
 Lint clean, build passes.
+
+### Experiment 5: Remaining low-priority items (#6, #8, #9)
+
+#### Description
+
+Three small items:
+- #6: Search param Zod validation in send.tsx
+- #8: Auto code splitting
+- #9: Verify loaders don't leak secrets
+
+#### Results
+
+**#6 — Search param Zod validation: Fixed.**
+
+Replaced manual type checking with Zod `.catch()`:
+
+```typescript
+// Before:
+validateSearch: (search: Record<string, unknown>) => ({
+  to: typeof search.to === "string" ? search.to : "",
+})
+
+// After:
+validateSearch: z.object({
+  to: z.string().catch(""),
+})
+```
+
+**#8 — Auto code splitting: Already enabled.**
+
+TanStack Start forces `autoCodeSplitting: true` in its plugin config — it's
+omitted from user config because it's always on. No action needed.
+
+**#9 — Verify loaders don't leak secrets: Verified clean.**
+
+No route file imports from `.server.ts`. All loaders call server functions
+(`getMyUser()`, `getMyKeys()`, etc.). No direct database or secret access in
+any loader. No action needed.
+
+#### Result: Pass

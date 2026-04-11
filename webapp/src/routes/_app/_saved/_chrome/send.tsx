@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
+import { z } from "zod";
 import {
   sendMessage,
   getPublicKeyForAddress,
@@ -21,8 +22,8 @@ import { Send as SendIcon, Check, X, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/send")({
   head: () => ({ meta: [{ title: "Send — KeyPears" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    to: typeof search.to === "string" ? search.to : "",
+  validateSearch: z.object({
+    to: z.string().catch(""),
   }),
   component: SendPage,
 });
