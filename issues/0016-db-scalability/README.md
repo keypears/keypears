@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Database Schema Scalability
@@ -209,3 +210,35 @@ All `timestamp` columns replaced with `datetime` (using
 and all five`text`columns replaced with`binaryHex`custom type backed by`varbinary`.
 Databases cleared and schema pushed cleanly to both keypears and passapples.
 Linter: 0 errors, tests: 7/7 passed.
+
+---
+
+## Conclusion
+
+Two experiments resolved all actionable scalability issues in the database
+schema:
+
+**Experiment 1** added seven missing indexes: composite indexes on
+`messages(channelId, id)` and `messages(channelId, isRead)` for paginated
+message loading and unread counts, `channels(ownerId, updatedAt)` for channel
+list sorting, `users(expiresAt)` for the user-recycling `FOR UPDATE` query, and
+`expiresAt` indexes on `sessions`, `used_pow`, and `pending_deliveries` for lazy
+cleanup queries. These eliminate full table scans that would degrade at scale.
+
+**Experiment 2** replaced all `timestamp` columns with `datetime` (avoiding the
+Y2038 overflow) and all `text` columns with `varbinary` via a `binaryHex`
+custom type that converts hex strings to raw bytes transparently at the Drizzle
+layer. This halves storage for encrypted data and keeps it inline in InnoDB
+pages, eliminating off-page read overhead.
+
+Two identified issues were not addressed because they don't require fixes:
+
+- **Unbounded table growth** (`used_pow`, `pow_log`, `messages`): The
+  deployment target is PlanetScale (Vitess), which handles horizontal sharding
+  of large tables transparently. Unbounded growth is the expected operating
+  model, not a problem to solve at the application layer.
+
+- **Version counter race condition** in `createNewVersion()`: This requires the
+  same user to edit the same secret from two tabs at the exact same moment. The
+  unique index on `(secretId, version)` prevents data corruption. The
+  probability is effectively zero and doesn't warrant added complexity.
