@@ -34,9 +34,9 @@ For a concise protocol overview, read the
 
 For detailed documentation, explore the sections in the sidebar:
 
-- [Protocol](/protocol/addressing/) — addressing, key derivation, encryption,
+- [Protocol](/docs/protocol/addressing) — addressing, key derivation, encryption,
   proof of work
-- [Federation](/federation/) — how domains discover each other and exchange
+- [Federation](/docs/federation) — how domains discover each other and exchange
   messages
-- [Self-Hosting](/self-hosting/) — run your own KeyPears server
-- [Security](/security/) — threat model and limitations
+- [Self-Hosting](/docs/self-hosting) — run your own KeyPears server
+- [Security](/docs/security) — threat model and limitations
