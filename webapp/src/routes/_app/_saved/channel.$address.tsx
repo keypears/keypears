@@ -236,7 +236,8 @@ function ChannelPage() {
           theirPubKey,
         ),
       };
-    } catch {
+    } catch (err) {
+      console.error("[tryDecrypt] failed:", err);
       return { ok: false, reason: "error" };
     }
   }

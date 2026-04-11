@@ -5,29 +5,36 @@ import { sharedSecret } from "@webbuf/secp256k1";
 import { acs2Encrypt, acs2Decrypt } from "@webbuf/acs2";
 import { z } from "zod";
 
-const TextMessageSchema = z.object({
+// --- Message schemas (no unions) ---
+
+const MessageEnvelope = z.object({
   version: z.number(),
-  type: z.literal("text"),
+  type: z.string(),
+});
+
+const TextContent = z.object({
   text: z.string(),
 });
 
-const SecretMessageSchema = z.object({
-  version: z.number(),
-  type: z.literal("secret"),
+const SecretContent = z.object({
   secret: z.object({
     name: z.string(),
     secretType: z.string(),
-    fields: z.record(z.string()),
+    fields: z.record(z.string(), z.string()),
   }),
 });
 
-const MessageContentSchema = z.discriminatedUnion("type", [
-  TextMessageSchema,
-  SecretMessageSchema,
-]);
+export type TextMessage = { version: number; type: "text"; text: string };
+export type SecretMessage = {
+  version: number;
+  type: "secret";
+  secret: { name: string; secretType: string; fields: Record<string, string> };
+};
+export type MessageContent = TextMessage | SecretMessage;
 
-export type MessageContent = z.infer<typeof MessageContentSchema>;
-export type SecretPayload = z.infer<typeof SecretMessageSchema>["secret"];
+export type SecretPayload = SecretMessage["secret"];
+
+// --- ECDH key derivation ---
 
 export function computeMessageKey(
   myPrivKey: FixedBuf<32>,
@@ -36,6 +43,8 @@ export function computeMessageKey(
   const ecdhPoint = sharedSecret(myPrivKey, theirPubKey);
   return blake3Hash(ecdhPoint.buf);
 }
+
+// --- Encrypt ---
 
 export function encryptMessage(
   text: string,
@@ -59,6 +68,8 @@ export function encryptSecretMessage(
   return encrypted.toHex();
 }
 
+// --- Decrypt ---
+
 export function decryptMessageContent(
   encryptedHex: string,
   myPrivKey: FixedBuf<32>,
@@ -66,7 +77,18 @@ export function decryptMessageContent(
 ): MessageContent {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const decrypted = acs2Decrypt(WebBuf.fromHex(encryptedHex), key);
-  return MessageContentSchema.parse(JSON.parse(decrypted.toUtf8()));
+  const parsed = JSON.parse(decrypted.toUtf8());
+  const envelope = MessageEnvelope.parse(parsed);
+
+  if (envelope.type === "text") {
+    const { text } = TextContent.parse(parsed);
+    return { version: envelope.version, type: "text", text };
+  }
+  if (envelope.type === "secret") {
+    const { secret } = SecretContent.parse(parsed);
+    return { version: envelope.version, type: "secret", secret };
+  }
+  throw new Error(`Unknown message type: ${envelope.type}`);
 }
 
 /** Legacy convenience — decrypts and returns just the text for text messages. */

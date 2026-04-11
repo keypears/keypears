@@ -461,20 +461,20 @@ function EntryDetail({
               )
             : { text: decrypted.data.text },
       };
+      // Get my active key for ECDH encryption
+      const myActiveKey = await getMyActiveEncryptedKey();
+      const encKey = getCachedEncryptionKey();
+      if (!encKey) throw new Error("Encryption key not found");
+      const myPrivKey = decryptPrivateKey(
+        myActiveKey.encryptedPrivateKey,
+        encKey,
+      );
+
       const theirPubKey = FixedBuf.fromHex(33, recipientKey.publicKey);
       const encryptedContent = encryptSecretMessage(
         secret,
-        keyInfo.privateKey,
+        myPrivKey,
         theirPubKey,
-      );
-
-      // Get my active key for the message envelope
-      const myActiveKey = await getMyActiveEncryptedKey();
-      const encryptionKey = getCachedEncryptionKey();
-      if (!encryptionKey) throw new Error("Encryption key not found");
-      const myPrivKey = decryptPrivateKey(
-        myActiveKey.encryptedPrivateKey,
-        encryptionKey,
       );
 
       pendingShareRef.current = {
