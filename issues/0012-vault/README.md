@@ -400,6 +400,11 @@ getMyEntries   — GET, optional query string for search, optional beforeId for 
 getEntry       — GET, input: entry ID
 updateEntry    — POST, Zod input: { id, name, type, searchTerms, publicKey, encryptedData }
 deleteEntry    — POST, input: entry ID
+
+MAX_ENCRYPTED_DATA_LENGTH = 20,000 hex chars (~10KB). Validated in Zod input
+schemas for both createEntry and updateEntry. Vault entries are for secrets
+(passwords, API keys, SSH keys, seed phrases) — not files. To store a large
+file, encrypt it with a key and store the key in KeyPears.
 ```
 
 All require `requireSessionUserId()`.
