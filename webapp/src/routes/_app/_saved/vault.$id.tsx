@@ -498,21 +498,29 @@ function EntryDetail({
             Searchable. Visible to the server.
           </p>
           <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Search terms"
-              value={editSearchTerms}
-              onChange={(e) => setEditSearchTerms(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Name
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Search terms
+              </label>
+              <input
+                type="text"
+                value={editSearchTerms}
+                onChange={(e) => setEditSearchTerms(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -527,9 +535,11 @@ function EntryDetail({
         {data.type === "login" ? (
           <>
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Domain
+              </label>
               <input
                 type="text"
-                placeholder="Domain"
                 value={editDomain}
                 onChange={(e) => setEditDomain(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -557,17 +567,23 @@ function EntryDetail({
                 );
               })()}
             </div>
-            <input
-              type="text"
-              placeholder="Username"
-              value={editUsername}
-              onChange={(e) => setEditUsername(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Username
+              </label>
               <input
                 type="text"
-                placeholder="Email"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Email
+              </label>
+              <input
+                type="text"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -579,9 +595,11 @@ function EntryDetail({
               )}
             </div>
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Password
+              </label>
               <input
                 type="text"
-                placeholder="Password"
                 value={editPassword}
                 onChange={(e) => setEditPassword(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -604,23 +622,31 @@ function EntryDetail({
                 </div>
               )}
             </div>
-            <textarea
-              placeholder="Notes"
-              value={editNotes}
-              onChange={(e) => setEditNotes(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-              rows={3}
-            />
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Notes
+              </label>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+                rows={3}
+              />
+            </div>
           </>
         ) : (
-          <textarea
-            placeholder="Secret text"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            rows={5}
-            required
-          />
+          <div>
+            <label className="text-muted-foreground mb-1 block text-xs">
+              Text
+            </label>
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              rows={5}
+              required
+            />
+          </div>
         )}
         {error && <p className="text-danger text-sm">{error}</p>}
         <div className="flex gap-3">

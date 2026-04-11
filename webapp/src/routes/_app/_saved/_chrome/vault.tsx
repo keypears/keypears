@@ -336,21 +336,31 @@ function CreateEntryForm({
             Searchable. Visible to the server.
           </p>
           <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Name (required)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Search terms (optional)"
-              value={searchTerms}
-              onChange={(e) => setSearchTerms(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Google, AWS, SSH key"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Search terms
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. work, production, personal"
+                value={searchTerms}
+                onChange={(e) => setSearchTerms(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -365,9 +375,12 @@ function CreateEntryForm({
         {type === "login" ? (
           <>
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Domain
+              </label>
               <input
                 type="text"
-                placeholder="Domain (e.g. google.com)"
+                placeholder="e.g. google.com"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -395,17 +408,23 @@ function CreateEntryForm({
                 );
               })()}
             </div>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            />
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Username
+              </label>
               <input
                 type="text"
-                placeholder="Email"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Email
+              </label>
+              <input
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -417,9 +436,11 @@ function CreateEntryForm({
               )}
             </div>
             <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Password
+              </label>
               <input
                 type="password"
-                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -442,23 +463,31 @@ function CreateEntryForm({
                 </div>
               )}
             </div>
-            <textarea
-              placeholder="Notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-              rows={3}
-            />
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs">
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+                rows={3}
+              />
+            </div>
           </>
         ) : (
-          <textarea
-            placeholder="Secret text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
-            rows={5}
-            required
-          />
+          <div>
+            <label className="text-muted-foreground mb-1 block text-xs">
+              Text
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              rows={5}
+              required
+            />
+          </div>
         )}
 
         {error && <p className="text-danger text-sm">{error}</p>}
