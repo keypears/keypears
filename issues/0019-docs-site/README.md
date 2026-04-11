@@ -223,3 +223,76 @@ Comparing the old docs against the new, the following information is missing:
   new docs site.
 - New development page covers local HTTPS setup.
 - Site builds successfully.
+
+### Result: Pass
+
+All content migrated. 10 pages built. However, Starlight's design is
+incompatible with the KeyPears brand — the color cascade is hard to override,
+the footer component system fights against custom styling, and the overall
+aesthetic doesn't match the main app. Addressed in Experiment 3.
+
+---
+
+## Experiment 3: Rewrite as plain Astro with webapp styles
+
+### Hypothesis
+
+Starlight provides search and auto-generated TOC but forces a design language
+that conflicts with the KeyPears brand. A plain Astro site styled with the same
+Tailwind CSS and color system as the main webapp will look cohesive and give
+full control over every element. Search can be added later with Pagefind
+(which works on any static site, not just Starlight).
+
+### Design
+
+**Style source.** Copy the KeyPears webapp's visual language:
+
+- Tailwind CSS v4 with the same `globals.css` color variables (Tokyo Night
+  base, sage green accent, green-tinted neutrals)
+- Same font (Inter via `@fontsource-variable/geist` or system)
+- Same dark/light mode via `prefers-color-scheme`
+- Same border, muted, and accent colors
+
+**Layout.** A documentation layout with:
+
+- Top navbar: KeyPears logo + "Docs" title, link back to keypears.com
+- Left sidebar: navigation grouped by section (Protocol, Federation, etc.)
+- Right area: markdown content with auto-generated heading anchors
+- Footer: prev/next links + "An Astrohacker Project" branding
+- Mobile: collapsible sidebar via hamburger menu
+
+The layout should feel like a natural extension of the main app, not a
+different website.
+
+**Content.** Preserve all 9 markdown files from the Starlight site as-is. They
+use standard markdown with YAML frontmatter (`title`, `description`) — no
+Starlight-specific features. Move them from `src/content/docs/` to
+`src/content/` (or `src/pages/` with Astro's built-in markdown support).
+
+**Tech stack:**
+
+- Astro (no Starlight)
+- Tailwind CSS v4
+- `@astrojs/mdx` for markdown rendering
+- Content collections for the docs pages
+- Astro components for layout (Base, DocPage, Sidebar, Footer)
+
+### Changes
+
+1. Remove `@astrojs/starlight` dependency.
+2. Add `@astrojs/tailwind` (or Tailwind v4 via Vite plugin) and `@astrojs/mdx`.
+3. Create `globals.css` copied from webapp with the same color variables.
+4. Create layout components: `Base.astro`, `DocPage.astro`, `Sidebar.astro`,
+   `Footer.astro`.
+5. Update `astro.config.mjs` to use MDX and Tailwind instead of Starlight.
+6. Move content files and update content collection config.
+7. Verify all pages render correctly with the new styles.
+
+### Pass criteria
+
+- No Starlight dependency.
+- Site builds and all 9 content pages render.
+- Colors, fonts, and overall aesthetic match the main KeyPears webapp.
+- Sidebar navigation works on desktop and mobile.
+- Prev/next links and astrohacker footer render correctly.
+- All existing content preserved.
