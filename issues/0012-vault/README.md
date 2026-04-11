@@ -505,5 +505,89 @@ full-screen split layout without the sidebar, same as channel pages.
 
 Vault CRUD works end-to-end. Entries are encrypted client-side with a
 domain-separated key derived from the user's secp256k1 private key. Search,
-pagination, create, edit, delete, show/hide, copy — all functional. Split
-layout detail page mirrors the channel view pattern. Lint clean, build passes.
+pagination, create, edit, delete, show/hide, copy — all functional. Split layout
+detail page mirrors the channel view pattern. Lint clean, build passes.
+
+### Experiment 2: Secret sharing via messages
+
+#### Description
+
+Add the ability to share vault entries via encrypted messages and save received
+secrets to your vault.
+
+#### Message protocol
+
+Extend the message content schema with a `"secret"` type:
+
+```typescript
+const MessageContentSchema = z.discriminatedUnion("type", [
+  z.object({ version: z.number(), type: z.literal("text"), text: z.string() }),
+  z.object({
+    version: z.number(),
+    type: z.literal("secret"),
+    secret: z.object({
+      name: z.string(),
+      secretType: z.string(),  // "login" | "text"
+      fields: z.record(z.string()),
+    }),
+  }),
+]);
+```
+
+The `fields` object matches the vault encrypted blob structure. When sent as a
+message, the entire content (including secret fields) is encrypted with the
+ECDH shared secret, same as text messages. No vault key involved in transit.
+
+#### Share flow (sender)
+
+1. On vault entry detail page, add a **Share** button (Send icon) next to
+   Edit and Delete.
+2. Click Share → enter a KeyPears address (inline input or small modal).
+3. Decrypt the vault entry using the vault key.
+4. Encrypt as a `"secret"` message using ECDH shared secret with recipient.
+5. Send via existing `sendMessage` flow (PoW required).
+6. Message appears in the channel as a secret card.
+
+#### Receive flow (recipient)
+
+1. Channel view renders `"secret"` messages as a card: name, type icon
+   (KeyRound for login, FileText for text), "Save to Vault" button.
+2. No preview of fields — the card just shows the name and type.
+3. Click "Save to Vault":
+   a. Decrypt the message (ECDH — already done for display).
+   b. Extract the secret payload (name, secretType, fields).
+   c. Encrypt with the recipient's vault key (derived from active private key).
+   d. Save to vault via `createEntry`.
+   e. Navigate to `/vault/$id` for the new entry.
+4. Duplicates are allowed — saving the same secret twice creates two entries.
+
+#### Changes
+
+**`webapp/src/lib/message.ts`**:
+- Extend `MessageContentSchema` to support `"secret"` type via discriminated
+  union.
+- Update `decryptMessage` to return the parsed content object (not just text).
+- Add `encryptSecretMessage` and `decryptMessageContent` functions.
+
+**`webapp/src/routes/_app/_saved/channel.$address.tsx`**:
+- Update message rendering: if message type is `"secret"`, render a secret
+  card with name, type icon, and "Save to Vault" button.
+- "Save to Vault" handler: decrypt, re-encrypt with vault key, save, navigate.
+- Text messages render as before.
+
+**`webapp/src/routes/_app/_saved/vault.$id.tsx`**:
+- Add Share button to entry detail header (next to Edit/Delete).
+- Share form: KeyPears address input, send button.
+- Share handler: decrypt vault entry, encrypt as secret message, send via
+  existing sendMessage flow with PoW.
+
+#### Verification
+
+1. `bun run build` — passes
+2. `bun run lint` — clean
+3. Open vault entry → click Share → enter recipient address → PoW → sent
+4. Recipient sees secret card in channel: name, type, "Save to Vault" button
+5. Click "Save to Vault" → entry saved → navigates to vault detail page
+6. Saved entry matches original (same name, type, fields)
+7. Save the same secret again → creates a second copy
+8. Text messages still render and work normally
