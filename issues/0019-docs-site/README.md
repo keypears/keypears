@@ -411,71 +411,64 @@ or not), but logged-in users see their session.
 
 ### Design
 
-**Sidebar integration.** The existing `Sidebar` component gets a "Docs" nav
-item (with a `BookOpen` icon) that links to `/docs`. When the user is on a
-`/docs/*` route, the sidebar switches to show docs navigation:
+**Pattern.** The channel page (`channel.$address.tsx`) and vault detail page
+(`vault.$id.tsx`) both live outside `_chrome` and build their own custom
+sidebar — with burger menu, mobile drawer, and always-visible desktop sidebar.
+The docs pages follow the same pattern: a custom docs sidebar built into the
+docs layout, not a modification of the main `Sidebar` component.
 
-- "Home" at the top (links back to `/home` or `/` depending on auth state)
-- Then the docs nav items grouped by section (Protocol, Federation, etc.)
+**Main app sidebar.** Add "Docs" as a 5th nav item in the existing Sidebar
+(`Home, Inbox, Send, Vault, Docs`). This is how users discover docs from the
+main app.
 
-This mirrors how the sidebar already changes context for channel and vault
-detail pages.
+**Docs layout (`_docs.tsx`).** This is a top-level layout route, sibling to
+`_app.tsx` — outside both `_app` (which requires login) and `_saved` (which
+requires a password). It builds everything from scratch:
 
-**Route structure.** Remove the `_docs` layout route. Instead, docs pages use
-the existing `_app/_saved/_chrome` layout (for logged-in users with passwords)
-OR a new public layout that shows the sidebar without requiring auth.
+- *Navbar:* Logo + "KeyPears Docs" on the left. If logged in, user address +
+  user dropdown on the right. If not logged in, just the logo.
+- *Sidebar:* "Home" link at top, then docs nav items grouped by section.
+  Burger menu on mobile, fixed on desktop. Same visual pattern as
+  `channel.$address.tsx`.
+- *Footer:* Astrohacker branding + terms/privacy/docs links.
 
-The cleanest approach: make docs a top-level layout `_docs.tsx` that reuses
-the same `Sidebar` component but with docs-specific nav items, and uses
-optional auth (not required). The Sidebar component needs to accept a `mode`
-prop: `"app"` (current behavior) or `"docs"` (docs nav items).
+Uses optional auth via `getSessionUserId()` to detect login state — logged-in
+users see their dropdown, logged-out users see docs freely.
 
 **Auth states for docs:**
 
-1. *Logged in + password set:* Full sidebar with user dropdown, address, docs
-   nav. User menu has all options (Profile, Keys, Domains, Settings, Password,
-   Log out).
-2. *Logged in + no password:* Sidebar with user dropdown. User menu has only
-   Log out.
-3. *Not logged in:* Sidebar with logo and docs nav. No user dropdown. No
-   address.
+1. *Logged in + password set:* Docs sidebar + user dropdown + address in
+   top-right.
+2. *Logged in + no password:* Docs sidebar + user dropdown (log out only).
+3. *Not logged in:* Docs sidebar + logo. No user dropdown.
 
-**Footer.** The existing `Footer` component already shows "Terms · Privacy".
-Add "Docs" link: "Terms · Privacy · Docs". This ensures `/docs` is
-discoverable from every page, including the logged-out landing page.
+**Footer.** Add "Docs" link to the existing `Footer` component:
+"Terms · Privacy · Docs". This ensures `/docs` is discoverable from every
+page including the logged-out landing page.
 
-**Landing page.** The logged-out landing page (`index.tsx`) footer already has
-Terms and Privacy. Add Docs there too.
-
-**Navigation to/from docs:**
-
-- Main app → Docs: Click "Docs" in the sidebar nav items.
-- Docs → Main app: Click "Home" in the docs sidebar, which links to `/home`
-  (if logged in) or `/` (if not).
+**Delete `DocsSidebar.tsx`.** Replace with the sidebar built directly into the
+`_docs.tsx` layout, following the channel/vault pattern.
 
 ### Changes
 
-1. **`Sidebar.tsx`** — Add `mode` prop (`"app" | "docs"`). When `"docs"`, show
-   docs nav items instead of app nav items (Home/Inbox/Send/Vault). Add
-   "Docs" to the app nav items list. Keep Logo, Address, UserDropdown, and
-   mobile drawer behavior unchanged.
+1. **`Sidebar.tsx`** — Add `{ name: "Docs", path: "/docs", icon: BookOpen }`
+   to the `navItems` array.
 
-2. **`_docs.tsx`** — Rewrite to use the `Sidebar` component with `mode="docs"`
-   and optional auth. Use `getSessionUserId()` to detect login state. Load
-   user data if logged in. Pass user info to Sidebar (or null if logged out).
+2. **`_docs.tsx`** — Rewrite as a self-contained layout with its own navbar,
+   sidebar (burger + drawer + desktop fixed), and footer. Use optional auth
+   via `getSessionUserId()` to show user dropdown if logged in. The sidebar,
+   navbar, and footer are built directly in this file (or in helper
+   components), not imported from the `_chrome` layout.
 
-3. **`Footer.tsx`** — Add "Docs" link between Privacy and the copyright line.
+3. **`Footer.tsx`** — Add "Docs" link to the main app footer.
 
-4. **`DocsContent.tsx`** — Remove the separate prev/next nav (the Sidebar
-   provides navigation). Or keep it — your call.
-
-5. **Delete `DocsSidebar.tsx`** — No longer needed; the main Sidebar handles
-   both modes.
+4. **Delete `DocsSidebar.tsx`** — Replaced by the sidebar in `_docs.tsx`.
 
 ### Pass criteria
 
 - "Docs" appears in the main app sidebar nav items.
-- Docs pages use the main Sidebar with docs-specific nav items.
+- Docs pages have their own custom sidebar with burger menu (mobile) and
+  fixed sidebar (desktop), following the channel/vault pattern.
 - Logged-in users see their user dropdown on docs pages.
 - Logged-out users see docs without being redirected to login.
 - Footer on all pages includes a "Docs" link.
