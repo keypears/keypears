@@ -319,19 +319,45 @@ save flow since `onSaved` navigates and re-runs the loader for the main entry.
 
 #### Description
 
-Finding #5 proposes using `createMiddleware` to replace repeated
-`requireSessionUserId()` calls. However, `createMiddleware` does not exist in
-the installed version of TanStack Start (1.167.16). The feature is documented
-but not yet shipped.
+Replace repeated `requireSessionUserId()` calls with `createMiddleware`.
 
-#### Decision: Skip
+`createMiddleware` IS available in our installed version (1.167.16). It's
+exported from `@tanstack/react-start`, implemented in
+`@tanstack/start-client-core`. The API is RC-stable and documented.
 
-The current pattern — calling `requireSessionUserId()` at the top of each
-handler — is explicit, simple, and works. It's two lines per handler. Switching
-to middleware would save those two lines but add a new abstraction layer and
-require a version upgrade to an API that may still be unstable.
+Import: `import { createMiddleware } from '@tanstack/react-start'`
 
-When `createMiddleware` ships in a stable release, revisit this. Until then,
-the current pattern is fine.
+Two middleware types exist:
+- **Request middleware** (default) — applies to all server requests
+- **Server function middleware** (`{ type: 'function' }`) — supports input
+  validation and client-side logic
 
-#### Result: Skipped — API not available in installed version
+For auth, we want server function middleware. It extracts the session and passes
+the userId through `next()` context, making it type-safe in handlers.
+
+Known issues to watch for:
+- Server function middleware code leaking into client bundles
+  ([#2783](https://github.com/TanStack/router/issues/2783))
+- Typing issues where adding request middleware causes `data` to become `never`
+  ([#5238](https://github.com/TanStack/router/issues/5238))
+
+Sources:
+- [Middleware Guide](https://tanstack.com/start/latest/docs/framework/react/guide/middleware)
+- [createMiddleware API](https://tanstack.com/start/latest/docs/framework/react/middleware)
+- [Frontend Masters — Introducing TanStack Start Middleware](https://frontendmasters.com/blog/introducing-tanstack-start-middleware/)
+
+#### Changes
+
+1. Create `webapp/src/server/auth-middleware.ts` with an `authMiddleware` that
+   extracts the session userId and passes it through context.
+2. Update all server functions that call `requireSessionUserId()` to use
+   `.middleware([authMiddleware])` and read userId from context instead.
+3. Keep `getSessionUserId()` (nullable version) for functions that work with
+   or without auth (e.g. `getMyChannels`, `getMyUser`).
+
+#### Verification
+
+1. `bun run build` — passes
+2. `bun run lint` — clean
+3. All authenticated flows still work (create account, login, send message,
+   vault CRUD, key rotation, domain management)
