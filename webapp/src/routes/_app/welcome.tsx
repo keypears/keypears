@@ -144,7 +144,7 @@ function WelcomePage() {
         },
       });
       // Full reload so the sidebar picks up the new entropy tier from localStorage
-      window.location.href = "/feed";
+      window.location.href = "/home";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {

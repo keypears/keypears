@@ -97,7 +97,7 @@ function PasswordPage() {
       cacheEntropyTier(entropyTier(calculatePasswordEntropy(newPassword)));
 
       // Full reload so the sidebar re-reads the updated entropy tier from localStorage
-      window.location.href = "/feed";
+      window.location.href = "/home";
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to change password.",

@@ -320,7 +320,7 @@ function ChannelPage() {
     return (
       <div className="flex flex-col">
         <a
-          href="/"
+          href="/home"
           onClick={onSelect}
           className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-4 py-3 text-sm no-underline transition-colors"
         >
