@@ -124,7 +124,7 @@ the following public procedures:
 | `getPublicKey` | Returns active public key for an address |
 | `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
 | `notifyMessage` | Notifies server of a new incoming message |
-| `pullMessage` | Serves a pending message delivery (one-time token) |
+| `pullMessage` | Serves a pending message delivery (idempotent, token-based) |
 
 ## Key Discovery
 
@@ -163,15 +163,15 @@ When `alice@acme.com` sends a message to `bob@other.com`:
    of the message in her channel view.
 
 3. **Sender's server creates pending delivery** — The message is stored in
-   a `pending_deliveries` table with a random one-time token. Only the
-   BLAKE3 hash of the token is stored.
+   a `pending_deliveries` table with a random pull token (24-hour expiry).
+   Only the BLAKE3 hash of the token is stored.
 
 4. **Sender's server notifies recipient** — Alice's server calls
    `notifyMessage` on Bob's server via oRPC with:
    - `senderAddress`: `alice@acme.com`
    - `recipientAddress`: `bob@other.com`
-   - `pullToken`: the one-time token
-   - `pow`: proof of work solution (mined by Alice's browser)
+   - `pullToken`: the pull token
+   - `pow`: proof of work solution (mined by Alice's client)
 
 5. **Recipient verifies sender domain** — Bob's server parses the sender
    address, extracts the domain (`acme.com`), fetches
@@ -180,8 +180,9 @@ When `alice@acme.com` sends a message to `bob@other.com`:
    response came from the real domain.
 
 6. **Recipient pulls message** — Bob's server calls `pullMessage` on
-   Alice's server (at the verified API URL) with the token. The message is
-   returned and the pending delivery is deleted (one-time use).
+   Alice's server (at the verified API URL) with the token. The pull is
+   idempotent — if the recipient fails mid-delivery, it can retry with the
+   same token. Pending deliveries expire and are cleaned up automatically.
 
 7. **Recipient verifies and stores** — Bob's server verifies the sender and
    recipient addresses match the notification, then stores the message in
@@ -197,7 +198,7 @@ The pull model provides **domain verification without signing keys**:
 - No server signing keys, no key exchange, no certificate management
 - Authentication comes from HTTPS/TLS — the same trust model the web uses
 
-The one-time token prevents unauthorized access to pending messages. Only
+The pull token prevents unauthorized access to pending messages. Only
 the server that received the `notifyMessage` call has the token.
 
 ### Message Structure

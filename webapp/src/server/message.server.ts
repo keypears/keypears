@@ -60,6 +60,27 @@ export async function channelExists(
   return !!row;
 }
 
+export async function messageExists(
+  channelId: string,
+  senderPubKey: string,
+  recipientPubKey: string,
+  encryptedContent: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.channelId, channelId),
+        eq(messages.senderPubKey, senderPubKey),
+        eq(messages.recipientPubKey, recipientPubKey),
+        eq(messages.encryptedContent, encryptedContent),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
 export async function insertMessage(
   channelId: string,
   senderAddress: string,

@@ -194,7 +194,7 @@ communicated before.
 
     y += step
     line((col-bs, y), (col-as, y), mark: (end: ">"))
-    content(((col-as + col-bs) / 2, y + 0.25), text(size: 7pt)[9. Pull (one-time token)])
+    content(((col-as + col-bs) / 2, y + 0.25), text(size: 7pt)[9. Pull message (token)])
 
     y += step
     line((col-bs, y), (col-b, y), mark: (end: ">"))
@@ -211,7 +211,7 @@ communicated before.
 + Alice computes a shared secret via ECDH (her private key, Bob's public key),
   derives an encryption key with BLAKE3, and encrypts the message with ACB3.
 + Alice sends the ciphertext and PoW solution to her server.
-+ Alice's server stores her copy, creates a one-time pull token, and notifies
++ Alice's server stores her copy, creates a pull token, and notifies
   Bob's server.
 + Bob's server independently resolves Alice's domain via DNS and TLS---it does
   not trust the notification. It pulls the ciphertext using the token.
@@ -416,15 +416,21 @@ patterns are supported:
 
 *Pull-model message delivery.* Cross-domain messages use a pull model rather
 than server-to-server push. The sender's server stores the ciphertext and
-issues a one-time pull token. It notifies the recipient's server, which
-independently resolves the sender's domain via DNS and TLS---it does not trust
-the notification. The recipient pulls the ciphertext using the token, which is
-consumed on use.
+issues a pull token with a time-limited expiry. It notifies the recipient's
+server, which independently resolves the sender's domain via DNS and TLS---it
+does not trust the notification. The recipient pulls the ciphertext using the
+token. The pull is idempotent: if the recipient's server fails mid-delivery, it
+can retry with the same token. Pending deliveries are cleaned up after expiry.
 
 This design provides domain verification without server signing keys. The
 recipient discovers the sender's API endpoint by resolving the sender's domain
 itself, via HTTPS. A malicious sender cannot forge another domain's identity
 because TLS guarantees the `keypears.json` response came from the real domain.
+
+Because the pull happens synchronously during the send, the sender receives
+immediate confirmation of delivery or an immediate error. There is no outbox
+queue, no silent retry, and no delayed bounce notification days later---a
+failure mode familiar to anyone who has used email.
 
 = Proof of Work
 

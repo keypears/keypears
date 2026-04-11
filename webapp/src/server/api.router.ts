@@ -11,7 +11,7 @@ import {
   insertMessage,
 } from "./message.server";
 import { createPowChallenge, MESSAGE_DIFFICULTY, CHANNEL_DIFFICULTY } from "./pow.server";
-import { channelExists } from "./message.server";
+import { channelExists, messageExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -195,20 +195,29 @@ const notifyMessage = os
       if (messageData.recipientAddress !== input.recipientAddress)
         throw new Error("Recipient address mismatch");
 
-      // Store in recipient's channel
+      // Store in recipient's channel (idempotent: skip if duplicate)
       const channelId = await getOrCreateChannel(
         recipientUser.id,
         messageData.senderAddress,
       );
 
-      await insertMessage(
+      const duplicate = await messageExists(
         channelId,
-        messageData.senderAddress,
-        messageData.encryptedContent,
         messageData.senderPubKey,
         messageData.recipientPubKey,
-        false,
+        messageData.encryptedContent,
       );
+
+      if (!duplicate) {
+        await insertMessage(
+          channelId,
+          messageData.senderAddress,
+          messageData.encryptedContent,
+          messageData.senderPubKey,
+          messageData.recipientPubKey,
+          false,
+        );
+      }
 
       return { success: true };
     } catch (err) {
@@ -222,20 +231,13 @@ const pullMessage = os
   .handler(async ({ input }) => {
     const hash = hashToken(input.token);
 
-    // Atomic select + delete to prevent race condition
-    const delivery = await db.transaction(async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(pendingDeliveries)
-        .where(eq(pendingDeliveries.tokenHash, hash))
-        .limit(1)
-        .for("update");
-      if (!row) return null;
-      await tx
-        .delete(pendingDeliveries)
-        .where(eq(pendingDeliveries.id, row.id));
-      return row;
-    });
+    // Idempotent pull: return the delivery without deleting it.
+    // Expired deliveries are cleaned up lazily below.
+    const [delivery] = await db
+      .select()
+      .from(pendingDeliveries)
+      .where(eq(pendingDeliveries.tokenHash, hash))
+      .limit(1);
 
     if (!delivery) throw new Error("Not found");
 
