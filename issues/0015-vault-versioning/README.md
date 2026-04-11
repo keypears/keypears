@@ -136,3 +136,90 @@ Inline on the detail page — a collapsible "History" section below the fields.
 Shows a list of versions with version number and timestamp. Click a version to
 expand and view its fields (read-only). Each version has a delete button and a
 "Restore" button (creates a new version with the old data).
+
+## Experiments
+
+### Experiment 1: Schema and server changes
+
+#### Description
+
+Add `secretId` and `version` to the schema. Update all server functions and
+queries. No UI changes in this experiment — the UI continues to work as before,
+just backed by the new schema. The detail page still navigates by `id` (now
+the version ID). The vault list shows latest versions only.
+
+#### Schema
+
+Update `vault_entries` in `schema.ts`:
+
+```typescript
+secretId: binaryId("secret_id").notNull(),
+version: int("version").notNull(),
+// remove updatedAt
+```
+
+Add unique index on `(secretId, version)`.
+
+#### Server changes — `vault.server.ts`
+
+**`createVaultEntry`**: generate both `id` and `secretId`, set `version: 1`.
+Return `{ id, secretId }`.
+
+**`updateVaultEntry`** → rename to **`createNewVersion`**: takes `secretId`,
+looks up `MAX(version)`, creates a new row with `version: N+1` and a new `id`.
+Returns the new `id`. Does NOT modify the old row.
+
+**`getVaultEntries`**: replace simple query with subquery that fetches latest
+version per `secretId`:
+
+```typescript
+// Subquery: latest version ID per secret
+const latestVersions = db
+  .select({
+    secretId: vaultEntries.secretId,
+    maxVersion: max(vaultEntries.version).as("max_version"),
+  })
+  .from(vaultEntries)
+  .where(eq(vaultEntries.userId, userId))
+  .groupBy(vaultEntries.secretId)
+  .as("latest");
+
+// Join to get full rows for latest versions only
+db.select(...)
+  .from(vaultEntries)
+  .innerJoin(latestVersions, and(
+    eq(vaultEntries.secretId, latestVersions.secretId),
+    eq(vaultEntries.version, latestVersions.maxVersion),
+  ))
+  .where(...)
+```
+
+**`getVaultEntry`**: unchanged — fetches by `id` (version-specific).
+
+**`deleteVaultEntry`**: unchanged — deletes one row by `id`.
+
+**New: `deleteSecret(userId, secretId)`**: deletes ALL versions of a secret.
+
+**New: `getSecretHistory(userId, secretId)`**: returns all versions ordered by
+version desc.
+
+#### Server functions — `vault.functions.ts`
+
+**`updateEntry`** → calls `createNewVersion` instead of `updateVaultEntry`.
+Returns `{ id }` (the new version's ID).
+
+**`deleteEntry`**: unchanged — deletes one version by `id`.
+
+**New: `deleteSecret`**: deletes all versions by `secretId`.
+
+**New: `getHistory`**: returns all versions of a secret.
+
+#### Verification
+
+1. `bun run db:clear && bun run db:push` — schema updated
+2. Create a vault entry — has `secretId` and `version: 1`
+3. Edit the entry — new row with `version: 2`, old row untouched
+4. Vault list shows latest version only
+5. Delete the entry — deletes the specific version
+6. `bun run lint` — clean
+7. `bun run build` — passes
