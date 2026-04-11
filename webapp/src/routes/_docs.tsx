@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { getSessionUserId } from "~/server/session";
+import { getMyUser } from "~/server/user.functions";
 import { UserDropdown } from "~/components/UserDropdown";
 import { $icon } from "~/lib/icons";
 import {
@@ -18,22 +17,8 @@ import {
   X,
 } from "lucide-react";
 
-// Optional auth — returns user info if logged in, null if not
-const getDocsUser = createServerFn({ method: "GET" }).handler(async () => {
-  const { getUserById } = await import("~/server/user.server");
-  const userId = await getSessionUserId();
-  if (!userId) return null;
-  const user = await getUserById(userId);
-  if (!user) return null;
-  return {
-    name: user.name,
-    hasPassword: !!user.passwordHash,
-    domain: null as string | null, // would need domain lookup for full address
-  };
-});
-
 export const Route = createFileRoute("/_docs")({
-  loader: () => getDocsUser(),
+  loader: () => getMyUser(),
   component: DocsLayout,
 });
 
@@ -152,22 +137,36 @@ function DocsLayout() {
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3">
+        {/* Mobile header */}
+        <div className="bg-background border-border/30 flex items-center gap-3 border-b px-4 py-3 lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="text-muted-foreground hover:text-foreground lg:hidden"
+            className="text-muted-foreground hover:text-foreground"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-foreground text-sm font-medium lg:hidden">
+          <span className="text-foreground text-sm font-medium">
             Docs
           </span>
           <div className="flex-1" />
           {user?.name && (
-            <span className="text-muted-foreground text-sm">
-              {user.name}
-            </span>
+            <UserDropdown
+              userName={user.name}
+              domain={user.domain}
+              hasPassword={user.hasPassword}
+            />
+          )}
+        </div>
+
+        {/* Desktop top-right: address + user dropdown */}
+        <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
+          {user?.name && (
+            <Link
+              to={user.domain ? `/${user.name}@${user.domain}` : `/${user.name}`}
+              className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
+            >
+              {user.domain ? `${user.name}@${user.domain}` : user.name}
+            </Link>
           )}
           {user?.name && (
             <UserDropdown
