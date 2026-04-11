@@ -4,6 +4,7 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0013](0013-tanstack-router/README.md)            | TanStack Router Best Practices | 2026-04-11 |
 | [0012](0012-vault/README.md)                     | Vault — Password Manager       | 2026-04-11 |
 
 ## Closed
