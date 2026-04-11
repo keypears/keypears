@@ -4,12 +4,120 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 11 Apr 2026 23:17:59 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 11 Apr 2026 23:31:07 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2026 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[The KeyPears Rewrite]]></title>
+            <link>https://keypears.com/blog/2026-04-11-the-keypears-rewrite</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2026-04-11-the-keypears-rewrite</guid>
+            <pubDate>Sat, 11 Apr 2026 19:00:00 GMT</pubDate>
+            <description><![CDATA[<p>We rewrote KeyPears from scratch. The previous codebase — React Router,
+PostgreSQL, Tauri, Catppuccin theme — taught us what KeyPears needed to be. But
+the architecture couldn't get us where we nee...]]></description>
+            <content:encoded><![CDATA[<p>We rewrote KeyPears from scratch. The previous codebase — React Router,
+PostgreSQL, Tauri, Catppuccin theme — taught us what KeyPears needed to be. But
+the architecture couldn't get us where we needed to go. So we started over.</p>
+<p>Here's what changed and why.</p>
+<h2>Why we rewrote</h2>
+<p>The original KeyPears (which we now call "kp1") was a monorepo with six
+packages: a TypeScript library, an oRPC API client and server, a Tauri native
+app, and two web apps. It worked, but every feature required changes across
+multiple packages, and the Tauri native app added a Rust build step that slowed
+everything down.</p>
+<p>The rewrite collapses all of that into a single TanStack Start application.
+TanStack Start gives us server-side rendering and single-page app behavior in
+one framework — no separate API server, no separate client package, no Rust.
+Server functions replace the oRPC contract layer with direct database access
+behind type-safe RPC calls.</p>
+<p>We also switched from PostgreSQL to MySQL. The deployment target is PlanetScale,
+which runs Vitess — a horizontally sharded MySQL system designed for tables that
+grow without bound. Our PoW replay table, message history, and audit logs are
+exactly that kind of data.</p>
+<p>The Tauri native app is gone. The browser is the platform. WebGPU gives us GPU
+access for proof of work. The Web Crypto API and our WebAssembly libraries
+handle all cryptography. A native app may return someday, but the web app is
+the product.</p>
+<h2>What changed</h2>
+<h3>BLAKE3 everywhere</h3>
+<p>The kp1 codebase used SHA-256 for hashing and HMAC-SHA256 for message
+authentication. The rewrite uses BLAKE3 for everything:</p>
+<ul>
+<li><strong>Key derivation</strong>: Three-tier BLAKE3 PBKDF (100k rounds per tier, 300k total
+from password to stored hash)</li>
+<li><strong>Authenticated encryption</strong>: ACB3 (AES-256-CBC with BLAKE3-MAC) replaces ACS2
+(AES-256-CBC with HMAC-SHA256)</li>
+<li><strong>Challenge signing</strong>: PoW challenges are signed with BLAKE3-MAC</li>
+<li><strong>Session tokens</strong>: Hashed with BLAKE3</li>
+</ul>
+<p>BLAKE3 is faster than SHA-256 on modern hardware and has a cleaner API — keyed
+MAC mode is built in, no HMAC construction needed. Using one hash function
+everywhere simplifies the security analysis.</p>
+<h3>WebGPU proof of work</h3>
+<p>Every account creation, login, and message requires proof of work. The pow5-64b
+algorithm runs natively on the GPU via WebGPU — no WebAssembly, no CPU mining.
+On a modern laptop GPU, difficulty 70M takes about 1–2 seconds.</p>
+<p>Difficulty is not fixed by the protocol. Server operators set the difficulty for
+account creation and login. Individual users set the difficulty for incoming
+messages. Getting too much spam? Raise your difficulty. Under a brute-force
+attack? The operator raises login difficulty. The protocol provides the
+mechanism; operators and users choose the policy.</p>
+<h3>Pull-model federation</h3>
+<p>When Alice on <code>a.com</code> sends a message to Bob on <code>b.com</code>, the delivery works like
+this:</p>
+<ol>
+<li>Alice's server stores the ciphertext and creates a pull token</li>
+<li>Alice's server notifies Bob's server</li>
+<li>Bob's server independently resolves <code>a.com</code> via DNS/TLS</li>
+<li>Bob's server pulls the ciphertext using the token</li>
+</ol>
+<p>The pull happens synchronously — Alice gets immediate confirmation of delivery
+or an immediate error. No outbox queue, no silent retry, no delayed bounce
+notification days later.</p>
+<p>Domain verification comes from TLS, not server signing keys. Bob's server
+resolves Alice's domain itself and trusts the HTTPS response. No certificate
+authority, no key exchange between servers, no new trust infrastructure.</p>
+<h3>Vault versioning</h3>
+<p>Editing a vault entry now creates a new version instead of overwriting. Every
+version is immutable and browsable. Accidentally overwrite a password? The old
+value is still there.</p>
+<h3>Email-compatible addresses</h3>
+<p>KeyPears addresses are <code>name@domain</code> — intentionally identical to email
+addresses. The protocol places no restrictions on the local part beyond what
+email allows. If you have email addresses at your domain, those same addresses
+work with KeyPears. You can't do this with Matrix (<code>@user:domain</code>) or Signal
+(phone numbers).</p>
+<h2>The whitepaper</h2>
+<p>We've published a draft of the KeyPears whitepaper: "KeyPears: Federated Secret
+Exchange." It's 8 pages covering the protocol design, cryptographic
+construction, federation model, and security analysis — with empirically
+verified quantitative claims. This is a working draft and will evolve before the
+final release.</p>
+<p>The introduction frames KeyPears as what email would be if it were designed
+today: same <code>name@domain</code> addressing and DNS-based federation, but with
+Diffie-Hellman key exchange for end-to-end encryption and proof of work for spam
+mitigation. Both are mandatory from day one, not retrofitted onto a protocol
+that was never designed for them.</p>
+<p>Read it at <a href="https://keypears.com/keypears.pdf">keypears.com/keypears.pdf</a>.</p>
+<h2>Documentation and blog</h2>
+<p>Documentation lives at <a href="/docs">/docs</a>, fully integrated into the app. Protocol
+details, federation mechanics, self-hosting guide, security analysis — all
+accessible without logging in, using the same components and navigation as the
+rest of the application.</p>
+<p>The blog you're reading right now was imported from kp1 with all URLs preserved.
+Every old post is still accessible at its original address. RSS, Atom, and JSON
+feeds are generated at build time.</p>
+<h2>What's next</h2>
+<p>Launch. The protocol is designed. The whitepaper is published. The app works.
+The documentation is written. We're preparing for public launch of
+keypears.com.</p>
+<p>If you want to follow along, subscribe to the <a href="/blog/feed.xml">RSS feed</a> or
+check back here.</p>]]></content:encoded>
+            <author>Ryan X. Charles</author>
+        </item>
         <item>
             <title><![CDATA[Proving Who You Are: Sender Verification in Federated Messaging]]></title>
             <link>https://keypears.com/blog/2025-12-21-sender-verification</link>
@@ -230,7 +338,7 @@ KeyPears servers</li>
 <p>The pieces are coming together. Secure, federated messaging with cryptographic
 identity verification—no central authority required.</p>
 <p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[A Proof-of-Concept of a Diffie-Hellman-Based Messaging System for KeyPears]]></title>
@@ -391,7 +499,7 @@ can:</p>
 <p>The complete implementation is open source in our
 <a href="https://github.com/keypears/keypears">GitHub repository</a>.</p>
 <p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Why and How KeyPears Uses Proof-of-Work for Vault Registration]]></title>
@@ -674,7 +782,7 @@ attackers.</p>
 self-custody." Even the anti-spam mechanism preserves your privacy.</p>
 <p><em>Next up: the Diffie-Hellman key exchange protocol for cross-user secret
 sharing. Stay tuned!</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Server-Generated Public Keys: How KeyPears Keeps Private Keys Client-Side]]></title>
@@ -881,7 +989,7 @@ properties are exactly what we need for a federated Diffie-Hellman key exchange
 system.</p>
 <p><em>Next up: the full DH key exchange protocol for cross-user secret sharing. Stay
 tuned!</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Why We Switched from Blake3 to SHA-256]]></title>
@@ -1106,7 +1214,7 @@ When both options are secure, we chose the one that makes "Do you use
 industry-standard cryptography?" easy to answer.</p>
 <p>The migration is complete, all tests pass, and vaults sync correctly. We're back
 to building features.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[What We Found in Our Codebase Audit]]></title>
@@ -1250,7 +1358,7 @@ audits benefit from past discoveries.</p>
 <a href="https://github.com/keypears/keypears/blob/main/docs/audit.md">docs/audit.md</a>.
 It covers everything from TypeScript best practices to zero-knowledge
 architecture verification to UI accessibility checks.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Third-Party Hosting: Making KeyPears as Easy as Hosted Email]]></title>
@@ -1397,7 +1505,7 @@ available on <a href="https://github.com/keypears/keypears">GitHub</a>. We're bu
 public because we believe the best security software is software you can verify.</p>
 <p><em>Next up: Diffie-Hellman key exchange for cross-user secret sharing. Stay
 tuned!</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Building Secure Cross-Device Sync for a Decentralized Password Manager]]></title>
@@ -1600,7 +1708,7 @@ and privately. Whether you're using our hosted service or running your own
 server, your secrets stay yours.</p>
 <p><em>Next up: Implementing the Diffie-Hellman key exchange protocol for secure
 secret sharing between users. Stay tuned!</em></p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[TypeScript for the KeyPears MVP: Why We're Not Really Using Rust (Yet)]]></title>
@@ -2028,7 +2136,7 @@ interested in following along:</p>
 </ul>
 <p>More updates coming soon. Next post: Implementing the vault synchronization
 protocol.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Building KeyPears with Rust: Backend Architecture and Blake3 Proof-of-Concept]]></title>
@@ -2199,7 +2307,7 @@ protocol.</p>]]></content:encoded>
 <li><strong>Source code</strong>: Coming soon on GitHub</li>
 </ul>
 <p>We'll continue sharing our progress through these blog posts. Next up: vault encryption and key derivation in Rust.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Progress on Secret Synchronization: A Future-Proof Schema]]></title>
@@ -2507,7 +2615,7 @@ your devices without trusting a central authority with your encryption keys.</p>
 <p>The code is Apache 2.0 licensed and available on GitHub. We're building in the
 open, one commit at a time.</p>
 <p>More updates coming soon.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[How KeyPears Protects Your Vault: Encryption and Key Derivation]]></title>
@@ -2675,7 +2783,7 @@ efficient re-encryption without re-deriving keys.</p>
 <p>For now, the key takeaway is simple: KeyPears separates authentication from
 encryption. Your server can verify who you are without ever having the ability
 to decrypt your data. It's cryptography working exactly as it should.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Drizzle SQLite Database Migrations in Tauri 2.0]]></title>
@@ -3029,7 +3137,7 @@ compatibility and maintainability.</p>
 <li><a href="https://v2.tauri.app/plugin/sql/">Tauri SQL Plugin</a></li>
 <li><a href="https://v2.tauri.app/security/capabilities/">Tauri Capabilities</a></li>
 </ul>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
         <item>
             <title><![CDATA[Introducing KeyPears: A New Approach to Password Management]]></title>
@@ -3081,7 +3189,7 @@ licensed and open source.</p>
 <p>This is just the beginning. We're excited to build KeyPears with the community
 and create a new standard for secure, self-custodied secret management.</p>
 <p>Stay tuned for more updates as we continue development.</p>]]></content:encoded>
-            <author>KeyPears Team</author>
+            <author>Ryan X. Charles</author>
         </item>
     </channel>
 </rss>

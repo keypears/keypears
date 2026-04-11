@@ -6,6 +6,17 @@
     "description": "Updates and insights from the KeyPears team",
     "items": [
         {
+            "id": "https://keypears.com/blog/2026-04-11-the-keypears-rewrite",
+            "content_html": "<p>We rewrote KeyPears from scratch. The previous codebase — React Router,\nPostgreSQL, Tauri, Catppuccin theme — taught us what KeyPears needed to be. But\nthe architecture couldn't get us where we needed to go. So we started over.</p>\n<p>Here's what changed and why.</p>\n<h2>Why we rewrote</h2>\n<p>The original KeyPears (which we now call \"kp1\") was a monorepo with six\npackages: a TypeScript library, an oRPC API client and server, a Tauri native\napp, and two web apps. It worked, but every feature required changes across\nmultiple packages, and the Tauri native app added a Rust build step that slowed\neverything down.</p>\n<p>The rewrite collapses all of that into a single TanStack Start application.\nTanStack Start gives us server-side rendering and single-page app behavior in\none framework — no separate API server, no separate client package, no Rust.\nServer functions replace the oRPC contract layer with direct database access\nbehind type-safe RPC calls.</p>\n<p>We also switched from PostgreSQL to MySQL. The deployment target is PlanetScale,\nwhich runs Vitess — a horizontally sharded MySQL system designed for tables that\ngrow without bound. Our PoW replay table, message history, and audit logs are\nexactly that kind of data.</p>\n<p>The Tauri native app is gone. The browser is the platform. WebGPU gives us GPU\naccess for proof of work. The Web Crypto API and our WebAssembly libraries\nhandle all cryptography. A native app may return someday, but the web app is\nthe product.</p>\n<h2>What changed</h2>\n<h3>BLAKE3 everywhere</h3>\n<p>The kp1 codebase used SHA-256 for hashing and HMAC-SHA256 for message\nauthentication. The rewrite uses BLAKE3 for everything:</p>\n<ul>\n<li><strong>Key derivation</strong>: Three-tier BLAKE3 PBKDF (100k rounds per tier, 300k total\nfrom password to stored hash)</li>\n<li><strong>Authenticated encryption</strong>: ACB3 (AES-256-CBC with BLAKE3-MAC) replaces ACS2\n(AES-256-CBC with HMAC-SHA256)</li>\n<li><strong>Challenge signing</strong>: PoW challenges are signed with BLAKE3-MAC</li>\n<li><strong>Session tokens</strong>: Hashed with BLAKE3</li>\n</ul>\n<p>BLAKE3 is faster than SHA-256 on modern hardware and has a cleaner API — keyed\nMAC mode is built in, no HMAC construction needed. Using one hash function\neverywhere simplifies the security analysis.</p>\n<h3>WebGPU proof of work</h3>\n<p>Every account creation, login, and message requires proof of work. The pow5-64b\nalgorithm runs natively on the GPU via WebGPU — no WebAssembly, no CPU mining.\nOn a modern laptop GPU, difficulty 70M takes about 1–2 seconds.</p>\n<p>Difficulty is not fixed by the protocol. Server operators set the difficulty for\naccount creation and login. Individual users set the difficulty for incoming\nmessages. Getting too much spam? Raise your difficulty. Under a brute-force\nattack? The operator raises login difficulty. The protocol provides the\nmechanism; operators and users choose the policy.</p>\n<h3>Pull-model federation</h3>\n<p>When Alice on <code>a.com</code> sends a message to Bob on <code>b.com</code>, the delivery works like\nthis:</p>\n<ol>\n<li>Alice's server stores the ciphertext and creates a pull token</li>\n<li>Alice's server notifies Bob's server</li>\n<li>Bob's server independently resolves <code>a.com</code> via DNS/TLS</li>\n<li>Bob's server pulls the ciphertext using the token</li>\n</ol>\n<p>The pull happens synchronously — Alice gets immediate confirmation of delivery\nor an immediate error. No outbox queue, no silent retry, no delayed bounce\nnotification days later.</p>\n<p>Domain verification comes from TLS, not server signing keys. Bob's server\nresolves Alice's domain itself and trusts the HTTPS response. No certificate\nauthority, no key exchange between servers, no new trust infrastructure.</p>\n<h3>Vault versioning</h3>\n<p>Editing a vault entry now creates a new version instead of overwriting. Every\nversion is immutable and browsable. Accidentally overwrite a password? The old\nvalue is still there.</p>\n<h3>Email-compatible addresses</h3>\n<p>KeyPears addresses are <code>name@domain</code> — intentionally identical to email\naddresses. The protocol places no restrictions on the local part beyond what\nemail allows. If you have email addresses at your domain, those same addresses\nwork with KeyPears. You can't do this with Matrix (<code>@user:domain</code>) or Signal\n(phone numbers).</p>\n<h2>The whitepaper</h2>\n<p>We've published a draft of the KeyPears whitepaper: \"KeyPears: Federated Secret\nExchange.\" It's 8 pages covering the protocol design, cryptographic\nconstruction, federation model, and security analysis — with empirically\nverified quantitative claims. This is a working draft and will evolve before the\nfinal release.</p>\n<p>The introduction frames KeyPears as what email would be if it were designed\ntoday: same <code>name@domain</code> addressing and DNS-based federation, but with\nDiffie-Hellman key exchange for end-to-end encryption and proof of work for spam\nmitigation. Both are mandatory from day one, not retrofitted onto a protocol\nthat was never designed for them.</p>\n<p>Read it at <a href=\"https://keypears.com/keypears.pdf\">keypears.com/keypears.pdf</a>.</p>\n<h2>Documentation and blog</h2>\n<p>Documentation lives at <a href=\"/docs\">/docs</a>, fully integrated into the app. Protocol\ndetails, federation mechanics, self-hosting guide, security analysis — all\naccessible without logging in, using the same components and navigation as the\nrest of the application.</p>\n<p>The blog you're reading right now was imported from kp1 with all URLs preserved.\nEvery old post is still accessible at its original address. RSS, Atom, and JSON\nfeeds are generated at build time.</p>\n<h2>What's next</h2>\n<p>Launch. The protocol is designed. The whitepaper is published. The app works.\nThe documentation is written. We're preparing for public launch of\nkeypears.com.</p>\n<p>If you want to follow along, subscribe to the <a href=\"/blog/feed.xml\">RSS feed</a> or\ncheck back here.</p>",
+            "url": "https://keypears.com/blog/2026-04-11-the-keypears-rewrite",
+            "title": "The KeyPears Rewrite",
+            "summary": "<p>We rewrote KeyPears from scratch. The previous codebase — React Router,\nPostgreSQL, Tauri, Catppuccin theme — taught us what KeyPears needed to be. But\nthe architecture couldn't get us where we nee...",
+            "date_modified": "2026-04-11T19:00:00.000Z",
+            "author": {
+                "name": "Ryan X. Charles"
+            }
+        },
+        {
             "id": "https://keypears.com/blog/2025-12-21-sender-verification",
             "content_html": "<p>In our <a href=\"/blog/2025-12-20-dh-messaging-poc\">previous post</a>, we introduced\nKeyPears' DH-based messaging system—the foundation for secure password sharing\nbetween users. We showed how engagement keys, server-side derivation, and\nproof-of-work come together to enable private, spam-resistant messaging across\nfederated servers.</p>\n<p>But there was a security gap we didn't address: <strong>sender verification</strong>. When\nAlice requests Bob's engagement key, how does Bob's server know it's actually\nAlice asking? Today, we're announcing our solution: a three-layer verification\nsystem that proves sender identity without requiring a central authority.</p>\n<h2>The Problem: Identity in a Federated World</h2>\n<p>In a centralized messaging system, identity is simple. WhatsApp knows who you\nare because you signed up with your phone number. Signal has your registration.\nThe server is the authority.</p>\n<p>KeyPears is federated. Alice's server (<code>keypears.com</code>) and Bob's server\n(<code>example.com</code>) are completely separate—they don't share a database, they don't\nshare users, they might not even know each other exists. So when someone\ncontacts Bob's server claiming to be <code>alice@keypears.com</code>, how can Bob's server\nverify that claim?</p>\n<p>Without verification, an attacker could:</p>\n<ol>\n<li>Claim to be Alice when requesting Bob's engagement key</li>\n<li>Get Bob's server to create a key for \"Alice\" (actually the attacker)</li>\n<li>Intercept Bob's responses and read his encrypted messages</li>\n</ol>\n<p>This is classic impersonation. The attacker didn't break any cryptography—they\njust lied about who they were, and nobody checked.</p>\n<h2>Why Traditional Solutions Don't Fit</h2>\n<p><strong>Certificate Authorities?</strong> They require a centralized trust hierarchy. The\nwhole point of KeyPears is that you can run your own server without asking\npermission from anyone.</p>\n<p><strong>Web of Trust?</strong> Requires users to manually verify each other's keys. Great for\nPGP power users, terrible for a password manager that needs to just work.</p>\n<p><strong>Phone number verification?</strong> Ties identity to a phone carrier. Not\neveryone has a phone number, and phone numbers can be ported or SIM-swapped.</p>\n<p>What we need is something that:</p>\n<ul>\n<li>Works across any two servers without prior coordination</li>\n<li>Proves cryptographic ownership, not just claimed identity</li>\n<li>Doesn't require user interaction beyond normal messaging</li>\n<li>Can't be bypassed by network attackers</li>\n</ul>\n<h2>The Solution: Three Layers of Trust</h2>\n<p>Our sender verification uses three independent layers, each catching different\nattack types:</p>\n<pre><code>┌─────────────────────────────────────────────────────────────────┐\n│ Layer 1: Proof-of-Work                                          │\n│ → Prevents DoS attacks before any verification happens          │\n├─────────────────────────────────────────────────────────────────┤\n│ Layer 2: ECDSA Signature                                        │\n│ → Proves sender owns the private key for their claimed pubkey   │\n├─────────────────────────────────────────────────────────────────┤\n│ Layer 3: Cross-Domain Verification                              │\n│ → Confirms the pubkey actually belongs to the claimed address   │\n└─────────────────────────────────────────────────────────────────┘\n</code></pre>\n<p>Each layer is necessary. PoW alone doesn't prove identity. Signatures alone\ndon't prove address ownership. Cross-domain verification alone is vulnerable to\nDoS. Together, they create a verification system that's both secure and\npractical.</p>\n<h2>Layer 1: Proof-of-Work</h2>\n<p>Before any verification happens, the sender must solve a computational puzzle.\nThis isn't about identity—it's about preventing resource exhaustion.</p>\n<p>Without PoW, an attacker could spam Bob's server with millions of fake\nverification requests, forcing it to make millions of cross-domain calls. The\nserver would be so busy checking fake requests that legitimate users couldn't\nget through.</p>\n<p>PoW ensures every verification request costs real computational work. Attackers\ncan't flood the system without burning significant resources.</p>\n<p><strong>Implementation</strong>: Same PoW system as vault registration—configurable\ndifficulty at the system, vault, or channel level. Users you trust can have\nlower difficulty. Unknown senders face the full 4-million-hash default.</p>\n<h2>Layer 2: Signature Verification</h2>\n<p>After PoW, the sender provides a signature over the solved hash using their\nengagement private key. Bob's server verifies this signature against the\nsender's claimed public key.</p>\n<p>Why does this matter? Anyone can copy a public key. If Alice publishes her\nengagement pubkey somewhere, Mallory could claim to be Alice and provide Alice's\npubkey. Without signature verification, Bob's server would have no way to\nknow it wasn't actually Alice.</p>\n<p>The signature proves the sender possesses the private key corresponding to their\nclaimed public key. Only Alice has her private key, so only Alice can produce\nvalid signatures.</p>\n<p><strong>Implementation</strong>: Standard ECDSA signature over the 32-byte solved PoW hash.\nThe signature binds the identity claim to the PoW proof—you can't solve PoW as\nyourself and then claim to be someone else.</p>\n<h2>Layer 3: Cross-Domain Verification</h2>\n<p>Here's the key innovation. Even with a valid signature, we only know the sender\nowns <em>some</em> private key. We don't know if that key actually belongs to\n<code>alice@keypears.com</code>.</p>\n<p>So Bob's server asks Alice's server directly:</p>\n<pre><code>Bob's server → Alice's server:\n\"Does public key 02abc123... belong to alice@keypears.com?\"\n\nAlice's server → Bob's server:\n\"Yes\" or \"No\"\n</code></pre>\n<p>This is the cross-domain verification call. It works because:</p>\n<ol>\n<li>Alice's server is the authority for <code>@keypears.com</code> addresses</li>\n<li>Alice registered her engagement key with her own server</li>\n<li>Her server can confirm the key belongs to her vault</li>\n</ol>\n<p><strong>Critical detail</strong>: Only \"send\" purpose keys are verified. When Alice creates\nan engagement key for messaging Bob, it's marked with <code>purpose: \"send\"</code>. Keys\ncreated by recipients (when someone requests your key) are marked <code>purpose: \"receive\"</code>.</p>\n<p>Why does this matter? If an attacker requested Bob's key while claiming to be\nAlice, Bob's server would create a \"receive\" key for this fake-Alice. If\ncross-domain verification accepted receive keys, the attacker could point to\nthis key as \"proof\" of being Alice. By only accepting \"send\" keys (which the\nowner creates themselves), we ensure only Alice can prove she's Alice.</p>\n<h2>Channel Binding: Preventing Replay</h2>\n<p>After all three layers pass, Bob's server stores \"channel binding\" information\non the consumed PoW challenge:</p>\n<ul>\n<li>Sender address: <code>alice@keypears.com</code></li>\n<li>Recipient address: <code>bob@example.com</code></li>\n<li>Sender public key: <code>02abc123...</code></li>\n</ul>\n<p>When Alice later sends an actual message (using <code>sendMessage</code>), the server\nverifies these fields match. This prevents replay attacks—an attacker can't\ntake Alice's verified PoW proof and use it to send messages from a different\naddress or with a different key.</p>\n<h2>The Complete Verification Flow</h2>\n<p>Here's what happens when Alice messages Bob for the first time:</p>\n<pre><code>Alice                      Alice's Server    Bob's Server\n  │                              │                │\n  ├─ Create engagement key ──────→                │\n  │  (purpose: \"send\")           │                │\n  │                              │                │\n  ├─ Request PoW challenge ──────────────────────→\n  │                              │                │\n  ├─ Solve PoW                   │                │\n  │                              │                │\n  ├─ Sign solved hash            │                │\n  │                              │                │\n  ├─ Request Bob's key ──────────────────────────→\n  │  + PoW proof                 │                │\n  │  + signature                 │                │\n  │  + claim: \"I'm alice@...\"    │                │\n  │                              │                │\n  │                              │   ┌────────────┤\n  │                              │   │ 1. Verify PoW\n  │                              │   │ 2. Verify signature\n  │                              │   │ 3. Cross-domain:\n  │                              │   └────────────┤\n  │                              │                │\n  │                          ←───────────────────┤\n  │                   \"Does 02abc... belong       │\n  │                    to alice@keypears.com?\"   │\n  │                              │                │\n  │                              ├───────────────→\n  │                              │  \"Yes\"         │\n  │                              │                │\n  │                              │   ┌────────────┤\n  │                              │   │ Create key\n  │                              │   │ Store binding\n  │                              │   └────────────┤\n  │                              │                │\n  │←─────────────────────────────────────────────┤\n  │          Bob's engagement pubkey             │\n</code></pre>\n<p>If any layer fails—invalid PoW, bad signature, or failed cross-domain check—the\nrequest is rejected and no key is created.</p>\n<h2>Security Properties</h2>\n<p><strong>What the system provides:</strong></p>\n<ul>\n<li><strong>No impersonation</strong>: Attacker must produce valid signature with sender's\nprivate key</li>\n<li><strong>No spoofing</strong>: Cross-domain verification confirms key belongs to claimed\naddress</li>\n<li><strong>No DoS</strong>: PoW required before any verification work happens</li>\n<li><strong>No replay</strong>: Channel binding ties PoW to specific sender/recipient/pubkey</li>\n<li><strong>No storage exhaustion</strong>: Same sender+pubkey returns existing key\n(idempotent)</li>\n</ul>\n<p><strong>What the system does NOT provide:</strong></p>\n<ul>\n<li><strong>Forward secrecy per relationship</strong>: Same engagement keys can be reused\n(mitigated by using fresh keys for sensitive conversations)</li>\n<li><strong>Metadata hiding</strong>: Servers see who messages whom and when (encryption hides\ncontent, not metadata)</li>\n</ul>\n<h2>Implementation</h2>\n<p>The verification system required two new components:</p>\n<p><strong>New endpoint: <code>verifyEngagementKeyOwnership</code></strong></p>\n<p>A public endpoint that answers \"does this pubkey belong to this address?\" Returns\nonly a boolean—no information leakage about non-existent keys or vaults.</p>\n<p><strong>Modified: <code>getCounterpartyEngagementKey</code></strong></p>\n<p>Now performs all three verification layers before creating any keys. The flow\nis: verify PoW → verify signature → call sender's server → store channel binding\n→ create key.</p>\n<p>We also added 21 security tests covering:</p>\n<ul>\n<li>Valid/invalid signatures</li>\n<li>Cross-domain verification edge cases</li>\n<li>Channel binding validation</li>\n<li>PoW replay prevention</li>\n<li>Idempotent key creation</li>\n</ul>\n<p>All tests pass, and the full verification system is live in the latest\ndevelopment build.</p>\n<h2>What's Next</h2>\n<p>With sender verification complete, the messaging foundation is solid. Next up:</p>\n<ol>\n<li><strong>Encrypted payloads</strong>: Attach passwords and secrets to messages</li>\n<li><strong>Secret sharing UI</strong>: Share credentials with team members</li>\n<li><strong>Cross-domain integration tests</strong>: Verify everything works between different\nKeyPears servers</li>\n</ol>\n<p>The pieces are coming together. Secure, federated messaging with cryptographic\nidentity verification—no central authority required.</p>\n<p><em>KeyPears: Your secrets, everywhere, owned by you.</em></p>",
             "url": "https://keypears.com/blog/2025-12-21-sender-verification",
@@ -13,7 +24,7 @@
             "summary": "<p>In our <a href=\"/blog/2025-12-20-dh-messaging-poc\">previous post</a>, we introduced\nKeyPears' DH-based messaging system—the foundation for secure password sharing\nbetween users. We showed how engag...",
             "date_modified": "2025-12-21T18:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -24,7 +35,7 @@
             "summary": "<p>KeyPears is a password manager, but its true foundation is something more\nfundamental: a federated Diffie-Hellman key exchange protocol. Today, we're\nannouncing the completion of a proof-of-concept...",
             "date_modified": "2025-12-20T18:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -35,7 +46,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and\ncryptocurrency wallet. The design decisions described here represent our\ndevelopment approach and may evolve b...",
             "date_modified": "2025-12-14T12:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -46,7 +57,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and\ncryptocurrency wallet. The design decisions described here represent our\ndevelopment approach and may evolve b...",
             "date_modified": "2025-12-13T12:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -57,7 +68,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and\ncryptocurrency wallet. The design decisions described here represent our\ndevelopment approach and may evolve b...",
             "date_modified": "2025-12-09T12:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -68,7 +79,7 @@
             "summary": "<p>We recently paused feature development to audit our entire codebase. KeyPears\nshipped fast—cross-device sync, server authentication, encrypted secret\nstorage—and we wanted to make sure we hadn't ac...",
             "date_modified": "2025-12-06T18:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -79,7 +90,7 @@
             "summary": "<p>Imagine you own <code>example.com</code>. You run your own website there, but you don't run\nyour own email server—Gmail or Fastmail handles that for you. Your email address\nis still <code>you@examp...",
             "date_modified": "2025-12-01T18:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -90,7 +101,7 @@
             "summary": "<p>After weeks of intensive development, KeyPears now has a fully functional\ncross-device synchronization system. This wasn't just about making data appear\non multiple devices—it was about building a ...",
             "date_modified": "2025-12-01T00:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -101,7 +112,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and\ncryptocurrency wallet. The design decisions described here represent our\ndevelopment approach and may evolve b...",
             "date_modified": "2025-11-16T12:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -112,7 +123,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager and cryptocurrency wallet. The design decisions described here represent our development approach and may evolve b...",
             "date_modified": "2025-10-25T11:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -123,7 +134,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The\ndesign decisions described here represent our development approach and may\nevolve before our official release...",
             "date_modified": "2025-10-07T11:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -134,7 +145,7 @@
             "summary": "<p>One of the core security features of KeyPears is how we protect your vault\nencryption keys. Today, we're diving deep into our three-tier key derivation\nsystem and explaining how we ensure that even...",
             "date_modified": "2025-10-05T11:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -145,7 +156,7 @@
             "summary": "<p><strong>Note:</strong> KeyPears is a work-in-progress open-source password manager. The\nsolutions described here are part of our development process and may evolve\nbefore our official release.</p>\n...",
             "date_modified": "2025-10-04T11:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         },
         {
@@ -156,7 +167,7 @@
             "summary": "<p>We're excited to announce KeyPears, a new password manager designed for the\nmodern era of digital security and self-custody.</p>\n<h2>Why KeyPears?</h2>\n<p>Traditional password managers have served ...",
             "date_modified": "2025-10-03T11:00:00.000Z",
             "author": {
-                "name": "KeyPears Team"
+                "name": "Ryan X. Charles"
             }
         }
     ]
