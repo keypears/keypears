@@ -60,6 +60,7 @@ export const users = mysqlTable(
   (table) => [
     uniqueIndex("name_domain_idx").on(table.name, table.domainId),
     index("domain_id_idx").on(table.domainId),
+    index("users_expires_idx").on(table.expiresAt),
   ],
 );
 
@@ -93,6 +94,7 @@ export const channels = mysqlTable(
       table.ownerId,
       table.counterpartyAddress,
     ),
+    index("channels_owner_updated_idx").on(table.ownerId, table.updatedAt),
   ],
 );
 
@@ -143,7 +145,10 @@ export const messages = mysqlTable(
     isRead: boolean("is_read").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("channel_id_idx").on(table.channelId)],
+  (table) => [
+    index("channel_id_idx").on(table.channelId, table.id),
+    index("channel_read_idx").on(table.channelId, table.isRead),
+  ],
 );
 
 export const pendingDeliveries = mysqlTable(
@@ -159,7 +164,10 @@ export const pendingDeliveries = mysqlTable(
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("token_hash_idx").on(table.tokenHash)],
+  (table) => [
+    index("token_hash_idx").on(table.tokenHash),
+    index("delivery_expires_idx").on(table.expiresAt),
+  ],
 );
 
 export const sessions = mysqlTable(
@@ -170,16 +178,23 @@ export const sessions = mysqlTable(
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("session_user_id_idx").on(table.userId)],
+  (table) => [
+    index("session_user_id_idx").on(table.userId),
+    index("session_expires_idx").on(table.expiresAt),
+  ],
 );
 
-export const usedPow = mysqlTable("used_pow", {
-  solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
-  solvedHeader: text("solved_header").notNull(),
-  target: varchar("target", { length: 64 }).notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const usedPow = mysqlTable(
+  "used_pow",
+  {
+    solvedHeaderHash: varchar("solved_header_hash", { length: 64 }).primaryKey(),
+    solvedHeader: text("solved_header").notNull(),
+    target: varchar("target", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("pow_expires_idx").on(table.expiresAt)],
+);
 
 export const powLog = mysqlTable(
   "pow_log",
