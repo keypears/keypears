@@ -59,10 +59,7 @@ import {
 } from "lucide-react";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
-import { idParam } from "~/lib/route-params";
-
 export const Route = createFileRoute("/_app/_saved/vault/$id")({
-  params: idParam,
   head: ({ loaderData }) => ({
     meta: [
       {

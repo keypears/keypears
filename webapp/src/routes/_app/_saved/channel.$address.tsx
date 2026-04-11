@@ -37,10 +37,7 @@ import {
   X,
 } from "lucide-react";
 
-import { addressParam } from "~/lib/route-params";
-
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
-  params: addressParam,
   head: ({ loaderData }) => ({
     meta: [{ title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" }],
   }),

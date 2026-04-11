@@ -59,6 +59,7 @@ export function getRouter() {
     routeTree,
     defaultPreload: "intent",
     scrollRestoration: true,
+    pathParamsAllowedCharacters: ["@"],
     defaultErrorComponent: DefaultErrorComponent as typeof ErrorComponent,
     defaultPendingComponent: DefaultPendingComponent,
     defaultNotFoundComponent: DefaultNotFoundComponent,
