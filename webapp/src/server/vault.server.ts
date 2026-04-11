@@ -10,6 +10,8 @@ export async function createVaultEntry(
   searchTerms: string,
   publicKey: string,
   encryptedData: string,
+  sourceMessageId?: string,
+  sourceAddress?: string,
 ): Promise<string> {
   const id = newId();
   await db.insert(vaultEntries).values({
@@ -20,6 +22,8 @@ export async function createVaultEntry(
     searchTerms,
     publicKey,
     encryptedData,
+    sourceMessageId: sourceMessageId ?? null,
+    sourceAddress: sourceAddress ?? null,
   });
   return id;
 }

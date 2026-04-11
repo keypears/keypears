@@ -320,6 +320,8 @@ function EntryDetail({
     searchTerms: string;
     publicKey: string;
     encryptedData: string;
+    sourceMessageId: string | null;
+    sourceAddress: string | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -811,6 +813,18 @@ function EntryDetail({
               Updated {new Date(entry.updatedAt).toLocaleDateString()}
             </span>
           </div>
+          {entry.sourceAddress && (
+            <p className="text-muted-foreground mt-1 text-xs">
+              Received from{" "}
+              <Link
+                to="/channel/$address"
+                params={{ address: entry.sourceAddress }}
+                className="text-accent hover:text-accent/80 no-underline"
+              >
+                {entry.sourceAddress}
+              </Link>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

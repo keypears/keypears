@@ -200,7 +200,7 @@ export const getMessagesForChannel = createServerFn({ method: "GET" })
   .inputValidator(z.string())
   .handler(async ({ data: counterpartyAddress, context: { userId } }) => {
     const channel = await resolveChannel(userId, counterpartyAddress);
-    return getChannelMessages(channel.id);
+    return getChannelMessages(channel.id, userId);
   });
 
 export const getOlderMessages = createServerFn({ method: "GET" })
@@ -213,7 +213,7 @@ export const getOlderMessages = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context: { userId } }) => {
     const channel = await resolveChannel(userId, data.counterpartyAddress);
-    return getChannelMessages(channel.id, undefined, data.beforeId);
+    return getChannelMessages(channel.id, userId, undefined, data.beforeId);
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
@@ -226,7 +226,7 @@ export const pollNewMessages = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context: { userId } }) => {
     const channel = await resolveChannel(userId, data.counterpartyAddress);
-    return getNewMessages(channel.id, data.afterId);
+    return getNewMessages(channel.id, userId, data.afterId);
   });
 
 export const markChannelAsRead = createServerFn({ method: "POST" })

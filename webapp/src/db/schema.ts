@@ -108,6 +108,8 @@ export const vaultEntries = mysqlTable(
       .default(""),
     publicKey: varchar("public_key", { length: 66 }).notNull(),
     encryptedData: text("encrypted_data").notNull(),
+    sourceMessageId: varchar("source_message_id", { length: 36 }),
+    sourceAddress: varchar("source_address", { length: 255 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

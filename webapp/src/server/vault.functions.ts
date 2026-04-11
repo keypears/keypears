@@ -20,6 +20,8 @@ export const createEntry = createServerFn({ method: "POST" })
       searchTerms: z.string().max(255).default(""),
       publicKey: z.string().length(66),
       encryptedData: z.string().max(MAX_ENCRYPTED_DATA_LENGTH),
+      sourceMessageId: z.string().optional(),
+      sourceAddress: z.string().optional(),
     }),
   )
   .handler(async ({ data, context: { userId } }) => {
@@ -30,6 +32,8 @@ export const createEntry = createServerFn({ method: "POST" })
       data.searchTerms,
       data.publicKey,
       data.encryptedData,
+      data.sourceMessageId,
+      data.sourceAddress,
     );
     return { id };
   });

@@ -1,6 +1,6 @@
 import { db } from "~/db";
-import { channels, messages } from "~/db/schema";
-import { eq, desc, and, gt, lt, count } from "drizzle-orm";
+import { channels, messages, vaultEntries } from "~/db/schema";
+import { eq, desc, and, gt, lt, count, sql } from "drizzle-orm";
 import { newId } from "./utils";
 
 export async function getOrCreateChannel(
@@ -126,6 +126,7 @@ export async function getUserChannels(userId: string) {
 
 export async function getChannelMessages(
   channelId: string,
+  userId: string,
   limit = 20,
   beforeId?: string,
 ) {
@@ -134,8 +135,25 @@ export async function getChannelMessages(
     : eq(messages.channelId, channelId);
 
   const rows = await db
-    .select()
+    .select({
+      id: messages.id,
+      channelId: messages.channelId,
+      senderAddress: messages.senderAddress,
+      encryptedContent: messages.encryptedContent,
+      senderPubKey: messages.senderPubKey,
+      recipientPubKey: messages.recipientPubKey,
+      isRead: messages.isRead,
+      createdAt: messages.createdAt,
+      isSaved: sql<boolean>`(${vaultEntries.id} IS NOT NULL)`,
+    })
     .from(messages)
+    .leftJoin(
+      vaultEntries,
+      and(
+        eq(vaultEntries.sourceMessageId, messages.id),
+        eq(vaultEntries.userId, userId),
+      ),
+    )
     .where(conditions)
     .orderBy(desc(messages.id))
     .limit(limit);
@@ -143,10 +161,31 @@ export async function getChannelMessages(
   return rows.toReversed();
 }
 
-export async function getNewMessages(channelId: string, afterId: string) {
+export async function getNewMessages(
+  channelId: string,
+  userId: string,
+  afterId: string,
+) {
   return db
-    .select()
+    .select({
+      id: messages.id,
+      channelId: messages.channelId,
+      senderAddress: messages.senderAddress,
+      encryptedContent: messages.encryptedContent,
+      senderPubKey: messages.senderPubKey,
+      recipientPubKey: messages.recipientPubKey,
+      isRead: messages.isRead,
+      createdAt: messages.createdAt,
+      isSaved: sql<boolean>`(${vaultEntries.id} IS NOT NULL)`,
+    })
     .from(messages)
+    .leftJoin(
+      vaultEntries,
+      and(
+        eq(vaultEntries.sourceMessageId, messages.id),
+        eq(vaultEntries.userId, userId),
+      ),
+    )
     .where(and(eq(messages.channelId, channelId), gt(messages.id, afterId)))
     .orderBy(messages.createdAt);
 }

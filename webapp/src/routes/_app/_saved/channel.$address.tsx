@@ -242,11 +242,15 @@ function ChannelPage() {
     }
   }
 
-  async function handleSaveSecret(secret: {
-    name: string;
-    secretType: string;
-    fields: Record<string, unknown>;
-  }) {
+  async function handleSaveSecret(
+    secret: {
+      name: string;
+      secretType: string;
+      fields: Record<string, unknown>;
+    },
+    messageId: string,
+    senderAddress: string,
+  ) {
     const fields = secret.fields as Record<string, string>;
     if (!myKeyData || !encryptionKey) return;
     const myPrivKey = decryptPrivateKey(
@@ -265,8 +269,14 @@ function ChannelPage() {
         searchTerms: "",
         publicKey: myKeyData.publicKey,
         encryptedData,
+        sourceMessageId: messageId,
+        sourceAddress: senderAddress,
       },
     });
+    // Mark as saved locally
+    setMessageList((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, isSaved: true } : m)),
+    );
     navigate({
       to: "/vault/$id",
       params: { id: result.id },
@@ -518,9 +528,18 @@ function ChannelPage() {
                       {!isMine && (() => {
                         const sec = result.content.type === "secret" ? result.content.secret : null;
                         if (!sec) return null;
+                        if (msg.isSaved) {
+                          return (
+                            <p className="text-muted-foreground mt-2 text-xs">
+                              Saved
+                            </p>
+                          );
+                        }
                         return (
                           <button
-                            onClick={() => handleSaveSecret(sec)}
+                            onClick={() =>
+                              handleSaveSecret(sec, msg.id, msg.senderAddress)
+                            }
                             className="bg-accent text-accent-foreground hover:bg-accent/90 mt-2 inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs transition-all"
                           >
                             <LockIcon className="h-3 w-3" />
