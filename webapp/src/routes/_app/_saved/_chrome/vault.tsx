@@ -135,6 +135,7 @@ function VaultPage() {
         <input
           type="text"
           placeholder="Search vault..."
+          autoFocus
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           className="bg-background-dark border-border text-foreground w-full rounded border py-2 pr-4 pl-10 text-sm"

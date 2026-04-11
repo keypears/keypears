@@ -120,8 +120,9 @@ function VaultDetailPage() {
     return !keyMap.has(publicKey);
   }
 
-  // Entry list panel (shared between desktop and mobile drawer)
-  function EntryList({ onSelect }: { onSelect?: () => void }) {
+  // EntryList is rendered inline (not as a nested component) to avoid
+  // unmount/remount on parent re-render, which would lose search input focus.
+  function renderEntryList(onSelect?: () => void) {
     return (
       <div className="flex flex-col">
         <Link
@@ -186,7 +187,7 @@ function VaultDetailPage() {
         <div className="border-border/30 flex items-center gap-2 border-b px-4 py-3">
           <span className="text-foreground text-sm font-bold">Vault</span>
         </div>
-        <EntryList />
+        {renderEntryList()}
       </div>
 
       {/* Mobile drawer backdrop */}
@@ -214,7 +215,7 @@ function VaultDetailPage() {
           </button>
           <span className="text-foreground text-sm font-bold">Vault</span>
         </div>
-        <EntryList onSelect={() => setDrawerOpen(false)} />
+        {renderEntryList(() => setDrawerOpen(false))}
       </div>
 
       {/* Main detail area */}
