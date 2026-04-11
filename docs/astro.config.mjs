@@ -10,6 +10,9 @@ export default defineConfig({
         light: "./src/assets/logo-light.webp",
       },
       customCss: ["./src/styles/custom.css"],
+      components: {
+        Footer: "./src/components/Footer.astro",
+      },
       social: [
         {
           icon: "github",

@@ -1,0 +1,47 @@
+---
+import type { Props } from "@astrojs/starlight/props";
+---
+
+<footer class="sl-flex">
+  <a href="https://astrohacker.com" class="footer-link">
+    <picture>
+      <source
+        srcset="/images/astrohacker-6-dark-32.webp"
+        media="(prefers-color-scheme: dark)"
+      />
+      <img
+        src="/images/astrohacker-6-light-32.webp"
+        alt="Astrohacker logo"
+        width="20"
+        height="20"
+      />
+    </picture>
+    An Astrohacker Project
+  </a>
+</footer>
+
+<style>
+  footer {
+    justify-content: center;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--sl-color-hairline-light);
+  }
+
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-size: var(--sl-text-xs);
+    line-height: 1;
+  }
+
+  .footer-link img {
+    display: block;
+  }
+
+  .footer-link:hover {
+    color: var(--sl-color-accent);
+  }
+</style>
