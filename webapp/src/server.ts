@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { RPCHandler } from "@orpc/server/fetch";
 import { apiRouter } from "./server/api.router";
-import { getApiDomain } from "./lib/config";
+import { getApiDomain, getAdminAddress } from "./lib/config";
 
 const handler = createStartHandler(defaultStreamHandler);
 const rpcHandler = new RPCHandler(apiRouter);
@@ -52,9 +52,16 @@ export default {
       });
     }
 
-    // Serve .well-known/keypears.json
+    // Serve .well-known/keypears.json. The `admin` field is only
+    // included when the KEYPEARS_ADMIN env var is set — without it
+    // the primary domain is not automatically claimable, eliminating
+    // the race where anyone could sign up as a default admin name
+    // on a freshly deployed server.
     if (url.pathname === "/.well-known/keypears.json") {
-      return addSecurityHeaders(Response.json({ apiDomain: getApiDomain() }));
+      const json: Record<string, string> = { apiDomain: getApiDomain() };
+      const admin = getAdminAddress();
+      if (admin) json.admin = admin;
+      return addSecurityHeaders(Response.json(json));
     }
 
     // Handle /api/* via oRPC

@@ -24,6 +24,17 @@ export function getApiDomain(): string {
   return d;
 }
 
+/** Optional admin address advertised in /.well-known/keypears.json.
+ *  When set, this address is eligible to claim the server's primary
+ *  domain via `claimDomainFn` (which requires the keypears.json
+ *  `admin` field to match the caller's address). When unset, the
+ *  json omits the admin field entirely and the primary domain is
+ *  not automatically claimable. The value can be any KeyPears
+ *  address, including a federated one on a different domain. */
+export function getAdminAddress(): string | null {
+  return process.env.KEYPEARS_ADMIN ?? null;
+}
+
 /** Build the API URL from a domain. Always https://{domain}/api. */
 export function apiUrlFromDomain(domain: string): string {
   return `https://${domain}/api`;
