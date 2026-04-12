@@ -204,3 +204,13 @@ These are historical records and should not be updated.
 - `db:clear` + `db:push` — fresh DB
 - Manual smoke test: create account, save password, send message, create vault
   entry, rotate key, re-encrypt locked key, change password
+
+### Result — Pass
+
+All substitutions applied cleanly. 19 files changed (13 source + package.json +
+bun.lock + CLAUDE.md + build artifacts), `lib/kdf.ts` deleted. Build, tests
+(7/7), and lint all pass. The custom BLAKE3 iteration loop is replaced by
+standard PBKDF2 (RFC 8018). Also required passing `.buf` on `FixedBuf` arguments
+to `sha256Hmac()` since it takes `WebBuf` keys (unlike `blake3Mac` which accepted
+`FixedBuf<32>` directly). The `api.router.ts` dynamic imports of `@webbuf/secp256k1`
+and `@webbuf/blake3` were updated to `@webbuf/p256` and `@webbuf/sha256`.
