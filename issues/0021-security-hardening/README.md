@@ -451,3 +451,40 @@ dev-mode eval — fixed by adding `'wasm-unsafe-eval'` and gating `'unsafe-eval'
 on `NODE_ENV`. Used `Content-Security-Policy-Report-Only` during debugging to
 identify violations without blocking. Final enforcing CSP works with no console
 errors.
+
+## Experiment 8 — Evaluate M4: encryption key cached indefinitely
+
+The encryption key is cached in localStorage with no expiry or idle timeout.
+The audit flagged this as a risk: XSS could exfiltrate it.
+
+### Analysis
+
+**There is no viable alternative in a browser.** The encryption key must be
+available to JavaScript for decryption. Every proposed mitigation fails:
+
+- **sessionStorage:** Equally readable by XSS. Clears on tab close, which
+  ruins UX (user re-enters password every time they reopen the app). Does not
+  improve security — XSS exfiltrates the key in the first millisecond.
+- **Idle timeout:** Same problem. XSS does not wait for a timeout. And the user
+  gets logged out while reading a conversation.
+- **Web Crypto non-extractable keys:** Cannot be used with webbuf's WASM
+  implementations. The key derivation happens in WASM and must produce raw bytes,
+  which XSS can intercept at that point regardless.
+
+**The real mitigation is CSP.** The Content-Security-Policy header added in
+experiment 7 restricts what scripts can execute in the browser, reducing the XSS
+attack surface. This is the correct layer to address the threat — preventing
+XSS from running in the first place, rather than trying to hide secrets from
+JavaScript that is already executing in the same origin.
+
+**Hardware-backed key storage (WebAuthn/FIDO2)** could protect authentication
+but does not help with encryption keys — the browser still needs the raw key
+to decrypt data.
+
+This is an inherent tradeoff of browser-based E2E encryption, shared by all
+apps in this category (Signal Web, ProtonMail, Bitwarden, etc.).
+
+### Result — Pass (no change needed)
+
+M4 is an inherent limitation of browser-based E2E encryption, not a fixable
+vulnerability. CSP (experiment 7) is the appropriate mitigation.
