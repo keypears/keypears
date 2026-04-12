@@ -116,12 +116,18 @@ resource "aws_ecs_service" "webapp" {
     container_port   = var.app_port
   }
 
-  # No `ignore_changes = [desired_count]` here on purpose: there is no
-  # autoscaler attached to this service, so nothing outside Terraform is
-  # ever supposed to touch desired_count. Scaling is a code change, just
-  # like any other infra knob — bump var.desired_count and apply. If we
-  # ever attach an autoscaling target, this lifecycle block needs to come
-  # back to stop Terraform from fighting the autoscaler on every plan.
+  # Terraform owns the *shape* of the service (cluster, network, LB
+  # attachment, deploy strategy) but not which task definition revision
+  # the service is currently running. That's the job of `infra/deploy.sh`,
+  # which builds a new image, registers a new task definition revision
+  # pinned to the new image's content digest, and updates the service to
+  # point at it. We `ignore_changes` on `task_definition` so Terraform
+  # doesn't try to revert the deploy script's revision pointer on every
+  # plan. We do NOT `ignore_changes` on `desired_count` — there is no
+  # autoscaler attached, so scale is a Terraform-managed knob.
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 
   depends_on = [
     aws_lb_listener.https,

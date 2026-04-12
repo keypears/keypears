@@ -119,54 +119,57 @@ Out-of-band setup that Terraform does **not** manage:
 
 ## Routine deployment (rolling a new container image)
 
-Every deploy overwrites the `:latest` tag in ECR. The Terraform task
-definition pins to the **content digest** of `:latest` (read at plan time
-via the `aws_ecr_image` data source), not to the tag string itself, so
-each push produces a fresh task definition revision pinned to a fresh
-immutable digest. That's what makes ECS deployment circuit-breaker
-rollback work properly: a failed deploy rolls back to the previous task
-definition revision, which still references the previous digest, which
-still resolves to a real image in ECR.
-
-You only ever interact with `:latest`. You don't pick versions, bump tags
-in tfvars, or look anything up.
-
-### 1. Build for arm64 from the repo root
-
 ```bash
-docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:latest .
+./infra/deploy.sh
 ```
 
-### 2. Log in to ECR and push
+That's the whole thing. Run from the repo root. Terraform is not in the
+loop.
+
+The script (see `infra/deploy.sh`):
+
+1. Builds the image for `linux/arm64`
+2. Logs in to ECR and pushes `:latest` (overwriting the tag)
+3. Reads the digest of the just-pushed `:latest` from ECR
+4. Reads the latest task-definition revision in the family — that's the
+   *template* that Terraform manages, carrying the current shape (CPU,
+   memory, env vars, secrets, IAM, log group)
+5. Mutates the template's `containerDefinitions[0].image` to the digest
+   reference (`...keypears@sha256:...`), strips the read-only fields, and
+   `aws ecs register-task-definition`s it as a new revision
+6. `aws ecs update-service` points the service at the new revision
+7. `aws ecs wait services-stable` blocks until the rollout finishes
+
+Each new revision is pinned to a unique content digest, so the ECS
+deployment circuit breaker has a real previous revision to roll back to
+on failure: the previous revision references the previous digest, which
+still resolves to a real image even though the `:latest` tag has moved
+on.
+
+### Re-rolling without a rebuild
+
+After a Terraform-managed *shape* change (CPU, memory, env vars, IAM),
+Terraform creates a new task-definition revision with the new shape,
+but the service doesn't follow it on its own — `aws_ecs_service.webapp`
+has `lifecycle { ignore_changes = [task_definition] }` so the deploy
+script remains the only thing that updates which revision is live. To
+propagate the shape change without rebuilding the image:
 
 ```bash
-aws ecr get-login-password --region us-east-1 \
-  | docker login --username AWS --password-stdin \
-    299190761597.dkr.ecr.us-east-1.amazonaws.com
-docker tag keypears:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
-docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
+./infra/deploy.sh --no-build
 ```
 
-### 3. Apply
-
-```bash
-cd infra/terraform
-terraform apply
-```
-
-Terraform reads the new digest of `:latest`, creates a new task definition
-revision pinned to that digest, and updates the ECS service. The service
-rolls forward (deployment circuit breaker enabled, max 200%, min 100%
-healthy). If any new task fails its health check, the circuit breaker
-rolls back to the previous task definition revision, which still
-references the previous digest.
+That skips the build/push and goes straight to step 3 above, picking up
+whatever Terraform-produced revision is now latest in the family.
 
 ### Manual rollback
 
 If you need to roll back to a known-good earlier image, retag `:latest`
-in ECR to point at the previous digest, then re-apply Terraform. You can
-get the digest of the previous image from the ECS service event history,
-from CloudTrail, or from the ECR image list:
+in ECR to point at the previous digest, then re-roll with `--no-build`.
+The script will pick up the now-restored `:latest` digest and register a
+new revision pointing at the older image.
+
+List what's still in ECR, newest first:
 
 ```bash
 aws ecr describe-images --repository-name keypears --region us-east-1 \
@@ -174,7 +177,7 @@ aws ecr describe-images --repository-name keypears --region us-east-1 \
   --output table
 ```
 
-Re-tag in place (no rebuild):
+Retag in place (no rebuild) and re-roll:
 
 ```bash
 DIGEST=sha256:abc123…   # the digest you want to roll back to
@@ -183,14 +186,14 @@ MANIFEST=$(aws ecr batch-get-image --repository-name keypears \
   --query 'images[0].imageManifest' --output text)
 aws ecr put-image --repository-name keypears --image-tag latest \
   --image-manifest "$MANIFEST" --region us-east-1
-cd infra/terraform && terraform apply
+./infra/deploy.sh --no-build
 ```
 
-To check what digest is currently live:
+Check what digest is currently live:
 
 ```bash
 aws ecs describe-task-definition --task-definition keypears-webapp \
-  --region us-east-1 --query 'taskDefinition.containerDefinitions[0].image' \
+  --region us-east-1 --query 'taskDefinition.[revision,containerDefinitions[0].image]' \
   --output text
 ```
 
@@ -240,12 +243,6 @@ These steps were run once when the stack was created. They're documented here
 for disaster recovery only — there's no reason to re-run them in normal
 operation.
 
-There's a chicken-and-egg in this stack: the `aws_ecr_image` data source
-in `locals.tf` needs an image with the configured `image_tag` (default
-`latest`) to exist in ECR before any plan can succeed, but the ECR repo
-is created by Terraform. The fix is a two-phase first apply: create just
-the ECR repo, push an image, then apply the rest.
-
 ```bash
 # 1. State backend (S3 bucket + DynamoDB lock table)
 aws s3api create-bucket --bucket keypears-terraform-state --region us-east-1
@@ -267,7 +264,8 @@ cd infra/terraform
 terraform init
 terraform apply -target=aws_ecr_repository.webapp
 
-# 3. First image build + push (must exist before phase-2 apply)
+# 3. First image build + push (must exist before phase-2 apply, because
+# the task-definition template references `:latest`)
 cd ../..
 docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:latest .
 aws ecr get-login-password --region us-east-1 \
@@ -279,15 +277,19 @@ docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
 # 4. Phase-2 Terraform: full apply (with create_cutover_dns = false)
 cd infra/terraform
 terraform apply
-aws ecs wait services-stable --cluster keypears-prod --services keypears-webapp \
-  --region us-east-1
 
-# 5. Validate the new ALB directly, then flip cutover DNS
+# 5. First real deploy via the deploy script — registers a digest-pinned
+# task definition revision and rolls the service onto it
+cd ..
+./deploy.sh --no-build
+
+# 6. Validate the new ALB directly, then flip cutover DNS
+cd terraform
 curl -k -H "Host: keypears.com" \
   https://$(terraform output -raw alb_dns_name)/health
 # Expect: ok
 
-# 6. Flip create_cutover_dns = true in terraform.tfvars, apply
+# 7. Flip create_cutover_dns = true in terraform.tfvars, apply
 terraform apply
 ```
 
