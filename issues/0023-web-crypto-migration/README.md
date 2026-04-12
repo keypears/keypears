@@ -126,3 +126,122 @@ This is a three-phase investigation:
   only the internals change.
 - Any change to the cryptographic behavior. Output bytes must be bit-for-bit
   identical to the current implementation.
+
+## Experiment 1 — Benchmark webbuf vs Web Crypto
+
+Build two benchmark harnesses — one for Bun (server-side) and one for the
+browser — that measure every primitive head-to-head. Hand the results to a human
+to run, collect numbers, then decide per-primitive whether to migrate.
+
+### Location
+
+Create a new workspace package:
+
+```
+packages/crypto-bench/
+  package.json
+  tsconfig.json
+  index.html              # browser harness
+  src/
+    cases.ts              # shared case definitions (imports & inputs)
+    bench-util.ts         # timing helper (warmup + N iterations)
+    bench-node.ts         # Bun-side entry point
+    bench-browser.ts      # browser entry point, mounted by index.html
+```
+
+This mirrors the existing `packages/whitepaper-bench` package — same layout
+(`index.html` + vite for browser, `bun src/*.ts` for Bun), same scripts pattern,
+same dependency style.
+
+### Cases to benchmark
+
+Each case compares `@webbuf/*` (WASM) against `crypto.subtle` (native, available
+in both Bun and the browser with the same API).
+
+| Case                | Operation                                        | Input size                                  | Why it matters                                          |
+| ------------------- | ------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------- |
+| `pbkdf2-300k`       | PBKDF2-HMAC-SHA-256, 300K rounds, 32-byte output | 32-byte password                            | Client KDF tier — once per login/save                   |
+| `pbkdf2-600k`       | PBKDF2-HMAC-SHA-256, 600K rounds, 32-byte output | 32-byte password                            | Server KDF tier — once per login verification           |
+| `sha256-32`         | SHA-256                                          | 32 bytes                                    | Hot path: message key derivation, session token hashing |
+| `hmac-sha256-32`    | HMAC-SHA-256                                     | 32-byte key, 32-byte message                | Vault key, PoW challenge signing                        |
+| `aesgcm-1kb`        | AES-256-GCM encrypt + decrypt round-trip         | 1 KB plaintext                              | Typical message / vault entry size                      |
+| `p256-ecdh`         | P-256 ECDH shared secret derivation              | 32-byte privkey, 33-byte pubkey             | Every message encrypt/decrypt                           |
+| `p256-ecdsa-sign`   | P-256 ECDSA sign                                 | 32-byte digest                              | PoW challenge request signing                           |
+| `p256-ecdsa-verify` | P-256 ECDSA verify                               | 64-byte sig, 32-byte digest, 33-byte pubkey | PoW challenge request verification                      |
+
+### Benchmark protocol
+
+For each case, both implementations:
+
+1. **Warmup.** Run the operation 3 times, discard results. Primes JIT caches and
+   WASM instantiation.
+2. **Measure.** Run a fixed number of iterations appropriate to the cost of the
+   operation:
+   - PBKDF2-300K: **5 iterations** (each takes tens of ms, 5 is enough for
+     stable averages)
+   - PBKDF2-600K: **3 iterations**
+   - SHA-256, HMAC, ECDH, ECDSA: **10,000 iterations**
+   - AES-GCM 1KB: **10,000 iterations** (includes encrypt + decrypt)
+3. **Report.** Print: total time, operations/sec, time per operation in ms (or
+   µs where appropriate), and the ratio of native to webbuf.
+
+### Shared timing helper
+
+`bench-util.ts` exports a single function used by both entry points:
+
+```typescript
+export async function bench(
+  name: string,
+  iterations: number,
+  fn: () => void | Promise<void>,
+): Promise<{ name: string; iterations: number; totalMs: number; perOpMs: number; opsPerSec: number }>;
+```
+
+It handles warmup (3 untimed calls), awaits if the fn returns a promise, uses
+`performance.now()` for timing, and returns the stats object. The two entry
+points format the output the same way so results can be compared side by side.
+
+### Main-thread blocking check (browser only)
+
+Web Crypto's main selling point for PBKDF2 isn't just speed — it's that
+`deriveBits` runs off the main thread in modern browsers, so the UI doesn't
+freeze during a long derivation. The browser harness should include a visible
+test for this: a spinning CSS animation (or a requestAnimationFrame loop
+incrementing a counter) running while each PBKDF2 benchmark runs. If the
+animation stutters during the webbuf run and stays smooth during the Web Crypto
+run, that confirms native is off-thread.
+
+### What the human runs
+
+Two commands, both from `packages/crypto-bench/`:
+
+```bash
+bun src/bench-node.ts              # server-side (Bun + crypto.subtle)
+bun run dev                        # browser-side (opens index.html in vite)
+```
+
+Each emits a table like:
+
+```
+Case              webbuf (ms/op)    webCrypto (ms/op)   speedup
+pbkdf2-300k       66.2              8.3                 8.0x
+pbkdf2-600k       132.5             16.1                8.2x
+sha256-32         0.0020            0.0012              1.7x
+...
+```
+
+### Deliverables
+
+1. `packages/crypto-bench/` built out with the two harnesses.
+2. A human-readable results table pasted into this issue's next experiment
+   ("Experiment 2: Benchmark results").
+3. A decision per primitive: migrate to Web Crypto, or keep on webbuf, with
+   rationale.
+
+### Non-goals for this experiment
+
+- Not implementing any migration yet. This experiment only produces numbers and
+  a decision — the actual code changes come in a later experiment.
+- Not benchmarking browser-only or node-only APIs beyond the eight cases above.
+  We want to know about the primitives we actually use, not build a
+  general-purpose crypto benchmark.
