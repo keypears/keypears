@@ -806,3 +806,348 @@ pair generation) to Web Crypto. This requires solving the compressed↔
 uncompressed public key conversion, the private key import format (PKCS8 or
 JWK), and the ECDSA raw-digest protocol change described in the "known
 complications" section above.
+
+## Experiment 3 — Migrate P-256 to Web Crypto
+
+Migrate the three hot-path P-256 operations — ECDH shared-secret derivation,
+ECDSA signing, and ECDSA verification — from `@webbuf/p256` (WASM) to the
+browser's Web Crypto API (`crypto.subtle`). Keep `@webbuf/p256` for key pair
+generation (rare, one-shot) and for the new format-conversion helpers that
+make the migration practical.
+
+### Expected wins (from experiment 1)
+
+| Operation | webbuf | Web Crypto | Speedup |
+|---|---|---|---|
+| ECDH (Chrome) | 287 µs | 44 µs | 6.5x |
+| ECDSA sign (Chrome) | 311 µs | 27 µs | 11.7x |
+| ECDSA verify (Chrome) | 588 µs | 55 µs | 10.7x |
+
+On channel load with 50 messages, the old ECDH cost (~14 ms blocking) drops
+to ~2.2 ms. On every message send, the old sign+ECDH cost (~600 µs) drops
+to ~70 µs. Federation verify goes from ~590 µs to ~55 µs per incoming PoW
+request. None of these are UI-blocking on their own, but in aggregate the
+channel page will feel noticeably snappier.
+
+### Format conversion is now easy
+
+Experiment 3 was blocked on the "Web Crypto wants JWK/PKCS8 but we have
+compressed 33-byte public keys and raw 32-byte private scalars" problem.
+That's solved: `@webbuf/p256` now exposes
+`p256PublicKeyToJwk(compressed)` and `p256PrivateKeyToJwk(raw)`. Each is
+one call, zero curve math in app code, and the private key helper
+internally derives the associated public key (which Web Crypto requires
+alongside `d` but which we never store separately). For the reverse
+direction, `p256PublicKeyFromJwk({ x, y })` collapses a Web Crypto-exported
+JWK back to our 33-byte storage format.
+
+### The ECDSA raw-digest protocol change
+
+Webbuf's `p256Sign(digest, priv, k)` takes a pre-computed 32-byte digest and
+signs it directly. Web Crypto's `crypto.subtle.sign({name: "ECDSA", hash:
+"SHA-256"}, ...)` takes a *message* and hashes it internally with SHA-256
+before signing. If we naively passed our existing pre-computed digest as
+the "message," Web Crypto would SHA-256 it again, producing a different
+signature that our own verification would also compute differently — they'd
+just agree on a different set of wrong bytes.
+
+The correct fix is to **change the protocol** so both sides pass the raw
+bytes and let Web Crypto handle hashing:
+
+**Current protocol** (`signPowRequest` + federation verify):
+```
+client:  sha256Hash("sender:recipient:timestamp")  →  p256Sign(digest, priv, k)
+server:  sha256Hash("sender:recipient:timestamp")  →  p256Verify(sig, digest, pub)
+```
+
+**New protocol:**
+```
+client:  crypto.subtle.sign({name: "ECDSA", hash: "SHA-256"}, privKey,
+           UTF8("sender:recipient:timestamp"))
+server:  crypto.subtle.verify({name: "ECDSA", hash: "SHA-256"}, pubKey, sig,
+           UTF8("sender:recipient:timestamp"))
+```
+
+The change is coordinated: client and server swap together. Old signatures
+become invalid. No production users, no in-flight PoW challenges to worry
+about.
+
+**Signature format is compatible.** Webbuf's `p256Sign` and Web Crypto's
+ECDSA both return 64-byte P1363 fixed-length `r || s` signatures. No
+encoding conversion at the signature boundary.
+
+### The ECDH output-format change
+
+Webbuf's `p256SharedSecret(priv, pub)` returns a 33-byte compressed point
+(the full SEC1 encoding of `d * P`). Web Crypto's ECDH `deriveBits` returns
+just the 32-byte raw X coordinate of the shared point. The two are
+different byte sequences, so SHA-256-hashing them produces different
+message keys.
+
+This is another coordinated protocol change: both sender and receiver
+switch to Web Crypto ECDH at the same time, and the `computeMessageKey`
+derivation becomes `SHA-256(rawX)` instead of `SHA-256(compressedPoint)`.
+Old messages encrypted under the previous protocol become undecryptable.
+Pre-launch, no data loss.
+
+The derivation still uses our existing webbuf `sha256Hash` helper since
+SHA-256 is faster on webbuf than on Web Crypto for 32-byte inputs (per
+experiment 1).
+
+### Scope
+
+**Migrated to Web Crypto:**
+- `lib/auth.ts:signPowRequest` — ECDSA sign, becomes async
+- `lib/message.ts:computeMessageKey` — ECDH, becomes async
+- `server/api.router.ts` federation PoW verify — ECDSA verify, already in an
+  async context (already uses dynamic imports)
+
+**Stays on webbuf:**
+- `lib/auth.ts:generateAndEncryptKeyPairFromEncryptionKey` — still calls
+  `p256PublicKeyCreate`. Key generation is one-shot and rare; no benchmark
+  showed it's a problem; keeping it on webbuf avoids needing the "export
+  Web Crypto key to compressed format" path.
+- The new format helpers (`p256PublicKeyToJwk`, `p256PrivateKeyToJwk`,
+  `p256PublicKeyFromJwk`) — these are cheap sync operations and are exactly
+  the glue that makes the migration work.
+
+### Files changed
+
+**1. `lib/auth.ts`** — `signPowRequest` becomes async:
+
+```typescript
+export async function signPowRequest(
+  senderAddress: string,
+  recipientAddress: string,
+  privateKey: FixedBuf<32>,
+): Promise<{ signature: string; timestamp: number }> {
+  const timestamp = Date.now();
+  const message = new TextEncoder().encode(
+    `${senderAddress}:${recipientAddress}:${timestamp}`,
+  );
+  const jwk = p256PrivateKeyToJwk(privateKey);
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    message,
+  );
+  return {
+    signature: WebBuf.fromUint8Array(new Uint8Array(sig)).toHex(),
+    timestamp,
+  };
+}
+```
+
+Remove the webbuf imports of `p256Sign` and `sha256Hash` from this file
+(the latter only if no other function in the file uses it — `derivePasswordSalt`
+still does, so keep `sha256Hash`).
+
+**2. `lib/message.ts`** — `computeMessageKey` becomes async:
+
+```typescript
+export async function computeMessageKey(
+  myPrivKey: FixedBuf<32>,
+  theirPubKey: FixedBuf<33>,
+): Promise<FixedBuf<32>> {
+  const privJwk = p256PrivateKeyToJwk(myPrivKey);
+  const pubJwk = p256PublicKeyToJwk(theirPubKey);
+  const [priv, pub] = await Promise.all([
+    crypto.subtle.importKey(
+      "jwk",
+      privJwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      false,
+      ["deriveBits"],
+    ),
+    crypto.subtle.importKey(
+      "jwk",
+      pubJwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      false,
+      [],
+    ),
+  ]);
+  const raw = await crypto.subtle.deriveBits(
+    { name: "ECDH", public: pub },
+    priv,
+    256,
+  );
+  return sha256Hash(WebBuf.fromUint8Array(new Uint8Array(raw)));
+}
+```
+
+Remove the `p256SharedSecret` import. Keep `sha256Hash` from `@webbuf/sha256`.
+
+Callers of `computeMessageKey` inside `lib/message.ts` (all four of
+`encryptMessage`, `encryptSecretMessage`, `decryptMessageContent`,
+`decryptMessage`) are already async — just add `await`.
+
+**3. `server/api.router.ts`** — replace the dynamic webbuf import in the
+`getPowChallenge` handler:
+
+```typescript
+// Old
+const { p256Verify } = await import("@webbuf/p256");
+const { sha256Hash } = await import("@webbuf/sha256");
+const { WebBuf } = await import("@webbuf/webbuf");
+const { FixedBuf } = await import("@webbuf/fixedbuf");
+
+const digest = sha256Hash(WebBuf.fromUtf8(
+  `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
+));
+const sig = FixedBuf.fromHex(64, input.signature);
+const pubKey = FixedBuf.fromHex(33, input.senderPubKey);
+
+if (!p256Verify(sig, digest, pubKey)) {
+  throw new Error("Invalid signature");
+}
+
+// New
+const { p256PublicKeyToJwk } = await import("@webbuf/p256");
+const { FixedBuf } = await import("@webbuf/fixedbuf");
+const { WebBuf } = await import("@webbuf/webbuf");
+
+const message = new TextEncoder().encode(
+  `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
+);
+const sigBytes = WebBuf.fromHex(input.signature);
+const compressedPub = FixedBuf.fromHex(33, input.senderPubKey);
+const pubJwk = p256PublicKeyToJwk(compressedPub);
+const cryptoKey = await crypto.subtle.importKey(
+  "jwk",
+  pubJwk,
+  { name: "ECDSA", namedCurve: "P-256" },
+  false,
+  ["verify"],
+);
+const ok = await crypto.subtle.verify(
+  { name: "ECDSA", hash: "SHA-256" },
+  cryptoKey,
+  sigBytes,
+  message,
+);
+if (!ok) {
+  throw new Error("Invalid signature");
+}
+```
+
+### Async propagation
+
+`signPowRequest` becomes async. Call sites (all already inside async
+handlers, so this is mechanical `await` addition):
+
+- `routes/_app/_saved/_chrome/send.tsx` — in `handleSubmit`
+- `routes/_app/_saved/channel.$address.tsx` — in `handleSend`
+- `routes/_app/_saved/vault.$id.tsx` — in `handleShare`
+
+`computeMessageKey` becomes async, but its only callers are inside
+`lib/message.ts` itself (which are already async). Just add `await`.
+
+No render-time refactors are needed in experiment 3 — experiment 2 already
+moved all crypto out of render paths into `useEffect`-based state maps.
+Those maps will seamlessly pick up the new async `decryptMessageContent` /
+`tryDecryptVaultEntry` implementations because they already await the results.
+
+### Webbuf package version
+
+`@webbuf/p256` is at `3.5.1` with the new format helpers. `webapp/package.json`
+currently has `^3.5.0` for `@webbuf/p256`, which should pick up `3.5.1`
+automatically on `bun install`. Double-check with `bun install` at the start
+of implementation and verify the installed version.
+
+### Verification
+
+1. **Unit test**: add a webbuf-vs-webcrypto cross-check in
+   `webapp/src/lib/p256.test.ts` (or similar) that:
+   - Generates a key pair via `FixedBuf.fromRandom(32)` + `p256PublicKeyCreate`
+   - Converts to JWK via `p256PrivateKeyToJwk` / `p256PublicKeyToJwk`
+   - Imports into Web Crypto and signs a test message
+   - Verifies with Web Crypto — should succeed
+   - Cross-derives ECDH shared secret with a second key pair, both via
+     Web Crypto and via webbuf, compares the `SHA-256(rawX)` result from
+     Web Crypto with `SHA-256(compressedSharedSecret.slice(1))` from
+     webbuf — wait, these will differ. Skip the cross-check; just verify
+     Web Crypto ECDH produces the same key on both sides of the exchange.
+
+   The purpose of this test is to validate the format conversion works,
+   not to prove cryptographic compatibility with webbuf (which is a
+   non-goal since we're changing the protocol).
+
+2. **`bun run build`** — compiles with no errors.
+3. **`bun run test`** — all existing tests pass, plus the new P-256 test.
+4. **`bun run lint`** — clean.
+5. **`db:clear` + `db:push`** — fresh DB (encrypted data from experiment 2
+   uses the old ECDH protocol and will not decrypt after this migration;
+   we need a clean slate).
+6. **Manual smoke test** — create two accounts on separate domains, test:
+   - Create + save account (webbuf key gen still works)
+   - Log in (login PoW uses client-side PBKDF2 from experiment 2 — unchanged)
+   - Send a message from A to B (PoW request signed via Web Crypto ECDSA,
+     verified on the recipient server via Web Crypto ECDSA, message
+     encrypted via Web Crypto ECDH → AES-GCM)
+   - Open the channel on B and see the message decrypt (Web Crypto ECDH
+     on the other side)
+   - Reply from B to A — same flow in reverse
+   - Create a vault entry and share it with the other account (same flow
+     via `encryptSecretMessage`)
+7. **Performance smoke test** — open a channel with 30+ messages and
+   observe how long the initial decryption takes. Should be ≤100 ms for
+   the full batch on a fast Mac (previous webbuf path was ~20 ms per 50
+   messages, but experiment 1 measured individual ops at ~287 µs for
+   webbuf ECDH vs ~44 µs for Web Crypto, so expect ~1.3 ms for 30 messages
+   on Web Crypto before factoring in importKey overhead).
+
+### Known complication to watch for
+
+**importKey overhead per call.** The experiment 1 benchmark pre-imported
+the keys and measured only the steady-state operation. In production, each
+call to `computeMessageKey` does two `importKey` calls (once for the
+private, once for the public). If importKey is slow enough, it could eat
+the wins from the faster ECDH.
+
+The mitigation is per-page caching: cache `CryptoKey` objects alongside
+raw bytes in structures like `keyMap` on the channel page. Both the
+private key (derived once per channel session after decrypting with
+`decryptPrivateKey`) and each unique counterparty public key can be
+memoized.
+
+**Do not add caching in this experiment.** Ship the naive migration first,
+measure it in the manual smoke test, and add caching in a follow-up if
+the channel decryption feels slow. Premature optimization will obscure
+whether the baseline migration is correct.
+
+### Post-experiment: what's still on webbuf
+
+After experiment 3:
+
+| Primitive | Still uses |
+|---|---|
+| SHA-256 | `@webbuf/sha256` (fastest for small inputs per experiment 1) |
+| HMAC-SHA-256 | `@webbuf/sha256` (fastest for small inputs) |
+| PBKDF2 | Web Crypto (migrated in experiment 2) |
+| AES-256-GCM | Web Crypto (migrated in experiment 2) |
+| P-256 ECDH | Web Crypto ← this experiment |
+| P-256 ECDSA sign/verify | Web Crypto ← this experiment |
+| P-256 key generation | `@webbuf/p256` (rare, stays on webbuf) |
+| P-256 format conversion | `@webbuf/p256` (new helpers, sync, trivial) |
+
+Web Crypto handles all the hot-path work that benefits from native speed
+and off-main-thread execution. Webbuf stays for the small-input operations
+where native has wrapper overhead and for the low-frequency key generation
+path.
+
+### Non-goals
+
+- CryptoKey caching. Measure first, optimize if needed.
+- Removing `@webbuf/p256` entirely. It's still needed for key generation
+  and format conversion.
+- Backward compatibility with the old ECDH or ECDSA protocols. No
+  production data; breaking-change is fine.
+- P-256 DER/PKCS#8 format conversion. JWK handles every case we need.
