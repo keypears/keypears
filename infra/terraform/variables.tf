@@ -23,9 +23,9 @@ variable "health_check_path" {
 }
 
 variable "image_tag" {
-  description = "ECR image tag to deploy. Produced by `docker build` + `docker push`. The ECR repo is named `keypears`."
+  description = "ECR image tag whose digest the task definition pins to. Defaults to `latest`. Routine deploys overwrite this tag in ECR; the digest changes; the next `terraform apply` reads the new digest via the aws_ecr_image data source and rolls a new task definition revision."
   type        = string
-  default     = "bootstrap"
+  default     = "latest"
 }
 
 variable "desired_count" {

@@ -119,10 +119,22 @@ Out-of-band setup that Terraform does **not** manage:
 
 ## Routine deployment (rolling a new container image)
 
+Every deploy overwrites the `:latest` tag in ECR. The Terraform task
+definition pins to the **content digest** of `:latest` (read at plan time
+via the `aws_ecr_image` data source), not to the tag string itself, so
+each push produces a fresh task definition revision pinned to a fresh
+immutable digest. That's what makes ECS deployment circuit-breaker
+rollback work properly: a failed deploy rolls back to the previous task
+definition revision, which still references the previous digest, which
+still resolves to a real image in ECR.
+
+You only ever interact with `:latest`. You don't pick versions, bump tags
+in tfvars, or look anything up.
+
 ### 1. Build for arm64 from the repo root
 
 ```bash
-docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:vN .
+docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:latest .
 ```
 
 ### 2. Log in to ECR and push
@@ -131,29 +143,56 @@ docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:vN .
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin \
     299190761597.dkr.ecr.us-east-1.amazonaws.com
-docker tag keypears:vN 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
-docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
+docker tag keypears:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
+docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
 ```
 
-### 3. Bump the tag in `infra/terraform/terraform.tfvars`
-
-```hcl
-image_tag = "vN"
-```
-
-### 4. Apply
+### 3. Apply
 
 ```bash
 cd infra/terraform
 terraform apply
 ```
 
-Terraform creates a new task definition revision pointing at `:vN`. The ECS
-service picks it up automatically and rolls forward (deployment circuit
-breaker enabled, max 200%, min 100% healthy).
+Terraform reads the new digest of `:latest`, creates a new task definition
+revision pinned to that digest, and updates the ECS service. The service
+rolls forward (deployment circuit breaker enabled, max 200%, min 100%
+healthy). If any new task fails its health check, the circuit breaker
+rolls back to the previous task definition revision, which still
+references the previous digest.
 
-The image tag is pinned in `terraform.tfvars`, never `latest`. Rolling back is
-symmetrical: change the tag back to the previous version and re-apply.
+### Manual rollback
+
+If you need to roll back to a known-good earlier image, retag `:latest`
+in ECR to point at the previous digest, then re-apply Terraform. You can
+get the digest of the previous image from the ECS service event history,
+from CloudTrail, or from the ECR image list:
+
+```bash
+aws ecr describe-images --repository-name keypears --region us-east-1 \
+  --query 'reverse(sort_by(imageDetails,&imagePushedAt))[].[imageDigest,imagePushedAt]' \
+  --output table
+```
+
+Re-tag in place (no rebuild):
+
+```bash
+DIGEST=sha256:abc123…   # the digest you want to roll back to
+MANIFEST=$(aws ecr batch-get-image --repository-name keypears \
+  --image-ids imageDigest=$DIGEST --region us-east-1 \
+  --query 'images[0].imageManifest' --output text)
+aws ecr put-image --repository-name keypears --image-tag latest \
+  --image-manifest "$MANIFEST" --region us-east-1
+cd infra/terraform && terraform apply
+```
+
+To check what digest is currently live:
+
+```bash
+aws ecs describe-task-definition --task-definition keypears-webapp \
+  --region us-east-1 --query 'taskDefinition.containerDefinitions[0].image' \
+  --output text
+```
 
 ## Scaling
 
@@ -201,6 +240,12 @@ These steps were run once when the stack was created. They're documented here
 for disaster recovery only — there's no reason to re-run them in normal
 operation.
 
+There's a chicken-and-egg in this stack: the `aws_ecr_image` data source
+in `locals.tf` needs an image with the configured `image_tag` (default
+`latest`) to exist in ECR before any plan can succeed, but the ECR repo
+is created by Terraform. The fix is a two-phase first apply: create just
+the ECR repo, push an image, then apply the rest.
+
 ```bash
 # 1. State backend (S3 bucket + DynamoDB lock table)
 aws s3api create-bucket --bucket keypears-terraform-state --region us-east-1
@@ -217,21 +262,21 @@ aws dynamodb create-table --table-name keypears-terraform-locks \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST --region us-east-1
 
-# 2. Terraform initial apply (with create_cutover_dns = false)
+# 2. Phase-1 Terraform: create just the ECR repo
 cd infra/terraform
 terraform init
-terraform apply
+terraform apply -target=aws_ecr_repository.webapp
 
-# 3. First image build + push
+# 3. First image build + push (must exist before phase-2 apply)
 cd ../..
-docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:v1 .
+docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:latest .
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin \
     299190761597.dkr.ecr.us-east-1.amazonaws.com
-docker tag keypears:v1 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:v1
-docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:v1
+docker tag keypears:latest 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
+docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:latest
 
-# 4. Bump terraform.tfvars to image_tag = "v1" and desired_count = 1, then apply
+# 4. Phase-2 Terraform: full apply (with create_cutover_dns = false)
 cd infra/terraform
 terraform apply
 aws ecs wait services-stable --cluster keypears-prod --services keypears-webapp \

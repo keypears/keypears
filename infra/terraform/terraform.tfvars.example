@@ -4,14 +4,15 @@
 # file is where you override per-deploy knobs like image_tag and
 # desired_count without editing the HCL.
 
-# Image tag to deploy. Start with a placeholder on the very first apply
-# (the service has desired_count = 0 so it never tries to pull), then
-# bump to a real tag after `docker push`.
-image_tag = "bootstrap"
+# Image tag whose digest the task definition pins to. Routine deploys
+# overwrite this tag in ECR via `docker push :latest` and the next
+# `terraform apply` reads the new digest and rolls. The task definition
+# references the immutable digest, not the tag, so deploy circuit-breaker
+# rollback works as intended.
+image_tag = "latest"
 
-# Number of running tasks. Keep at 0 until the image has been pushed,
-# then set to 1 (or more) and re-apply.
-desired_count = 0
+# Number of running Fargate tasks. Bump and `terraform apply` to scale.
+desired_count = 1
 
 # Keep this false until the new stack is up and /health returns 200
 # on the new ALB's DNS name directly. Flipping to true cuts production
