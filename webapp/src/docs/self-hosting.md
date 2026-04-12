@@ -23,11 +23,15 @@ same, set both `KEYPEARS_DOMAIN` and `KEYPEARS_API_DOMAIN` to the same value.
 
 ## Database setup
 
-Push the schema to MySQL:
+Push the schema to MySQL using Drizzle Kit with your deployment's env file:
 
 ```bash
-bun run db:push
+cd webapp
+dotenvx run -f .env.production -- drizzle-kit push
 ```
+
+(The repo's `bun run db:push` script is dev-only — it uses `.env.dev` and
+`.env.dev.passapples` to push to both local dev databases.)
 
 This creates all required tables. The schema uses UUIDv7 binary primary keys,
 `datetime` columns, and `varbinary` for encrypted data.
@@ -68,7 +72,10 @@ bun run build
 bun run start
 ```
 
-The server listens on the configured port. Caddy handles TLS termination and
+The build step compiles the whitepaper with [Typst](https://typst.app) and
+builds the blog before running `vite build`, so Typst must be installed
+(`brew install typst` on macOS, or see the Typst installation docs). The
+server listens on the configured port. Caddy handles TLS termination and
 proxies requests to the server.
 
 ## Domain claiming (third-party hosting)

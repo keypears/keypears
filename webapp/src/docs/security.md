@@ -21,9 +21,9 @@ requiring 1,200,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1,
 ## Password brute-force
 
 The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
-every login key, matching the NIST SP 800-132 recommendation exactly. An
-offline attack against the stored hash requires 1,200,000 rounds per password
-guess through the full chain. Per-user salts (derived deterministically from
+every login key, matching the OWASP Password Storage Cheat Sheet
+recommendation for PBKDF2-HMAC-SHA-256. An offline attack against the stored
+hash requires 1,200,000 rounds per password guess through the full chain. Per-user salts (derived deterministically from
 the user ID) prevent an attacker from parallelising dictionary attacks across
 the entire database.
 

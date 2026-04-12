@@ -56,8 +56,9 @@ the client.
 The server hashes the login key with an additional 600,000 rounds of
 PBKDF2-HMAC-SHA-256 using a **per-user salt** (derived deterministically from
 the user's ID) before storing it in the database. The server path alone meets
-the NIST SP 800-132 recommendation of 600,000 rounds, so the stretching is
-sufficient regardless of how much work the client contributed.
+the OWASP Password Storage Cheat Sheet recommendation of 600,000 rounds for
+PBKDF2-HMAC-SHA-256, so the stretching is sufficient regardless of how much
+work the client contributed.
 
 An attacker who steals the database cannot brute-force the login key directly
 — it is a uniformly random 256-bit value with a search space of 2^256. The
@@ -71,11 +72,12 @@ independently.
 
 ## Security properties
 
-**NIST-compliant.** All primitives are NIST-approved: SHA-256 (FIPS 180-4),
-HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM (SP 800-38D), and
-P-256 (FIPS 186-5). The server-side tier alone performs 600,000 rounds of
-PBKDF2-HMAC-SHA-256, matching the SP 800-132 recommendation exactly. The
-full password-to-hash chain exceeds 1,200,000 rounds.
+**NIST-approved primitives.** All primitives are NIST-approved: SHA-256
+(FIPS 180-4), HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM
+(SP 800-38D), and P-256 (FIPS 186-5). The server-side tier alone performs
+600,000 rounds of PBKDF2-HMAC-SHA-256, matching the OWASP Password Storage
+Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256. The full
+password-to-hash chain exceeds 1,200,000 rounds.
 
 **Separation of concerns.** Knowing the encryption key does not reveal the
 login key, and vice versa. They are derived from the same password key but
@@ -141,7 +143,7 @@ discarded.
 | ---------------- | ---------------------------- | ------------------------- |
 | Hash             | SHA-256                      | `@webbuf/sha256`          |
 | MAC              | HMAC-SHA-256                 | `@webbuf/sha256`          |
-| KDF              | PBKDF2-HMAC-SHA-256 (RFC 8018) | `@webbuf/pbkdf2-sha256` |
+| KDF              | PBKDF2-HMAC-SHA-256 (RFC 8018) | Web Crypto (`crypto.subtle`) |
 | Encryption       | AES-256-GCM (AEAD)           | `@webbuf/aesgcm`          |
 | Key pairs        | P-256 (NIST, FIPS 186-5)     | `@webbuf/p256`            |
 | Rounds per tier  | 300,000 client-side, 600,000 server-side | |

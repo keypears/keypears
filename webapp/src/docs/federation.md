@@ -31,9 +31,11 @@ communication goes through this endpoint.
 
 ### Caching
 
-Servers should cache `keypears.json` responses. The file changes rarely (only
-when migrating hosting). A TTL of 1 hour is reasonable. On error, fall back to
-the cached value.
+Servers should cache `keypears.json` responses. The file changes rarely
+(only when migrating hosting). The reference implementation uses an
+in-memory cache with a 1-minute TTL — short enough that `admin` field
+changes propagate quickly (the old admin loses access within a minute), but
+long enough to absorb bursts of cross-domain traffic.
 
 ## Three deployment patterns
 

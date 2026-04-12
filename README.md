@@ -21,9 +21,10 @@ Requires [Bun](https://bun.sh) and MySQL.
 
 ```bash
 bun install
+bun run dev        # starts all dev servers (keypears on port 3500)
+
 cd webapp
 bun run db:push    # push schema to MySQL
-bun dev            # starts on port 3001
 bun run test       # run tests
 bun run lint       # run linter
 ```

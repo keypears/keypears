@@ -54,11 +54,6 @@ lockberries.test {
     tls internal
     reverse_proxy localhost:3520
 }
-
-docs.keypears.test {
-    tls internal
-    reverse_proxy localhost:3530
-}
 ```
 
 The `tls internal` directive uses Caddy's built-in local CA instead of Let's
@@ -79,7 +74,7 @@ caddy reload --config ~/.caddy/Caddyfile
 
 ## Dev topology
 
-Five domains test three deployment patterns plus documentation:
+Four domains test three deployment patterns:
 
 | Domain                     | Port | Purpose                                       |
 | -------------------------- | ---- | --------------------------------------------- |
@@ -87,7 +82,6 @@ Five domains test three deployment patterns plus documentation:
 | `passapples.test`          | 3510 | Astro landing page (subdomain hosting)         |
 | `keypears.passapples.test` | 3512 | KeyPears server for passapples domain          |
 | `lockberries.test`         | 3520 | Astro landing page (third-party hosted)        |
-| `docs.keypears.test`       | 3530 | Documentation site (Astro + Starlight)         |
 
 - **keypears.test** — the main KeyPears server. Address domain and API domain
   are the same.
@@ -98,7 +92,9 @@ Five domains test three deployment patterns plus documentation:
 - **lockberries.test** — a domain that doesn't run any server. Its
   `keypears.json` points to `keypears.test` as the host. Users have
   `@lockberries.test` addresses but are served by the keypears.test server.
-- **docs.keypears.test** — the documentation site.
+
+Documentation is served at `/docs/*` by the main webapp itself — there is no
+separate docs site.
 
 ## Daily workflow
 

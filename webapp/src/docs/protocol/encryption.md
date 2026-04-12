@@ -13,6 +13,12 @@ elliptic-curve Diffie-Hellman on the NIST P-256 curve:
 S = SHA-256(ECDH(alice_private_key, bob_public_key))
 ```
 
+Here `ECDH(a, B)` is the 32-byte big-endian x-coordinate of the shared
+point `a·B`, as returned by the Web Crypto `crypto.subtle.deriveBits` API
+— **not** the 33-byte SEC1 compressed encoding. Both parties must hash the
+same raw coordinate for their derived keys to agree; mixing the two forms
+produces different keys and silent decryption failures.
+
 The message payload is encrypted with AES-256-GCM using `S` as the key. Both
 Alice's and Bob's public keys are stored alongside the ciphertext, so that
 either party can re-derive the shared secret after key rotation.

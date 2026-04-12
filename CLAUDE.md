@@ -243,7 +243,7 @@ Password (never stored)
 - Only the encryption key is cached. Password key is ephemeral.
 - If localStorage is compromised: attacker can decrypt keys but cannot
   impersonate the user (login key is a sibling, not derivable from encryption key).
-- Server hashes the login key with 600k additional rounds using a per-user salt (derived from userId) before storing. Total: 1.2M rounds from password to stored hash; server path alone meets NIST 600k recommendation.
+- Server hashes the login key with 600k additional rounds using a per-user salt (derived from userId) before storing. Total: 1.2M rounds from password to stored hash; server path alone meets the OWASP Password Storage Cheat Sheet recommendation of 600k rounds for PBKDF2-HMAC-SHA-256.
 
 ### Sessions
 
