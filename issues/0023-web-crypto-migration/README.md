@@ -1148,3 +1148,62 @@ native has wrapper overhead and for the low-frequency key generation path.
 - Backward compatibility with the old ECDH or ECDSA protocols. No production
   data; breaking-change is fine.
 - P-256 DER/PKCS#8 format conversion. JWK handles every case we need.
+
+### Result — Pass
+
+Implementation complete. 14 files changed (1 new: `lib/p256.test.ts` with
+three Web Crypto interop tests; 13 modified: the three migrated call sites,
+three async-propagation awaits in route handlers, dependency bumps, and a
+minor README reformat). Build, tests (16/16 passing including the new
+P-256 interop tests), and lint all pass. Manual smoke test confirms the
+full message flow works end-to-end with the new protocol.
+
+**The migration itself was mechanical:**
+
+- `lib/auth.ts:signPowRequest` rewritten to use `crypto.subtle.importKey("jwk", ...)`
+  + `crypto.subtle.sign({name: "ECDSA", hash: "SHA-256"}, ...)`. Became async.
+- `lib/message.ts:computeMessageKey` rewritten to use `crypto.subtle.deriveBits`
+  with ECDH. Became async. The derived key is now `SHA-256(rawX)` instead of
+  `SHA-256(compressedPoint)`.
+- `server/api.router.ts` federation verify swapped from webbuf's dynamic
+  import to Web Crypto via the new `p256PublicKeyToJwk` helper.
+- Three call sites of `signPowRequest` (`send.tsx`, `channel.$address.tsx`,
+  `vault.$id.tsx`) received mechanical `await` additions. All were already
+  inside async handlers.
+- No render-time refactors were needed — experiment 2 already moved all
+  crypto out of render into `useEffect`-based state maps, which picked up
+  the new async `computeMessageKey` transparently.
+
+**Two tooling issues surfaced during the manual smoke test, neither was a
+bug in the migration itself:**
+
+1. **Vite's pre-bundled dep cache held the old `@webbuf/p256` 3.5.0
+   bundle** even after `bun update` installed 3.5.1. The error was
+   `The requested module '/node_modules/.vite/deps/@webbuf_p256.js' does
+   not provide an export named 'p256PrivateKeyToJwk'`. Fix: kill the dev
+   server, delete `node_modules/.vite`, restart with `--force`. This is
+   a known Vite foot-gun when dependencies update while the dev server
+   is running.
+
+2. **Running `bunx vite --port 3500 --force` directly bypassed dotenvx**,
+   so `DATABASE_URL` and the other env vars weren't loaded, causing
+   `mysql2` to crash with "Cannot read properties of undefined (reading
+   'isServer')". Fix: always start via `bun run dev:keypears` which
+   wraps vite in `dotenvx run -f .env.dev`.
+
+Both issues were process/tooling, not code. Once the dev server restarted
+cleanly with the right env and fresh vite cache, the new P-256 path worked
+on the first try. No CryptoKey caching was needed — the naive `importKey`
+on every call is fast enough in practice.
+
+### Performance note
+
+Informal observation during the smoke test: the channel page feels
+identical to before, maybe marginally snappier on message loads. The
+6.5x–11.7x speedup on individual P-256 operations measured in experiment 1
+doesn't translate into a visible UX difference because the operations
+were already sub-millisecond and invisible to begin with. The real UX
+wins from this issue were all in experiment 2 (PBKDF2 off the main
+thread + AES-GCM with AES-NI). Experiment 3 is mostly a cleanup pass
+that removes webbuf dependency from the hot paths and unlocks any future
+wins from hardware-accelerated ECDSA/ECDH on platforms that have it.
