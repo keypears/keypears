@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+#
+# All values here have sensible defaults in variables.tf; the tfvars
+# file is where you override per-deploy knobs like image_tag and
+# desired_count without editing the HCL.
+
+# Image tag to deploy. Start with a placeholder on the very first apply
+# (the service has desired_count = 0 so it never tries to pull), then
+# bump to a real tag after `docker push`.
+image_tag = "bootstrap"
+
+# Number of running tasks. Keep at 0 until the image has been pushed,
+# then set to 1 (or more) and re-apply.
+desired_count = 0
+
+# Keep this false until the new stack is up and /health returns 200
+# on the new ALB's DNS name directly. Flipping to true cuts production
+# DNS over to the new ALB.
+create_cutover_dns = false
+
+# Uncomment to override defaults:
+# task_cpu           = 1024
+# task_memory        = 2048
+# waf_rate_limit     = 20000
+# log_retention_days = 14
