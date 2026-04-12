@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PublicRouteImport } from './routes/_public'
 import { Route as DocsRouteImport } from './routes/_docs'
 import { Route as BlogRouteImport } from './routes/_blog'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PublicProfileRouteImport } from './routes/_public/$profile'
 import { Route as AppWelcomeRouteImport } from './routes/_app/welcome'
 import { Route as AppSavedRouteImport } from './routes/_app/_saved'
 import { Route as DocsDocsIndexRouteImport } from './routes/_docs/docs.index'
@@ -40,7 +42,6 @@ import { Route as AppSavedChromeKeysRouteImport } from './routes/_app/_saved/_ch
 import { Route as AppSavedChromeInboxRouteImport } from './routes/_app/_saved/_chrome/inbox'
 import { Route as AppSavedChromeHomeRouteImport } from './routes/_app/_saved/_chrome/home'
 import { Route as AppSavedChromeDomainsRouteImport } from './routes/_app/_saved/_chrome/domains'
-import { Route as AppSavedChromeProfileRouteImport } from './routes/_app/_saved/_chrome/$profile'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -55,6 +56,10 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsRoute = DocsRouteImport.update({
@@ -73,6 +78,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PublicProfileRoute = PublicProfileRouteImport.update({
+  id: '/$profile',
+  path: '/$profile',
+  getParentRoute: () => PublicRoute,
 } as any)
 const AppWelcomeRoute = AppWelcomeRouteImport.update({
   id: '/welcome',
@@ -196,11 +206,6 @@ const AppSavedChromeDomainsRoute = AppSavedChromeDomainsRouteImport.update({
   path: '/domains',
   getParentRoute: () => AppSavedChromeRoute,
 } as any)
-const AppSavedChromeProfileRoute = AppSavedChromeProfileRouteImport.update({
-  id: '/$profile',
-  path: '/$profile',
-  getParentRoute: () => AppSavedChromeRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -208,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/$profile': typeof PublicProfileRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/federation': typeof DocsDocsFederationRoute
@@ -215,7 +221,6 @@ export interface FileRoutesByFullPath {
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/blog/': typeof BlogBlogIndexRoute
   '/docs/': typeof DocsDocsIndexRoute
-  '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
   '/inbox': typeof AppSavedChromeInboxRoute
@@ -237,6 +242,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
+  '/$profile': typeof PublicProfileRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/federation': typeof DocsDocsFederationRoute
@@ -244,7 +250,6 @@ export interface FileRoutesByTo {
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/blog': typeof BlogBlogIndexRoute
   '/docs': typeof DocsDocsIndexRoute
-  '/$profile': typeof AppSavedChromeProfileRoute
   '/domains': typeof AppSavedChromeDomainsRoute
   '/home': typeof AppSavedChromeHomeRoute
   '/inbox': typeof AppSavedChromeInboxRoute
@@ -266,11 +271,13 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_blog': typeof BlogRouteWithChildren
   '/_docs': typeof DocsRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_app/_saved': typeof AppSavedRouteWithChildren
   '/_app/welcome': typeof AppWelcomeRoute
+  '/_public/$profile': typeof PublicProfileRoute
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
   '/_blog/blog/$slug': typeof BlogBlogSlugRoute
   '/_docs/docs/development': typeof DocsDocsDevelopmentRoute
@@ -279,7 +286,6 @@ export interface FileRoutesById {
   '/_docs/docs/self-hosting': typeof DocsDocsSelfHostingRoute
   '/_blog/blog/': typeof BlogBlogIndexRoute
   '/_docs/docs/': typeof DocsDocsIndexRoute
-  '/_app/_saved/_chrome/$profile': typeof AppSavedChromeProfileRoute
   '/_app/_saved/_chrome/domains': typeof AppSavedChromeDomainsRoute
   '/_app/_saved/_chrome/home': typeof AppSavedChromeHomeRoute
   '/_app/_saved/_chrome/inbox': typeof AppSavedChromeInboxRoute
@@ -303,6 +309,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
+    | '/$profile'
     | '/blog/$slug'
     | '/docs/development'
     | '/docs/federation'
@@ -310,7 +317,6 @@ export interface FileRouteTypes {
     | '/docs/self-hosting'
     | '/blog/'
     | '/docs/'
-    | '/$profile'
     | '/domains'
     | '/home'
     | '/inbox'
@@ -332,6 +338,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/welcome'
+    | '/$profile'
     | '/blog/$slug'
     | '/docs/development'
     | '/docs/federation'
@@ -339,7 +346,6 @@ export interface FileRouteTypes {
     | '/docs/self-hosting'
     | '/blog'
     | '/docs'
-    | '/$profile'
     | '/domains'
     | '/home'
     | '/inbox'
@@ -360,11 +366,13 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_blog'
     | '/_docs'
+    | '/_public'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/_app/_saved'
     | '/_app/welcome'
+    | '/_public/$profile'
     | '/_app/_saved/_chrome'
     | '/_blog/blog/$slug'
     | '/_docs/docs/development'
@@ -373,7 +381,6 @@ export interface FileRouteTypes {
     | '/_docs/docs/self-hosting'
     | '/_blog/blog/'
     | '/_docs/docs/'
-    | '/_app/_saved/_chrome/$profile'
     | '/_app/_saved/_chrome/domains'
     | '/_app/_saved/_chrome/home'
     | '/_app/_saved/_chrome/inbox'
@@ -395,6 +402,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   BlogRoute: typeof BlogRouteWithChildren
   DocsRoute: typeof DocsRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -421,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_docs': {
@@ -450,6 +465,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_public/$profile': {
+      id: '/_public/$profile'
+      path: '/$profile'
+      fullPath: '/$profile'
+      preLoaderRoute: typeof PublicProfileRouteImport
+      parentRoute: typeof PublicRoute
     }
     '/_app/welcome': {
       id: '/_app/welcome'
@@ -619,18 +641,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSavedChromeDomainsRouteImport
       parentRoute: typeof AppSavedChromeRoute
     }
-    '/_app/_saved/_chrome/$profile': {
-      id: '/_app/_saved/_chrome/$profile'
-      path: '/$profile'
-      fullPath: '/$profile'
-      preLoaderRoute: typeof AppSavedChromeProfileRouteImport
-      parentRoute: typeof AppSavedChromeRoute
-    }
   }
 }
 
 interface AppSavedChromeRouteChildren {
-  AppSavedChromeProfileRoute: typeof AppSavedChromeProfileRoute
   AppSavedChromeDomainsRoute: typeof AppSavedChromeDomainsRoute
   AppSavedChromeHomeRoute: typeof AppSavedChromeHomeRoute
   AppSavedChromeInboxRoute: typeof AppSavedChromeInboxRoute
@@ -642,7 +656,6 @@ interface AppSavedChromeRouteChildren {
 }
 
 const AppSavedChromeRouteChildren: AppSavedChromeRouteChildren = {
-  AppSavedChromeProfileRoute: AppSavedChromeProfileRoute,
   AppSavedChromeDomainsRoute: AppSavedChromeDomainsRoute,
   AppSavedChromeHomeRoute: AppSavedChromeHomeRoute,
   AppSavedChromeInboxRoute: AppSavedChromeInboxRoute,
@@ -723,11 +736,23 @@ const DocsRouteChildren: DocsRouteChildren = {
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
+interface PublicRouteChildren {
+  PublicProfileRoute: typeof PublicProfileRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicProfileRoute: PublicProfileRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   BlogRoute: BlogRouteWithChildren,
   DocsRoute: DocsRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,

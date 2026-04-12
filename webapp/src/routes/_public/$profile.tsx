@@ -5,7 +5,7 @@ import { parseAddress } from "~/lib/config";
 import { CircleUser, Copy, Check, MessageSquare } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
-export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
+export const Route = createFileRoute("/_public/$profile")({
   loader: async ({ params }) => {
     const parsed = parseAddress(params.profile);
     if (!parsed) throw notFound();
