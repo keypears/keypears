@@ -58,9 +58,9 @@ function HomePage() {
               </p>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                 KeyPears is in alpha. If we discover a flaw in the protocol
-                before launch, we may need to wipe the database — including
-                your account, keys, and messages. Don&apos;t store anything
-                you can&apos;t afford to lose.
+                before launch, we may need to wipe the database — including your
+                account, keys, and messages. Don&apos;t store anything you
+                can&apos;t afford to lose.
               </p>
             </div>
           </div>

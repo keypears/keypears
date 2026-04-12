@@ -3,14 +3,20 @@ import { z } from "zod";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
-import { getActiveKey, getUserByNameAndDomain, getDomainByName, getUserPowSettings } from "./user.server";
+import {
+  getActiveKey,
+  getUserByNameAndDomain,
+  getDomainByName,
+  getUserPowSettings,
+} from "./user.server";
 import { getDomain, parseAddress } from "~/lib/config";
 import { hashToken } from "./utils";
+import { getOrCreateChannel, insertMessage } from "./message.server";
 import {
-  getOrCreateChannel,
-  insertMessage,
-} from "./message.server";
-import { createPowChallenge, MESSAGE_DIFFICULTY, CHANNEL_DIFFICULTY } from "./pow.server";
+  createPowChallenge,
+  MESSAGE_DIFFICULTY,
+  CHANNEL_DIFFICULTY,
+} from "./pow.server";
 import { channelExists, messageExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
 import { createORPCClient } from "@orpc/client";
@@ -78,9 +84,8 @@ const getPowChallengeEndpoint = os
     // Verify the signature. The client signs the raw UTF-8 string with
     // Web Crypto ECDSA (which hashes internally with SHA-256 before
     // signing), so we pass the same raw bytes to verify.
-    const { p256PublicKeyToJwk, p256PublicKeyVerify } = await import(
-      "@webbuf/p256"
-    );
+    const { p256PublicKeyToJwk, p256PublicKeyVerify } =
+      await import("@webbuf/p256");
     const { WebBuf } = await import("@webbuf/webbuf");
     const { FixedBuf } = await import("@webbuf/fixedbuf");
 

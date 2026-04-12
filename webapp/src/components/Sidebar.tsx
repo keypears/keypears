@@ -23,7 +23,6 @@ const navItems = [
   { name: "Blog", path: "/blog", icon: Newspaper },
 ];
 
-
 function NavItems({
   onClick,
   hasPassword,
@@ -97,9 +96,7 @@ function Address({
   userName: string;
   domain: string | null;
 }) {
-  const path = domain
-    ? `/${userName}@${domain}`
-    : `/${userName}`;
+  const path = domain ? `/${userName}@${domain}` : `/${userName}`;
   return (
     <Link
       to={path}

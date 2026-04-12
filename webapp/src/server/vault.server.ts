@@ -90,10 +90,7 @@ export async function getVaultEntries(
   if (query) {
     const pattern = `%${query}%`;
     conditions.push(
-      or(
-        like(secrets.name, pattern),
-        like(secrets.searchTerms, pattern),
-      )!,
+      or(like(secrets.name, pattern), like(secrets.searchTerms, pattern))!,
     );
   }
 
@@ -121,10 +118,7 @@ export async function getVaultEntries(
       versionId: secretVersions.id,
     })
     .from(secrets)
-    .innerJoin(
-      secretVersions,
-      eq(secrets.latestVersionId, secretVersions.id),
-    )
+    .innerJoin(secretVersions, eq(secrets.latestVersionId, secretVersions.id))
     .where(and(...conditions))
     .orderBy(desc(secrets.updatedAt), desc(secrets.id))
     .limit(limit);
@@ -150,12 +144,7 @@ export async function getVaultEntry(userId: string, versionId: string) {
     })
     .from(secretVersions)
     .innerJoin(secrets, eq(secretVersions.secretId, secrets.id))
-    .where(
-      and(
-        eq(secretVersions.id, versionId),
-        eq(secrets.userId, userId),
-      ),
-    )
+    .where(and(eq(secretVersions.id, versionId), eq(secrets.userId, userId)))
     .limit(1);
   return row ?? null;
 }
@@ -169,16 +158,12 @@ export async function deleteVersion(userId: string, versionId: string) {
     })
     .from(secretVersions)
     .innerJoin(secrets, eq(secretVersions.secretId, secrets.id))
-    .where(
-      and(eq(secretVersions.id, versionId), eq(secrets.userId, userId)),
-    )
+    .where(and(eq(secretVersions.id, versionId), eq(secrets.userId, userId)))
     .limit(1);
   if (!row) return;
 
   await db.transaction(async (tx) => {
-    await tx
-      .delete(secretVersions)
-      .where(eq(secretVersions.id, versionId));
+    await tx.delete(secretVersions).where(eq(secretVersions.id, versionId));
 
     // Check if any versions remain
     const [remaining] = await tx

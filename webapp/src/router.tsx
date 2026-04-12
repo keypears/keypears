@@ -12,7 +12,9 @@ function DefaultErrorComponent({ error }: { error: Error }) {
   return (
     <div className="flex flex-1 items-center justify-center p-8 font-sans">
       <div className="text-center">
-        <p className="text-foreground text-lg font-bold">Something went wrong</p>
+        <p className="text-foreground text-lg font-bold">
+          Something went wrong
+        </p>
         <p className="text-muted-foreground mt-2 text-sm">
           {error.message || "An unexpected error occurred."}
         </p>

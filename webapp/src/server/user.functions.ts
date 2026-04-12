@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
+import {
+  getCookie,
+  setCookie,
+  deleteCookie,
+} from "@tanstack/react-start/server";
 import {
   insertUser,
   getUserById,
@@ -149,7 +153,10 @@ export const checkNameAvailable = createServerFn({ method: "GET" })
       return { available: false, error: "Domain not hosted on this server" };
     }
     if (!domain.openRegistration) {
-      return { available: false, error: "Registration is closed for this domain" };
+      return {
+        available: false,
+        error: "Registration is closed for this domain",
+      };
     }
     const existing = await getUserByNameAndDomain(input.name, domain.id);
     return { available: !existing, error: null };
@@ -194,8 +201,7 @@ export const deleteMyUser = createServerFn({ method: "POST" })
     await deleteUnsavedUser(userId);
     deleteCookie(COOKIE_NAME);
     return { success: true };
-  },
-);
+  });
 
 export const login = createServerFn({ method: "POST" })
   .inputValidator(
@@ -488,10 +494,7 @@ export const toggleAllowThirdPartyDomainsFn = createServerFn({
     const adminAddress = await getMyAddress(userId);
     const primaryDomain = await getPrimaryDomain();
     if (!primaryDomain) throw new Error("Primary domain not configured");
-    const result = await verifyDomainAdmin(
-      primaryDomain.domain,
-      adminAddress,
-    );
+    const result = await verifyDomainAdmin(primaryDomain.domain, adminAddress);
     if (!result.valid) throw new Error(result.message ?? "Not authorized");
     await toggleAllowThirdPartyDomains(primaryDomain.id, value);
     return { success: true };
@@ -507,8 +510,7 @@ export const getMyPowSettings = createServerFn({ method: "GET" })
       channelDifficulty: settings?.channelDifficulty?.toString() ?? null,
       messageDifficulty: settings?.messageDifficulty?.toString() ?? null,
     };
-  },
-);
+  });
 
 export const updateMyPowSettings = createServerFn({ method: "POST" })
   .inputValidator(

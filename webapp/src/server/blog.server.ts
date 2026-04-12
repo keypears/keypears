@@ -14,7 +14,10 @@ function parseFrontmatter(raw: string) {
     engines: { toml: toml.parse.bind(toml) },
     language: "toml",
   });
-  return { data: data as { title: string; date: string; author: string }, content };
+  return {
+    data: data as { title: string; date: string; author: string },
+    content,
+  };
 }
 
 function formatDate(date: Date): string {
@@ -73,7 +76,13 @@ export function getPrevNextPost(slug: string) {
   const posts = loadAllPosts();
   const idx = posts.findIndex((p) => p.slug === slug);
   return {
-    prev: idx < posts.length - 1 ? { slug: posts[idx + 1]!.slug, title: posts[idx + 1]!.title } : null,
-    next: idx > 0 ? { slug: posts[idx - 1]!.slug, title: posts[idx - 1]!.title } : null,
+    prev:
+      idx < posts.length - 1
+        ? { slug: posts[idx + 1]!.slug, title: posts[idx + 1]!.title }
+        : null,
+    next:
+      idx > 0
+        ? { slug: posts[idx - 1]!.slug, title: posts[idx - 1]!.title }
+        : null,
   };
 }

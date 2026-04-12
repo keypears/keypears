@@ -29,11 +29,7 @@ function signChallenge(
   const nonNonce = header.slice(NONCE_SIZE);
   const expiresAtBuf = WebBuf.alloc(8);
   new DataView(expiresAtBuf.buffer).setBigUint64(0, BigInt(expiresAt));
-  const parts: number[] = [
-    ...nonNonce,
-    ...target,
-    ...expiresAtBuf,
-  ];
+  const parts: number[] = [...nonNonce, ...target, ...expiresAtBuf];
   if (senderAddress) {
     parts.push(...WebBuf.fromUtf8(senderAddress));
   }

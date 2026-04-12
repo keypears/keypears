@@ -7,7 +7,9 @@ import { PowBadge } from "~/components/PowBadge";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
   head: ({ loaderData }) => ({
-    meta: [{ title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" }],
+    meta: [
+      { title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" },
+    ],
   }),
   loader: async ({ params }) => {
     const parsed = parseAddress(params.profile);

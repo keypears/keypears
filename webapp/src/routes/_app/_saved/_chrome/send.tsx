@@ -118,7 +118,11 @@ function SendPage() {
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientKeyResult.publicKey);
-      const encryptedContent = await encryptMessage(text, myPrivKey, theirPubKey);
+      const encryptedContent = await encryptMessage(
+        text,
+        myPrivKey,
+        theirPubKey,
+      );
 
       // Store the prepared message and fetch PoW challenge
       pendingSendRef.current = {
@@ -220,9 +224,7 @@ function SendPage() {
             </div>
           </div>
           {recipientStatus === "not-found" && (
-            <p className="text-destructive mt-1 text-xs">
-              Recipient not found
-            </p>
+            <p className="text-destructive mt-1 text-xs">Recipient not found</p>
           )}
           {recipientStatus === "invalid" && (
             <p className="text-muted-foreground mt-1 text-xs">

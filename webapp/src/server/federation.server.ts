@@ -29,9 +29,7 @@ const keypearsJsonCache = new Map<
   { data: KeypearsJson; fetchedAt: number }
 >();
 
-export async function fetchKeypearsJson(
-  domain: string,
-): Promise<KeypearsJson> {
+export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
   const cached = keypearsJsonCache.get(domain);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.data;
@@ -52,9 +50,7 @@ export async function resolveApiUrl(domain: string): Promise<string> {
 
   const json = await fetchKeypearsJson(domain);
   if (!json.apiDomain) {
-    throw new Error(
-      `Invalid keypears.json from ${domain}: missing apiDomain`,
-    );
+    throw new Error(`Invalid keypears.json from ${domain}: missing apiDomain`);
   }
   return apiUrlFromDomain(json.apiDomain);
 }

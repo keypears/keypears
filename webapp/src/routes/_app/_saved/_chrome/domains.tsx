@@ -109,9 +109,7 @@ function DomainsPage() {
             {claiming ? "Claiming..." : "Claim"}
           </button>
         </form>
-        {claimError && (
-          <p className="text-danger mt-2 text-sm">{claimError}</p>
-        )}
+        {claimError && <p className="text-danger mt-2 text-sm">{claimError}</p>}
         {claimStatus && (
           <p className="text-muted-foreground mt-2 text-sm">{claimStatus}</p>
         )}
@@ -285,7 +283,8 @@ function DomainCard({
       setAddStatus("Deriving keys...");
       const passwordKey = await derivePasswordKey(newPassword);
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const encryptionKey =
+        await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
@@ -330,7 +329,8 @@ function DomainCard({
       setResetStatus("Deriving keys...");
       const passwordKey = await derivePasswordKey(resetPassword);
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const encryptionKey =
+        await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
@@ -416,9 +416,7 @@ function DomainCard({
                 }}
                 className="accent-accent"
               />
-              <span className="text-foreground">
-                Allow third-party domains
-              </span>
+              <span className="text-foreground">Allow third-party domains</span>
               <span className="text-muted-foreground text-xs">
                 (users can claim external domains)
               </span>
@@ -532,10 +530,7 @@ function DomainCard({
               Add user
             </button>
           ) : (
-            <form
-              onSubmit={handleAddUser}
-              className="mt-3 flex flex-col gap-2"
-            >
+            <form onSubmit={handleAddUser} className="mt-3 flex flex-col gap-2">
               <div>
                 <div className="relative">
                   <input

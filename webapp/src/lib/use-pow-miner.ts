@@ -61,9 +61,8 @@ export function usePowMiner() {
       setResult(null);
       startTimeRef.current = performance.now();
 
-      const { Pow5_64b_Wasm, Pow5_64b_Wgsl, hashMeetsTarget } = await import(
-        "@keypears/pow5"
-      );
+      const { Pow5_64b_Wasm, Pow5_64b_Wgsl, hashMeetsTarget } =
+        await import("@keypears/pow5");
       const { FixedBuf } = await import("@webbuf/fixedbuf");
 
       const headerBuf = FixedBuf.fromHex(64, challenge.header);

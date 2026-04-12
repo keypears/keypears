@@ -82,9 +82,7 @@ export const Route = createFileRoute("/_app/_saved/vault/$id")({
       getMyEntries(),
       getMyKeys(),
     ]);
-    const history = entry
-      ? await getHistory({ data: entry.id })
-      : [];
+    const history = entry ? await getHistory({ data: entry.id }) : [];
     return { entryId: params.id, entry, entries, keyData, history };
   },
   component: VaultDetailPage,
@@ -92,8 +90,13 @@ export const Route = createFileRoute("/_app/_saved/vault/$id")({
 
 function VaultDetailPage() {
   const navigate = useNavigate();
-  const { entryId, entry, entries: initialEntries, keyData, history } =
-    Route.useLoaderData();
+  const {
+    entryId,
+    entry,
+    entries: initialEntries,
+    keyData,
+    history,
+  } = Route.useLoaderData();
   const [entries, setEntries] = useState(initialEntries);
   const [query, setQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -203,7 +206,11 @@ function VaultDetailPage() {
         <div className="flex-1 overflow-y-auto">
           {entries.map((e) => {
             const locked = isLocked(e.publicKey);
-            const Icon = locked ? Lock : e.type === "login" ? KeyRound : FileText;
+            const Icon = locked
+              ? Lock
+              : e.type === "login"
+                ? KeyRound
+                : FileText;
             return (
               <Link
                 key={e.id}
@@ -326,7 +333,7 @@ function FieldRow({
     <div className="border-border/30 flex items-center gap-3 rounded border px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="text-muted-foreground text-xs">{label}</p>
-        <p className="text-foreground mt-0.5 break-all text-sm">{value}</p>
+        <p className="text-foreground mt-0.5 text-sm break-all">{value}</p>
       </div>
       <button
         onClick={() => onCopy(value, field)}
@@ -557,9 +564,7 @@ function EntryDetail({
         fields:
           decrypted.data.type === "login"
             ? Object.fromEntries(
-                Object.entries(decrypted.data).filter(
-                  ([k]) => k !== "type",
-                ),
+                Object.entries(decrypted.data).filter(([k]) => k !== "type"),
               )
             : { text: decrypted.data.text },
       };
@@ -673,9 +678,7 @@ function EntryDetail({
   }
 
   if (!decrypted) {
-    return (
-      <p className="text-muted-foreground text-sm">Loading keys...</p>
-    );
+    return <p className="text-muted-foreground text-sm">Loading keys...</p>;
   }
 
   if (!decrypted.ok) {
@@ -766,28 +769,30 @@ function EntryDetail({
                 onChange={(e) => setEditDomain(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
               />
-              {editDomain && (() => {
-                const { hint, domain: suggested } = parseDomainInput(editDomain);
-                if (!hint) return null;
-                return (
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {suggested && suggested !== editDomain.trim() ? (
-                      <>
-                        {hint}{" "}
-                        <button
-                          type="button"
-                          onClick={() => setEditDomain(suggested)}
-                          className="text-accent hover:text-accent/80"
-                        >
-                          Use it
-                        </button>
-                      </>
-                    ) : (
-                      hint
-                    )}
-                  </p>
-                );
-              })()}
+              {editDomain &&
+                (() => {
+                  const { hint, domain: suggested } =
+                    parseDomainInput(editDomain);
+                  if (!hint) return null;
+                  return (
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {suggested && suggested !== editDomain.trim() ? (
+                        <>
+                          {hint}{" "}
+                          <button
+                            type="button"
+                            onClick={() => setEditDomain(suggested)}
+                            className="text-accent hover:text-accent/80"
+                          >
+                            Use it
+                          </button>
+                        </>
+                      ) : (
+                        hint
+                      )}
+                    </p>
+                  );
+                })()}
             </div>
             <div>
               <label className="text-muted-foreground mb-1 block text-xs">
@@ -905,12 +910,12 @@ function EntryDetail({
           )}
           <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
             {keyNum !== null && <span>Key #{keyNum}</span>}
-            {activePublicKey &&
-              entry.publicKey !== activePublicKey && (
-                <span className="text-yellow-500">older key</span>
-              )}
+            {activePublicKey && entry.publicKey !== activePublicKey && (
+              <span className="text-yellow-500">older key</span>
+            )}
             <span>
-              v{entry.version} — {new Date(entry.versionCreatedAt).toLocaleDateString()}
+              v{entry.version} —{" "}
+              {new Date(entry.versionCreatedAt).toLocaleDateString()}
             </span>
           </div>
           {entry.sourceAddress && (
@@ -1025,7 +1030,13 @@ function EntryDetail({
       {data.type === "login" ? (
         <div className="flex flex-col gap-3">
           {data.domain && (
-            <FieldRow label="Domain" value={data.domain} field="domain" copiedField={copiedField} onCopy={copyToClipboard} />
+            <FieldRow
+              label="Domain"
+              value={data.domain}
+              field="domain"
+              copiedField={copiedField}
+              onCopy={copyToClipboard}
+            />
           )}
           {data.username && (
             <FieldRow
@@ -1037,13 +1048,19 @@ function EntryDetail({
             />
           )}
           {data.email && (
-            <FieldRow label="Email" value={data.email} field="email" copiedField={copiedField} onCopy={copyToClipboard} />
+            <FieldRow
+              label="Email"
+              value={data.email}
+              field="email"
+              copiedField={copiedField}
+              onCopy={copyToClipboard}
+            />
           )}
           {data.password && (
             <div className="border-border/30 flex items-center gap-3 rounded border px-4 py-3">
               <div className="min-w-0 flex-1">
                 <p className="text-muted-foreground text-xs">Password</p>
-                <p className="text-foreground mt-0.5 break-all text-sm">
+                <p className="text-foreground mt-0.5 text-sm break-all">
                   {showPassword ? data.password : "••••••••••••"}
                 </p>
               </div>
@@ -1063,7 +1080,7 @@ function EntryDetail({
           {data.notes && (
             <div className="border-border/30 rounded border px-4 py-3">
               <p className="text-muted-foreground text-xs">Notes</p>
-              <p className="text-foreground mt-0.5 whitespace-pre-wrap text-sm">
+              <p className="text-foreground mt-0.5 text-sm whitespace-pre-wrap">
                 {data.notes}
               </p>
             </div>
@@ -1073,7 +1090,7 @@ function EntryDetail({
         <div className="border-border/30 flex items-center gap-3 rounded border px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-muted-foreground text-xs">Secret Text</p>
-            <p className="text-foreground mt-0.5 break-all text-sm">
+            <p className="text-foreground mt-0.5 text-sm break-all">
               {showText ? data.text : "••••••••••••••••••••"}
             </p>
           </div>
@@ -1257,5 +1274,4 @@ function EntryDetail({
       />
     </div>
   );
-
 }

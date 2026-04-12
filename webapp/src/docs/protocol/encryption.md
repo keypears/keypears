@@ -1,4 +1,3 @@
-
 KeyPears uses AES-256-GCM (NIST SP 800-38D) for all symmetric encryption.
 AES-GCM is an authenticated encryption mode (AEAD) that produces ciphertext
 and an authentication tag in a single pass — no separate MAC is required. Two
@@ -68,12 +67,12 @@ AES-256-GCM produces authenticated ciphertext in the following format:
 
 Each message stored on the server contains:
 
-| Field              | Description                                   |
-| ------------------ | --------------------------------------------- |
-| `senderAddress`    | Full address (e.g. `alice@acme.com`)          |
-| `encryptedContent` | AES-256-GCM-encrypted message content         |
-| `senderPubKey`     | Sender's public key at time of sending        |
-| `recipientPubKey`  | Recipient's public key at time of sending     |
+| Field              | Description                               |
+| ------------------ | ----------------------------------------- |
+| `senderAddress`    | Full address (e.g. `alice@acme.com`)      |
+| `encryptedContent` | AES-256-GCM-encrypted message content     |
+| `senderPubKey`     | Sender's public key at time of sending    |
+| `recipientPubKey`  | Recipient's public key at time of sending |
 
 Both public keys are stored so the recipient knows which keys to use for ECDH
 decryption, even after key rotation.

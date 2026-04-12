@@ -22,9 +22,7 @@ export async function getOrCreateChannel(
     if (existing) return existing.id;
 
     const id = newId();
-    await tx
-      .insert(channels)
-      .values({ id, ownerId, counterpartyAddress });
+    await tx.insert(channels).values({ id, ownerId, counterpartyAddress });
     return id;
   });
 }
@@ -170,10 +168,7 @@ export async function getChannelMessages(
     .from(messages)
     .leftJoin(
       secrets,
-      and(
-        eq(secrets.sourceMessageId, messages.id),
-        eq(secrets.userId, userId),
-      ),
+      and(eq(secrets.sourceMessageId, messages.id), eq(secrets.userId, userId)),
     )
     .where(conditions)
     .orderBy(desc(messages.id))
@@ -202,10 +197,7 @@ export async function getNewMessages(
     .from(messages)
     .leftJoin(
       secrets,
-      and(
-        eq(secrets.sourceMessageId, messages.id),
-        eq(secrets.userId, userId),
-      ),
+      and(eq(secrets.sourceMessageId, messages.id), eq(secrets.userId, userId)),
     )
     .where(and(eq(messages.channelId, channelId), gt(messages.id, afterId)))
     .orderBy(messages.createdAt);

@@ -67,8 +67,7 @@ function PasswordPage() {
         await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
       const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
-      const reEncryptedKeys: { id: string; encryptedPrivateKey: string }[] =
-        [];
+      const reEncryptedKeys: { id: string; encryptedPrivateKey: string }[] = [];
       for (const key of encryptedKeys) {
         try {
           const privateKey = await decryptPrivateKey(
@@ -116,8 +115,8 @@ function PasswordPage() {
     <div className="mx-auto max-w-md p-8 font-sans">
       <h1 className="text-foreground text-2xl font-bold">Password</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        Keys encrypted with your current password will be re-encrypted with
-        your new password. Keys under a different password will be unchanged.
+        Keys encrypted with your current password will be re-encrypted with your
+        new password. Keys under a different password will be unchanged.
       </p>
       {currentTier === "red" && (
         <p className="text-destructive mt-3 text-sm font-medium">

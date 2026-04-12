@@ -1,4 +1,3 @@
-
 KeyPears is designed to protect user data even if the server is fully
 compromised. This page describes what the system protects against, and what it
 does not.

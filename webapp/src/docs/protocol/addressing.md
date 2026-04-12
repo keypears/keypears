@@ -1,4 +1,3 @@
-
 A KeyPears address has the form `name@domain` — intentionally identical to an
 email address. The protocol places no restrictions on the local part beyond what
 email itself allows. An organization with existing email addresses can use the
@@ -28,13 +27,13 @@ if you own your domain, you own your identity.
 
 ## Comparison with other systems
 
-| System   | Address format     | Email-compatible |
-| -------- | ------------------ | ---------------- |
-| Email    | `name@domain`      | Yes              |
-| KeyPears | `name@domain`      | Yes              |
-| Signal   | Phone number       | No               |
-| Matrix   | `@user:domain`     | No               |
-| Keybase  | `username`         | No               |
+| System   | Address format | Email-compatible |
+| -------- | -------------- | ---------------- |
+| Email    | `name@domain`  | Yes              |
+| KeyPears | `name@domain`  | Yes              |
+| Signal   | Phone number   | No               |
+| Matrix   | `@user:domain` | No               |
+| Keybase  | `username`     | No               |
 
 KeyPears is the only federated encrypted communication system that uses the
 standard email address format. Your email address can be your KeyPears address.

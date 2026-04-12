@@ -257,7 +257,7 @@ export const getMyActiveEncryptedKey = createServerFn({
       publicKey: key.publicKey,
       encryptedPrivateKey: key.encryptedPrivateKey,
     };
-});
+  });
 
 export const getRemotePowChallenge = createServerFn({ method: "POST" })
   .inputValidator(

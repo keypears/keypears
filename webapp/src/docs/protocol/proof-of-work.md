@@ -1,4 +1,3 @@
-
 KeyPears uses client-side proof of work as a Sybil resistance mechanism,
 building on Hashcash (Back, 2002) with adaptations for an interactive web
 protocol.

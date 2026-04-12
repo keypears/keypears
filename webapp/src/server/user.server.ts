@@ -88,7 +88,9 @@ export async function getUsersForDomain(domainId: string) {
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(and(eq(users.domainId, domainId), sql`${users.passwordHash} IS NOT NULL`))
+    .where(
+      and(eq(users.domainId, domainId), sql`${users.passwordHash} IS NOT NULL`),
+    )
     .orderBy(users.name);
 }
 
@@ -220,10 +222,7 @@ export async function getUserById(id: string) {
   return row ?? null;
 }
 
-export async function getUserByNameAndDomain(
-  name: string,
-  domainId: string,
-) {
+export async function getUserByNameAndDomain(name: string, domainId: string) {
   const [row] = await db
     .select()
     .from(users)
@@ -307,7 +306,13 @@ export async function saveUser(
   const passwordHash = await hashLoginKey(loginKeyHex, id);
   await db
     .update(users)
-    .set({ name, domainId, passwordHash, tosAcceptedAt: new Date(), expiresAt: null })
+    .set({
+      name,
+      domainId,
+      passwordHash,
+      tosAcceptedAt: new Date(),
+      expiresAt: null,
+    })
     .where(eq(users.id, id));
   await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
 }
@@ -471,10 +476,8 @@ export async function updatePowSettings(
   channelDifficulty: bigint,
   messageDifficulty: bigint,
 ) {
-  const {
-    MIN_CHANNEL_DIFFICULTY,
-    MIN_MESSAGE_DIFFICULTY,
-  } = await import("./pow.server");
+  const { MIN_CHANNEL_DIFFICULTY, MIN_MESSAGE_DIFFICULTY } =
+    await import("./pow.server");
 
   if (channelDifficulty < MIN_CHANNEL_DIFFICULTY) {
     throw new Error(
@@ -527,9 +530,7 @@ export async function createSession(
   return { token, tokenHash };
 }
 
-export async function resolveSession(
-  token: string,
-): Promise<string | null> {
+export async function resolveSession(token: string): Promise<string | null> {
   const tokenHash = hashSessionToken(token);
   const [row] = await db
     .select({ userId: sessions.userId, expiresAt: sessions.expiresAt })
@@ -560,6 +561,9 @@ export async function deleteAllSessionsExcept(
   await db
     .delete(sessions)
     .where(
-      and(eq(sessions.userId, userId), ne(sessions.tokenHash, currentTokenHash)),
+      and(
+        eq(sessions.userId, userId),
+        ne(sessions.tokenHash, currentTokenHash),
+      ),
     );
 }

@@ -128,7 +128,8 @@ function WelcomePage() {
     try {
       const passwordKey = await derivePasswordKey(password);
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const encryptionKey =
+        await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       cacheEncryptionKey(encryptionKey);

@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  getMyPowSettings,
-  updateMyPowSettings,
-} from "~/server/user.functions";
+import { getMyPowSettings, updateMyPowSettings } from "~/server/user.functions";
 import { PowBadge } from "~/components/PowBadge";
 
 const PRESETS = [
@@ -71,9 +68,9 @@ function SettingsPage() {
     <div className="mx-auto max-w-md p-8 font-sans">
       <h1 className="text-foreground text-2xl font-bold">Settings</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        Control how much proof of work senders must compute to reach you.
-        Higher difficulty means stronger spam protection, but may
-        discourage legitimate senders.
+        Control how much proof of work senders must compute to reach you. Higher
+        difficulty means stronger spam protection, but may discourage legitimate
+        senders.
       </p>
 
       <section className="mt-8">
@@ -136,9 +133,7 @@ function SettingsPage() {
         </div>
       </section>
 
-      {status && (
-        <p className="text-muted-foreground mt-6 text-sm">{status}</p>
-      )}
+      {status && <p className="text-muted-foreground mt-6 text-sm">{status}</p>}
     </div>
   );
 }

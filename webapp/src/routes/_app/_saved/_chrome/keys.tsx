@@ -241,9 +241,7 @@ function KeysPage() {
                       }}
                       className="text-muted-foreground hover:text-foreground text-xs underline"
                     >
-                      {changingKeyId === key.id
-                        ? "Cancel"
-                        : "Change password"}
+                      {changingKeyId === key.id ? "Cancel" : "Change password"}
                     </button>
                     <span className="text-muted-foreground text-xs">
                       {new Date(key.createdAt).toLocaleDateString()}
@@ -253,7 +251,7 @@ function KeysPage() {
                   {changingKeyId === key.id && (
                     <form
                       onSubmit={handleReEncrypt}
-                      className="border-border/30 border-t-0 rounded-b border px-4 py-3"
+                      className="border-border/30 rounded-b border border-t-0 px-4 py-3"
                     >
                       <div className="flex flex-col gap-3">
                         <input

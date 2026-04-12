@@ -1,4 +1,3 @@
-
 KeyPears uses a three-tier key derivation system to separate authentication from
 encryption. The user's password is never stored anywhere. An **encryption key**
 is derived from the password and cached on the client, enabling all crypto
@@ -139,14 +138,14 @@ discarded.
 
 ## Algorithms
 
-| Purpose          | Algorithm                    | Library                   |
-| ---------------- | ---------------------------- | ------------------------- |
-| Hash             | SHA-256                      | `@webbuf/sha256`          |
-| MAC              | HMAC-SHA-256                 | `@webbuf/sha256`          |
-| KDF              | PBKDF2-HMAC-SHA-256 (RFC 8018) | Web Crypto (`crypto.subtle`) |
-| Encryption       | AES-256-GCM (AEAD)           | `@webbuf/aesgcm`          |
-| Key pairs        | P-256 (NIST, FIPS 186-5)     | `@webbuf/p256`            |
-| Rounds per tier  | 300,000 client-side, 600,000 server-side | |
+| Purpose         | Algorithm                                | Library                      |
+| --------------- | ---------------------------------------- | ---------------------------- |
+| Hash            | SHA-256                                  | `@webbuf/sha256`             |
+| MAC             | HMAC-SHA-256                             | `@webbuf/sha256`             |
+| KDF             | PBKDF2-HMAC-SHA-256 (RFC 8018)           | Web Crypto (`crypto.subtle`) |
+| Encryption      | AES-256-GCM (AEAD)                       | `@webbuf/aesgcm`             |
+| Key pairs       | P-256 (NIST, FIPS 186-5)                 | `@webbuf/p256`               |
+| Rounds per tier | 300,000 client-side, 600,000 server-side |                              |
 
 ## Implementation
 

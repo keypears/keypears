@@ -28,9 +28,7 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
     if (startedRef.current === challengeKey) return;
     startedRef.current = challengeKey;
 
-    miner
-      .mine(challenge, { showSolved: true })
-      .catch(() => {});
+    miner.mine(challenge, { showSolved: true }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
   }, [challenge]);
 
@@ -80,9 +78,11 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
         )}
 
         {miner.phase === "solved" && (
-          <SolvedState onContinue={() => {
-            if (miner.result) onComplete(miner.result);
-          }} />
+          <SolvedState
+            onContinue={() => {
+              if (miner.result) onComplete(miner.result);
+            }}
+          />
         )}
 
         {miner.phase === "idle" && (

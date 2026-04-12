@@ -45,9 +45,7 @@ export default {
 
     // Serve .well-known/keypears.json
     if (url.pathname === "/.well-known/keypears.json") {
-      return addSecurityHeaders(
-        Response.json({ apiDomain: getApiDomain() }),
-      );
+      return addSecurityHeaders(Response.json({ apiDomain: getApiDomain() }));
     }
 
     // Handle /api/* via oRPC

@@ -113,7 +113,10 @@ export async function decryptMessageContent(
   theirPubKey: FixedBuf<33>,
 ): Promise<MessageContent> {
   const key = await computeMessageKey(myPrivKey, theirPubKey);
-  const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(encryptedHex), key);
+  const decrypted = await aesgcmDecryptNative(
+    WebBuf.fromHex(encryptedHex),
+    key,
+  );
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 

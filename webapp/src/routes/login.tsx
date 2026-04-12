@@ -51,7 +51,11 @@ function LoginPage() {
       return;
     }
 
-    credentialsRef.current = { name: parsed.name, domain: parsed.domain, password };
+    credentialsRef.current = {
+      name: parsed.name,
+      domain: parsed.domain,
+      password,
+    };
 
     try {
       const challenge = await getLoginPowChallenge();
@@ -73,7 +77,8 @@ function LoginPage() {
       await login({
         data: { name: creds.name, domain: creds.domain, loginKey, ...solution },
       });
-      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const encryptionKey =
+        await deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
       cacheEntropyTier(entropyTier(calculatePasswordEntropy(creds.password)));
       navigate({ to: "/home" });
@@ -95,7 +100,10 @@ function LoginPage() {
       <div className="flex justify-end px-6 py-4">
         <span className="text-muted-foreground text-sm">
           Don&apos;t have an account?{" "}
-          <Link to="/" className="text-accent hover:text-accent/80 no-underline">
+          <Link
+            to="/"
+            className="text-accent hover:text-accent/80 no-underline"
+          >
             Create one
           </Link>
         </span>

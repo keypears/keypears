@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  Link,
+  useLocation,
+} from "@tanstack/react-router";
 import { getMyUser } from "~/server/user.functions";
 import { UserDropdown } from "~/components/UserDropdown";
 import { Footer } from "~/components/Footer";
@@ -26,7 +31,11 @@ export const Route = createFileRoute("/_docs")({
 const docsNav = [
   { name: "Welcome", path: "/docs", icon: BookOpen },
   { name: "Addressing", path: "/docs/protocol/addressing", icon: FileText },
-  { name: "Key Derivation", path: "/docs/protocol/key-derivation", icon: KeyRound },
+  {
+    name: "Key Derivation",
+    path: "/docs/protocol/key-derivation",
+    icon: KeyRound,
+  },
   { name: "Encryption", path: "/docs/protocol/encryption", icon: Shield },
   { name: "Proof of Work", path: "/docs/protocol/proof-of-work", icon: Cpu },
   { name: "Federation", path: "/docs/federation", icon: Globe },
@@ -53,7 +62,7 @@ function DocsLayout() {
         </Link>
         <div className="border-border/30 border-t" />
         <div className="px-4 pt-3 pb-1">
-          <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
+          <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
             Documentation
           </span>
         </div>
@@ -184,7 +193,9 @@ function DocsLayout() {
         <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
           {user?.name && (
             <Link
-              to={user.domain ? `/${user.name}@${user.domain}` : `/${user.name}`}
+              to={
+                user.domain ? `/${user.name}@${user.domain}` : `/${user.name}`
+              }
               className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
             >
               {user.domain ? `${user.name}@${user.domain}` : user.name}

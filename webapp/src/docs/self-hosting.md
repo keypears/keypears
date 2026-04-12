@@ -1,4 +1,3 @@
-
 Any domain can run a KeyPears server. This guide covers the requirements,
 configuration, and setup.
 
@@ -11,12 +10,12 @@ configuration, and setup.
 
 ## Environment variables
 
-| Variable             | Description                                        | Example                |
-| -------------------- | -------------------------------------------------- | ---------------------- |
-| `KEYPEARS_DOMAIN`    | Address domain (goes after `@` in user addresses)  | `acme.com`             |
-| `KEYPEARS_API_DOMAIN`| Where this server's API runs                       | `keypears.acme.com`    |
-| `DATABASE_URL`       | MySQL connection string                            | `mysql://user:pass@localhost:3306/keypears` |
-| `KEYPEARS_SECRET`    | Master secret for PoW signing keys (64-char hex)   | `a3b4c5...`            |
+| Variable              | Description                                       | Example                                     |
+| --------------------- | ------------------------------------------------- | ------------------------------------------- |
+| `KEYPEARS_DOMAIN`     | Address domain (goes after `@` in user addresses) | `acme.com`                                  |
+| `KEYPEARS_API_DOMAIN` | Where this server's API runs                      | `keypears.acme.com`                         |
+| `DATABASE_URL`        | MySQL connection string                           | `mysql://user:pass@localhost:3306/keypears` |
+| `KEYPEARS_SECRET`     | Master secret for PoW signing keys (64-char hex)  | `a3b4c5...`                                 |
 
 For self-hosted deployments where the address domain and API domain are the
 same, set both `KEYPEARS_DOMAIN` and `KEYPEARS_API_DOMAIN` to the same value.

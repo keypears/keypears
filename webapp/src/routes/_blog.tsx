@@ -42,7 +42,7 @@ function BlogLayout() {
           <Link
             to="/blog"
             onClick={onSelect}
-            className="text-muted-foreground text-xs font-bold uppercase tracking-wider no-underline"
+            className="text-muted-foreground text-xs font-bold tracking-wider uppercase no-underline"
           >
             Blog
           </Link>
@@ -173,9 +173,7 @@ function BlogLayout() {
           {user?.name && (
             <Link
               to={
-                user.domain
-                  ? `/${user.name}@${user.domain}`
-                  : `/${user.name}`
+                user.domain ? `/${user.name}@${user.domain}` : `/${user.name}`
               }
               className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
             >

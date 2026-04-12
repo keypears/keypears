@@ -13,22 +13,12 @@ import {
   entropyColor,
 } from "~/lib/auth";
 import { parseDomainInput, validateEmail } from "~/lib/vault-validation";
-import {
-  KeyRound,
-  FileText,
-  Lock,
-  Plus,
-  Search,
-  X,
-} from "lucide-react";
+import { KeyRound, FileText, Lock, Plus, Search, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/vault")({
   head: () => ({ meta: [{ title: "Vault — KeyPears" }] }),
   loader: async () => {
-    const [entries, keyData] = await Promise.all([
-      getMyEntries(),
-      getMyKeys(),
-    ]);
+    const [entries, keyData] = await Promise.all([getMyEntries(), getMyKeys()]);
     return { entries, keyData };
   },
   component: VaultPage,
@@ -401,28 +391,29 @@ function CreateEntryForm({
                 onChange={(e) => setDomain(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
               />
-              {domain && (() => {
-                const { hint, domain: suggested } = parseDomainInput(domain);
-                if (!hint) return null;
-                return (
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {suggested && suggested !== domain.trim() ? (
-                      <>
-                        {hint}{" "}
-                        <button
-                          type="button"
-                          onClick={() => setDomain(suggested)}
-                          className="text-accent hover:text-accent/80"
-                        >
-                          Use it
-                        </button>
-                      </>
-                    ) : (
-                      hint
-                    )}
-                  </p>
-                );
-              })()}
+              {domain &&
+                (() => {
+                  const { hint, domain: suggested } = parseDomainInput(domain);
+                  if (!hint) return null;
+                  return (
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {suggested && suggested !== domain.trim() ? (
+                        <>
+                          {hint}{" "}
+                          <button
+                            type="button"
+                            onClick={() => setDomain(suggested)}
+                            className="text-accent hover:text-accent/80"
+                          >
+                            Use it
+                          </button>
+                        </>
+                      ) : (
+                        hint
+                      )}
+                    </p>
+                  );
+                })()}
             </div>
             <div>
               <label className="text-muted-foreground mb-1 block text-xs">

@@ -23,13 +23,13 @@ app.
 
 Every symmetric primitive is now a NIST standard:
 
-| Purpose     | Before                           | After                    | NIST standard |
-| ----------- | -------------------------------- | ------------------------ | ------------- |
-| Hash        | BLAKE3                           | SHA-256                  | FIPS 180-4    |
-| MAC         | BLAKE3 keyed MAC                 | HMAC-SHA-256             | FIPS 198-1    |
-| KDF         | Custom BLAKE3 iteration          | PBKDF2-HMAC-SHA-256      | SP 800-132    |
-| Encryption  | ACB3 (AES-256-CBC + BLAKE3-MAC)  | AES-256-GCM              | SP 800-38D    |
-| Key pairs   | secp256k1                        | P-256                    | FIPS 186-5    |
+| Purpose    | Before                          | After               | NIST standard |
+| ---------- | ------------------------------- | ------------------- | ------------- |
+| Hash       | BLAKE3                          | SHA-256             | FIPS 180-4    |
+| MAC        | BLAKE3 keyed MAC                | HMAC-SHA-256        | FIPS 198-1    |
+| KDF        | Custom BLAKE3 iteration         | PBKDF2-HMAC-SHA-256 | SP 800-132    |
+| Encryption | ACB3 (AES-256-CBC + BLAKE3-MAC) | AES-256-GCM         | SP 800-38D    |
+| Key pairs  | secp256k1                       | P-256               | FIPS 186-5    |
 
 The elliptic curve change is the biggest conceptual shift. secp256k1 is the
 Bitcoin curve — same size as P-256, comparable security, and some of the
@@ -47,7 +47,7 @@ reason we switched.
 
 We switched because the goal of a security-sensitive app isn't to ship the
 most modern cryptography — it's to ship cryptography that a reviewer will
-find *boring*. When an auditor opens the crypto folder, we want them to see
+find _boring_. When an auditor opens the crypto folder, we want them to see
 exactly the primitives they've seen a hundred times before, in exactly the
 construction they expect, with no creative choices to evaluate. That's
 what NIST approval buys:
@@ -130,7 +130,7 @@ Password
 
 The client-side pair of tiers that derive the encryption key totals 600K
 rounds — meeting NIST on its own. The server-side tier that hashes the
-login key is *also* 600K rounds — meeting NIST on its own. Every path
+login key is _also_ 600K rounds — meeting NIST on its own. Every path
 through the KDF meets the recommendation independently, with no
 combined-computation hand-waving required. The full password-to-stored-hash
 chain runs 1,200,000 rounds.

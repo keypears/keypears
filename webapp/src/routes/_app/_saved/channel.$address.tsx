@@ -39,7 +39,9 @@ import {
 
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   head: ({ loaderData }) => ({
-    meta: [{ title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" }],
+    meta: [
+      { title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" },
+    ],
   }),
   loader: async ({ params }) => {
     const address = params.address;
@@ -96,11 +98,16 @@ function ChannelPage() {
   const [keyMap, setKeyMap] = useState<
     Map<string, { encryptedPrivateKey: string; loginKeyHash: string | null }>
   >(new Map());
-  const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(null);
+  const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(
+    null,
+  );
   useEffect(() => {
     getMyActiveEncryptedKey().then(setMyKeyData);
     getMyKeys().then((data) => {
-      const map = new Map<string, { encryptedPrivateKey: string; loginKeyHash: string | null }>();
+      const map = new Map<
+        string,
+        { encryptedPrivateKey: string; loginKeyHash: string | null }
+      >();
       for (const k of data.keys) {
         map.set(k.publicKey, {
           encryptedPrivateKey: k.encryptedPrivateKey,
@@ -140,7 +147,10 @@ function ChannelPage() {
         if (!document.hidden) {
           try {
             const newMsgs = await pollNewMessages({
-              data: { counterpartyAddress: address, afterId: lastIdRef.current },
+              data: {
+                counterpartyAddress: address,
+                afterId: lastIdRef.current,
+              },
             });
             if (!active) break;
             if (newMsgs.length > 0) {
@@ -329,9 +339,7 @@ function ChannelPage() {
     // Mark as saved locally
     setMessageList((prev) =>
       prev.map((m) =>
-        m.id === messageId
-          ? { ...m, savedVaultEntryId: result.id }
-          : m,
+        m.id === messageId ? { ...m, savedVaultEntryId: result.id } : m,
       ),
     );
     navigate({
@@ -366,7 +374,11 @@ function ChannelPage() {
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientPubKeyHex);
-      const encryptedContent = await encryptMessage(text, myPrivKey, theirPubKey);
+      const encryptedContent = await encryptMessage(
+        text,
+        myPrivKey,
+        theirPubKey,
+      );
 
       pendingSendRef.current = {
         recipientAddress: address,
@@ -585,32 +597,36 @@ function ChannelPage() {
                           ? "Login"
                           : "Secret"}
                       </p>
-                      {!isMine && (() => {
-                        const sec = result.content.type === "secret" ? result.content.secret : null;
-                        if (!sec) return null;
-                        if (msg.savedVaultEntryId) {
+                      {!isMine &&
+                        (() => {
+                          const sec =
+                            result.content.type === "secret"
+                              ? result.content.secret
+                              : null;
+                          if (!sec) return null;
+                          if (msg.savedVaultEntryId) {
+                            return (
+                              <Link
+                                to="/vault/$id"
+                                params={{ id: msg.savedVaultEntryId }}
+                                className="text-accent hover:text-accent/80 mt-2 inline-block text-xs no-underline"
+                              >
+                                Saved
+                              </Link>
+                            );
+                          }
                           return (
-                            <Link
-                              to="/vault/$id"
-                              params={{ id: msg.savedVaultEntryId }}
-                              className="text-accent hover:text-accent/80 mt-2 inline-block text-xs no-underline"
+                            <button
+                              onClick={() =>
+                                handleSaveSecret(sec, msg.id, msg.senderAddress)
+                              }
+                              className="bg-accent text-accent-foreground hover:bg-accent/90 mt-2 inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs transition-all"
                             >
-                              Saved
-                            </Link>
+                              <LockIcon className="h-3 w-3" />
+                              Save to Vault
+                            </button>
                           );
-                        }
-                        return (
-                          <button
-                            onClick={() =>
-                              handleSaveSecret(sec, msg.id, msg.senderAddress)
-                            }
-                            className="bg-accent text-accent-foreground hover:bg-accent/90 mt-2 inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs transition-all"
-                          >
-                            <LockIcon className="h-3 w-3" />
-                            Save to Vault
-                          </button>
-                        );
-                      })()}
+                        })()}
                       <p className="text-muted-foreground mt-1 text-xs">
                         {new Date(msg.createdAt).toLocaleTimeString()}
                       </p>

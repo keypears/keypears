@@ -1,4 +1,3 @@
-
 KeyPears is a federated protocol. Any domain can host a KeyPears server, and
 users across different domains can communicate seamlessly. The model is
 analogous to email: your address is `name@domain`, and the domain determines
@@ -155,13 +154,13 @@ queue, no silent retry, and no delayed bounce notification.
 
 Each message stored on the server contains:
 
-| Field              | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `senderAddress`    | Full address (e.g. `alice@acme.com`)           |
-| `encryptedContent` | AES-256-GCM-encrypted message content          |
-| `senderPubKey`     | Sender's public key at time of sending         |
-| `recipientPubKey`  | Recipient's public key at time of sending      |
-| `isRead`           | Whether the recipient has viewed this message  |
+| Field              | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `senderAddress`    | Full address (e.g. `alice@acme.com`)          |
+| `encryptedContent` | AES-256-GCM-encrypted message content         |
+| `senderPubKey`     | Sender's public key at time of sending        |
+| `recipientPubKey`  | Recipient's public key at time of sending     |
+| `isRead`           | Whether the recipient has viewed this message |
 
 Both public keys are stored so the recipient knows which keys to use for ECDH
 decryption, even after key rotation.
@@ -177,13 +176,13 @@ and the recipient's server (after pulling the message).
 All server-to-server communication uses oRPC — a type-safe RPC framework. The
 API is mounted at `/api` and provides the following public procedures:
 
-| Procedure          | Description                                                   |
-| ------------------ | ------------------------------------------------------------- |
-| `serverInfo`       | Returns domain info                                           |
-| `getPublicKey`     | Returns active public key for an address                      |
-| `getPowChallenge`  | Issues an authenticated PoW challenge (requires sender signature) |
-| `notifyMessage`    | Notifies server of a new incoming message                     |
-| `pullMessage`      | Serves a pending message delivery (idempotent, token-based)   |
+| Procedure         | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `serverInfo`      | Returns domain info                                               |
+| `getPublicKey`    | Returns active public key for an address                          |
+| `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
+| `notifyMessage`   | Notifies server of a new incoming message                         |
+| `pullMessage`     | Serves a pending message delivery (idempotent, token-based)       |
 
 ## Migration
 

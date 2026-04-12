@@ -1,4 +1,3 @@
-
 ## HTTPS with local domains
 
 We use **Caddy** as a reverse proxy and **dnsmasq** for wildcard DNS to access
@@ -76,12 +75,12 @@ caddy reload --config ~/.caddy/Caddyfile
 
 Four domains test three deployment patterns:
 
-| Domain                     | Port | Purpose                                       |
-| -------------------------- | ---- | --------------------------------------------- |
-| `keypears.test`            | 3500 | Primary self-hosted KeyPears server            |
-| `passapples.test`          | 3510 | Astro landing page (subdomain hosting)         |
-| `keypears.passapples.test` | 3512 | KeyPears server for passapples domain          |
-| `lockberries.test`         | 3520 | Astro landing page (third-party hosted)        |
+| Domain                     | Port | Purpose                                 |
+| -------------------------- | ---- | --------------------------------------- |
+| `keypears.test`            | 3500 | Primary self-hosted KeyPears server     |
+| `passapples.test`          | 3510 | Astro landing page (subdomain hosting)  |
+| `keypears.passapples.test` | 3512 | KeyPears server for passapples domain   |
+| `lockberries.test`         | 3520 | Astro landing page (third-party hosted) |
 
 - **keypears.test** — the main KeyPears server. Address domain and API domain
   are the same.
