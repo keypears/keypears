@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   claimDomainFn,
   getMyDomains,
+  getMyUser,
   getDomainUsersFn,
   createDomainUserFn,
   resetDomainUserPasswordFn,
@@ -10,6 +11,7 @@ import {
   toggleOpenRegistrationFn,
   toggleAllowThirdPartyDomainsFn,
 } from "~/server/user.functions";
+import { getServerApiDomain } from "~/server/config.functions";
 import {
   derivePasswordKey,
   deriveLoginKeyFromPasswordKey,
@@ -31,27 +33,71 @@ import {
   Check,
   X,
   Loader2,
+  Copy,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/domains")({
   head: () => ({ meta: [{ title: "Domains — KeyPears" }] }),
-  loader: () => getMyDomains(),
+  loader: async () => {
+    const [domains, user, apiDomain] = await Promise.all([
+      getMyDomains(),
+      getMyUser(),
+      getServerApiDomain(),
+    ]);
+    return { domains, user, apiDomain };
+  },
   component: DomainsPage,
 });
 
 function DomainsPage() {
-  const initialDomains = Route.useLoaderData();
-  const [domainList, setDomainList] = useState(initialDomains);
+  const data = Route.useLoaderData();
+  const [domainList, setDomainList] = useState(data.domains);
 
   // Sync loader data into state on navigation
   useEffect(() => {
-    setDomainList(initialDomains);
-  }, [initialDomains]);
+    setDomainList(data.domains);
+  }, [data.domains]);
 
-  const [claimInput, setClaimInput] = useState("");
+  // The user's full address — pre-fills the `admin` field of the
+  // generated keypears.json. Both fields are guaranteed to be set
+  // because this route lives under _saved.
+  const myAddress =
+    data.user?.name && data.user?.domain
+      ? `${data.user.name}@${data.user.domain}`
+      : "";
+
+  // Generator state. `domainInput` doubles as the value passed to
+  // claimDomainFn — there's only one source of truth for the domain.
+  const [domainInput, setDomainInput] = useState("");
+  const [apiDomainInput, setApiDomainInput] = useState(data.apiDomain);
+  const [adminInput, setAdminInput] = useState(myAddress);
   const [claimError, setClaimError] = useState("");
   const [claimStatus, setClaimStatus] = useState("");
   const [claiming, setClaiming] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const trimmedApiDomain = apiDomainInput.trim();
+  const trimmedAdmin = adminInput.trim();
+  const trimmedDomain = domainInput.trim();
+
+  // Live JSON, used both for the highlighted preview and the clipboard
+  // copy. Omit `admin` entirely when blank — it's optional in the spec
+  // and the smaller object is a useful visual cue.
+  const jsonString = useMemo(() => {
+    const obj: Record<string, string> = { apiDomain: trimmedApiDomain };
+    if (trimmedAdmin) obj.admin = trimmedAdmin;
+    return JSON.stringify(obj, null, 2);
+  }, [trimmedApiDomain, trimmedAdmin]);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(jsonString);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Some browsers / contexts disallow clipboard writes; fail silently.
+    }
+  }
 
   async function handleClaim(e: React.FormEvent) {
     e.preventDefault();
@@ -60,10 +106,10 @@ function DomainsPage() {
     setClaiming(true);
     try {
       setClaimStatus("Verifying keypears.json...");
-      await claimDomainFn({ data: claimInput.trim() });
+      await claimDomainFn({ data: trimmedDomain });
       const updated = await getMyDomains();
       setDomainList(updated);
-      setClaimInput("");
+      setDomainInput("");
       setClaimStatus("");
     } catch (err: unknown) {
       setClaimError(
@@ -85,25 +131,90 @@ function DomainsPage() {
           Claim a Domain
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          To claim a domain, add a{" "}
+          To claim a domain, host a{" "}
+          <code className="text-foreground">keypears.json</code> file at{" "}
           <code className="text-foreground">/.well-known/keypears.json</code>{" "}
-          file to the domain with your address as{" "}
-          <code className="text-foreground">admin</code> and this server as{" "}
-          <code className="text-foreground">apiDomain</code>.
+          on the domain you control, then click Claim.
         </p>
-        <form onSubmit={handleClaim} className="mt-4 flex gap-3">
-          <input
-            type="text"
-            placeholder="e.g. lockberries.test"
-            value={claimInput}
-            onChange={(e) => setClaimInput(e.target.value)}
-            className="bg-background-dark border-border text-foreground flex-1 rounded border px-4 py-2 text-sm"
-            required
-          />
+
+        <form onSubmit={handleClaim} className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            <label className="text-muted-foreground text-xs">
+              Domain
+              <input
+                type="text"
+                placeholder="e.g. lockberries.test"
+                value={domainInput}
+                onChange={(e) => setDomainInput(e.target.value)}
+                className="bg-background-dark border-border text-foreground mt-1 w-full rounded border px-3 py-2 text-sm"
+                required
+              />
+            </label>
+            <label className="text-muted-foreground text-xs">
+              API domain
+              <input
+                type="text"
+                placeholder={data.apiDomain}
+                value={apiDomainInput}
+                onChange={(e) => setApiDomainInput(e.target.value)}
+                className="bg-background-dark border-border text-foreground mt-1 w-full rounded border px-3 py-2 text-sm"
+                required
+              />
+              <span className="text-muted-foreground mt-1 block text-[11px]">
+                Must match this server&apos;s API domain for the claim to
+                verify.
+              </span>
+            </label>
+            <label className="text-muted-foreground text-xs">
+              Admin{" "}
+              <span className="text-muted-foreground/70">(optional)</span>
+              <input
+                type="text"
+                placeholder={myAddress || `you@${data.apiDomain}`}
+                value={adminInput}
+                onChange={(e) => setAdminInput(e.target.value)}
+                className="bg-background-dark border-border text-foreground mt-1 w-full rounded border px-3 py-2 text-sm"
+              />
+              <span className="text-muted-foreground mt-1 block text-[11px]">
+                The KeyPears address authorized to manage this domain.
+              </span>
+            </label>
+          </div>
+
+          <div className="mt-2">
+            <p className="text-muted-foreground text-xs">
+              Place this at{" "}
+              <code className="text-foreground">
+                https://{trimmedDomain || "<your-domain>"}/.well-known/keypears.json
+              </code>
+            </p>
+            <div className="relative mt-2">
+              <HighlightedJson
+                apiDomain={trimmedApiDomain}
+                admin={trimmedAdmin}
+              />
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="bg-background border-border text-muted-foreground hover:text-foreground absolute top-2 right-2 inline-flex items-center gap-1 rounded border px-2 py-1 text-xs transition-all"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3 text-green-500" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" /> Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={claiming}
-            className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded px-4 py-2 text-sm transition-all disabled:opacity-50"
+            disabled={claiming || !trimmedDomain}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 mt-2 inline-flex w-fit items-center gap-2 rounded px-4 py-2 text-sm transition-all disabled:opacity-50"
           >
             <Globe className="h-4 w-4" />
             {claiming ? "Claiming..." : "Claim"}
@@ -640,5 +751,38 @@ function DomainCard({
         </div>
       )}
     </div>
+  );
+}
+
+// Tiny syntax-highlighted JSON renderer for the keypears.json preview.
+// The structure is fixed (one or two fields) so we don't need a full
+// tokenizer — keys, strings, and punctuation are emitted by hand using
+// existing theme tokens so it adapts to light/dark mode for free.
+function HighlightedJson({
+  apiDomain,
+  admin,
+}: {
+  apiDomain: string;
+  admin: string;
+}) {
+  return (
+    <pre className="bg-background-dark border-border text-foreground overflow-x-auto rounded border p-4 font-mono text-sm leading-relaxed">
+      <span className="text-muted-foreground">{"{"}</span>
+      {"\n  "}
+      <span className="text-accent">&quot;apiDomain&quot;</span>
+      <span className="text-muted-foreground">: </span>
+      <span className="text-green-500">&quot;{apiDomain}&quot;</span>
+      {admin && (
+        <>
+          <span className="text-muted-foreground">,</span>
+          {"\n  "}
+          <span className="text-accent">&quot;admin&quot;</span>
+          <span className="text-muted-foreground">: </span>
+          <span className="text-green-500">&quot;{admin}&quot;</span>
+        </>
+      )}
+      {"\n"}
+      <span className="text-muted-foreground">{"}"}</span>
+    </pre>
   );
 }
