@@ -214,3 +214,45 @@ standard PBKDF2 (RFC 8018). Also required passing `.buf` on `FixedBuf` arguments
 to `sha256Hmac()` since it takes `WebBuf` keys (unlike `blake3Mac` which accepted
 `FixedBuf<32>` directly). The `api.router.ts` dynamic imports of `@webbuf/secp256k1`
 and `@webbuf/blake3` were updated to `@webbuf/p256` and `@webbuf/sha256`.
+
+## Experiment 2 — Increase KDF rounds to meet NIST 600K minimum
+
+Bump `CLIENT_KDF_ROUNDS` from 100K to 300K. Leave `SERVER_KDF_ROUNDS` at 100K.
+
+### Rationale
+
+NIST SP 800-132 recommends at least 600K rounds of PBKDF2-HMAC-SHA256. The
+recommendation assumes a traditional server-side model. KeyPears does the
+majority of KDF work on the client, with the server adding a final layer:
+
+```
+Password
+  → Password Key      (300K rounds, client)
+    → Login Key       (300K rounds, client) → Server hash (100K rounds)
+    → Encryption Key  (300K rounds, client)
+```
+
+**Attack vector 1 — DB compromise (crack login from password hash):**
+Attacker needs 300K + 300K + 100K = 700K rounds per guess. Exceeds 600K.
+
+**Attack vector 2 — localStorage compromise (crack encryption key from password):**
+Attacker needs 300K + 300K = 600K rounds per guess. Meets 600K exactly.
+
+The server's 100K rounds stay at 100K because they run synchronously on every
+login request. 300K server rounds would add ~66ms latency per login (benchmarked
+at ~22ms per 100K on a fast Mac). 100K keeps server latency acceptable while the
+client-side rounds provide the bulk of the protection.
+
+### Files to change
+
+**1. `lib/auth.ts:8`** — Change `CLIENT_KDF_ROUNDS` from `100_000` to `300_000`.
+
+That's it. One constant. The server rounds stay at 100K.
+
+### Verification
+
+- `bun run build` — compiles
+- `bun run test` — passes
+- Benchmark: run `derivePasswordKey()` on a fast machine and a slow machine to
+  confirm UX is acceptable (~66ms on M-series Mac, expected ~1-2s on slow
+  hardware)
