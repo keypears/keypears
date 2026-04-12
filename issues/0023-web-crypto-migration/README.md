@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-12"
+closed = "2026-04-12"
 +++
 
 # Web Crypto API migration for NIST primitives
@@ -1207,3 +1208,143 @@ wins from this issue were all in experiment 2 (PBKDF2 off the main
 thread + AES-GCM with AES-NI). Experiment 3 is mostly a cleanup pass
 that removes webbuf dependency from the hot paths and unlocks any future
 wins from hardware-accelerated ECDSA/ECDH on platforms that have it.
+
+## Conclusion
+
+KeyPears now uses the browser's Web Crypto API (`crypto.subtle`) for every
+hot-path cryptographic primitive the app needs, with the NIST migration
+from issue 0021 being what made this possible in the first place. The
+investigation proceeded in three experiments, each scoped narrowly enough
+to ship independently and to back out if something went wrong.
+
+### What migrated
+
+| Primitive               | Before                      | After                        |
+| ----------------------- | --------------------------- | ---------------------------- |
+| PBKDF2-HMAC-SHA-256     | `@webbuf/pbkdf2-sha256`     | `crypto.subtle.deriveBits`   |
+| AES-256-GCM             | `@webbuf/aesgcm`            | `crypto.subtle.encrypt/decrypt` |
+| P-256 ECDH              | `@webbuf/p256`              | `crypto.subtle.deriveBits`   |
+| P-256 ECDSA sign        | `@webbuf/p256`              | `crypto.subtle.sign`         |
+| P-256 ECDSA verify      | `@webbuf/p256`              | `crypto.subtle.verify`       |
+
+### What stays on webbuf (intentionally)
+
+| Primitive               | Reason                                                         |
+| ----------------------- | -------------------------------------------------------------- |
+| SHA-256 (32-byte inputs)| 1.5–2.2x faster than Web Crypto (promise wrapper overhead)    |
+| HMAC-SHA-256 (32-byte) | 1.5–10x faster than Web Crypto (per-call allocation in subtle)|
+| P-256 key generation    | One-shot, rare, avoids the format conversion round-trip       |
+| P-256 format conversion | New `p256PrivateKeyToJwk` / `p256PublicKeyToJwk` / `p256PublicKeyFromJwk` helpers added to `@webbuf/p256` 3.5.1 |
+
+### Experiments
+
+**Experiment 1 — Benchmark webbuf vs Web Crypto.** Built a new workspace
+package `packages/crypto-bench/` with matching Bun and browser harnesses.
+Measured eight primitives head-to-head on an M-series Mac. Key findings:
+PBKDF2 is ~5x faster native and runs off the main thread (experiment 1's
+browser harness measured 100% frame drops on webbuf and 0% on Web Crypto
+during 300K- and 600K-round runs). P-256 operations are 5–12x faster
+native. AES-GCM is 7.2x faster on Chrome via AES-NI. Small-input SHA-256
+and HMAC-SHA-256 are *slower* on Web Crypto due to promise wrapper
+overhead — a mildly surprising result that determined the final keep-on-
+webbuf list.
+
+**Experiment 2 — Migrate PBKDF2 and AES-GCM.** The biggest user-facing
+wins. Created a thin `lib/aesgcm.ts` helper wrapping `crypto.subtle.encrypt`
+/`decrypt` with byte-compatible format (prepended 12-byte nonce, appended
+16-byte tag) to match `@webbuf/aesgcm`'s output. Wrote cross-check tests
+that round-trip data in both directions (webbuf→native and native→webbuf)
+to prove format compatibility. Made `lib/auth.ts`, `lib/message.ts`, and
+`lib/vault.ts` async throughout, and propagated `await` through every
+call site. Refactored two render-time decryption sites
+(`channel.$address.tsx` and `vault.$id.tsx`) to pre-compute results in a
+`useEffect` and memoize by message/entry ID. Two post-migration bugs
+surfaced in manual testing: an infinite render loop caused by a
+`history.filter(...)` not being memoized, and a decrypt-forever loop
+caused by `getCachedEncryptionKey()` returning a fresh `FixedBuf`
+reference on every render and retriggering the main decrypt effect.
+Both fixed with `useMemo` / moving the value into state.
+
+**Experiment 3 — Migrate P-256.** This was blocked on key format
+conversion until the webbuf library gained `p256PublicKeyToJwk`,
+`p256PrivateKeyToJwk`, and `p256PublicKeyFromJwk` helpers in 3.5.1. With
+those in place, the migration became mechanical: rewrite `signPowRequest`
+to use `crypto.subtle.importKey("jwk", ...)` → `crypto.subtle.sign`,
+rewrite `computeMessageKey` to use `crypto.subtle.deriveBits` with ECDH,
+and rewrite the federation verification in `api.router.ts` to match. Two
+coordinated protocol changes were required and accepted: ECDSA now signs
+the raw UTF-8 request string (letting Web Crypto hash it internally)
+instead of a pre-computed digest, and ECDH key derivation now hashes the
+raw 32-byte X coordinate instead of the 33-byte compressed shared point.
+Both changes break backward compatibility with pre-experiment-3 data, but
+since there are no production users this was the cleanest choice.
+
+### Performance impact
+
+The real UX wins are all in experiment 2. Before the migration, login on
+a fast Mac took ~300ms of total KDF work with a 150ms main-thread freeze
+that visibly stuttered any CSS animation running at the time. After the
+migration, login takes ~64ms total and the main thread stays free —
+animations run smoothly through the entire login flow. On slower
+hardware the absolute delta is larger: a phone that took ~500ms per
+PBKDF2 tier on webbuf now takes ~100ms, and critically no longer freezes.
+
+Experiment 3's P-256 migration is a smaller visible win because the
+operations were already sub-millisecond. Individual operation benchmarks
+show 5–12x speedups (ECDH 287µs → 44µs, ECDSA sign 311µs → 27µs, verify
+588µs → 55µs on Chrome), but in absolute terms a channel page with 50
+messages decrypting saves only ~12ms total. The bigger value from
+experiment 3 is code simplicity: the hot-path P-256 operations no longer
+depend on webbuf WASM, which means they'll automatically benefit from
+any future browser-level hardware acceleration (Apple Silicon crypto
+extensions, AES-NI-style improvements for ECC, etc.).
+
+### Infrastructure additions
+
+- **New package:** `packages/crypto-bench/` — dual-harness benchmark
+  (Bun + browser) with an animation/rAF counter to visualize main-thread
+  blocking. Reusable for any future crypto perf question.
+- **New file:** `webapp/src/lib/aesgcm.ts` — Web Crypto AES-GCM wrapper
+  with byte-compatible format matching `@webbuf/aesgcm`.
+- **New test files:** `webapp/src/lib/aesgcm.test.ts` (5 format
+  compatibility tests) and `webapp/src/lib/p256.test.ts` (3 Web Crypto
+  ECDSA and ECDH interop tests).
+- **Upstream additions to `@webbuf/p256` 3.5.1:** `p256PublicKeyDecompress`,
+  `p256PublicKeyCompress`, `p256PublicKeyToJwk`, `p256PrivateKeyToJwk`,
+  `p256PublicKeyFromJwk`. These are general-purpose and will benefit any
+  other webbuf consumer that wants Web Crypto interop.
+
+### Decisions worth remembering
+
+1. **Keep SHA-256 and HMAC-SHA-256 on webbuf.** Web Crypto's promise
+   wrapper dominates the sub-microsecond cost of these operations. This
+   is counterintuitive — "native is always faster" turned out to be
+   wrong for small inputs. Benchmark before assuming.
+
+2. **Don't cache CryptoKey objects.** Experiment 2 and 3 both had
+   opportunities to cache imported `CryptoKey` instances to amortize
+   `importKey` overhead. Both experiments explicitly deferred the
+   optimization, shipped the naive implementation, and the naive
+   version was fast enough. Measure before optimizing.
+
+3. **Functions returning fresh object references are async-migration
+   foot-guns.** Two bugs in experiment 2 had the same root cause:
+   `history.filter(...)` creating a new array on every render, and
+   `getCachedEncryptionKey()` creating a new `FixedBuf` on every render.
+   Both were harmless in sync code (the result was used once and
+   discarded) but both caused infinite re-render loops when they entered
+   `useEffect` dependency arrays. The fix pattern is either `useMemo`
+   or moving the value into state.
+
+4. **Protocol breaking changes are fine pre-launch.** Experiments 2 and
+   3 both required breaking changes to stored-data formats (PBKDF2 salt
+   handling, AES-GCM ciphertext layout, ECDH shared-secret bytes, ECDSA
+   raw-digest convention). All were accepted because there are no
+   production users and the migration story is cleaner when both sides
+   of a protocol change together.
+
+5. **Webbuf and Web Crypto are complementary, not competing.** The
+   final stack uses both: Web Crypto for hot paths that benefit from
+   native speed and off-main-thread execution, webbuf for small-input
+   operations and for the format-conversion glue that makes Web Crypto
+   interop practical. Either alone would be worse than the combination.
