@@ -345,3 +345,22 @@ configuration will be built out in a separate issue when deployment work begins.
 
 No app code changes needed. Created `infra/README.md` documenting the production
 architecture: AWS Fargate + ALB + WAF + PlanetScale, all managed by Terraform.
+
+## Experiment 5 — Fix SSRF redirect bypass in safeFetch
+
+`safeFetch()` validates DNS before the request but uses `redirect: "follow"`,
+which lets a malicious server redirect to a private IP after the check passes.
+On AWS, this could reach the instance metadata endpoint (169.254.169.254) and
+leak IAM credentials.
+
+Since `safeFetch` is only used to fetch `keypears.json` from well-known URLs,
+there is no legitimate reason for redirects. Change `redirect: "follow"` to
+`redirect: "error"` to reject redirects entirely.
+
+### File changed
+
+`server/fetch.ts:50` — `redirect: "follow"` → `redirect: "error"`
+
+### Result — Pass
+
+One-line change. Build and tests pass.

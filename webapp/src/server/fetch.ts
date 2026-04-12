@@ -47,7 +47,7 @@ export async function safeFetch(url: string): Promise<Response> {
 
   const response = await fetch(url, {
     signal: AbortSignal.timeout(5000),
-    redirect: "follow",
+    redirect: "error",
   });
 
   // Limit response size to 1 MB
