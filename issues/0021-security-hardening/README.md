@@ -519,3 +519,24 @@ consumes. The attacker always spends more than the operator.
 
 M5 is mitigated by the existing PoW requirement. The cost to fill these tables
 exceeds the cost to store them. Lazy cleanup with expiry is sufficient.
+
+## Experiment 10 — Evaluate M6: user enumeration timing leak
+
+`verifyLogin()` returns fast when the user doesn't exist (no KDF) and slow when
+the user exists but the password is wrong (100K PBKDF2 rounds). An attacker
+could theoretically measure this difference to enumerate valid usernames.
+
+### Analysis
+
+**User existence is public by design.** Users have public profile pages
+(e.g., `/$profile`). The `getProfile()` server function is intentionally
+unauthenticated so that anyone can look up a user's public key and PoW total.
+There is no value in hiding whether a username exists at the login endpoint
+when the same information is freely available via the profile page.
+
+Additionally, login requires PoW (7M difficulty, ~1-2 seconds), making the
+22ms timing difference nearly impossible to measure reliably over the network.
+
+### Result — Pass (no change needed)
+
+M6 is not a vulnerability. User existence is public information.
