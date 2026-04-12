@@ -52,7 +52,7 @@ function cookieOpts(maxAge: number) {
   return {
     httpOnly: true,
     secure: true,
-    sameSite: "strict" as const,
+    sameSite: "lax" as const,
     maxAge,
     path: "/",
   };
