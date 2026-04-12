@@ -11,6 +11,32 @@ import { getApiDomain } from "./lib/config";
 const handler = createStartHandler(defaultStreamHandler);
 const rpcHandler = new RPCHandler(apiRouter);
 
+const isDev = process.env.NODE_ENV !== "production";
+
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+  ].join("; "),
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
+function addSecurityHeaders(response: Response): Response {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 const CLIENT_DIR = join(import.meta.dirname, "..", "client");
 
 export default {
@@ -19,9 +45,9 @@ export default {
 
     // Serve .well-known/keypears.json
     if (url.pathname === "/.well-known/keypears.json") {
-      return Response.json({
-        apiDomain: getApiDomain(),
-      });
+      return addSecurityHeaders(
+        Response.json({ apiDomain: getApiDomain() }),
+      );
     }
 
     // Handle /api/* via oRPC
@@ -29,7 +55,7 @@ export default {
       const { matched, response } = await rpcHandler.handle(request, {
         prefix: "/api",
       });
-      if (matched) return response;
+      if (matched) return addSecurityHeaders(response);
     }
 
     // Serve static assets from dist/client
@@ -40,7 +66,7 @@ export default {
       const filePath = join(CLIENT_DIR, url.pathname);
       const file = Bun.file(filePath);
       if (await file.exists()) {
-        return new Response(file);
+        return addSecurityHeaders(new Response(file));
       }
     }
 
@@ -49,11 +75,11 @@ export default {
     if (url.pathname !== "/" && existsSync(publicPath)) {
       const file = Bun.file(publicPath);
       if (await file.exists()) {
-        return new Response(file);
+        return addSecurityHeaders(new Response(file));
       }
     }
 
     // SSR for everything else
-    return handler(request);
+    return addSecurityHeaders(await handler(request));
   },
 };

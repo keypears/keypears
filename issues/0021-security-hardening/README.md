@@ -396,3 +396,58 @@ attack surface.
 
 M2 is not a real vulnerability. The passwordHash is strictly harder to crack than
 the encryption key already cached in localStorage. No code change required.
+
+## Experiment 7 — Add security headers
+
+Add `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`,
+`Strict-Transport-Security`, and `Referrer-Policy` headers to all responses.
+
+### Approach
+
+Wrap all response paths in `server.ts` with an `addSecurityHeaders()` function
+that sets the headers on every response (HTML, API, static assets).
+
+**CSP note:** TanStack Start's `<Scripts />` component injects inline `<script>`
+tags for hydration. A strict `script-src 'self'` would break the app. Using
+`script-src 'self' 'unsafe-inline'` as a pragmatic compromise — this still blocks
+external script injection while allowing the framework's hydration scripts.
+Nonce-based CSP would be stricter but requires framework-level support.
+
+### Headers set
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'
+  'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+  font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';
+  base-uri 'self'
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+**CSP details:**
+- `'unsafe-inline'` required for scripts because TanStack Start injects inline
+  `<script>` tags for hydration. Nonce-based CSP would be stricter but requires
+  framework support.
+- `'wasm-unsafe-eval'` required because `@webbuf/*` packages use WASM modules.
+  This allows WASM compilation without allowing general `eval()`.
+- `'unsafe-eval'` added in dev mode only (Vite HMR needs it). Not present in
+  production builds.
+
+### File changed
+
+`server.ts` — Added `SECURITY_HEADERS` constant and `addSecurityHeaders()`
+wrapper. All five response paths (well-known, API, static assets, public files,
+SSR) now return responses with security headers. Headers are mutated in place on
+the original response to preserve streaming SSR behavior.
+
+### Result — Pass
+
+Initial attempt broke the app in two ways: (1) constructing a new `Response`
+from the streaming SSR body broke the stream — fixed by mutating headers in
+place, (2) CSP blocked WASM compilation (`@webbuf/*` packages) and Vite's
+dev-mode eval — fixed by adding `'wasm-unsafe-eval'` and gating `'unsafe-eval'`
+on `NODE_ENV`. Used `Content-Security-Policy-Report-Only` during debugging to
+identify violations without blocking. Final enforcing CSP works with no console
+errors.
