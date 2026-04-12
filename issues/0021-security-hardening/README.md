@@ -256,3 +256,11 @@ That's it. One constant. The server rounds stay at 100K.
 - Benchmark: run `derivePasswordKey()` on a fast machine and a slow machine to
   confirm UX is acceptable (~66ms on M-series Mac, expected ~1-2s on slow
   hardware)
+
+### Result — Pass
+
+One constant changed (`CLIENT_KDF_ROUNDS` 100K → 300K). Build and tests pass.
+Extrapolated from earlier benchmarks: ~66ms per tier on M-series Mac, ~132ms for
+the two-tier login/save flow. Total rounds per password guess: 700K for DB
+compromise (exceeds NIST 600K), 600K for localStorage compromise (meets NIST
+600K).
