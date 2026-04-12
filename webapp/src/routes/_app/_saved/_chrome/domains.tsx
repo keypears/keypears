@@ -617,14 +617,28 @@ function DomainCard({
                   </div>
                 )}
               </div>
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={resetPasswordConfirm}
-                onChange={(e) => setResetPasswordConfirm(e.target.value)}
-                className="bg-background-dark border-border text-foreground w-full rounded border px-3 py-2 text-sm"
-                required
-              />
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={resetPasswordConfirm}
+                  onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                  className="bg-background-dark border-border text-foreground w-full rounded border px-3 py-2 text-sm"
+                  required
+                />
+                {resetPasswordConfirm.length > 0 &&
+                  resetPassword !== resetPasswordConfirm && (
+                    <p className="text-destructive mt-1 text-xs">
+                      Passwords do not match
+                    </p>
+                  )}
+                {resetPasswordConfirm.length > 0 &&
+                  resetPassword === resetPasswordConfirm && (
+                    <p className="mt-1 text-xs text-green-500">
+                      Passwords match
+                    </p>
+                  )}
+              </div>
               {resetError && (
                 <p className="text-danger text-sm">{resetError}</p>
               )}
@@ -718,14 +732,28 @@ function DomainCard({
                   </div>
                 )}
               </div>
-              <input
-                type="password"
-                placeholder="Confirm password"
-                value={newPasswordConfirm}
-                onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                className="bg-background-dark border-border text-foreground w-full rounded border px-3 py-2 text-sm"
-                required
-              />
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={newPasswordConfirm}
+                  onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                  className="bg-background-dark border-border text-foreground w-full rounded border px-3 py-2 text-sm"
+                  required
+                />
+                {newPasswordConfirm.length > 0 &&
+                  newPassword !== newPasswordConfirm && (
+                    <p className="text-destructive mt-1 text-xs">
+                      Passwords do not match
+                    </p>
+                  )}
+                {newPasswordConfirm.length > 0 &&
+                  newPassword === newPasswordConfirm && (
+                    <p className="mt-1 text-xs text-green-500">
+                      Passwords match
+                    </p>
+                  )}
+              </div>
               {addError && <p className="text-danger text-sm">{addError}</p>}
               {addStatus && (
                 <p className="text-muted-foreground text-sm">{addStatus}</p>
