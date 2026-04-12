@@ -62,6 +62,18 @@ function cookieOpts(maxAge: number) {
   };
 }
 
+// Options for clearing the session cookie. Browsers enforce the
+// `__Host-` prefix requirements (Secure, Path=/, no Domain) on every
+// Set-Cookie line, so a deletion that omits Secure or Path is rejected
+// outright and the original cookie persists. These options must mirror
+// `cookieOpts` for the deletion to actually take effect.
+const COOKIE_DELETE_OPTS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 /** Hash the current session token to identify it in the sessions table. */
 function hashCurrentToken(): string | null {
   const token = getCookie(COOKIE_NAME);
@@ -231,7 +243,7 @@ export const deleteMyUser = createServerFn({ method: "POST" })
   .handler(async ({ context: { userId } }) => {
     await deleteAllSessions(userId);
     await deleteUnsavedUser(userId);
-    deleteCookie(COOKIE_NAME);
+    deleteCookie(COOKIE_NAME, COOKIE_DELETE_OPTS);
     return { success: true };
   });
 
@@ -267,7 +279,7 @@ export const login = createServerFn({ method: "POST" })
 export const logout = createServerFn({ method: "POST" }).handler(async () => {
   const token = getCookie(COOKIE_NAME);
   if (token) await deleteSession(token);
-  deleteCookie(COOKIE_NAME);
+  deleteCookie(COOKIE_NAME, COOKIE_DELETE_OPTS);
   return { success: true };
 });
 

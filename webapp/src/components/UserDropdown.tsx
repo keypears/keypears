@@ -36,10 +36,23 @@ export function UserDropdown({
   const dotColor = tier === "red" ? "bg-destructive" : "bg-yellow-500";
 
   async function handleLogout() {
+    // Clear local state immediately so we're locally logged out even if
+    // the server call below stalls or errors. The cached encryption key
+    // is the only piece of state that matters for client-side identity.
     clearCachedEncryptionKey();
     clearCachedEntropyTier();
-    await logout();
-    window.location.href = "/";
+    try {
+      await logout();
+    } catch {
+      // Ignore — server may be down or rate-limiting; we'll navigate
+      // regardless and let the loader sort out the (now-orphaned)
+      // session cookie. Failing closed here would strand the user
+      // half-logged-out with no way to recover from the UI.
+    }
+    // Hard reload to /. `replace` (vs assigning `.href`) skips creating
+    // a new history entry so the back button can't take you back to a
+    // logged-in-looking page after logout.
+    window.location.replace("/");
   }
 
   const profilePath = domain ? `/${userName}@${domain}` : `/${userName}`;
