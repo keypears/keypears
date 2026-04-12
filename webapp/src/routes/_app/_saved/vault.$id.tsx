@@ -382,12 +382,14 @@ function EntryDetail({
   isLocked: (pk: string) => boolean;
   onDeleted: () => void;
   onSaved: (id: string) => void;
+  // `secret_versions` rows only carry the versioned encrypted payload
+  // plus identifying metadata. `name`, `type`, and `searchTerms` live on
+  // the parent `secrets` row and are NOT versioned — restoring an older
+  // version keeps the current metadata and only rolls the encrypted
+  // payload back, which is why those fields aren't on this type.
   history: Array<{
     id: string;
     version: number;
-    name: string;
-    type: string;
-    searchTerms: string;
     publicKey: string;
     encryptedData: string;
     createdAt: Date;
@@ -1167,9 +1169,13 @@ function EntryDetail({
                               const result = await updateEntry({
                                 data: {
                                   secretId: entry.id,
-                                  name: ver.name,
-                                  type: ver.type,
-                                  searchTerms: ver.searchTerms,
+                                  // name/type/searchTerms aren't versioned
+                                  // in secret_versions, so we keep the
+                                  // current entry's metadata and only roll
+                                  // the encrypted payload back.
+                                  name: entry.name,
+                                  type: entry.type,
+                                  searchTerms: entry.searchTerms,
                                   publicKey: entry.publicKey,
                                   encryptedData,
                                 },
