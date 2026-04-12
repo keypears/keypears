@@ -6,7 +6,7 @@ does not.
 ## Server compromise
 
 The server stores only ciphertext (messages, vault entries, encrypted private
-keys) and hashed credentials (login key hashed with 100,000 additional rounds
+keys) and hashed credentials (login key hashed with 600,000 additional rounds
 of PBKDF2-HMAC-SHA-256, using a per-user salt derived from the user's ID). An
 attacker who captures the database cannot read any user content.
 
@@ -15,16 +15,17 @@ forcing the login key directly is infeasible — it is a uniformly random 256-bi
 value, and the search space is 2^256. The only realistic attack is a dictionary
 attack against the user's password: for each candidate password, the attacker
 computes the full chain (password → password key → login key → stored hash),
-requiring 700,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1,
-300,000 for Tier 2b, and 100,000 for the server tier).
+requiring 1,200,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1,
+300,000 for Tier 2b, and 600,000 for the server tier).
 
 ## Password brute-force
 
-An offline attack against the stored hash requires 700,000 rounds of
-PBKDF2-HMAC-SHA-256 per guess, which exceeds the NIST SP 800-132 recommendation
-of 600,000 rounds. Per-user salts (derived deterministically from the user ID)
-prevent an attacker from parallelising dictionary attacks across the entire
-database.
+The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
+every login key, matching the NIST SP 800-132 recommendation exactly. An
+offline attack against the stored hash requires 1,200,000 rounds per password
+guess through the full chain. Per-user salts (derived deterministically from
+the user ID) prevent an attacker from parallelising dictionary attacks across
+the entire database.
 
 For an 8-character password drawn from lowercase letters and digits (36^8 ≈ 2.8
 × 10^12 candidates), exhaustive search is computationally infeasible on any

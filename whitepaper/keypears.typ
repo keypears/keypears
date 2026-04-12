@@ -251,8 +251,9 @@ server to another, Alice's address and identity remain valid. Only the
 = Key Derivation
 
 Password-based key derivation uses a three-tier PBKDF2-HMAC-SHA-256 scheme
-(RFC 8018), producing 700,000 total rounds between the user's password and the
-stored hash. This exceeds the NIST SP 800-132 recommendation of 600,000 rounds.
+(RFC 8018). The server-side tier alone performs 600,000 rounds, matching the
+NIST SP 800-132 recommendation exactly; with the two client-side tiers of
+300,000 rounds each, the full password-to-hash chain runs 1,200,000 rounds.
 
 #figure(
   cetz.canvas(length: 1cm, {
@@ -298,7 +299,7 @@ stored hash. This exceeds the NIST SP 800-132 recommendation of 600,000 rounds.
     // Server hashing
     let srv-y = fork-y - 1.0 - box-h - 0.4
     line((right-x, srv-y - 0.3), (right-x, srv-y - 1.1), mark: (end: ">"))
-    content((right-x + 2.7, srv-y - 0.7), text(size: 8pt)[100k rounds\ per-user salt])
+    content((right-x + 2.7, srv-y - 0.7), text(size: 8pt)[600k rounds\ per-user salt])
 
     rect(
       (right-x - box-w / 2, srv-y - 1.1 - box-h),
@@ -324,10 +325,12 @@ client-side. It is never sent to the server.
 *Tier 2b: Password Key #sym.arrow Login Key.* A parallel 300,000-round PBKDF2
 derivation with a different salt produces the login key. This key is sent to
 the server exactly once during account creation or login, then discarded on
-the client. The server hashes it with an additional 100,000 rounds of
+the client. The server hashes it with an additional 600,000 rounds of
 PBKDF2-HMAC-SHA-256 before storage, using a per-user salt derived
-deterministically from the user's ID. The per-user salt prevents parallel
-dictionary attacks across multiple users.
+deterministically from the user's ID. The server-side tier alone meets the
+NIST SP 800-132 recommendation of 600,000 rounds, independent of any work
+performed on the client. The per-user salt prevents parallel dictionary
+attacks across multiple users.
 
 The encryption key and login key are derived from the same parent with
 different salts, making them cryptographically independent. An attacker who
@@ -493,7 +496,7 @@ entries are cleaned up after their 15-minute window.
 == Server Compromise
 
 The server stores only ciphertext (messages, vault entries, encrypted private
-keys) and hashed credentials (login key hashed with 100,000 additional rounds
+keys) and hashed credentials (login key hashed with 600,000 additional rounds
 of PBKDF2-HMAC-SHA-256, using a per-user salt derived deterministically from
 the user's ID). An attacker who captures the database cannot read any user
 content.
@@ -504,21 +507,22 @@ forcing the login key directly is infeasible---it is a uniformly random
 is a dictionary attack against the user's password: for each candidate
 password, the attacker computes the full chain
 (password~#sym.arrow~password~key~#sym.arrow~login~key~#sym.arrow~stored~hash),
-requiring 700,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for
-Tier~1, 300,000 for Tier~2b, and 100,000 for the server tier). The per-user
+requiring 1,200,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for
+Tier~1, 300,000 for Tier~2b, and 600,000 for the server tier). The per-user
 salts prevent parallelising a dictionary attack across multiple users---each
 user's hash must be cracked independently.
 
 == Password Brute-Force
 
-An offline attack against the stored hash requires 700,000 rounds of
-PBKDF2-HMAC-SHA-256 per guess, which exceeds the NIST SP 800-132 recommendation
-of 600,000 rounds. For an 8-character password drawn from lowercase letters and
-digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive search is
-computationally infeasible on any realistic hardware budget; longer or more
-complex passwords increase this cost exponentially. Online attacks are further
-throttled by the login PoW requirement (7M difficulty per attempt) and by
-per-IP rate limiting at the infrastructure layer.
+The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
+every login key, matching the NIST SP 800-132 recommendation exactly. An
+offline attack against the stored hash requires 1,200,000 rounds per guess
+through the full chain. For an 8-character password drawn from lowercase
+letters and digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive
+search is computationally infeasible on any realistic hardware budget; longer
+or more complex passwords increase this cost exponentially. Online attacks
+are further throttled by the login PoW requirement (7M difficulty per
+attempt) and by per-IP rate limiting at the infrastructure layer.
 
 == Spam and Sybil Attacks
 

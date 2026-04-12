@@ -10,7 +10,7 @@ import { getDomain } from "~/lib/config";
 import { newId } from "./utils";
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
-const SERVER_KDF_ROUNDS = 100_000;
+const SERVER_KDF_ROUNDS = 600_000;
 
 // --- Domain management ---
 

@@ -17,7 +17,7 @@ Password Key (ephemeral — derived, used, then discarded)
   │
   └──▶ PBKDF2-HMAC-SHA-256, 300k rounds, salt B ──▶ Login Key (sent to server, discarded)
                                                           │
-                                                          │ PBKDF2-HMAC-SHA-256, 100k rounds,
+                                                          │ PBKDF2-HMAC-SHA-256, 600k rounds,
                                                           │ per-user server salt
                                                           ▼
                                                       Stored Hash (server-side)
@@ -53,17 +53,19 @@ The login key is **ephemeral on the client**. After a successful login, the
 server issues a session token — the login key is discarded and never stored on
 the client.
 
-The server hashes the login key with an additional 100,000 rounds of
+The server hashes the login key with an additional 600,000 rounds of
 PBKDF2-HMAC-SHA-256 using a **per-user salt** (derived deterministically from
-the user's ID) before storing it in the database.
+the user's ID) before storing it in the database. The server path alone meets
+the NIST SP 800-132 recommendation of 600,000 rounds, so the stretching is
+sufficient regardless of how much work the client contributed.
 
 An attacker who steals the database cannot brute-force the login key directly
 — it is a uniformly random 256-bit value with a search space of 2^256. The
 only realistic attack is a dictionary attack against the user's password: for
 each candidate password, the attacker computes the full chain (password →
-password key → login key → stored hash), requiring 700,000 rounds of
+password key → login key → stored hash), requiring 1,200,000 rounds of
 PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1, 300,000 for Tier 2b, and
-100,000 for the server tier). The per-user salt prevents parallelising a
+600,000 for the server tier). The per-user salt prevents parallelising a
 dictionary attack across multiple users — each user's hash must be cracked
 independently.
 
@@ -71,8 +73,9 @@ independently.
 
 **NIST-compliant.** All primitives are NIST-approved: SHA-256 (FIPS 180-4),
 HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM (SP 800-38D), and
-P-256 (FIPS 186-5). The 700,000 total rounds exceed the SP 800-132
-recommendation of 600,000.
+P-256 (FIPS 186-5). The server-side tier alone performs 600,000 rounds of
+PBKDF2-HMAC-SHA-256, matching the SP 800-132 recommendation exactly. The
+full password-to-hash chain exceeds 1,200,000 rounds.
 
 **Separation of concerns.** Knowing the encryption key does not reveal the
 login key, and vice versa. They are derived from the same password key but
@@ -90,7 +93,7 @@ They also cannot recover the user's password.
 **Graceful fallback.** If client storage is cleared, the user simply re-enters
 their password. No data is lost — the same password derives the same keys.
 
-**Login key never stored raw.** The server hashes the login key with 100,000
+**Login key never stored raw.** The server hashes the login key with 600,000
 additional PBKDF2-HMAC-SHA-256 rounds, using a per-user salt, before storing.
 A database breach reveals only hashes, not login keys, and an attacker cannot
 crack them all in parallel.
@@ -141,7 +144,7 @@ discarded.
 | KDF              | PBKDF2-HMAC-SHA-256 (RFC 8018) | `@webbuf/pbkdf2-sha256` |
 | Encryption       | AES-256-GCM (AEAD)           | `@webbuf/aesgcm`          |
 | Key pairs        | P-256 (NIST, FIPS 186-5)     | `@webbuf/p256`            |
-| Rounds per tier  | 300,000 client-side, 100,000 server-side | |
+| Rounds per tier  | 300,000 client-side, 600,000 server-side | |
 
 ## Implementation
 
@@ -156,5 +159,5 @@ All key derivation functions are in `webapp/src/lib/auth.ts`:
 
 Server-side hashing is in `webapp/src/server/user.server.ts`:
 
-- `hashLoginKey(loginKeyHex, userId)` — 100k rounds of PBKDF2-HMAC-SHA-256
+- `hashLoginKey(loginKeyHex, userId)` — 600k rounds of PBKDF2-HMAC-SHA-256
   with a per-user salt derived from the user's ID
