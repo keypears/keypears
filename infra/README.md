@@ -291,7 +291,27 @@ curl -k -H "Host: keypears.com" \
 
 # 7. Flip create_cutover_dns = true in terraform.tfvars, apply
 terraform apply
+
+# 8. Sign up as the address you want to use as admin on keypears.com.
+# This can be a local address (ryan@keypears.com) or a federated one
+# (ryan@ryanxcharles.com). Whichever you pick, create the account via
+# the public signup flow at https://keypears.com.
+
+# 9. Set KEYPEARS_ADMIN in webapp/.env.prod to that address, then
+# redeploy. The /.well-known/keypears.json response will include an
+# `admin` field pointing at your address, which lets you claim
+# keypears.com as the verified admin.
+cd ../..
+dotenvx set KEYPEARS_ADMIN ryan@ryanxcharles.com -f webapp/.env.prod
+./infra/deploy.sh
+
+# 10. Log in as the admin address at https://keypears.com, visit
+# /domains, click Claim on keypears.com. You're now the verified admin
+# and can manage users, reset passwords, and toggle open registration.
 ```
+
+See [Claiming your primary domain](../webapp/src/docs/self-hosting.md#claiming-your-primary-domain)
+in the self-hosting guide for the full context and why this is opt-in.
 
 ## Observability
 

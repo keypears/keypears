@@ -80,6 +80,12 @@ The `admin` field names an existing KeyPears user who can manage users for this
 domain. The admin is verified against `keypears.json` on every privileged action.
 If the `admin` field changes, the old admin immediately loses access.
 
+The same `admin` field and claim flow also apply when you want to administer
+your *own* server's primary domain. For that case — the symmetric one — see
+[Claiming your primary domain](/docs/self-hosting#claiming-your-primary-domain)
+in the self-hosting guide, which walks through the `KEYPEARS_ADMIN` env var
+and the setup sequence.
+
 ## Key discovery
 
 To find a user's current public key, the sender's server calls the recipient's

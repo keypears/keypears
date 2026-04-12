@@ -112,9 +112,16 @@ All documentation lives under `webapp/src/docs/` and is served at `/docs/*`:
 
 - [webapp/src/docs/development.md](webapp/src/docs/development.md) — Local HTTPS via Caddy + dnsmasq
 - [webapp/src/docs/federation.md](webapp/src/docs/federation.md) — Federation model and cross-domain messaging
+- [webapp/src/docs/self-hosting.md](webapp/src/docs/self-hosting.md) — Run your own server, env vars, claiming your primary domain
 - [webapp/src/docs/protocol/key-derivation.md](webapp/src/docs/protocol/key-derivation.md) — Three-tier PBKDF2-HMAC-SHA-256
 - [webapp/src/docs/protocol/encryption.md](webapp/src/docs/protocol/encryption.md) — AES-256-GCM and ECDH on P-256
 - [webapp/src/docs/security.md](webapp/src/docs/security.md) — Threat model and browser defenses
+
+**Env var invariant:** whenever you add, remove, or change an environment
+variable read from `webapp/src/lib/config.ts`, update the env vars table in
+`webapp/src/docs/self-hosting.md` in the same commit. That table is the
+single source of truth for what a self-hoster has to configure, and it
+rots invisibly if not maintained alongside code changes.
 
 ## Development
 
