@@ -488,3 +488,34 @@ apps in this category (Signal Web, ProtonMail, Bitwarden, etc.).
 
 M4 is an inherent limitation of browser-based E2E encryption, not a fixable
 vulnerability. CSP (experiment 7) is the appropriate mitigation.
+
+## Experiment 9 — Evaluate M5: table growth (used_pow, pending_deliveries)
+
+Both tables use lazy cleanup and have no size cap. The audit flagged this as a
+DOS vector where an attacker fills them to exhaust disk space.
+
+### Analysis
+
+**Every row in both tables requires proof of work.** This makes the attack
+economically infeasible.
+
+**`used_pow`:** Each entry requires a valid PoW solution (minimum 7M difficulty
+= ~1-2s of WebGPU per entry). Rows are ~200 bytes. To accumulate 1GB, an
+attacker needs ~5 million PoW solutions = ~115 days of continuous GPU mining.
+Entries expire after 15 minutes with lazy cleanup already in place. The table
+is self-limiting.
+
+**`pending_deliveries`:** Each entry requires an authenticated user + valid PoW
++ a `notifyMessage` call. Rows are up to ~25KB. To store 1GB requires ~40K
+entries, each requiring PoW. The 24-hour expiry means the attacker must sustain
+~40K PoW solutions per day just to maintain 1GB of pressure. WAF rate limiting
+further caps their request rate.
+
+**Cost comparison:** PlanetScale storage is ~$1.25/GB/month. The GPU compute
+required to fill 1GB of either table costs far more than the storage it
+consumes. The attacker always spends more than the operator.
+
+### Result — Pass (no change needed)
+
+M5 is mitigated by the existing PoW requirement. The cost to fill these tables
+exceeds the cost to store them. Lazy cleanup with expiry is sufficient.
