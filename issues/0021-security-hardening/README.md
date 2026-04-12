@@ -264,3 +264,46 @@ Extrapolated from earlier benchmarks: ~66ms per tier on M-series Mac, ~132ms for
 the two-tier login/save flow. Total rounds per password guess: 700K for DB
 compromise (exceeds NIST 600K), 600K for localStorage compromise (meets NIST
 600K).
+
+## Experiment 3 — Per-user server-side salt
+
+Replace the global `deriveServerSalt()` with a per-user salt derived from the
+user's ID. This prevents parallel dictionary attacks if the DB is compromised.
+
+### Approach
+
+Derive the salt from the userId (UUIDv7), which is unique per user and available
+at every call site:
+
+```typescript
+function deriveServerSalt(userId: string): FixedBuf<32> {
+  return sha256Hash(WebBuf.fromUtf8(`Keypears server login salt v1:${userId}`));
+}
+
+function hashLoginKey(loginKeyHex: string, userId: string): string {
+  const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
+  const salt = deriveServerSalt(userId);
+  const hashed = pbkdf2Sha256(loginKeyBuf, salt.buf, SERVER_KDF_ROUNDS, 32);
+  return hashed.buf.toHex();
+}
+```
+
+No schema change needed. No random salt column. The userId is deterministic and
+already stored, so verification still works.
+
+### Call sites to update
+
+All in `server/user.server.ts`. Each already has userId available:
+
+1. `createUserForDomain()` — has `id` (reorder: generate id before hashing)
+2. `resetUserPassword()` — has `userId` parameter
+3. `saveUser()` — has `id` parameter
+4. `changePassword()` — has `userId` parameter
+5. `reEncryptKey()` — has `userId` parameter
+6. `verifyLogin()` — has `saved.id` after user lookup
+
+### Verification
+
+- `bun run build` — compiles
+- `bun run test` — passes
+- `bun run lint` — clean
