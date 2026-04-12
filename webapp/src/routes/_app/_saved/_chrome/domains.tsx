@@ -7,7 +7,7 @@ import {
   getDomainUsersFn,
   createDomainUserFn,
   resetDomainUserPasswordFn,
-  checkNameAvailable,
+  adminCheckNameAvailable,
   toggleOpenRegistrationFn,
   toggleAllowThirdPartyDomainsFn,
 } from "~/server/user.functions";
@@ -339,7 +339,10 @@ function DomainCard({
     setCheckingName(true);
     setNameAvailable(null);
     try {
-      const result = await checkNameAvailable({
+      // Use the admin variant: it authorizes via verifyDomainAdmin
+      // instead of via the openRegistration flag, so domain admins can
+      // create users even when public signup is closed.
+      const result = await adminCheckNameAvailable({
         data: { name, domain },
       });
       if (result.error) {

@@ -162,6 +162,38 @@ export const checkNameAvailable = createServerFn({ method: "GET" })
     return { available: !existing, error: null };
   });
 
+// Sibling of `checkNameAvailable` for the admin add-user form on the
+// domains page. Same name-validity + uniqueness checks, but authorized
+// by domain ownership instead of by the openRegistration flag:
+// `openRegistration` only governs anonymous self-signup, not admin-
+// driven user creation. The verified domain admin can create users
+// regardless of whether public signup is open.
+export const adminCheckNameAvailable = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      name: z.string(),
+      domain: z.string(),
+    }),
+  )
+  .middleware([authMiddleware])
+  .handler(async ({ data: input, context: { userId } }) => {
+    const parsed = nameSchema.safeParse(input.name);
+    if (!parsed.success) {
+      return { available: false, error: parsed.error.issues[0]?.message };
+    }
+    const adminAddress = await getMyAddress(userId);
+    const result = await verifyDomainAdmin(input.domain, adminAddress);
+    if (!result.valid) {
+      return { available: false, error: result.message ?? "Not authorized" };
+    }
+    const domain = await getDomainByName(input.domain);
+    if (!domain) {
+      return { available: false, error: "Domain not found" };
+    }
+    const existing = await getUserByNameAndDomain(input.name, domain.id);
+    return { available: !existing, error: null };
+  });
+
 export const saveMyUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
