@@ -119,30 +119,38 @@ Out-of-band setup that Terraform does **not** manage:
 
 ## Routine deployment (rolling a new container image)
 
-1. Build for arm64 from the repo root:
-   ```bash
-   docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:vN .
-   ```
-2. Log in to ECR and push:
-   ```bash
-   aws ecr get-login-password --region us-east-1 \
-     | docker login --username AWS --password-stdin \
-       299190761597.dkr.ecr.us-east-1.amazonaws.com
-   docker tag keypears:vN 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
-   docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
-   ```
-3. Bump the tag in `infra/terraform/terraform.tfvars`:
-   ```hcl
-   image_tag = "vN"
-   ```
-4. Apply:
-   ```bash
-   cd infra/terraform
-   terraform apply
-   ```
-   Terraform creates a new task definition revision pointing at `:vN`. The ECS
-   service picks it up automatically and rolls forward (deployment circuit
-   breaker enabled, max 200%, min 100% healthy).
+### 1. Build for arm64 from the repo root
+
+```bash
+docker build --platform linux/arm64 -f webapp/Dockerfile -t keypears:vN .
+```
+
+### 2. Log in to ECR and push
+
+```bash
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin \
+    299190761597.dkr.ecr.us-east-1.amazonaws.com
+docker tag keypears:vN 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
+docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:vN
+```
+
+### 3. Bump the tag in `infra/terraform/terraform.tfvars`
+
+```hcl
+image_tag = "vN"
+```
+
+### 4. Apply
+
+```bash
+cd infra/terraform
+terraform apply
+```
+
+Terraform creates a new task definition revision pointing at `:vN`. The ECS
+service picks it up automatically and rolls forward (deployment circuit
+breaker enabled, max 200%, min 100% healthy).
 
 The image tag is pinned in `terraform.tfvars`, never `latest`. Rolling back is
 symmetrical: change the tag back to the previous version and re-apply.
