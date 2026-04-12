@@ -1,4 +1,4 @@
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { db } from "~/db";
 import { usedPow } from "~/db/schema";
@@ -30,7 +30,7 @@ export async function verifyAndConsumePow(
   if (!result.valid) return result;
 
   // 2. Check for replay — hash the solved header as unique identifier
-  const headerHash = blake3Hash(WebBuf.fromHex(solvedHeaderHex)).buf.toHex();
+  const headerHash = sha256Hash(WebBuf.fromHex(solvedHeaderHex)).buf.toHex();
 
   const [existing] = await db
     .select()

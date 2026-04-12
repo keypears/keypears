@@ -1,13 +1,13 @@
-import { blake3Mac } from "@webbuf/blake3";
+import { sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
+import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
 import { z } from "zod";
 
 // --- Vault key derivation ---
 
 export function deriveVaultKey(privateKey: FixedBuf<32>): FixedBuf<32> {
-  return blake3Mac(privateKey, WebBuf.fromUtf8("vault-key"));
+  return sha256Hmac(privateKey.buf, WebBuf.fromUtf8("vault-key"));
 }
 
 // --- Blob schemas ---
@@ -40,7 +40,7 @@ export function encryptVaultEntry(
 ): string {
   const vaultKey = deriveVaultKey(privateKey);
   const json = JSON.stringify(data);
-  const encrypted = acb3Encrypt(WebBuf.fromUtf8(json), vaultKey);
+  const encrypted = aesgcmEncrypt(WebBuf.fromUtf8(json), vaultKey);
   return encrypted.toHex();
 }
 
@@ -49,7 +49,7 @@ export function decryptVaultEntry(
   privateKey: FixedBuf<32>,
 ): VaultEntryData {
   const vaultKey = deriveVaultKey(privateKey);
-  const decrypted = acb3Decrypt(WebBuf.fromHex(hex), vaultKey);
+  const decrypted = aesgcmDecrypt(WebBuf.fromHex(hex), vaultKey);
   return VaultEntryData.parse(JSON.parse(decrypted.toUtf8()));
 }
 
@@ -63,7 +63,7 @@ export function tryDecryptVaultEntry(
 ): DecryptResult {
   try {
     const vaultKey = deriveVaultKey(privateKey);
-    const decrypted = acb3Decrypt(WebBuf.fromHex(hex), vaultKey);
+    const decrypted = aesgcmDecrypt(WebBuf.fromHex(hex), vaultKey);
     const json = decrypted.toUtf8();
     const parsed = VaultEntryData.safeParse(JSON.parse(json));
     if (parsed.success) {

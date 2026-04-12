@@ -41,7 +41,7 @@ import { PowSolutionSchema, nameSchema } from "./schemas";
 import { getSessionUserId, COOKIE_NAME } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { WebBuf } from "@webbuf/webbuf";
 import { getDomain, makeAddress, parseAddress } from "~/lib/config";
 
@@ -62,7 +62,7 @@ function cookieOpts(maxAge: number) {
 function hashCurrentToken(): string | null {
   const token = getCookie(COOKIE_NAME);
   if (!token) return null;
-  return blake3Hash(WebBuf.fromHex(token)).buf.toHex();
+  return sha256Hash(WebBuf.fromHex(token)).buf.toHex();
 }
 
 export const createUser = createServerFn({ method: "POST" })

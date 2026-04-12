@@ -76,12 +76,12 @@ const getPowChallengeEndpoint = os
     }
 
     // Verify the signature
-    const { verify } = await import("@webbuf/secp256k1");
-    const { blake3Hash } = await import("@webbuf/blake3");
+    const { p256Verify } = await import("@webbuf/p256");
+    const { sha256Hash } = await import("@webbuf/sha256");
     const { WebBuf } = await import("@webbuf/webbuf");
     const { FixedBuf } = await import("@webbuf/fixedbuf");
 
-    const digest = blake3Hash(
+    const digest = sha256Hash(
       WebBuf.fromUtf8(
         `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
       ),
@@ -89,7 +89,7 @@ const getPowChallengeEndpoint = os
     const sig = FixedBuf.fromHex(64, input.signature);
     const pubKey = FixedBuf.fromHex(33, input.senderPubKey);
 
-    if (!verify(sig, digest, pubKey)) {
+    if (!p256Verify(sig, digest, pubKey)) {
       throw new Error("Invalid signature");
     }
 

@@ -1,9 +1,9 @@
-import { blake3Hash, blake3Mac } from "@webbuf/blake3";
+import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { publicKeyCreate, sign } from "@webbuf/secp256k1";
-import { acb3Encrypt, acb3Decrypt } from "@webbuf/acb3";
-import { blake3Pbkdf } from "./kdf";
+import { p256PublicKeyCreate, p256Sign } from "@webbuf/p256";
+import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
+import { pbkdf2Sha256 } from "@webbuf/pbkdf2-sha256";
 
 const CLIENT_KDF_ROUNDS = 100_000;
 const ENCRYPTION_KEY_STORAGE_KEY = "keypears_encryption_key";
@@ -64,16 +64,16 @@ export function clearCachedEntropyTier(): void {
 }
 
 function derivePasswordSalt(password: string): FixedBuf<32> {
-  const context = blake3Hash(WebBuf.fromUtf8("Keypears password salt v1"));
-  return blake3Mac(context, WebBuf.fromUtf8(password));
+  const context = sha256Hash(WebBuf.fromUtf8("Keypears password salt v1"));
+  return sha256Hmac(context.buf, WebBuf.fromUtf8(password));
 }
 
 function deriveLoginSalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("Keypears login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears login salt v1"));
 }
 
 function deriveEncryptionSalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
 }
 
 // --- Tier 1: Password → Password Key (ephemeral, never stored) ---
@@ -81,7 +81,7 @@ function deriveEncryptionSalt(): FixedBuf<32> {
 export function derivePasswordKey(password: string): FixedBuf<32> {
   const passwordBuf = WebBuf.fromUtf8(password);
   const passwordSalt = derivePasswordSalt(password);
-  return blake3Pbkdf(passwordBuf, passwordSalt, CLIENT_KDF_ROUNDS);
+  return pbkdf2Sha256(passwordBuf, passwordSalt.buf, CLIENT_KDF_ROUNDS, 32);
 }
 
 // --- Tier 2: Password Key → Login Key / Encryption Key ---
@@ -90,7 +90,7 @@ export function deriveLoginKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
 ): string {
   const loginSalt = deriveLoginSalt();
-  const loginKey = blake3Pbkdf(passwordKey.buf, loginSalt, CLIENT_KDF_ROUNDS);
+  const loginKey = pbkdf2Sha256(passwordKey.buf, loginSalt.buf, CLIENT_KDF_ROUNDS, 32);
   return loginKey.buf.toHex();
 }
 
@@ -98,7 +98,7 @@ export function deriveEncryptionKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
 ): FixedBuf<32> {
   const encryptionSalt = deriveEncryptionSalt();
-  return blake3Pbkdf(passwordKey.buf, encryptionSalt, CLIENT_KDF_ROUNDS);
+  return pbkdf2Sha256(passwordKey.buf, encryptionSalt.buf, CLIENT_KDF_ROUNDS, 32);
 }
 
 // --- Key pair operations (use encryption key directly) ---
@@ -110,8 +110,8 @@ export function generateAndEncryptKeyPairFromEncryptionKey(
   encryptedPrivateKey: string;
 } {
   const privateKey = FixedBuf.fromRandom(32);
-  const publicKey = publicKeyCreate(privateKey);
-  const encryptedPrivateKey = acb3Encrypt(privateKey.buf, encryptionKey);
+  const publicKey = p256PublicKeyCreate(privateKey);
+  const encryptedPrivateKey = aesgcmEncrypt(privateKey.buf, encryptionKey);
   return {
     publicKey: publicKey.buf.toHex(),
     encryptedPrivateKey: encryptedPrivateKey.toHex(),
@@ -123,7 +123,7 @@ export function decryptPrivateKey(
   encryptionKey: FixedBuf<32>,
 ): FixedBuf<32> {
   const encryptedBuf = WebBuf.fromHex(encryptedPrivateKeyHex);
-  const decrypted = acb3Decrypt(encryptedBuf, encryptionKey);
+  const decrypted = aesgcmDecrypt(encryptedBuf, encryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
 }
 
@@ -157,10 +157,10 @@ export function signPowRequest(
   privateKey: FixedBuf<32>,
 ): { signature: string; timestamp: number } {
   const timestamp = Date.now();
-  const digest = blake3Hash(
+  const digest = sha256Hash(
     WebBuf.fromUtf8(`${senderAddress}:${recipientAddress}:${timestamp}`),
   );
   const k = FixedBuf.fromRandom(32);
-  const sig = sign(digest, privateKey, k);
+  const sig = p256Sign(digest, privateKey, k);
   return { signature: sig.buf.toHex(), timestamp };
 }

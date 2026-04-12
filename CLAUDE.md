@@ -67,7 +67,7 @@ keypears/
         schema.clear.ts # empty schema for db:clear
         index.ts        # MySQL connection pool
       lib/
-        auth.ts         # three-tier BLAKE3 KDF + encryption key caching
+        auth.ts         # three-tier PBKDF2-SHA256 KDF + encryption key caching
         config.ts       # domain config + derived secrets
         message.ts      # ECDH encryption/decryption
         vault.ts        # vault key derivation + entry encrypt/decrypt
@@ -85,9 +85,9 @@ keypears/
 - **Database**: Drizzle ORM, MySQL
 - **API**: oRPC (type-safe RPC with Zod validation) at `/api`
 - **Styling**: Tailwind CSS v4, shadcn components
-- **Auth**: Three-tier BLAKE3 PBKDF (password key -> encryption key + login key)
-- **Sessions**: Random 32-byte tokens, BLAKE3-hashed in DB, 30-day expiry
-- **Crypto**: secp256k1 key pairs, ACB3 encryption (AES-256-CBC + BLAKE3-MAC), ECDH shared secrets (`@webbuf/*`)
+- **Auth**: Three-tier PBKDF2-HMAC-SHA256 KDF (password key -> encryption key + login key)
+- **Sessions**: Random 32-byte tokens, SHA-256-hashed in DB, 30-day expiry
+- **Crypto**: P-256 key pairs, AES-256-GCM encryption, ECDH shared secrets (`@webbuf/*`)
 - **PoW**: pow5-64b algorithm (WebGPU), signed stateless challenges
 - **Federation**: Pull-model message delivery, domain verification via TLS
 - **Env**: dotenvx for encrypted env management
@@ -226,7 +226,7 @@ Password (never stored)
     -> Login Key (sent to server once, then discarded)
 ```
 
-- All KDF uses BLAKE3 (keyed MAC mode), 100k rounds per tier.
+- All KDF uses PBKDF2-HMAC-SHA256 (RFC 8018), 100k rounds per tier.
 - Only the encryption key is cached. Password key is ephemeral.
 - If localStorage is compromised: attacker can decrypt keys but cannot
   impersonate the user (login key is a sibling, not derivable from encryption key).
@@ -235,7 +235,7 @@ Password (never stored)
 ### Sessions
 
 - Random 32-byte session token set as httpOnly cookie.
-- Server stores only the BLAKE3 hash of the token.
+- Server stores only the SHA-256 hash of the token.
 - 30-day expiry for saved accounts, 1-day for unsaved.
 - Password change revokes all other sessions.
 
@@ -248,19 +248,19 @@ Password (never stored)
   - `messageDifficulty` — subsequent messages (default 7M).
   - Server-enforced minimums: 7M for both.
   - Users configure via sliders on the Settings page.
-- Challenge requests are authenticated: sender signs with secp256k1,
+- Challenge requests are authenticated: sender signs with P-256 ECDSA,
   recipient verifies via federation public key lookup. This prevents
   probing channel existence (social graph privacy).
 - Both sender and recipient addresses are signed into the challenge
   payload, preventing reuse across conversations.
-- Challenges are signed with BLAKE3 MAC — stateless until verified.
+- Challenges are signed with HMAC-SHA256 — stateless until verified.
 - PoW solutions are tracked in `used_pow` table for replay prevention.
 - All PoW is logged against the user who did the work (`pow_log` table).
 - All PoW mining happens in the browser via WebGPU. Servers never mine.
 
 ### Key management
 
-- Users can rotate secp256k1 key pairs (max 100 per account).
+- Users can rotate P-256 key pairs (max 100 per account).
 - Active key = most recent row in `user_keys` table.
 - Each key tracks `loginKeyHash` — identifies which password encrypted it.
 - Keys encrypted with the current login password auto-decrypt.

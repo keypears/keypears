@@ -1,4 +1,4 @@
-import { blake3Mac } from "@webbuf/blake3";
+import { sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import {
@@ -40,7 +40,7 @@ function signChallenge(
   if (recipientAddress) {
     parts.push(...WebBuf.fromUtf8(recipientAddress));
   }
-  return blake3Mac(secret, WebBuf.from(parts));
+  return sha256Hmac(secret.buf, WebBuf.from(parts));
 }
 
 export function createPowChallenge(

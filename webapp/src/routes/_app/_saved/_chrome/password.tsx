@@ -15,7 +15,7 @@ import {
   cacheEntropyTier,
   getCachedEntropyTier,
 } from "~/lib/auth";
-import { acb3Encrypt } from "@webbuf/acb3";
+import { aesgcmEncrypt } from "@webbuf/aesgcm";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/password")({
   head: () => ({ meta: [{ title: "Password — KeyPears" }] }),
@@ -74,7 +74,7 @@ function PasswordPage() {
             key.encryptedPrivateKey,
             oldEncryptionKey,
           );
-          const reEncrypted = acb3Encrypt(privateKey.buf, newEncryptionKey);
+          const reEncrypted = aesgcmEncrypt(privateKey.buf, newEncryptionKey);
           reEncryptedKeys.push({
             id: key.id,
             encryptedPrivateKey: reEncrypted.toHex(),

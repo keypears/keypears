@@ -1,11 +1,11 @@
 import { db } from "~/db";
 import { users, keys, powLog, sessions, domains } from "~/db/schema";
 import { eq, desc, and, lt, isNull, max, count, sql, ne } from "drizzle-orm";
-import { blake3Hash } from "@webbuf/blake3";
+import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
-import { blake3Pbkdf } from "~/lib/kdf";
+import { pbkdf2Sha256 } from "@webbuf/pbkdf2-sha256";
 import { getDomain } from "~/lib/config";
 import { newId } from "./utils";
 
@@ -153,13 +153,13 @@ export async function resetUserPassword(
 }
 
 function deriveServerSalt(): FixedBuf<32> {
-  return blake3Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
+  return sha256Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
 }
 
 function hashLoginKey(loginKeyHex: string): string {
   const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
   const salt = deriveServerSalt();
-  const hashed = blake3Pbkdf(loginKeyBuf, salt, SERVER_KDF_ROUNDS);
+  const hashed = pbkdf2Sha256(loginKeyBuf, salt.buf, SERVER_KDF_ROUNDS, 32);
   return hashed.buf.toHex();
 }
 
@@ -484,7 +484,7 @@ export async function getUserPowSettings(userId: string) {
 // --- Session management ---
 
 function hashSessionToken(token: string): string {
-  return blake3Hash(WebBuf.fromHex(token)).buf.toHex();
+  return sha256Hash(WebBuf.fromHex(token)).buf.toHex();
 }
 
 export async function createSession(
