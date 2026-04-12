@@ -30,4 +30,4 @@ bun run lint       # run linter
 
 ## License
 
-All rights reserved.
+[MIT](./LICENSE). See [TRADEMARKS.md](./TRADEMARKS.md) for trademark policy.
