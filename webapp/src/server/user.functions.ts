@@ -51,8 +51,8 @@ const THIRTY_DAYS = 60 * 60 * 24 * 30;
 function cookieOpts(maxAge: number) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
+    secure: true,
+    sameSite: "strict" as const,
     maxAge,
     path: "/",
   };

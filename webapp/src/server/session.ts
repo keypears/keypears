@@ -1,7 +1,7 @@
 import { getCookie } from "@tanstack/react-start/server";
 import { resolveSession } from "./user.server";
 
-const COOKIE_NAME = "session";
+const COOKIE_NAME = "__Host-session";
 
 /** Read session cookie, resolve to user ID. Returns null if invalid/expired. */
 export async function getSessionUserId(): Promise<string | null> {
