@@ -122,3 +122,85 @@ modest amplification vector.
 
 **L4.** `BigInt()` constructor without Zod validation
 (`user.functions.ts:523-524`).
+
+## Experiment 1 — Migrate to NIST-approved cryptography
+
+Replace all non-NIST crypto primitives with their NIST equivalents. This is a
+straight substitution — same round counts, same architecture, same key sizes.
+The app is pre-launch with no production data, so there is no migration concern.
+
+### Substitution table
+
+| Current | Replacement | Package |
+|---|---|---|
+| `blake3Hash()` | `sha256Hash()` | `@webbuf/sha256` |
+| `blake3Mac()` | `sha256Hmac()` | `@webbuf/sha256` |
+| `blake3Pbkdf()` (custom) | `pbkdf2Sha256()` | `@webbuf/pbkdf2-sha256` |
+| `acb3Encrypt()` / `acb3Decrypt()` | `aesgcmEncrypt()` / `aesgcmDecrypt()` | `@webbuf/aesgcm` |
+| `publicKeyCreate()` / `sign()` / `verify()` | `p256PublicKeyCreate()` / `p256Sign()` / `p256Verify()` | `@webbuf/p256` |
+| `sharedSecret()` | `p256SharedSecret()` | `@webbuf/p256` |
+
+### Files to change
+
+**1. `lib/kdf.ts`** — Delete entirely. Replace all call sites with
+`pbkdf2Sha256(password, salt, rounds, 32)`. The custom iteration loop is no
+longer needed since `@webbuf/pbkdf2-sha256` implements real PBKDF2 (RFC 8018).
+
+**2. `lib/auth.ts`** — Four changes:
+- `blake3Hash` → `sha256Hash` (password salt derivation, PoW request signing)
+- `blake3Mac` → `sha256Hmac` (salt derivation)
+- `publicKeyCreate` / `sign` → `p256PublicKeyCreate` / `p256Sign`
+- `acb3Encrypt` / `acb3Decrypt` → `aesgcmEncrypt` / `aesgcmDecrypt`
+- `blake3Pbkdf()` calls → `pbkdf2Sha256()` calls
+- Remove `import { blake3Pbkdf } from "./kdf"`
+
+**3. `lib/message.ts`** — Three changes:
+- `blake3Hash` → `sha256Hash` (ECDH key derivation)
+- `sharedSecret` → `p256SharedSecret`
+- `acb3Encrypt` / `acb3Decrypt` → `aesgcmEncrypt` / `aesgcmDecrypt`
+
+**4. `lib/vault.ts`** — Two changes:
+- `blake3Mac` → `sha256Hmac` (vault key derivation)
+- `acb3Encrypt` / `acb3Decrypt` → `aesgcmEncrypt` / `aesgcmDecrypt`
+
+**5. `lib/config.ts`** — One change:
+- `blake3Mac` → `sha256Hmac` (PoW signing key derivation from master secret)
+
+**6. `server/user.server.ts`** — Two changes:
+- `blake3Hash` → `sha256Hash` (session token hashing)
+- `blake3Pbkdf()` calls → `pbkdf2Sha256()` calls
+- Remove `import { blake3Pbkdf } from "~/lib/kdf"`
+
+**7. `server/user.functions.ts`** — One change:
+- `blake3Hash` → `sha256Hash` (session token identification)
+
+**8. `server/pow.server.ts`** — One change:
+- `blake3Mac` → `sha256Hmac` (challenge signing)
+
+**9. `server/pow.consume.ts`** — One change:
+- `blake3Hash` → `sha256Hash` (solved header hashing)
+
+**10. `server/utils.ts`** — One change:
+- `blake3Hash` → `sha256Hash` (token hashing)
+
+**11. `routes/_app/_saved/_chrome/password.tsx`** — One change:
+- `acb3Encrypt` → `aesgcmEncrypt`
+
+**12. `routes/_app/_saved/_chrome/keys.tsx`** — One change:
+- `acb3Encrypt` → `aesgcmEncrypt`
+
+**13. `package.json`** — Add new dependencies, remove old:
+- Add: `@webbuf/sha256`, `@webbuf/pbkdf2-sha256`, `@webbuf/p256`, `@webbuf/aesgcm`
+- Remove: `@webbuf/blake3`, `@webbuf/acb3`, `@webbuf/secp256k1`
+
+**Not changed:** Blog posts (`src/blog/*.md`) reference old crypto in prose.
+These are historical records and should not be updated.
+
+### Verification
+
+- `bun run build` — app compiles with no errors
+- `bun run test` — all tests pass
+- `bun run lint` — no lint errors
+- `db:clear` + `db:push` — fresh DB
+- Manual smoke test: create account, save password, send message, create vault
+  entry, rotate key, re-encrypt locked key, change password
