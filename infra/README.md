@@ -149,21 +149,24 @@ symmetrical: change the tag back to the previous version and re-apply.
 
 ## Scaling
 
-`aws_ecs_service.webapp` has `lifecycle { ignore_changes = [desired_count] }`,
-so changing `desired_count` in `terraform.tfvars` only takes effect on the very
-first apply. After that, scale operationally with the AWS CLI:
+Scale by editing `terraform.tfvars` and applying — same as any other infra
+change:
 
-```bash
-aws ecs update-service \
-  --cluster keypears-prod \
-  --service keypears-webapp \
-  --desired-count N \
-  --region us-east-1
+```hcl
+# infra/terraform/terraform.tfvars
+desired_count = 2
 ```
 
-This split is intentional: Terraform owns the _shape_ of the service (CPU,
-memory, network, image, secrets, IAM), and CLI/operational tooling owns the
-_scale_. They never fight.
+```bash
+cd infra/terraform
+terraform apply
+```
+
+There is no autoscaling attached to the service, so nothing outside Terraform
+should ever touch `desired_count`. If you do attach `aws_appautoscaling_target`
+later, you'll need to add `lifecycle { ignore_changes = [desired_count] }` to
+`aws_ecs_service.webapp` so Terraform stops fighting the autoscaler on every
+plan — and at that point the autoscaler owns scale, not tfvars.
 
 ## Emergency DNS rollback
 
@@ -220,11 +223,9 @@ aws ecr get-login-password --region us-east-1 \
 docker tag keypears:v1 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:v1
 docker push 299190761597.dkr.ecr.us-east-1.amazonaws.com/keypears:v1
 
-# 4. Bump terraform.tfvars to image_tag = "v1", apply, scale up
+# 4. Bump terraform.tfvars to image_tag = "v1" and desired_count = 1, then apply
 cd infra/terraform
 terraform apply
-aws ecs update-service --cluster keypears-prod --service keypears-webapp \
-  --desired-count 1 --region us-east-1
 aws ecs wait services-stable --cluster keypears-prod --services keypears-webapp \
   --region us-east-1
 
