@@ -364,3 +364,35 @@ there is no legitimate reason for redirects. Change `redirect: "follow"` to
 ### Result — Pass
 
 One-line change. Build and tests pass.
+
+## Experiment 6 — Evaluate M2: passwordHash leaked to client
+
+`getMyKeys` returns the server-side password hash to the browser so the Keys page
+can identify which keys match the current password vs an old password.
+
+### Analysis
+
+The initial audit flagged this as a risk: "any XSS can exfiltrate the hash." On
+closer examination, this is a **non-issue** given the threat model.
+
+**The encryption key in localStorage is already the weaker target.** It requires
+600K rounds to derive from the password (300K x 2 client tiers). The server
+password hash requires 700K rounds (300K x 2 client + 100K server). An attacker
+who can read XHR responses via XSS can also read localStorage, where the
+encryption key is cached in the clear. There is no scenario where cracking the
+harder 700K-round hash is advantageous when the 600K-round encryption key is
+already available.
+
+**The user knows their own password.** The hash does not reveal anything the
+authenticated user does not already possess. It is their own credential, hashed.
+
+**No browser-based alternative exists.** The encryption key must be cached
+client-side to enable decryption without re-entering the password on every
+operation. Short of an HSM, there is no way to protect a client-side secret from
+JavaScript running in the same origin. The passwordHash does not change this
+attack surface.
+
+### Result — Pass (no change needed)
+
+M2 is not a real vulnerability. The passwordHash is strictly harder to crack than
+the encryption key already cached in localStorage. No code change required.
