@@ -123,8 +123,8 @@ export async function createUserForDomain(
   const existing = await getUserByNameAndDomain(name, domainId);
   if (existing) throw new Error("Name is already taken");
 
-  const passwordHash = hashLoginKey(loginKeyHex);
   const id = newId();
+  const passwordHash = hashLoginKey(loginKeyHex, id);
   await db.insert(users).values({
     id,
     name,
@@ -142,7 +142,7 @@ export async function resetUserPassword(
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
-  const newPasswordHash = hashLoginKey(newLoginKeyHex);
+  const newPasswordHash = hashLoginKey(newLoginKeyHex, userId);
   await db
     .update(users)
     .set({ passwordHash: newPasswordHash })
@@ -152,13 +152,13 @@ export async function resetUserPassword(
   await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
-function deriveServerSalt(): FixedBuf<32> {
-  return sha256Hash(WebBuf.fromUtf8("Keypears server login salt v1"));
+function deriveServerSalt(userId: string): FixedBuf<32> {
+  return sha256Hash(WebBuf.fromUtf8(`Keypears server login salt v1:${userId}`));
 }
 
-function hashLoginKey(loginKeyHex: string): string {
+function hashLoginKey(loginKeyHex: string, userId: string): string {
   const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
-  const salt = deriveServerSalt();
+  const salt = deriveServerSalt(userId);
   const hashed = pbkdf2Sha256(loginKeyBuf, salt.buf, SERVER_KDF_ROUNDS, 32);
   return hashed.buf.toHex();
 }
@@ -280,7 +280,7 @@ export async function saveUser(
     throw new Error("Name is already taken");
   }
 
-  const passwordHash = hashLoginKey(loginKeyHex);
+  const passwordHash = hashLoginKey(loginKeyHex, id);
   await db
     .update(users)
     .set({ name, domainId, passwordHash, tosAcceptedAt: new Date(), expiresAt: null })
@@ -321,7 +321,7 @@ export async function changePassword(
   newLoginKeyHex: string,
   reEncryptedKeys: { id: string; encryptedPrivateKey: string }[],
 ) {
-  const newPasswordHash = hashLoginKey(newLoginKeyHex);
+  const newPasswordHash = hashLoginKey(newLoginKeyHex, userId);
   await db.transaction(async (tx) => {
     await tx
       .update(users)
@@ -346,7 +346,7 @@ export async function reEncryptKey(
   encryptedPrivateKey: string,
   loginKeyHex: string,
 ) {
-  const loginKeyHash = hashLoginKey(loginKeyHex);
+  const loginKeyHash = hashLoginKey(loginKeyHex, userId);
   const result = await db
     .update(keys)
     .set({ encryptedPrivateKey, loginKeyHash })
@@ -367,7 +367,7 @@ export async function verifyLogin(
     throw new Error("Invalid credentials");
   }
 
-  const inputHash = hashLoginKey(loginKeyHex);
+  const inputHash = hashLoginKey(loginKeyHex, saved.id);
   if (
     !timingSafeEqual(
       Buffer.from(saved.passwordHash, "hex"),
