@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-11"
+closed = "2026-04-11"
 +++
 
 # Security hardening
@@ -540,3 +541,64 @@ Additionally, login requires PoW (7M difficulty, ~1-2 seconds), making the
 ### Result — Pass (no change needed)
 
 M6 is not a vulnerability. User existence is public information.
+
+## Experiment 11 — Evaluate L1-L4: low severity items
+
+### L1. `checkNameAvailable()` unauthenticated — username enumeration
+
+Same reasoning as M6. User existence is public by design (public profile pages).
+No change needed.
+
+### L2. Cookie `secure` flag disabled in development
+
+`secure: process.env.NODE_ENV === "production"` is the standard pattern. Dev
+uses Caddy for local HTTPS, but the Bun server itself runs HTTP behind the
+proxy. The flag is correctly enabled in production. No change needed.
+
+### L3. `getRemotePowChallenge` unauthenticated outbound HTTP
+
+An unauthenticated user can trigger the server to make an outbound HTTP request
+to a domain of their choosing (via federation). This is a modest amplification
+vector. However: (1) WAF rate limiting caps the request rate at the
+infrastructure layer, (2) `safeFetch` enforces a 5-second timeout and blocks
+private IPs, (3) the redirect fix in experiment 5 prevents SSRF. The residual
+risk is acceptable. No change needed.
+
+### L4. `BigInt()` constructor without Zod validation
+
+`updateMyPowSettings` passes user input through `BigInt()` directly, which
+throws on invalid input rather than being caught by Zod. This is a minor
+robustness issue, not a security vulnerability — the error is caught by the
+server function error handler and returns a 500. No change needed, but could
+be improved in a future cleanup pass.
+
+### Result — Pass (no changes needed)
+
+All four low-severity items are either by design, handled at the infrastructure
+layer, or too minor to warrant a code change.
+
+## Conclusion
+
+Security audit complete. Of the original 13 findings (3 high, 6 medium, 4 low):
+
+**Fixed (4):**
+- H1. Migrated all crypto to NIST-approved primitives (SHA-256, P-256, AES-GCM,
+  PBKDF2). Experiment 1.
+- H2. Increased KDF rounds to 300K per client tier (600K-700K total). Added
+  per-user server-side salt. Experiments 2-3.
+- M1. Blocked redirects in `safeFetch` to prevent SSRF. Experiment 5.
+- M3. Added CSP and security headers to all responses. Experiment 7.
+
+**Deferred to infrastructure (1):**
+- H3. Rate limiting handled by AWS WAF attached to ALB, not app code.
+  Experiment 4.
+
+**Evaluated as non-issues (8):**
+- M2. passwordHash leaked to client — strictly harder to crack than the
+  encryption key already in localStorage. Experiment 6.
+- M4. Encryption key cached indefinitely — inherent to browser-based E2E
+  encryption. CSP is the mitigation. Experiment 8.
+- M5. Table growth — PoW makes filling tables more expensive for the attacker
+  than the operator. Experiment 9.
+- M6. User enumeration timing — user existence is public by design. Experiment 10.
+- L1-L4. By design, handled at infra layer, or too minor. Experiment 11.
