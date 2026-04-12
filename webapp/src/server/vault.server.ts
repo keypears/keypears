@@ -81,6 +81,7 @@ export async function createNewVersion(
 export async function getVaultEntries(
   userId: string,
   query?: string,
+  beforeUpdatedAt?: Date,
   beforeId?: string,
   limit = 20,
 ) {
@@ -96,8 +97,16 @@ export async function getVaultEntries(
     );
   }
 
-  if (beforeId) {
-    conditions.push(lt(secrets.id, beforeId));
+  if (beforeUpdatedAt && beforeId) {
+    // Tuple comparison: rows strictly before (updatedAt, id) under the
+    // DESC, DESC ordering. Equivalent to:
+    //   updatedAt < ? OR (updatedAt = ? AND id < ?)
+    conditions.push(
+      or(
+        lt(secrets.updatedAt, beforeUpdatedAt),
+        and(eq(secrets.updatedAt, beforeUpdatedAt), lt(secrets.id, beforeId)),
+      )!,
+    );
   }
 
   return db

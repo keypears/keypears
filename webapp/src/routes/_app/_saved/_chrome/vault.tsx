@@ -106,10 +106,12 @@ function VaultPage() {
     if (loadingMore || !hasMore || entries.length === 0) return;
     setLoadingMore(true);
     try {
+      const last = entries[entries.length - 1];
       const older = await getMyEntries({
         data: {
           query: query || undefined,
-          beforeId: entries[entries.length - 1].id,
+          beforeUpdatedAt: last.createdAt,
+          beforeId: last.id,
         },
       });
       if (older.length < 20) setHasMore(false);

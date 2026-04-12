@@ -46,12 +46,18 @@ export const getMyEntries = createServerFn({ method: "GET" })
     z
       .object({
         query: z.string().optional(),
+        beforeUpdatedAt: z.coerce.date().optional(),
         beforeId: z.string().optional(),
       })
       .optional(),
   )
   .handler(async ({ data, context: { userId } }) => {
-    return getVaultEntries(userId, data?.query, data?.beforeId);
+    return getVaultEntries(
+      userId,
+      data?.query,
+      data?.beforeUpdatedAt,
+      data?.beforeId,
+    );
   });
 
 export const getEntry = createServerFn({ method: "GET" })

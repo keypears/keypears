@@ -128,7 +128,14 @@ export const secrets = mysqlTable(
     createdAt: datetime("created_at").default(sql`NOW()`).notNull(),
     updatedAt: datetime("updated_at").default(sql`NOW()`).notNull(),
   },
-  (table) => [index("secret_user_id_idx").on(table.userId)],
+  (table) => [
+    index("secret_user_updated_idx").on(
+      table.userId,
+      table.updatedAt,
+      table.id,
+    ),
+    index("secret_source_message_idx").on(table.sourceMessageId),
+  ],
 );
 
 export const secretVersions = mysqlTable(
