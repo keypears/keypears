@@ -252,8 +252,9 @@ server to another, Alice's address and identity remain valid. Only the
 
 Password-based key derivation uses a three-tier PBKDF2-HMAC-SHA-256 scheme
 (RFC 8018). The server-side tier alone performs 600,000 rounds, matching the
-NIST SP 800-132 recommendation exactly; with the two client-side tiers of
-300,000 rounds each, the full password-to-hash chain runs 1,200,000 rounds.
+OWASP Password Storage Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256;
+with the two client-side tiers of 300,000 rounds each, the full
+password-to-hash chain runs 1,200,000 rounds.
 
 #figure(
   cetz.canvas(length: 1cm, {
@@ -328,9 +329,9 @@ the server exactly once during account creation or login, then discarded on
 the client. The server hashes it with an additional 600,000 rounds of
 PBKDF2-HMAC-SHA-256 before storage, using a per-user salt derived
 deterministically from the user's ID. The server-side tier alone meets the
-NIST SP 800-132 recommendation of 600,000 rounds, independent of any work
-performed on the client. The per-user salt prevents parallel dictionary
-attacks across multiple users.
+OWASP recommendation of 600,000 rounds for PBKDF2-HMAC-SHA-256, independent
+of any work performed on the client. The per-user salt prevents parallel
+dictionary attacks across multiple users.
 
 The encryption key and login key are derived from the same parent with
 different salts, making them cryptographically independent. An attacker who
@@ -355,10 +356,14 @@ shared secret via elliptic-curve Diffie-Hellman on the NIST P-256 curve:
 
 $ S = "SHA-256"("ECDH"(a, B)) $
 
-where $a$ is Alice's private key and $B$ is Bob's public key. The message
-payload is encrypted with AES-256-GCM using $S$ as the key. Both Alice's and
-Bob's public keys are stored alongside the ciphertext, so that either party
-can re-derive the shared secret after key rotation.
+where $a$ is Alice's private key and $B$ is Bob's public key. Here
+$"ECDH"(a, B)$ denotes the 32-byte big-endian $x$-coordinate of the shared
+point $a B$, as returned by the Web Crypto `deriveBits` API---not the
+33-byte SEC1 compressed encoding. Both parties must hash the same raw
+coordinate for their derived keys to agree. The message payload is encrypted
+with AES-256-GCM using $S$ as the key. Both Alice's and Bob's public keys
+are stored alongside the ciphertext, so that either party can re-derive the
+shared secret after key rotation.
 
 *Vault encryption.* The vault stores secrets---passwords, credentials, and
 notes---encrypted under the vault key derived from the user's private key
@@ -461,9 +466,10 @@ database entry is created until a valid solution is submitted. This prevents
 pre-computation attacks.
 
 *GPU mining.* All proof of work is computed client-side using the `pow5-64b`
-algorithm, designed for efficient GPU execution. Servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
-challenge takes approximately 1--2~seconds and a difficulty-7M challenge
-completes in under a second.
+algorithm, designed for efficient GPU execution via WebGPU. Servers never
+mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M challenge
+takes approximately 1--2~seconds and a difficulty-7M challenge completes in
+under a second.
 
 *Configurable difficulty.* The protocol does not dictate fixed difficulty
 levels. Instead, difficulty is set independently at two layers:
@@ -477,9 +483,7 @@ levels. Instead, difficulty is set independently at two layers:
   receiving unwanted messages can raise their difficulty; a user who values
   low-friction communication can lower it.
 
-On a modern laptop GPU (~55M hashes/s), a difficulty of 7M takes under a second
-and a difficulty of 70M takes 1--2~seconds, but operators and users are free to
-choose any value that suits their needs.
+Operators and users are free to choose any value that suits their needs.
 
 *Authenticated challenges.* Challenge requests require the sender to sign
 with their P-256 private key (ECDSA). The recipient's server verifies the
@@ -515,7 +519,8 @@ user's hash must be cracked independently.
 == Password Brute-Force
 
 The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
-every login key, matching the NIST SP 800-132 recommendation exactly. An
+every login key, matching the OWASP Password Storage Cheat Sheet
+recommendation for PBKDF2-HMAC-SHA-256. An
 offline attack against the stored hash requires 1,200,000 rounds per guess
 through the full chain. For an 8-character password drawn from lowercase
 letters and digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive
@@ -565,10 +570,15 @@ server-side session. The attack surface is limited to decrypting data already
 present on the compromised device.
 
 Browser-level defense-in-depth is provided by a Content-Security-Policy
-header restricting script, style, and connection sources to same-origin, plus
-standard headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
-`Strict-Transport-Security`). These reduce the exploitability of any XSS or
-injection bug that might be introduced.
+header that restricts `connect-src` to same-origin, sets
+`frame-ancestors 'none'` and `base-uri 'self'`, and constrains
+`default-src`, `script-src`, `style-src`, `img-src`, and `font-src` to
+same-origin (with `'unsafe-inline'` permitted for scripts and styles as
+required by the framework, and `'wasm-unsafe-eval'` permitted for the
+client-side PoW miner). Standard headers round out the policy:
+`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and
+`Strict-Transport-Security`. Together these reduce the exploitability of
+any XSS or injection bug that might be introduced.
 
 == Limitations
 
@@ -593,7 +603,7 @@ ephemeral key material.
     inset: 6pt,
     align: left,
     table.header([], [*PGP*], [*Signal*], [*Matrix*], [*KeyPears*]),
-    [Identity], [Email address], [Phone number], [`@user:server`], [`name@domain`],
+    [Identity], [Email address], [Phone number], [`@user:domain`], [`name@domain`],
     [Federation], [Key servers], [None], [Homeservers], [DNS + pull model],
     [E2E encryption], [Manual], [Automatic], [Automatic], [Automatic],
     [Spam mitigation], [None], [Phone reg.], [Rate limits], [Proof of work],
