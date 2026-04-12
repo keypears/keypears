@@ -1,12 +1,18 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import matter from "gray-matter";
 import toml from "toml";
 import type { BlogPost, BlogPostSummary } from "~/lib/blog";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BLOG_DIR = path.resolve(__dirname, "../blog");
+// Inline every blog markdown file at build time via Vite's ?raw glob.
+// This is the same pattern docs/*.md use, and it avoids depending on
+// `webapp/src/blog/*.md` existing on disk at runtime — those files are
+// not copied into `dist/` by the vite build, so reading them with
+// `fs.readdirSync` works in dev (where the source tree is live) but
+// fails in production with ENOENT.
+const blogModules = import.meta.glob<string>("../blog/*.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
 
 function parseFrontmatter(raw: string) {
   const { data, content } = matter(raw, {
@@ -33,16 +39,16 @@ let cachedPosts: BlogPost[] | null = null;
 function loadAllPosts(): BlogPost[] {
   if (cachedPosts) return cachedPosts;
 
-  const files = fs
-    .readdirSync(BLOG_DIR)
-    .filter((file: string) => file.endsWith(".md"))
-    .toSorted()
+  const entries = Object.entries(blogModules)
+    .map(([filepath, raw]) => ({
+      filename: filepath.split("/").pop()!,
+      raw,
+    }))
+    .toSorted((a, b) => a.filename.localeCompare(b.filename))
     .toReversed();
 
   const posts: BlogPost[] = [];
-  for (const filename of files) {
-    const filePath = path.join(BLOG_DIR, filename);
-    const raw = fs.readFileSync(filePath, "utf-8");
+  for (const { filename, raw } of entries) {
     const { data, content } = parseFrontmatter(raw);
     const date = new Date(data.date);
     posts.push({
