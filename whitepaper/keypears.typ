@@ -9,12 +9,16 @@
   paper: "us-letter",
   margin: (x: 1in, y: 1in),
   numbering: "1",
+  fill: black,
 )
 
 #set text(
   font: "New Computer Modern",
   size: 10pt,
+  fill: white,
 )
+
+#set table(stroke: white)
 
 #set par(justify: true)
 #set heading(numbering: "1.")
@@ -30,11 +34,11 @@
 
   #text(size: 11pt)[Ryan X. Charles]
 
-  #text(size: 9pt, fill: luma(100))[ryan\@ryanxcharles.com]
+  #text(size: 9pt, fill: luma(180))[ryan\@ryanxcharles.com]
 
   #v(0.5em)
 
-  #text(size: 9pt, fill: luma(100))[April 2026]
+  #text(size: 9pt, fill: luma(180))[April 2026]
 ]
 
 #v(1em)
@@ -145,6 +149,7 @@ communicated before.
 #figure(
   cetz.canvas(length: 1cm, {
     import cetz.draw: *
+    set-style(stroke: white, mark: (stroke: white, fill: white))
 
     let col-a = 1.5
     let col-as = 5.5
@@ -258,6 +263,7 @@ NIST SP 800-132 recommendation exactly; with the two client-side tiers of
 #figure(
   cetz.canvas(length: 1cm, {
     import cetz.draw: *
+    set-style(stroke: white, mark: (stroke: white, fill: white))
 
     let box-w = 4.2
     let box-h = 0.8
@@ -382,6 +388,7 @@ patterns are supported:
 #figure(
   cetz.canvas(length: 1cm, {
     import cetz.draw: *
+    set-style(stroke: white, mark: (stroke: white, fill: white))
 
     let box-w = 4.0
     let box-h = 0.9
