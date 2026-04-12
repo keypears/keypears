@@ -79,7 +79,14 @@ function ChannelPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const encryptionKey = getCachedEncryptionKey();
+  // Hold in state so the reference is stable across renders. Reading
+  // getCachedEncryptionKey() inline would return a new FixedBuf on every
+  // render, which would cause any effect depending on it to re-run and
+  // cancel in-flight decryption.
+  const [encryptionKey, setEncryptionKey] = useState<FixedBuf<32> | null>(null);
+  useEffect(() => {
+    setEncryptionKey(getCachedEncryptionKey());
+  }, []);
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   const [myKeyData, setMyKeyData] = useState<{
@@ -212,11 +219,14 @@ function ChannelPage() {
     | { ok: true; content: MessageContent }
     | { ok: false; reason: "loading" | "wrong-key" | "error" };
 
-  function tryDecrypt(msg: {
+  type DecryptableMsg = {
+    id: string;
     encryptedContent: string;
     senderPubKey: string;
     recipientPubKey: string;
-  }): DecryptResult {
+  };
+
+  async function tryDecrypt(msg: DecryptableMsg): Promise<DecryptResult> {
     if (!encryptionKey || keyMap.size === 0)
       return { ok: false, reason: "loading" };
 
@@ -232,14 +242,14 @@ function ChannelPage() {
     }
 
     try {
-      const myPrivKey = decryptPrivateKey(
+      const myPrivKey = await decryptPrivateKey(
         matchingKey.encryptedPrivateKey,
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
       return {
         ok: true,
-        content: decryptMessageContent(
+        content: await decryptMessageContent(
           msg.encryptedContent,
           myPrivKey,
           theirPubKey,
@@ -250,6 +260,40 @@ function ChannelPage() {
       return { ok: false, reason: "error" };
     }
   }
+
+  // Pre-decrypt messages in an effect and memoize results by message ID so
+  // that new messages only pay the decryption cost once, and existing
+  // results survive re-renders and polling.
+  const [decryptedMap, setDecryptedMap] = useState<Map<string, DecryptResult>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    if (!encryptionKey || keyMap.size === 0) return;
+    let cancelled = false;
+    (async () => {
+      let changed = false;
+      const next = new Map(decryptedMap);
+      for (const msg of messageList) {
+        if (next.has(msg.id)) continue;
+        const result = await tryDecrypt(msg);
+        if (cancelled) return;
+        next.set(msg.id, result);
+        changed = true;
+      }
+      if (!cancelled && changed) setDecryptedMap(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageList, keyMap, currentPasswordHash, encryptionKey]);
+
+  // Reset the decrypted map when the encryption context changes (logout,
+  // password change, different key set).
+  useEffect(() => {
+    setDecryptedMap(new Map());
+  }, [keyMap, currentPasswordHash, encryptionKey]);
 
   async function handleSaveSecret(
     secret: {
@@ -262,7 +306,7 @@ function ChannelPage() {
   ) {
     const fields = secret.fields as Record<string, string>;
     if (!myKeyData || !encryptionKey) return;
-    const myPrivKey = decryptPrivateKey(
+    const myPrivKey = await decryptPrivateKey(
       myKeyData.encryptedPrivateKey,
       encryptionKey,
     );
@@ -270,7 +314,7 @@ function ChannelPage() {
       secret.secretType === "login"
         ? { type: "login" as const, ...fields }
         : { type: "text" as const, text: fields.text ?? "" };
-    const encryptedData = encryptVaultEntry(data, myPrivKey);
+    const encryptedData = await encryptVaultEntry(data, myPrivKey);
     const result = await createEntry({
       data: {
         name: secret.name,
@@ -317,12 +361,12 @@ function ChannelPage() {
         otherMsg?.senderPubKey ?? messageList[0]?.recipientPubKey;
       if (!recipientPubKeyHex) throw new Error("Cannot determine recipient");
 
-      const myPrivKey = decryptPrivateKey(
+      const myPrivKey = await decryptPrivateKey(
         myKeyData.encryptedPrivateKey,
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientPubKeyHex);
-      const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
+      const encryptedContent = await encryptMessage(text, myPrivKey, theirPubKey);
 
       pendingSendRef.current = {
         recipientAddress: address,
@@ -496,7 +540,10 @@ function ChannelPage() {
             )}
             {messageList.map((msg) => {
               const isMine = keyMap.has(msg.senderPubKey);
-              const result = tryDecrypt(msg);
+              const result: DecryptResult = decryptedMap.get(msg.id) ?? {
+                ok: false,
+                reason: "loading",
+              };
               return (
                 <div
                   key={msg.id}

@@ -59,24 +59,34 @@ function VaultPage() {
   useEffect(() => {
     const encryptionKey = getCachedEncryptionKey();
     if (!encryptionKey) return;
-    const map = new Map<
-      string,
-      { privateKey: FixedBuf<32>; keyNumber: number }
-    >();
-    for (const k of keyData.keys) {
-      if (k.loginKeyHash === keyData.passwordHash) {
-        try {
-          const priv = decryptPrivateKey(k.encryptedPrivateKey, encryptionKey);
-          map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
-        } catch {
-          // locked key
+    let cancelled = false;
+    (async () => {
+      const map = new Map<
+        string,
+        { privateKey: FixedBuf<32>; keyNumber: number }
+      >();
+      for (const k of keyData.keys) {
+        if (k.loginKeyHash === keyData.passwordHash) {
+          try {
+            const priv = await decryptPrivateKey(
+              k.encryptedPrivateKey,
+              encryptionKey,
+            );
+            map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
+          } catch {
+            // locked key
+          }
         }
       }
-    }
-    setKeyMap(map);
-    if (keyData.keys.length > 0) {
-      setActivePublicKey(keyData.keys[0].publicKey);
-    }
+      if (cancelled) return;
+      setKeyMap(map);
+      if (keyData.keys.length > 0) {
+        setActivePublicKey(keyData.keys[0].publicKey);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [keyData]);
 
   // Search with debounce
@@ -270,7 +280,7 @@ function CreateEntryForm({
         data = { type: "text", text };
       }
 
-      const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
+      const encryptedData = await encryptVaultEntry(data, keyInfo.privateKey);
       const result = await createEntry({
         data: {
           name,

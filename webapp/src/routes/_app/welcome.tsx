@@ -126,11 +126,11 @@ function WelcomePage() {
 
     setSaving(true);
     try {
-      const passwordKey = derivePasswordKey(password);
-      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const passwordKey = await derivePasswordKey(password);
+      const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
+      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
+        await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       cacheEncryptionKey(encryptionKey);
       const entropy = calculatePasswordEntropy(password);
       cacheEntropyTier(entropyTier(entropy));

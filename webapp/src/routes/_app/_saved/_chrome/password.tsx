@@ -15,7 +15,7 @@ import {
   cacheEntropyTier,
   getCachedEntropyTier,
 } from "~/lib/auth";
-import { aesgcmEncrypt } from "@webbuf/aesgcm";
+import { aesgcmEncryptNative } from "~/lib/aesgcm";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/password")({
   head: () => ({ meta: [{ title: "Password — KeyPears" }] }),
@@ -51,8 +51,9 @@ function PasswordPage() {
       setStatus("Deriving old keys...");
       let oldEncryptionKey = getCachedEncryptionKey();
       if (!oldEncryptionKey) {
-        const oldPasswordKey = derivePasswordKey(oldPassword);
-        oldEncryptionKey = deriveEncryptionKeyFromPasswordKey(oldPasswordKey);
+        const oldPasswordKey = await derivePasswordKey(oldPassword);
+        oldEncryptionKey =
+          await deriveEncryptionKeyFromPasswordKey(oldPasswordKey);
       }
 
       // 2. Fetch all encrypted private keys from server
@@ -61,20 +62,23 @@ function PasswordPage() {
 
       // 3. Decrypt only keys that match current password, re-encrypt with new
       setStatus("Re-encrypting keys...");
-      const newPasswordKey = derivePasswordKey(newPassword);
+      const newPasswordKey = await derivePasswordKey(newPassword);
       const newEncryptionKey =
-        deriveEncryptionKeyFromPasswordKey(newPasswordKey);
-      const newLoginKey = deriveLoginKeyFromPasswordKey(newPasswordKey);
+        await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
+      const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
       const reEncryptedKeys: { id: string; encryptedPrivateKey: string }[] =
         [];
       for (const key of encryptedKeys) {
         try {
-          const privateKey = decryptPrivateKey(
+          const privateKey = await decryptPrivateKey(
             key.encryptedPrivateKey,
             oldEncryptionKey,
           );
-          const reEncrypted = aesgcmEncrypt(privateKey.buf, newEncryptionKey);
+          const reEncrypted = await aesgcmEncryptNative(
+            privateKey.buf,
+            newEncryptionKey,
+          );
           reEncryptedKeys.push({
             id: key.id,
             encryptedPrivateKey: reEncrypted.toHex(),

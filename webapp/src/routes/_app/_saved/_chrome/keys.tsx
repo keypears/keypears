@@ -10,7 +10,7 @@ import {
   cacheEncryptionKey,
   decryptPrivateKey,
 } from "~/lib/auth";
-import { aesgcmEncrypt } from "@webbuf/aesgcm";
+import { aesgcmEncryptNative } from "~/lib/aesgcm";
 import { RotateCw, Lock, Unlock, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
@@ -52,15 +52,15 @@ function KeysPage() {
         setError("Password is required.");
         return;
       }
-      const passwordKey = derivePasswordKey(password);
-      encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const passwordKey = await derivePasswordKey(password);
+      encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
     }
 
     setRotating(true);
     try {
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
+        await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       await rotateKey({
         data: { publicKey, encryptedPrivateKey },
       });
@@ -82,26 +82,29 @@ function KeysPage() {
 
     try {
       setKeyStatus("Deriving keys...");
-      const oldPasswordKey = derivePasswordKey(oldKeyPassword);
+      const oldPasswordKey = await derivePasswordKey(oldKeyPassword);
       const oldEncryptionKey =
-        deriveEncryptionKeyFromPasswordKey(oldPasswordKey);
+        await deriveEncryptionKeyFromPasswordKey(oldPasswordKey);
 
-      const newPasswordKey = derivePasswordKey(newKeyPassword);
+      const newPasswordKey = await derivePasswordKey(newKeyPassword);
       const newEncryptionKey =
-        deriveEncryptionKeyFromPasswordKey(newPasswordKey);
-      const newLoginKey = deriveLoginKeyFromPasswordKey(newPasswordKey);
+        await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
+      const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
       const key = keyList.find((k) => k.id === changingKeyId);
       if (!key) throw new Error("Key not found");
 
       setKeyStatus("Decrypting...");
-      const privateKey = decryptPrivateKey(
+      const privateKey = await decryptPrivateKey(
         key.encryptedPrivateKey,
         oldEncryptionKey,
       );
 
       setKeyStatus("Re-encrypting...");
-      const reEncrypted = aesgcmEncrypt(privateKey.buf, newEncryptionKey);
+      const reEncrypted = await aesgcmEncryptNative(
+        privateKey.buf,
+        newEncryptionKey,
+      );
 
       setKeyStatus("Saving...");
       await reEncryptMyKey({

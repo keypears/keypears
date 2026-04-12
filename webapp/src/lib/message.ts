@@ -2,7 +2,7 @@ import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { p256SharedSecret } from "@webbuf/p256";
-import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
+import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 import { z } from "zod";
 
 // --- Message schemas (no unions) ---
@@ -46,37 +46,37 @@ export function computeMessageKey(
 
 // --- Encrypt ---
 
-export function encryptMessage(
+export async function encryptMessage(
   text: string,
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
-): string {
+): Promise<string> {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "text", text });
-  const encrypted = aesgcmEncrypt(WebBuf.fromUtf8(content), key);
+  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
 }
 
-export function encryptSecretMessage(
+export async function encryptSecretMessage(
   secret: SecretPayload,
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
-): string {
+): Promise<string> {
   const key = computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "secret", secret });
-  const encrypted = aesgcmEncrypt(WebBuf.fromUtf8(content), key);
+  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
 }
 
 // --- Decrypt ---
 
-export function decryptMessageContent(
+export async function decryptMessageContent(
   encryptedHex: string,
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
-): MessageContent {
+): Promise<MessageContent> {
   const key = computeMessageKey(myPrivKey, theirPubKey);
-  const decrypted = aesgcmDecrypt(WebBuf.fromHex(encryptedHex), key);
+  const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(encryptedHex), key);
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 
@@ -92,12 +92,16 @@ export function decryptMessageContent(
 }
 
 /** Legacy convenience — decrypts and returns just the text for text messages. */
-export function decryptMessage(
+export async function decryptMessage(
   encryptedHex: string,
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
-): string {
-  const content = decryptMessageContent(encryptedHex, myPrivKey, theirPubKey);
+): Promise<string> {
+  const content = await decryptMessageContent(
+    encryptedHex,
+    myPrivKey,
+    theirPubKey,
+  );
   if (content.type !== "text") throw new Error("Not a text message");
   return content.text;
 }

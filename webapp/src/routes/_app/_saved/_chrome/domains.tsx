@@ -283,11 +283,11 @@ function DomainCard({
 
     try {
       setAddStatus("Deriving keys...");
-      const passwordKey = derivePasswordKey(newPassword);
-      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const passwordKey = await derivePasswordKey(newPassword);
+      const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
+      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
+        await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
       setAddStatus("Creating user...");
       await createDomainUserFn({
@@ -328,11 +328,11 @@ function DomainCard({
 
     try {
       setResetStatus("Deriving keys...");
-      const passwordKey = derivePasswordKey(resetPassword);
-      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
-      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const passwordKey = await derivePasswordKey(resetPassword);
+      const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
+      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
       const { publicKey, encryptedPrivateKey } =
-        generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
+        await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
       setResetStatus("Resetting password...");
       await resetDomainUserPasswordFn({

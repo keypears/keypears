@@ -5,7 +5,6 @@ import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
-import { pbkdf2Sha256 } from "@webbuf/pbkdf2-sha256";
 import { getDomain } from "~/lib/config";
 import { newId } from "./utils";
 
@@ -124,7 +123,7 @@ export async function createUserForDomain(
   if (existing) throw new Error("Name is already taken");
 
   const id = newId();
-  const passwordHash = hashLoginKey(loginKeyHex, id);
+  const passwordHash = await hashLoginKey(loginKeyHex, id);
   await db.insert(users).values({
     id,
     name,
@@ -142,7 +141,7 @@ export async function resetUserPassword(
   publicKey: string,
   encryptedPrivateKey: string,
 ) {
-  const newPasswordHash = hashLoginKey(newLoginKeyHex, userId);
+  const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
   await db
     .update(users)
     .set({ passwordHash: newPasswordHash })
@@ -156,11 +155,36 @@ function deriveServerSalt(userId: string): FixedBuf<32> {
   return sha256Hash(WebBuf.fromUtf8(`Keypears server login salt v1:${userId}`));
 }
 
-function hashLoginKey(loginKeyHex: string, userId: string): string {
+function toArrayBufferCopy(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(new ArrayBuffer(bytes.length));
+  copy.set(bytes);
+  return copy as Uint8Array<ArrayBuffer>;
+}
+
+async function hashLoginKey(
+  loginKeyHex: string,
+  userId: string,
+): Promise<string> {
   const loginKeyBuf = WebBuf.fromHex(loginKeyHex);
-  const salt = deriveServerSalt(userId);
-  const hashed = pbkdf2Sha256(loginKeyBuf, salt.buf, SERVER_KDF_ROUNDS, 32);
-  return hashed.buf.toHex();
+  const salt = deriveServerSalt(userId).buf;
+  const material = await crypto.subtle.importKey(
+    "raw",
+    toArrayBufferCopy(loginKeyBuf),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: toArrayBufferCopy(salt),
+      iterations: SERVER_KDF_ROUNDS,
+      hash: "SHA-256",
+    },
+    material,
+    256,
+  );
+  return Buffer.from(bits).toString("hex");
 }
 
 export async function insertUser() {
@@ -280,7 +304,7 @@ export async function saveUser(
     throw new Error("Name is already taken");
   }
 
-  const passwordHash = hashLoginKey(loginKeyHex, id);
+  const passwordHash = await hashLoginKey(loginKeyHex, id);
   await db
     .update(users)
     .set({ name, domainId, passwordHash, tosAcceptedAt: new Date(), expiresAt: null })
@@ -321,7 +345,7 @@ export async function changePassword(
   newLoginKeyHex: string,
   reEncryptedKeys: { id: string; encryptedPrivateKey: string }[],
 ) {
-  const newPasswordHash = hashLoginKey(newLoginKeyHex, userId);
+  const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
   await db.transaction(async (tx) => {
     await tx
       .update(users)
@@ -346,7 +370,7 @@ export async function reEncryptKey(
   encryptedPrivateKey: string,
   loginKeyHex: string,
 ) {
-  const loginKeyHash = hashLoginKey(loginKeyHex, userId);
+  const loginKeyHash = await hashLoginKey(loginKeyHex, userId);
   const result = await db
     .update(keys)
     .set({ encryptedPrivateKey, loginKeyHash })
@@ -367,7 +391,7 @@ export async function verifyLogin(
     throw new Error("Invalid credentials");
   }
 
-  const inputHash = hashLoginKey(loginKeyHex, saved.id);
+  const inputHash = await hashLoginKey(loginKeyHex, saved.id);
   if (
     !timingSafeEqual(
       Buffer.from(saved.passwordHash, "hex"),

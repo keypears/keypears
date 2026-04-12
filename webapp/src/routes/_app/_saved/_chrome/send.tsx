@@ -113,12 +113,12 @@ function SendPage() {
       const encryptionKey = getCachedEncryptionKey();
       if (!encryptionKey) throw new Error("Please log in again");
 
-      const myPrivKey = decryptPrivateKey(
+      const myPrivKey = await decryptPrivateKey(
         myKeyData.encryptedPrivateKey,
         encryptionKey,
       );
       const theirPubKey = FixedBuf.fromHex(33, recipientKeyResult.publicKey);
-      const encryptedContent = encryptMessage(text, myPrivKey, theirPubKey);
+      const encryptedContent = await encryptMessage(text, myPrivKey, theirPubKey);
 
       // Store the prepared message and fetch PoW challenge
       pendingSendRef.current = {

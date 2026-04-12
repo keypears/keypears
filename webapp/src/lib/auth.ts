@@ -2,8 +2,7 @@ import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { p256PublicKeyCreate, p256Sign } from "@webbuf/p256";
-import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
-import { pbkdf2Sha256 } from "@webbuf/pbkdf2-sha256";
+import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 
 const CLIENT_KDF_ROUNDS = 300_000;
 const ENCRYPTION_KEY_STORAGE_KEY = "keypears_encryption_key";
@@ -76,54 +75,94 @@ function deriveEncryptionSalt(): FixedBuf<32> {
   return sha256Hash(WebBuf.fromUtf8("Keypears encryption salt v1"));
 }
 
+// Copy a WebBuf/Uint8Array into a fresh ArrayBuffer-backed Uint8Array so
+// that Web Crypto's BufferSource type is satisfied (the type system
+// rejects Uint8Array<ArrayBufferLike> that might be SharedArrayBuffer).
+function toBufferSource(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(new ArrayBuffer(bytes.length));
+  copy.set(bytes);
+  return copy as Uint8Array<ArrayBuffer>;
+}
+
+// Shared PBKDF2 helper using Web Crypto.
+async function pbkdf2(
+  password: Uint8Array,
+  salt: Uint8Array,
+  rounds: number,
+): Promise<FixedBuf<32>> {
+  const material = await crypto.subtle.importKey(
+    "raw",
+    toBufferSource(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: toBufferSource(salt),
+      iterations: rounds,
+      hash: "SHA-256",
+    },
+    material,
+    256,
+  );
+  return FixedBuf.fromBuf(32, WebBuf.fromUint8Array(new Uint8Array(bits)));
+}
+
 // --- Tier 1: Password → Password Key (ephemeral, never stored) ---
 
-export function derivePasswordKey(password: string): FixedBuf<32> {
-  const passwordBuf = WebBuf.fromUtf8(password);
-  const passwordSalt = derivePasswordSalt(password);
-  return pbkdf2Sha256(passwordBuf, passwordSalt.buf, CLIENT_KDF_ROUNDS, 32);
+export async function derivePasswordKey(
+  password: string,
+): Promise<FixedBuf<32>> {
+  const passwordBuf = new TextEncoder().encode(password);
+  const salt = derivePasswordSalt(password).buf;
+  return pbkdf2(passwordBuf, salt, CLIENT_KDF_ROUNDS);
 }
 
 // --- Tier 2: Password Key → Login Key / Encryption Key ---
 
-export function deriveLoginKeyFromPasswordKey(
+export async function deriveLoginKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
-): string {
-  const loginSalt = deriveLoginSalt();
-  const loginKey = pbkdf2Sha256(passwordKey.buf, loginSalt.buf, CLIENT_KDF_ROUNDS, 32);
+): Promise<string> {
+  const salt = deriveLoginSalt().buf;
+  const loginKey = await pbkdf2(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
   return loginKey.buf.toHex();
 }
 
-export function deriveEncryptionKeyFromPasswordKey(
+export async function deriveEncryptionKeyFromPasswordKey(
   passwordKey: FixedBuf<32>,
-): FixedBuf<32> {
-  const encryptionSalt = deriveEncryptionSalt();
-  return pbkdf2Sha256(passwordKey.buf, encryptionSalt.buf, CLIENT_KDF_ROUNDS, 32);
+): Promise<FixedBuf<32>> {
+  const salt = deriveEncryptionSalt().buf;
+  return pbkdf2(passwordKey.buf, salt, CLIENT_KDF_ROUNDS);
 }
 
 // --- Key pair operations (use encryption key directly) ---
 
-export function generateAndEncryptKeyPairFromEncryptionKey(
+export async function generateAndEncryptKeyPairFromEncryptionKey(
   encryptionKey: FixedBuf<32>,
-): {
+): Promise<{
   publicKey: string;
   encryptedPrivateKey: string;
-} {
+}> {
   const privateKey = FixedBuf.fromRandom(32);
   const publicKey = p256PublicKeyCreate(privateKey);
-  const encryptedPrivateKey = aesgcmEncrypt(privateKey.buf, encryptionKey);
+  const encryptedPrivateKey = await aesgcmEncryptNative(
+    privateKey.buf,
+    encryptionKey,
+  );
   return {
     publicKey: publicKey.buf.toHex(),
     encryptedPrivateKey: encryptedPrivateKey.toHex(),
   };
 }
 
-export function decryptPrivateKey(
+export async function decryptPrivateKey(
   encryptedPrivateKeyHex: string,
   encryptionKey: FixedBuf<32>,
-): FixedBuf<32> {
+): Promise<FixedBuf<32>> {
   const encryptedBuf = WebBuf.fromHex(encryptedPrivateKeyHex);
-  const decrypted = aesgcmDecrypt(encryptedBuf, encryptionKey);
+  const decrypted = await aesgcmDecryptNative(encryptedBuf, encryptionKey);
   return FixedBuf.fromBuf(32, decrypted);
 }
 
@@ -150,6 +189,10 @@ export function clearCachedEncryptionKey(): void {
 /**
  * Sign a PoW challenge request to prove sender identity.
  * Returns the signature hex and timestamp used.
+ *
+ * Stays synchronous — uses webbuf P-256 and webbuf SHA-256. The P-256
+ * migration is deferred to a later experiment because it requires key
+ * format conversion and a protocol change for ECDSA raw-digest signing.
  */
 export function signPowRequest(
   senderAddress: string,

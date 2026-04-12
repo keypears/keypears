@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   getMyEntries,
   getEntry,
@@ -21,6 +21,7 @@ import { parseDomainInput, validateEmail } from "~/lib/vault-validation";
 import {
   tryDecryptVaultEntry,
   encryptVaultEntry,
+  type DecryptResult,
 } from "~/lib/vault";
 import {
   DropdownMenu,
@@ -112,24 +113,34 @@ function VaultDetailPage() {
   useEffect(() => {
     const encryptionKey = getCachedEncryptionKey();
     if (!encryptionKey) return;
-    const map = new Map<
-      string,
-      { privateKey: FixedBuf<32>; keyNumber: number }
-    >();
-    for (const k of keyData.keys) {
-      if (k.loginKeyHash === keyData.passwordHash) {
-        try {
-          const priv = decryptPrivateKey(k.encryptedPrivateKey, encryptionKey);
-          map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
-        } catch {
-          // locked key
+    let cancelled = false;
+    (async () => {
+      const map = new Map<
+        string,
+        { privateKey: FixedBuf<32>; keyNumber: number }
+      >();
+      for (const k of keyData.keys) {
+        if (k.loginKeyHash === keyData.passwordHash) {
+          try {
+            const priv = await decryptPrivateKey(
+              k.encryptedPrivateKey,
+              encryptionKey,
+            );
+            map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
+          } catch {
+            // locked key
+          }
         }
       }
-    }
-    setKeyMap(map);
-    if (keyData.keys.length > 0) {
-      setActivePublicKey(keyData.keys[0].publicKey);
-    }
+      if (cancelled) return;
+      setKeyMap(map);
+      if (keyData.keys.length > 0) {
+        setActivePublicKey(keyData.keys[0].publicKey);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [keyData]);
 
   // Search
@@ -382,8 +393,13 @@ function EntryDetail({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
 
-  // Filter out current version from history
-  const olderVersions = history.filter((v) => v.id !== entry.versionId);
+  // Filter out current version from history (memoized so its array
+  // reference is stable across renders — critical because this is a
+  // dependency of the pre-decryption effect below).
+  const olderVersions = useMemo(
+    () => history.filter((v) => v.id !== entry.versionId),
+    [history, entry.versionId],
+  );
   const [sharing, setSharing] = useState(false);
   const [shareAddress, setShareAddress] = useState("");
   const [shareStatus, setShareStatus] = useState("");
@@ -416,10 +432,46 @@ function EntryDetail({
   const keyNum = getKeyNumber(entry.publicKey);
   const keyInfo = keyMap.get(entry.publicKey);
 
-  // Decrypt
-  const decrypted = keyInfo
-    ? tryDecryptVaultEntry(entry.encryptedData, keyInfo.privateKey)
-    : null;
+  // Pre-decrypt in an effect so render stays synchronous
+  const [decrypted, setDecrypted] = useState<DecryptResult | null>(null);
+  const [versionsDecrypted, setVersionsDecrypted] = useState<
+    Map<string, DecryptResult>
+  >(new Map());
+
+  useEffect(() => {
+    if (!keyInfo) {
+      setDecrypted(null);
+      setVersionsDecrypted(new Map());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const result = await tryDecryptVaultEntry(
+        entry.encryptedData,
+        keyInfo.privateKey,
+      );
+      if (cancelled) return;
+      setDecrypted(result);
+
+      // Decrypt all older versions in the same effect so the history
+      // panel can render them synchronously from state.
+      const vmap = new Map<string, DecryptResult>();
+      for (const ver of olderVersions) {
+        const verKeyInfo = keyMap.get(ver.publicKey);
+        if (!verKeyInfo) continue;
+        const verResult = await tryDecryptVaultEntry(
+          ver.encryptedData,
+          verKeyInfo.privateKey,
+        );
+        if (cancelled) return;
+        vmap.set(ver.id, verResult);
+      }
+      if (!cancelled) setVersionsDecrypted(vmap);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entry.encryptedData, keyInfo, olderVersions, keyMap]);
 
   function startEditing() {
     if (!decrypted || !decrypted.ok) return;
@@ -458,7 +510,7 @@ function EntryDetail({
         data = { type: "text", text: editText };
       }
 
-      const encryptedData = encryptVaultEntry(data, keyInfo.privateKey);
+      const encryptedData = await encryptVaultEntry(data, keyInfo.privateKey);
       const result = await updateEntry({
         data: {
           secretId: entry.id,
@@ -515,13 +567,13 @@ function EntryDetail({
       const myActiveKey = await getMyActiveEncryptedKey();
       const encKey = getCachedEncryptionKey();
       if (!encKey) throw new Error("Encryption key not found");
-      const myPrivKey = decryptPrivateKey(
+      const myPrivKey = await decryptPrivateKey(
         myActiveKey.encryptedPrivateKey,
         encKey,
       );
 
       const theirPubKey = FixedBuf.fromHex(33, recipientKey.publicKey);
-      const encryptedContent = encryptSecretMessage(
+      const encryptedContent = await encryptSecretMessage(
         secret,
         myPrivKey,
         theirPubKey,
@@ -1058,10 +1110,7 @@ function EntryDetail({
           {historyOpen && (
             <div className="border-border/30 border-t">
               {olderVersions.map((ver) => {
-                const verKeyInfo = keyMap.get(ver.publicKey);
-                const verDecrypted = verKeyInfo
-                  ? tryDecryptVaultEntry(ver.encryptedData, verKeyInfo.privateKey)
-                  : null;
+                const verDecrypted = versionsDecrypted.get(ver.id) ?? null;
                 const isExpanded = expandedVersion === ver.version;
 
                 return (
@@ -1094,7 +1143,7 @@ function EntryDetail({
                           <DropdownMenuItem
                             onClick={async () => {
                               if (!verDecrypted?.ok || !keyInfo) return;
-                              const encryptedData = encryptVaultEntry(
+                              const encryptedData = await encryptVaultEntry(
                                 verDecrypted.data,
                                 keyInfo.privateKey,
                               );

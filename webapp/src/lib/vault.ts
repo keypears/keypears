@@ -1,7 +1,7 @@
 import { sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
+import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 import { z } from "zod";
 
 // --- Vault key derivation ---
@@ -34,22 +34,22 @@ export type VaultEntryData = z.infer<typeof VaultEntryData>;
 
 // --- Encrypt / decrypt ---
 
-export function encryptVaultEntry(
+export async function encryptVaultEntry(
   data: VaultEntryData,
   privateKey: FixedBuf<32>,
-): string {
+): Promise<string> {
   const vaultKey = deriveVaultKey(privateKey);
   const json = JSON.stringify(data);
-  const encrypted = aesgcmEncrypt(WebBuf.fromUtf8(json), vaultKey);
+  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(json), vaultKey);
   return encrypted.toHex();
 }
 
-export function decryptVaultEntry(
+export async function decryptVaultEntry(
   hex: string,
   privateKey: FixedBuf<32>,
-): VaultEntryData {
+): Promise<VaultEntryData> {
   const vaultKey = deriveVaultKey(privateKey);
-  const decrypted = aesgcmDecrypt(WebBuf.fromHex(hex), vaultKey);
+  const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(hex), vaultKey);
   return VaultEntryData.parse(JSON.parse(decrypted.toUtf8()));
 }
 
@@ -57,13 +57,13 @@ export type DecryptResult =
   | { ok: true; data: VaultEntryData }
   | { ok: false; reason: "locked" | "invalid"; raw?: string };
 
-export function tryDecryptVaultEntry(
+export async function tryDecryptVaultEntry(
   hex: string,
   privateKey: FixedBuf<32>,
-): DecryptResult {
+): Promise<DecryptResult> {
   try {
     const vaultKey = deriveVaultKey(privateKey);
-    const decrypted = aesgcmDecrypt(WebBuf.fromHex(hex), vaultKey);
+    const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(hex), vaultKey);
     const json = decrypted.toUtf8();
     const parsed = VaultEntryData.safeParse(JSON.parse(json));
     if (parsed.success) {

@@ -68,12 +68,12 @@ function LoginPage() {
 
     setPagePhase("logging-in");
     try {
-      const passwordKey = derivePasswordKey(creds.password);
-      const loginKey = deriveLoginKeyFromPasswordKey(passwordKey);
+      const passwordKey = await derivePasswordKey(creds.password);
+      const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
       await login({
         data: { name: creds.name, domain: creds.domain, loginKey, ...solution },
       });
-      const encryptionKey = deriveEncryptionKeyFromPasswordKey(passwordKey);
+      const encryptionKey = await deriveEncryptionKeyFromPasswordKey(passwordKey);
       cacheEncryptionKey(encryptionKey);
       cacheEntropyTier(entropyTier(calculatePasswordEntropy(creds.password)));
       navigate({ to: "/home" });
