@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>KeyPears Crypto Benchmark</title>
+    <style>
+      body {
+        font-family: monospace;
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+        background: #111;
+        color: #eee;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      p {
+        color: #aaa;
+      }
+      #status {
+        color: #aaa;
+        margin: 20px 0;
+      }
+      #results {
+        white-space: pre-wrap;
+        background: #1b1b1b;
+        padding: 16px;
+        border-radius: 4px;
+        margin: 20px 0;
+        display: none;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      button {
+        background: #333;
+        color: #eee;
+        border: 1px solid #555;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #444;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .main-thread-box {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 16px;
+        background: #1b1b1b;
+        border-radius: 4px;
+        margin: 16px 0;
+      }
+      #spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #333;
+        border-top-color: #4af;
+        border-radius: 50%;
+      }
+      #spinner.spinning {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #raf-counter {
+        color: #4af;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>KeyPears Crypto Benchmark</h1>
+    <p>
+      Compares <code>@webbuf/*</code> (WASM) against
+      <code>window.crypto.subtle</code> (native) for every NIST primitive
+      KeyPears uses.
+    </p>
+    <p>
+      The spinner and frame counter below run on the main thread via
+      <code>requestAnimationFrame</code>. If the WASM path blocks the main
+      thread during PBKDF2, the spinner will stutter and frame counts will
+      drop. Web Crypto should run off-thread and keep the spinner smooth.
+    </p>
+    <button id="start">Start Benchmark</button>
+    <div class="main-thread-box">
+      <div id="spinner"></div>
+      <div>
+        Main thread rAF: <span id="raf-counter">0 frames</span>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="results"></div>
+    <script type="module" src="./src/bench-browser.ts"></script>
+  </body>
+</html>

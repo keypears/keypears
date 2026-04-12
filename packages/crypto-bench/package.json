@@ -1,0 +1,21 @@
+{
+  "name": "@keypears/crypto-bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:node": "bun src/bench-node.ts",
+    "dev": "bunx vite --open"
+  },
+  "dependencies": {
+    "@webbuf/aesgcm": "^3.5.0",
+    "@webbuf/fixedbuf": "^3.5.0",
+    "@webbuf/p256": "^3.5.0",
+    "@webbuf/pbkdf2-sha256": "^3.5.1",
+    "@webbuf/sha256": "^3.5.0",
+    "@webbuf/webbuf": "^3.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.4"
+  }
+}

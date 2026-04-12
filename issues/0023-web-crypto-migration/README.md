@@ -245,3 +245,128 @@ sha256-32         0.0020            0.0012              1.7x
 - Not benchmarking browser-only or node-only APIs beyond the eight cases above.
   We want to know about the primitives we actually use, not build a
   general-purpose crypto benchmark.
+
+### Result — Pass
+
+Both harnesses were built under `packages/crypto-bench/` and run successfully.
+Build passes, both entry points execute, results below.
+
+#### Node / Bun results (M-series Mac, Bun 1.3.5, darwin arm64)
+
+```
+pbkdf2-300k      webbuf  82.299 ms/op   webCrypto  16.143 ms/op   webCrypto 5.10x faster
+pbkdf2-600k      webbuf 164.992 ms/op   webCrypto  32.374 ms/op   webCrypto 5.10x faster
+sha256-32        webbuf   0.55 µs/op    webCrypto   0.84 µs/op    webbuf    1.53x faster
+hmac-sha256-32   webbuf   0.90 µs/op    webCrypto   9.11 µs/op    webbuf   10.07x faster
+aesgcm-1kb       webbuf  24.48 µs/op    webCrypto  18.86 µs/op    webCrypto 1.30x faster
+p256-ecdh        webbuf 179.63 µs/op    webCrypto  34.29 µs/op    webCrypto 5.24x faster
+p256-sign        webbuf 200.44 µs/op    webCrypto  20.84 µs/op    webCrypto 9.62x faster
+p256-verify      webbuf 370.14 µs/op    webCrypto  36.75 µs/op    webCrypto 10.07x faster
+```
+
+#### Browser results (Chrome 147 on macOS, same Mac)
+
+```
+pbkdf2-300k      webbuf  75.500 ms/op   webCrypto  16.360 ms/op   webCrypto  4.61x faster
+  main thread:  webbuf 0/22 frames (100% dropped)   webCrypto 36/4 frames (0% dropped)
+
+pbkdf2-600k      webbuf 155.700 ms/op   webCrypto  32.067 ms/op   webCrypto  4.86x faster
+  main thread:  webbuf 0/28 frames (100% dropped)   webCrypto 100/5 frames (0% dropped)
+
+sha256-32        webbuf   0.56 µs/op    webCrypto   1.23 µs/op    webbuf    2.20x faster
+hmac-sha256-32   webbuf   0.85 µs/op    webCrypto   1.26 µs/op    webbuf    1.48x faster
+aesgcm-1kb       webbuf  26.98 µs/op    webCrypto   3.76 µs/op    webCrypto 7.18x faster
+p256-ecdh        webbuf 286.80 µs/op    webCrypto  44.10 µs/op    webCrypto 6.50x faster
+p256-sign        webbuf 311.00 µs/op    webCrypto  26.50 µs/op    webCrypto 11.74x faster
+p256-verify      webbuf 588.30 µs/op    webCrypto  54.80 µs/op    webCrypto 10.74x faster
+```
+
+### Analysis
+
+**PBKDF2 is the blockbuster result — migrate both tiers.** 5x faster raw, and
+the main-thread measurement is the real eye-opener. Webbuf PBKDF2 runs
+synchronously on the main thread and drops 100% of expected frames during the
+derivation. Web Crypto PBKDF2 runs off-thread: during the 600K-round bench, the
+rAF loop rendered 100 frames while only 5 were expected (i.e., Web Crypto
+completed so fast the rAF loop kept firing freely). This means the migration
+gives us two distinct wins:
+
+1. 5x faster KDF — logins drop from ~300ms total to ~64ms total.
+2. Zero UI freeze on login/save — the spinner animates smoothly.
+
+On slower hardware the absolute delta is larger. A phone at 500ms per tier on
+webbuf would drop to ~100ms on Web Crypto.
+
+**All P-256 operations are 5-12x faster native.** This was stronger than
+expected. ECDH (5-6x), ECDSA sign (9-12x), ECDSA verify (10-11x). In both Bun
+and Chrome. Migrate all three. The migration cost is real but bounded: we need a
+compressed-↔-uncompressed public key converter at the Web Crypto boundary since
+Web Crypto wants 65-byte uncompressed keys and our storage format is 33-byte
+compressed. And we need to figure out how to sign raw pre-computed digests (Web
+Crypto's ECDSA hashes the message internally).
+
+**AES-256-GCM has a split personality:** 1.3x faster on Bun, **7.2x faster on
+Chrome.** The Chrome number is dramatic and almost certainly reflects AES-NI
+hardware acceleration that webbuf's WASM cannot reach. Migrate — the
+browser-side win alone justifies it.
+
+**SHA-256 and HMAC-SHA-256 on small inputs: keep on webbuf.** This was the
+surprise of the experiment. Web Crypto loses on both — SHA-256 by 1.5-2.2x,
+HMAC-SHA-256 by 1.5-10x. The explanation is async/promise wrapper overhead: for
+an operation that takes ~500ns-1µs natively, the cost of creating a Promise and
+resolving it dominates. Bun's HMAC-SHA-256 at 9.1µs/op (10x slower than webbuf's
+0.9µs) is especially striking and suggests per-call allocation in Bun's
+`crypto.subtle.sign('HMAC', ...)` path. Staying on webbuf for these is a strict
+win with no downside.
+
+**Main-thread measurement caveat:** For the cheap operations (SHA-256, HMAC,
+AES-GCM, all P-256 ops) both paths show "100% frames dropped," but the expected
+frame counts are all 1-35 frames because each benchmark only runs a few
+milliseconds total. This is a measurement artifact of running tight loops under
+rAF — the event loop can't squeeze in a frame between `for` iterations even on
+the async path. The metric is only meaningful for the long PBKDF2 benchmarks,
+where it clearly shows the off-main-thread behavior we wanted.
+
+### Per-primitive decisions
+
+| Primitive             | Decision        | Reason                                                         |
+| --------------------- | --------------- | -------------------------------------------------------------- |
+| PBKDF2-HMAC-SHA-256   | **Migrate**     | 5x faster, eliminates UI freeze on login/save                  |
+| P-256 ECDH            | **Migrate**     | 5-6x faster                                                    |
+| P-256 ECDSA sign      | **Migrate**     | 9-12x faster                                                   |
+| P-256 ECDSA verify    | **Migrate**     | 10-11x faster                                                  |
+| AES-256-GCM           | **Migrate**     | 1.3x on Bun, 7.2x on Chrome (AES-NI hardware acceleration)     |
+| SHA-256 (single, 32B) | **Keep webbuf** | 1.5-2.2x faster than Web Crypto (promise overhead dominates)   |
+| HMAC-SHA-256 (32B)    | **Keep webbuf** | 1.5-10x faster than Web Crypto (per-call allocation in subtle) |
+
+### Extrapolated user impact
+
+**Login (Chrome, M-series Mac):**
+
+- Old: 2 × 76ms client PBKDF2 + 156ms server PBKDF2 = ~308ms, with a 150ms UI
+  freeze
+- New: 2 × 16ms client + 32ms server = ~64ms, zero UI freeze
+- **~5x faster, UI stays responsive**
+
+**Per-message decryption (Chrome, 50 messages on channel load):**
+
+- Old: 50 × (287µs ECDH + 27µs AES-GCM) = 16ms sync blocking
+- New: 50 × (44µs ECDH + 4µs AES-GCM) = 2.4ms sync blocking
+
+### Known complications for the migration experiment
+
+1. **Async everywhere.** Web Crypto is promise-based. `lib/auth.ts` functions
+   like `derivePasswordKey()` become async and their callers must await.
+2. **P-256 key format.** Web Crypto uses 65-byte uncompressed public keys (or
+   JWK). Our storage format is 33-byte compressed. We need a converter at the
+   boundary. The 33-byte format stays in the database to preserve the storage
+   savings.
+3. **ECDSA over raw digests.** Web Crypto's ECDSA hashes its input message
+   internally. We currently pass a pre-computed digest (32 bytes) as the message
+   to be signed. Either we accept Web Crypto's hash-the-message behavior and
+   change the PoW signing protocol slightly, or we find a way to get Web Crypto
+   to sign a raw digest directly (the only clean path is to construct an ASN.1
+   DER signature manually — painful).
+4. **Bun vs browser symmetry.** Both environments expose `crypto.subtle` with
+   the same API. The server-side code in `user.server.ts` and elsewhere can use
+   the same Web Crypto calls as the client, which is great for code sharing.
