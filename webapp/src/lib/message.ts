@@ -1,7 +1,11 @@
 import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { p256PrivateKeyToJwk, p256PublicKeyToJwk } from "@webbuf/p256";
+import {
+  p256PrivateKeyToJwk,
+  p256PublicKeyToJwk,
+  p256PublicKeyVerify,
+} from "@webbuf/p256";
 import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 import { z } from "zod";
 
@@ -45,6 +49,12 @@ export async function computeMessageKey(
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
 ): Promise<FixedBuf<32>> {
+  // Validate the peer's public key is a well-formed P-256 point on the
+  // curve before doing any ECDH. P-256 has cofactor 1, so on-curve implies
+  // the correct prime-order subgroup — no separate subgroup check needed.
+  if (!p256PublicKeyVerify(theirPubKey)) {
+    throw new Error("Invalid P-256 public key");
+  }
   const privJwk = p256PrivateKeyToJwk(myPrivKey);
   const pubJwk = p256PublicKeyToJwk(theirPubKey);
   const [priv, pub] = await Promise.all([

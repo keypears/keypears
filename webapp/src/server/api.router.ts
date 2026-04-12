@@ -78,7 +78,9 @@ const getPowChallengeEndpoint = os
     // Verify the signature. The client signs the raw UTF-8 string with
     // Web Crypto ECDSA (which hashes internally with SHA-256 before
     // signing), so we pass the same raw bytes to verify.
-    const { p256PublicKeyToJwk } = await import("@webbuf/p256");
+    const { p256PublicKeyToJwk, p256PublicKeyVerify } = await import(
+      "@webbuf/p256"
+    );
     const { WebBuf } = await import("@webbuf/webbuf");
     const { FixedBuf } = await import("@webbuf/fixedbuf");
 
@@ -87,6 +89,12 @@ const getPowChallengeEndpoint = os
     );
     const sigBytes = WebBuf.fromHex(input.signature);
     const compressedPub = FixedBuf.fromHex(33, input.senderPubKey);
+    // Validate the public key is a well-formed P-256 point on the curve
+    // before passing it to the verifier. P-256 has cofactor 1, so on-curve
+    // implies the correct prime-order subgroup.
+    if (!p256PublicKeyVerify(compressedPub)) {
+      throw new Error("Invalid sender public key");
+    }
     const pubJwk = p256PublicKeyToJwk(compressedPub);
     const cryptoKey = await crypto.subtle.importKey(
       "jwk",
