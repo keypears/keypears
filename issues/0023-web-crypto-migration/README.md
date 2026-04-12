@@ -370,3 +370,381 @@ where it clearly shows the off-main-thread behavior we wanted.
 4. **Bun vs browser symmetry.** Both environments expose `crypto.subtle` with
    the same API. The server-side code in `user.server.ts` and elsewhere can use
    the same Web Crypto calls as the client, which is great for code sharing.
+
+## Experiment 2 — Migrate PBKDF2 and AES-GCM to Web Crypto
+
+Migrate the two primitives that give us the biggest wins with the least
+friction: **PBKDF2-HMAC-SHA-256** (5x speedup + eliminates the login UI
+freeze) and **AES-256-GCM** (7x speedup on Chrome via AES-NI). Leave P-256
+on webbuf for now — it's covered by a separate experiment because the
+migration touches private key format, public key format, and the ECDSA
+protocol change, all of which deserve their own design.
+
+### Scope
+
+**In scope:**
+- PBKDF2: client `derivePasswordKey`, `deriveLoginKeyFromPasswordKey`,
+  `deriveEncryptionKeyFromPasswordKey`, and server `hashLoginKey`.
+- AES-GCM: `encryptMessage`, `encryptSecretMessage`, `decryptMessageContent`,
+  `encryptVaultEntry`, `decryptVaultEntry`, `tryDecryptVaultEntry`,
+  `generateAndEncryptKeyPairFromEncryptionKey` (the AES-GCM encrypt of the
+  private key), and `decryptPrivateKey`.
+- Propagation of async through all callers.
+- Refactoring the two render-time decryption sites to pre-compute in a
+  `useEffect`.
+
+**Out of scope (deferred to experiment 3):**
+- P-256 ECDH (`computeMessageKey` keeps using webbuf's `p256SharedSecret`).
+- P-256 ECDSA sign/verify (`signPowRequest` / verification in
+  `api.router.ts` stays on webbuf).
+- P-256 key pair generation (still via webbuf's `p256PublicKeyCreate`).
+- P-256 public/private key format conversion. Not needed because we're not
+  touching any P-256 Web Crypto call.
+
+**Kept on webbuf (per experiment 1 decisions):**
+- SHA-256 single-hash (`sha256Hash`).
+- HMAC-SHA-256 (`sha256Hmac`).
+
+### What changes in `lib/auth.ts`
+
+The three KDF functions become async and use `crypto.subtle`:
+
+```typescript
+export async function derivePasswordKey(password: string): Promise<FixedBuf<32>> {
+  const passwordBuf = new TextEncoder().encode(password);
+  const salt = derivePasswordSalt(password).buf;
+  const material = await crypto.subtle.importKey(
+    "raw",
+    passwordBuf,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: CLIENT_KDF_ROUNDS, hash: "SHA-256" },
+    material,
+    256,
+  );
+  return FixedBuf.fromBuf(32, WebBuf.fromUint8Array(new Uint8Array(bits)));
+}
+```
+
+(Similar structure for `deriveLoginKeyFromPasswordKey` and
+`deriveEncryptionKeyFromPasswordKey`.)
+
+The `generateAndEncryptKeyPairFromEncryptionKey` and `decryptPrivateKey`
+functions become async because they call AES-GCM. P-256 key generation
+still uses webbuf:
+
+```typescript
+export async function generateAndEncryptKeyPairFromEncryptionKey(
+  encryptionKey: FixedBuf<32>,
+): Promise<{ publicKey: string; encryptedPrivateKey: string }> {
+  const privateKey = FixedBuf.fromRandom(32);
+  const publicKey = p256PublicKeyCreate(privateKey);            // webbuf (sync)
+  const encryptedPrivateKey = await aesgcmEncryptNative(       // Web Crypto (async)
+    privateKey.buf,
+    encryptionKey,
+  );
+  return {
+    publicKey: publicKey.buf.toHex(),
+    encryptedPrivateKey: encryptedPrivateKey.toHex(),
+  };
+}
+```
+
+`signPowRequest` stays sync (uses webbuf `p256Sign` and `sha256Hash`).
+
+### New helper: `aesgcmEncryptNative` / `aesgcmDecryptNative`
+
+Rather than sprinkling `crypto.subtle` calls throughout the codebase, add
+a small helper that exposes the same shape as webbuf's `aesgcmEncrypt` /
+`aesgcmDecrypt` but uses Web Crypto internally. Put this in a new file
+`lib/aesgcm.ts`:
+
+```typescript
+// lib/aesgcm.ts
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
+
+export async function aesgcmEncryptNative(
+  plaintext: WebBuf,
+  key: FixedBuf<32>,
+): Promise<WebBuf> {
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    key.buf,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"],
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    cryptoKey,
+    plaintext,
+  );
+  // Match webbuf's format: [iv (12 bytes)] || [ciphertext || tag]
+  return WebBuf.concat([
+    WebBuf.fromUint8Array(iv),
+    WebBuf.fromUint8Array(new Uint8Array(ciphertext)),
+  ]);
+}
+
+export async function aesgcmDecryptNative(
+  ciphertext: WebBuf,
+  key: FixedBuf<32>,
+): Promise<WebBuf> {
+  const iv = ciphertext.slice(0, 12);
+  const ct = ciphertext.slice(12);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    key.buf,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"],
+  );
+  const plaintext = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    cryptoKey,
+    ct,
+  );
+  return WebBuf.fromUint8Array(new Uint8Array(plaintext));
+}
+```
+
+The ciphertext format must match `@webbuf/aesgcm` byte-for-bit so that
+existing encrypted data (if any) can still be decrypted during
+development. Looking at the webbuf source, `aesgcmEncrypt` produces
+`[iv (12 bytes)] || [ciphertext || tag (16 bytes)]`, and Web Crypto's
+`crypto.subtle.encrypt` with AES-GCM produces `[ciphertext || tag (16 bytes)]`
+internally. So we just prepend our 12-byte IV to match the layout.
+**Important verification step:** write a cross-check test that encrypts
+with the helper and decrypts with webbuf (and vice versa) to confirm
+format compatibility.
+
+### Changes in `lib/message.ts`
+
+Every call to `aesgcmEncrypt`/`aesgcmDecrypt` is replaced with the async
+native helper. Functions become async:
+
+```typescript
+export async function encryptMessage(
+  text: string,
+  myPrivKey: FixedBuf<32>,
+  theirPubKey: FixedBuf<33>,
+): Promise<string> {
+  const key = computeMessageKey(myPrivKey, theirPubKey);  // webbuf, sync
+  const content = JSON.stringify({ version: 1, type: "text", text });
+  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
+  return encrypted.toHex();
+}
+```
+
+Same pattern for `encryptSecretMessage`, `decryptMessageContent`,
+`decryptMessage`. `computeMessageKey` stays sync (it uses webbuf ECDH and
+webbuf SHA-256, both still sync in this experiment).
+
+### Changes in `lib/vault.ts`
+
+Same pattern — AES-GCM calls become async, functions become async.
+`deriveVaultKey` stays sync (it uses webbuf `sha256Hmac`, which we're
+keeping).
+
+```typescript
+export async function encryptVaultEntry(...): Promise<string> { ... }
+export async function decryptVaultEntry(...): Promise<VaultEntryData> { ... }
+export async function tryDecryptVaultEntry(...): Promise<DecryptResult> { ... }
+```
+
+### Changes in `server/user.server.ts`
+
+`hashLoginKey` becomes async. All six callers (`createUserForDomain`,
+`resetUserPassword`, `saveUser`, `changePassword`, `reEncryptKey`,
+`verifyLogin`) are already in `async` functions and just need an `await`
+added.
+
+```typescript
+async function hashLoginKey(loginKeyHex: string, userId: string): Promise<string> {
+  const loginKeyBuf = new Uint8Array(WebBuf.fromHex(loginKeyHex));
+  const salt = deriveServerSalt(userId).buf;
+  const material = await crypto.subtle.importKey(
+    "raw",
+    loginKeyBuf,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: SERVER_KDF_ROUNDS, hash: "SHA-256" },
+    material,
+    256,
+  );
+  return Buffer.from(bits).toString("hex");
+}
+```
+
+Bun exposes `crypto.subtle` globally, so no imports needed.
+
+### Async propagation through callers
+
+Every already-async caller just gets `await` added. The grep from the
+analysis confirmed every call site is in an async context, with two
+exceptions that need the render-time refactor below.
+
+Files that need mechanical `await` additions:
+
+- `routes/login.tsx` — `handlePowComplete`
+- `routes/_app/welcome.tsx` — save handler
+- `routes/_app/_saved/_chrome/password.tsx` — form handler (includes an
+  inner loop that re-encrypts keys, each iteration needs `await`)
+- `routes/_app/_saved/_chrome/keys.tsx` — rotate + reEncrypt handlers
+- `routes/_app/_saved/_chrome/domains.tsx` — createDomainUser, resetPassword
+- `routes/_app/_saved/_chrome/send.tsx` — send handler
+- `routes/_app/_saved/_chrome/vault.tsx` — search handler, create handler,
+  and the `useEffect` that builds the keyMap (async IIFE pattern)
+- `routes/_app/_saved/vault.$id.tsx` — the `useEffect` for keyMap, save
+  handler, share handler, restore-version handler
+- `routes/_app/_saved/channel.$address.tsx` — handleSaveSecret, handleSend
+  (already async, just needs awaits)
+
+### The render-time decryption refactor
+
+Two locations call decryption functions from inside JSX render, which is
+incompatible with async. These need to be rewritten to pre-compute results
+in a `useEffect` and store them in state.
+
+**`channel.$address.tsx` — `tryDecrypt` at line 215, called at line 499:**
+
+Current structure:
+
+```typescript
+function tryDecrypt(msg): DecryptResult { ... synchronous ... }
+
+// In JSX:
+{messageList.map((msg) => {
+  const result = tryDecrypt(msg);
+  return <MessageBubble result={result} />;
+})}
+```
+
+New structure:
+
+```typescript
+const [decryptedMap, setDecryptedMap] = useState<Map<string, DecryptResult>>(
+  new Map(),
+);
+
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    const next = new Map(decryptedMap);
+    // Only decrypt messages we haven't seen yet
+    for (const msg of messageList) {
+      if (next.has(msg.id)) continue;
+      const result = await tryDecryptAsync(msg);
+      if (cancelled) return;
+      next.set(msg.id, result);
+    }
+    if (!cancelled) setDecryptedMap(next);
+  })();
+  return () => { cancelled = true; };
+}, [messageList, keyMap, currentPasswordHash, encryptionKey]);
+
+// In JSX:
+{messageList.map((msg) => {
+  const result = decryptedMap.get(msg.id);
+  if (!result) return <MessagePlaceholder key={msg.id} />;
+  return <MessageBubble result={result} />;
+})}
+```
+
+Key design choices:
+
+- **Memoize by message ID.** Messages that have already been decrypted
+  stay in the map across re-renders and across polls for new messages.
+  Only new messages pay the decryption cost.
+- **Cancellation via `cancelled` flag.** If the effect re-runs (e.g., the
+  user switches channels) the old async loop is discarded rather than
+  racing to `setState` with stale data.
+- **Clear the map when the encryption key or password changes.** Use
+  these as dependencies to invalidate all decrypted results when the
+  user logs out or changes password.
+- **Placeholder during decryption.** A brief `<MessagePlaceholder />` is
+  shown while decryption is in flight. In practice this is milliseconds
+  for the first paint and not visible for subsequent messages.
+
+**`vault.$id.tsx` — `tryDecryptVaultEntry` at line 421 and line 1063:**
+
+Same pattern but simpler because there's only one entry + a bounded list
+of older versions. Pre-decrypt both in a `useEffect`:
+
+```typescript
+const [decrypted, setDecrypted] = useState<DecryptResult | null>(null);
+const [versionsDecrypted, setVersionsDecrypted] = useState<Map<string, DecryptResult>>(
+  new Map(),
+);
+
+useEffect(() => {
+  let cancelled = false;
+  if (!keyInfo) {
+    setDecrypted(null);
+    return;
+  }
+  (async () => {
+    const d = await tryDecryptVaultEntry(entry.encryptedData, keyInfo.privateKey);
+    if (cancelled) return;
+    setDecrypted(d);
+    const vmap = new Map<string, DecryptResult>();
+    for (const ver of olderVersions) {
+      const verKeyInfo = keyMap.get(ver.publicKey);
+      if (!verKeyInfo) continue;
+      vmap.set(
+        ver.id,
+        await tryDecryptVaultEntry(ver.encryptedData, verKeyInfo.privateKey),
+      );
+    }
+    if (cancelled) return;
+    setVersionsDecrypted(vmap);
+  })();
+  return () => { cancelled = true; };
+}, [entry, olderVersions, keyInfo, keyMap]);
+```
+
+### Verification
+
+1. **Format compatibility test.** Write a one-shot test in
+   `webapp/src/lib/aesgcm.test.ts`:
+   - Encrypt data with the new `aesgcmEncryptNative` helper
+   - Decrypt it with webbuf's `aesgcmDecrypt`
+   - And vice versa
+   - Confirm plaintext round-trips both ways
+2. **`bun run build`** — compiles with no errors
+3. **`bun run test`** — all existing tests pass
+4. **`bun run lint`** — clean
+5. **`db:clear` + `db:push`** — fresh DB
+6. **Manual smoke test:**
+   - Create an account (watches PBKDF2 run off-thread, no UI freeze)
+   - Save the account with a password (more PBKDF2, still no freeze)
+   - Log out, log back in (full PBKDF2 chain, observe snappy login)
+   - Send a message to yourself via another account (AES-GCM encrypt/decrypt)
+   - Open the channel and see the message decrypt (render-time refactor
+     works, no black screen)
+   - Add 10+ messages and scroll the channel (incremental decryption works)
+   - Create a vault entry (AES-GCM encrypt)
+   - Open the vault entry (render-time refactor works)
+   - Edit the vault entry and save (AES-GCM re-encrypt)
+   - Rotate a key (keypair gen still uses webbuf, but the private key
+     encryption uses native AES-GCM)
+   - Change password (re-encrypts locked keys — inner loop with awaits)
+7. **Spinner animation test.** Start the app, open DevTools, trigger a
+   login, and watch any CSS animation on the page during the PBKDF2 run.
+   It should stay smooth. Before this experiment, it would stutter.
+
+### Expected outcomes
+
+- Login latency on a fast Mac drops from ~300ms to ~64ms (experiment 1
+  benchmark extrapolation)
+- UI no longer freezes during login, save, or password change
+- AES-GCM operations in the browser become ~7x faster (AES-NI)
+- Everything else behaves identically, byte-for-byte
