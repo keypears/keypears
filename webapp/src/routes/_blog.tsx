@@ -52,7 +52,8 @@ function BlogLayout() {
           return (
             <Link
               key={post.slug}
-              to={`/blog/${post.slug}`}
+              to="/blog/$slug"
+              params={{ slug: post.slug }}
               onClick={onSelect}
               className={`px-4 py-2 text-sm no-underline transition-colors ${
                 active
@@ -172,9 +173,12 @@ function BlogLayout() {
         <div className="hidden lg:fixed lg:top-4 lg:right-4 lg:flex lg:items-center lg:gap-3">
           {user?.name && (
             <Link
-              to={
-                user.domain ? `/${user.name}@${user.domain}` : `/${user.name}`
-              }
+              to="/$profile"
+              params={{
+                profile: user.domain
+                  ? `${user.name}@${user.domain}`
+                  : user.name,
+              }}
               className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
             >
               {user.domain ? `${user.name}@${user.domain}` : user.name}

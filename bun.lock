@@ -143,6 +143,7 @@
         "@types/react-dom": "^19.2.3",
         "@types/three": "^0.183.1",
         "@vitejs/plugin-react": "^6.0.1",
+        "@webgpu/types": "^0.1.68",
         "concurrently": "^9.2.1",
         "drizzle-kit": "^0.31.10",
         "oxlint": "^1.59.0",

@@ -21,7 +21,8 @@ function BlogIndex() {
           {posts.map((post) => (
             <Link
               key={post.slug}
-              to={`/blog/${post.slug}`}
+              to="/blog/$slug"
+              params={{ slug: post.slug }}
               className="border-border/30 hover:bg-accent/5 rounded border px-5 py-4 no-underline transition-colors"
             >
               <h2 className="text-foreground text-lg font-medium">

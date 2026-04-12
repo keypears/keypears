@@ -9,12 +9,11 @@
     "jsx": "react-jsx",
     "outDir": "dist",
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
-      "~/*": ["src/*"]
+      "~/*": ["./src/*"]
     },
     "resolveJsonModule": true,
-    "types": ["vite/client", "bun"],
+    "types": ["vite/client", "bun", "@webgpu/types"],
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo"
   },

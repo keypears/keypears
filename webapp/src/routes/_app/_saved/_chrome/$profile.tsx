@@ -6,11 +6,6 @@ import { CircleUser, Copy, Check, MessageSquare } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" },
-    ],
-  }),
   loader: async ({ params }) => {
     const parsed = parseAddress(params.profile);
     if (!parsed) throw notFound();
@@ -23,6 +18,11 @@ export const Route = createFileRoute("/_app/_saved/_chrome/$profile")({
       powTotal: profileData.powTotal,
     };
   },
+  head: ({ loaderData }) => ({
+    meta: [
+      { title: loaderData ? `${loaderData.address} — KeyPears` : "KeyPears" },
+    ],
+  }),
   component: ProfilePage,
 });
 

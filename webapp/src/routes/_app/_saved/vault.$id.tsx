@@ -67,15 +67,6 @@ import {
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 
 export const Route = createFileRoute("/_app/_saved/vault/$id")({
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData?.entry
-          ? `${loaderData.entry.name} — Vault — KeyPears`
-          : "Vault — KeyPears",
-      },
-    ],
-  }),
   loader: async ({ params }) => {
     const [entry, entries, keyData] = await Promise.all([
       getEntry({ data: params.id }),
@@ -85,6 +76,15 @@ export const Route = createFileRoute("/_app/_saved/vault/$id")({
     const history = entry ? await getHistory({ data: entry.id }) : [];
     return { entryId: params.id, entry, entries, keyData, history };
   },
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: loaderData?.entry
+          ? `${loaderData.entry.name} — Vault — KeyPears`
+          : "Vault — KeyPears",
+      },
+    ],
+  }),
   component: VaultDetailPage,
 });
 

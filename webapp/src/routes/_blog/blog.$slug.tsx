@@ -3,6 +3,7 @@ import { getBlogPost } from "~/server/blog.functions";
 import { MarkdownRenderer } from "~/components/MarkdownRenderer";
 
 export const Route = createFileRoute("/_blog/blog/$slug")({
+  loader: ({ params }) => getBlogPost({ data: params.slug }),
   head: ({ loaderData }) => ({
     meta: [
       {
@@ -12,7 +13,6 @@ export const Route = createFileRoute("/_blog/blog/$slug")({
       },
     ],
   }),
-  loader: ({ params }) => getBlogPost({ data: params.slug }),
   component: BlogPost,
 });
 
