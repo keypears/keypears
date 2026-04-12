@@ -28,7 +28,7 @@ verifies the result. KeyPears uses interactive challenges:
 1. The client requests a challenge from the server.
 2. The server generates a 64-byte random header and a target based on the
    configured difficulty.
-3. The server signs the challenge with BLAKE3-MAC (using a server secret),
+3. The server signs the challenge with HMAC-SHA-256 (using a server secret),
    including a 15-minute expiry timestamp.
 4. The client mines the challenge by searching for a nonce that produces a hash
    below the target.
@@ -61,11 +61,11 @@ settings page.
 ## Authenticated challenges
 
 Challenge requests for messaging are **authenticated**: the sender must sign the
-request with their secp256k1 private key. The recipient's server verifies the
+request with their P-256 (NIST) private key. The recipient's server verifies the
 signature by looking up the sender's public key via federation.
 
 Both sender and recipient addresses are signed into the challenge payload by the
-server's BLAKE3-MAC. This prevents:
+server's HMAC-SHA-256. This prevents:
 
 - **Social-graph probing** — an unauthenticated party cannot request a
   challenge, so they cannot discover whether two users have a channel.

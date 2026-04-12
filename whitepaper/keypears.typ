@@ -44,15 +44,17 @@
 #par(first-line-indent: 0pt)[
   *Abstract.* KeyPears is a federated protocol for end-to-end encrypted
   communication and secret management. User identities are email-style
-  addresses (`name@domain`) backed by secp256k1 key pairs. Any domain can
+  addresses (`name@domain`) backed by NIST P-256 key pairs. Any domain can
   host a KeyPears server, and servers discover each other through DNS and a
   well-known configuration file. All cryptographic operations---key derivation,
   Diffie-Hellman key exchange, encryption, and proof of work---execute
-  client-side. Servers store only ciphertext and never possess the keys needed
-  to decrypt it. A proof-of-work mechanism provides Sybil resistance for
-  account creation, authentication, and messaging without CAPTCHAs or
-  third-party services. This paper describes the protocol design, cryptographic
-  construction, federation model, and security analysis.
+  client-side using NIST-approved primitives (SHA-256, HMAC-SHA-256,
+  PBKDF2-HMAC-SHA-256, AES-256-GCM, and P-256 ECDSA/ECDH). Servers store only
+  ciphertext and never possess the keys needed to decrypt it. A proof-of-work
+  mechanism provides Sybil resistance for account creation, authentication,
+  and messaging without CAPTCHAs or third-party services. This paper describes
+  the protocol design, cryptographic construction, federation model, and
+  security analysis.
 ]
 
 #v(1em)
@@ -206,10 +208,11 @@ communicated before.
 + Alice's client asks her server for Bob's public key. Her server fetches it
   from Bob's server via the federation API.
 + Alice's client requests a proof-of-work challenge from Bob's server. The
-  request is signed with Alice's secp256k1 private key to prove her identity.
+  request is signed with Alice's P-256 private key to prove her identity.
 + Alice's client mines the challenge on the GPU.
-+ Alice computes a shared secret via ECDH (her private key, Bob's public key),
-  derives an encryption key with BLAKE3, and encrypts the message with ACB3.
++ Alice computes a shared secret via ECDH on P-256 (her private key, Bob's
+  public key), derives an encryption key with SHA-256, and encrypts the
+  message with AES-256-GCM.
 + Alice sends the ciphertext and PoW solution to her server.
 + Alice's server stores her copy, creates a pull token, and notifies
   Bob's server.
@@ -229,16 +232,16 @@ email itself allows. An organization with existing email addresses can use the
 same addresses for KeyPears without any changes. The domain is a standard DNS
 domain.
 
-Each user holds one or more secp256k1 key pairs. The most recent key is the
+Each user holds one or more NIST P-256 key pairs. The most recent key is the
 active key, used for ECDH key agreement in new messages. Users may rotate keys
 freely, up to 100 per account. Old keys are retained so that messages encrypted
 under previous keys can still be decrypted.
 
-Private keys are encrypted client-side with ACB3 under the user's encryption
-key (Section~5) and stored on the server as ciphertext. The server cannot
-decrypt them. If a user changes their password, keys encrypted under the old
-password are re-encrypted; keys from a different password remain "locked" until
-the user provides the old password.
+Private keys are encrypted client-side with AES-256-GCM under the user's
+encryption key (Section~5) and stored on the server as ciphertext. The server
+cannot decrypt them. If a user changes their password, keys encrypted under
+the old password are re-encrypted; keys from a different password remain
+"locked" until the user provides the old password.
 
 Identity is bound to domain ownership. An address like `alice@acme.com`
 survives changes in hosting provider: if `acme.com` migrates from one KeyPears
@@ -247,8 +250,9 @@ server to another, Alice's address and identity remain valid. Only the
 
 = Key Derivation
 
-Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
-300,000 total rounds between the user's password and the stored hash.
+Password-based key derivation uses a three-tier PBKDF2-HMAC-SHA-256 scheme
+(RFC 8018), producing 700,000 total rounds between the user's password and the
+stored hash. This exceeds the NIST SP 800-132 recommendation of 600,000 rounds.
 
 #figure(
   cetz.canvas(length: 1cm, {
@@ -264,7 +268,7 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
 
     // Arrow down
     line((center-x, 0), (center-x, -0.8), mark: (end: ">"))
-    content((center-x + 2.5, -0.4), text(size: 8pt)[100k rounds BLAKE3])
+    content((center-x + 2.7, -0.4), text(size: 8pt)[300k rounds PBKDF2])
 
     // Password Key
     let pk-y = -0.8
@@ -277,7 +281,7 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
     let right-x = center-x + 3.5
 
     line((center-x - 0.5, fork-y), (left-x, fork-y - 1.0), mark: (end: ">"))
-    content((left-x - 1.2, fork-y - 0.5), text(size: 8pt)[100k rounds\ salt A])
+    content((left-x - 1.2, fork-y - 0.5), text(size: 8pt)[300k rounds\ salt A])
 
     rect((left-x - box-w / 2, fork-y - 1.0 - box-h), (left-x + box-w / 2, fork-y - 1.0))
     content((left-x, fork-y - 1.0 - box-h / 2), [*Encryption Key*])
@@ -285,7 +289,7 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
 
     // Fork right: Login Key
     line((center-x + 0.5, fork-y), (right-x, fork-y - 1.0), mark: (end: ">"))
-    content((right-x + 1.2, fork-y - 0.5), text(size: 8pt)[100k rounds\ salt B])
+    content((right-x + 1.2, fork-y - 0.5), text(size: 8pt)[300k rounds\ salt B])
 
     rect((right-x - box-w / 2, fork-y - 1.0 - box-h), (right-x + box-w / 2, fork-y - 1.0))
     content((right-x, fork-y - 1.0 - box-h / 2), [*Login Key*])
@@ -294,7 +298,7 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
     // Server hashing
     let srv-y = fork-y - 1.0 - box-h - 0.4
     line((right-x, srv-y - 0.3), (right-x, srv-y - 1.1), mark: (end: ">"))
-    content((right-x + 2.5, srv-y - 0.7), text(size: 8pt)[100k rounds\ server salt])
+    content((right-x + 2.7, srv-y - 0.7), text(size: 8pt)[100k rounds\ per-user salt])
 
     rect(
       (right-x - box-w / 2, srv-y - 1.1 - box-h),
@@ -307,45 +311,51 @@ Password-based key derivation uses a three-tier BLAKE3 PBKDF scheme, producing
 )
 
 *Tier 1: Password #sym.arrow Password Key.* The password is stretched with
-100,000 rounds of BLAKE3 in keyed-MAC mode using a deterministic salt derived
-from the password itself. The result is a 256-bit password key. This key is
-ephemeral---it is used to derive the encryption key and login key, then
-discarded.
+300,000 rounds of PBKDF2-HMAC-SHA-256 using a deterministic salt derived from
+the password itself via HMAC-SHA-256. The result is a 256-bit password key.
+This key is ephemeral---it is used to derive the encryption key and login
+key, then discarded.
 
-*Tier 2a: Password Key #sym.arrow Encryption Key.* A second 100,000-round
-derivation with a distinct salt produces the encryption key. This key is cached
-on the client and used to encrypt and decrypt secp256k1
-private keys client-side. It is never sent to the server.
+*Tier 2a: Password Key #sym.arrow Encryption Key.* A second 300,000-round
+PBKDF2 derivation with a distinct salt produces the encryption key. This key
+is cached on the client and used to encrypt and decrypt P-256 private keys
+client-side. It is never sent to the server.
 
-*Tier 2b: Password Key #sym.arrow Login Key.* A parallel 100,000-round
-derivation with a different salt produces the login key. This key is sent to the
-server exactly once during account creation or login, then discarded on the
-client. The server hashes it with an additional 100,000 rounds before storage.
+*Tier 2b: Password Key #sym.arrow Login Key.* A parallel 300,000-round PBKDF2
+derivation with a different salt produces the login key. This key is sent to
+the server exactly once during account creation or login, then discarded on
+the client. The server hashes it with an additional 100,000 rounds of
+PBKDF2-HMAC-SHA-256 before storage, using a per-user salt derived
+deterministically from the user's ID. The per-user salt prevents parallel
+dictionary attacks across multiple users.
 
-The encryption key and login key are derived from the same parent with different
-salts, making them cryptographically independent. An attacker who compromises
-client storage obtains the encryption key and can decrypt private keys on that
-device, but cannot derive the login key or impersonate the user on the server.
+The encryption key and login key are derived from the same parent with
+different salts, making them cryptographically independent. An attacker who
+compromises client storage obtains the encryption key and can decrypt private
+keys on that device, but cannot derive the login key or impersonate the user
+on the server.
 
 *Vault key.* A separate key for encrypting stored secrets is derived as
-$K_"vault" = "BLAKE3-MAC"(K_"private",$ `"vault-key"`$)$, where the second
+$K_"vault" = "HMAC-SHA-256"(K_"private",$ `"vault-key"`$)$, where the second
 argument is a fixed domain-separation string. Each vault entry is independently
-encrypted with ACB3 under $K_"vault"$.
+encrypted with AES-256-GCM under $K_"vault"$.
 
 = Encryption
 
-KeyPears uses ACB3 (AES-256-CBC with BLAKE3-MAC authentication) for all
-symmetric encryption. Two encryption modes are used.
+KeyPears uses AES-256-GCM (NIST SP 800-38D) for all symmetric encryption.
+AES-GCM is an authenticated encryption mode (AEAD) that produces ciphertext
+and an authentication tag in a single pass---no separate MAC is required.
+Two encryption modes are used.
 
-*Message encryption.* When Alice sends a message to Bob, she computes a shared
-secret via elliptic-curve Diffie-Hellman on secp256k1:
+*Message encryption.* When Alice sends a message to Bob, she computes a
+shared secret via elliptic-curve Diffie-Hellman on the NIST P-256 curve:
 
-$ S = "BLAKE3"("ECDH"(a, B)) $
+$ S = "SHA-256"("ECDH"(a, B)) $
 
 where $a$ is Alice's private key and $B$ is Bob's public key. The message
-payload is encrypted with ACB3 using $S$ as the key. Both Alice's and Bob's
-public keys are stored alongside the ciphertext, so that either party can
-re-derive the shared secret after key rotation.
+payload is encrypted with AES-256-GCM using $S$ as the key. Both Alice's and
+Bob's public keys are stored alongside the ciphertext, so that either party
+can re-derive the shared secret after key rotation.
 
 *Vault encryption.* The vault stores secrets---passwords, credentials, and
 notes---encrypted under the vault key derived from the user's private key
@@ -442,10 +452,10 @@ building on Hashcash with four adaptations.
 
 *Interactive challenges.* Hashcash is non-interactive: the sender chooses a
 start value and the recipient verifies the result. KeyPears uses interactive
-challenges: the recipient's server issues a challenge signed with BLAKE3-MAC,
-including a 15-minute expiry. Challenges are stateless---no database entry is
-created until a valid solution is submitted. This prevents pre-computation
-attacks.
+challenges: the recipient's server issues a challenge signed with
+HMAC-SHA-256, including a 15-minute expiry. Challenges are stateless---no
+database entry is created until a valid solution is submitted. This prevents
+pre-computation attacks.
 
 *GPU mining.* All proof of work is computed client-side using the `pow5-64b`
 algorithm, designed for efficient GPU execution. Servers never mine. On a modern laptop GPU (~55M hashes/s), a difficulty-70M
@@ -468,12 +478,12 @@ On a modern laptop GPU (~55M hashes/s), a difficulty of 7M takes under a second
 and a difficulty of 70M takes 1--2~seconds, but operators and users are free to
 choose any value that suits their needs.
 
-*Authenticated challenges.* Challenge requests require the sender to sign with
-their secp256k1 private key. The recipient's server verifies the signature by
-looking up the sender's public key via federation. Both sender and recipient
-addresses are bound into the challenge by the server's BLAKE3-MAC. This
-prevents social-graph probing: an unauthenticated party cannot discover whether
-two users have communicated.
+*Authenticated challenges.* Challenge requests require the sender to sign
+with their P-256 private key (ECDSA). The recipient's server verifies the
+signature by looking up the sender's public key via federation. Both sender
+and recipient addresses are bound into the challenge by the server's
+HMAC-SHA-256. This prevents social-graph probing: an unauthenticated party
+cannot discover whether two users have communicated.
 
 Solutions are recorded in a spent-token table for replay prevention. Expired
 entries are cleaned up after their 15-minute window.
@@ -483,23 +493,32 @@ entries are cleaned up after their 15-minute window.
 == Server Compromise
 
 The server stores only ciphertext (messages, vault entries, encrypted private
-keys) and hashed credentials (login key hashed with 100,000 additional BLAKE3
-rounds). An attacker who captures the database cannot read any user content. To
-impersonate a user, the attacker must reverse 200,000 rounds of BLAKE3 PBKDF to
-recover the login key, or 300,000 rounds to recover the password.
+keys) and hashed credentials (login key hashed with 100,000 additional rounds
+of PBKDF2-HMAC-SHA-256, using a per-user salt derived deterministically from
+the user's ID). An attacker who captures the database cannot read any user
+content.
+
+To impersonate a user, the attacker must recover a valid login key. Brute
+forcing the login key directly is infeasible---it is a uniformly random
+256-bit value, and the search space is $2^(256)$. The only realistic attack
+is a dictionary attack against the user's password: for each candidate
+password, the attacker computes the full chain
+(password~#sym.arrow~password~key~#sym.arrow~login~key~#sym.arrow~stored~hash),
+requiring 700,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for
+Tier~1, 300,000 for Tier~2b, and 100,000 for the server tier). The per-user
+salts prevent parallelising a dictionary attack across multiple users---each
+user's hash must be cracked independently.
 
 == Password Brute-Force
 
-An offline attack against the stored hash requires 300,000 BLAKE3 rounds per
-guess. On a modern CPU core, BLAKE3-MAC processes approximately 4.3~million
-rounds per second, so a single password guess takes approximately 70~milliseconds.
-For an 8-character password drawn from lowercase letters and
-digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive search takes
-approximately $2.8 times 10^(12) times 0.07 approx 2.0 times 10^(11)$
-seconds, or roughly 6,300~CPU-core-years. An attacker with 100 cores would
-still require over 60~years. Longer or more complex passwords increase this
-cost exponentially. Online attacks are further throttled by the login PoW
-requirement (7M difficulty per attempt).
+An offline attack against the stored hash requires 700,000 rounds of
+PBKDF2-HMAC-SHA-256 per guess, which exceeds the NIST SP 800-132 recommendation
+of 600,000 rounds. For an 8-character password drawn from lowercase letters and
+digits ($36^8 approx 2.8 times 10^(12)$ candidates), exhaustive search is
+computationally infeasible on any realistic hardware budget; longer or more
+complex passwords increase this cost exponentially. Online attacks are further
+throttled by the login PoW requirement (7M difficulty per attempt) and by
+per-IP rate limiting at the infrastructure layer.
 
 == Spam and Sybil Attacks
 
@@ -516,11 +535,11 @@ additional per-message costs that make targeted spam impractical.
 == Social-Graph Probing
 
 Proof-of-work challenge requests are authenticated: the sender must sign the
-request with their secp256k1 private key, and the recipient's server verifies
-the signature via federation. An unauthenticated party cannot request a
-challenge, and therefore cannot probe whether two users have a communication
-channel. Both addresses are signed into the challenge payload by the server's
-BLAKE3-MAC, preventing cross-conversation reuse.
+request with their P-256 private key, and the recipient's server verifies the
+signature via federation. An unauthenticated party cannot request a challenge,
+and therefore cannot probe whether two users have a communication channel.
+Both addresses are signed into the challenge payload by the server's
+HMAC-SHA-256, preventing cross-conversation reuse.
 
 == Domain Spoofing
 
@@ -533,13 +552,19 @@ because TLS guarantees the response came from the real domain.
 
 == Client Storage Theft
 
-An attacker who compromises a user's client storage obtains the encryption key,
-which can decrypt the user's secp256k1 private keys. However, the login key is
-a cryptographic sibling of the encryption key (derived from the same parent with
-a different salt), not a child. The attacker cannot derive the login key,
-cannot impersonate the user on the server, and cannot access the server-side
-session. The attack surface is limited to decrypting data already present on
-the compromised device.
+An attacker who compromises a user's client storage obtains the encryption
+key, which can decrypt the user's P-256 private keys. However, the login key
+is a cryptographic sibling of the encryption key (derived from the same parent
+with a different salt), not a child. The attacker cannot derive the login
+key, cannot impersonate the user on the server, and cannot access the
+server-side session. The attack surface is limited to decrypting data already
+present on the compromised device.
+
+Browser-level defense-in-depth is provided by a Content-Security-Policy
+header restricting script, style, and connection sources to same-origin, plus
+standard headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+`Strict-Transport-Security`). These reduce the exploitability of any XSS or
+injection bug that might be introduced.
 
 == Limitations
 

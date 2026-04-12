@@ -75,8 +75,17 @@ keypears/
         use-pow-miner.ts   # shared PoW mining hook
         icons.ts        # auto-generated type-safe image paths
         utils.ts        # shadcn utility (cn)
-    docs/
-      kdf.md            # key derivation documentation
+      docs/
+        welcome.md              # overview
+        development.md          # local HTTPS via Caddy + dnsmasq
+        self-hosting.md         # running your own server
+        security.md              # threat model and defenses
+        federation.md            # federation model
+        protocol/
+          addressing.md          # address format and identity
+          key-derivation.md      # three-tier PBKDF2-HMAC-SHA-256
+          encryption.md          # AES-256-GCM, ECDH on P-256
+          proof-of-work.md       # pow5-64b challenges
 ```
 
 ## Tech stack
@@ -99,13 +108,17 @@ keypears/
 
 ## Documentation
 
-- [docs/dev-setup.md](docs/dev-setup.md) — Local HTTPS via Caddy + dnsmasq
-- [docs/federation.md](docs/federation.md) — Federation model and cross-domain messaging
-- [docs/kdf.md](docs/kdf.md) — Key derivation system
+All documentation lives under `webapp/src/docs/` and is served at `/docs/*`:
+
+- [webapp/src/docs/development.md](webapp/src/docs/development.md) — Local HTTPS via Caddy + dnsmasq
+- [webapp/src/docs/federation.md](webapp/src/docs/federation.md) — Federation model and cross-domain messaging
+- [webapp/src/docs/protocol/key-derivation.md](webapp/src/docs/protocol/key-derivation.md) — Three-tier PBKDF2-HMAC-SHA-256
+- [webapp/src/docs/protocol/encryption.md](webapp/src/docs/protocol/encryption.md) — AES-256-GCM and ECDH on P-256
+- [webapp/src/docs/security.md](webapp/src/docs/security.md) — Threat model and browser defenses
 
 ## Development
 
-Local HTTPS via Caddy reverse proxy — see [docs/dev-setup.md](docs/dev-setup.md).
+Local HTTPS via Caddy reverse proxy — see [webapp/src/docs/development.md](webapp/src/docs/development.md).
 
 ```bash
 bun install               # from repo root
@@ -217,7 +230,7 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
 
 ## Auth architecture
 
-### Three-tier key derivation (see docs/kdf.md)
+### Three-tier key derivation (see webapp/src/docs/protocol/key-derivation.md)
 
 ```
 Password (never stored)
@@ -226,11 +239,11 @@ Password (never stored)
     -> Login Key (sent to server once, then discarded)
 ```
 
-- All KDF uses PBKDF2-HMAC-SHA256 (RFC 8018), 100k rounds per tier.
+- All KDF uses PBKDF2-HMAC-SHA-256 (RFC 8018), 300k rounds per client tier, 100k on server.
 - Only the encryption key is cached. Password key is ephemeral.
 - If localStorage is compromised: attacker can decrypt keys but cannot
   impersonate the user (login key is a sibling, not derivable from encryption key).
-- Server hashes the login key with 100k additional rounds before storing.
+- Server hashes the login key with 100k additional rounds using a per-user salt (derived from userId) before storing. Total: 700k rounds from password to stored hash.
 
 ### Sessions
 

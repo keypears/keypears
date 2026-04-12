@@ -6,13 +6,14 @@ same addresses for KeyPears without any changes.
 
 ## Identity model
 
-Each user holds one or more secp256k1 key pairs. The most recent key is the
+Each user holds one or more P-256 (NIST) key pairs. The most recent key is the
 **active key**, used for ECDH key agreement in new messages. Users may rotate
 keys freely, up to 100 per account. Old keys are retained so that messages
 encrypted under previous keys can still be decrypted.
 
-Private keys are encrypted client-side with ACB3 under the user's encryption key
-and stored on the server as ciphertext. The server cannot decrypt them.
+Private keys are encrypted client-side with AES-256-GCM under the user's
+encryption key and stored on the server as ciphertext. The server cannot
+decrypt them.
 
 ## Domain ownership
 

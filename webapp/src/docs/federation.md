@@ -91,7 +91,7 @@ const result = await client.getPublicKey({ address: "alice@acme.com" });
 ```
 
 The server returns the user's **active** public key (the most recently rotated
-secp256k1 key). This is used to compute the ECDH shared secret for encryption.
+P-256 key). This is used to compute the ECDH shared secret for encryption.
 
 ## Message delivery
 
@@ -117,8 +117,8 @@ When `alice@a.com` sends a message to `bob@b.com`:
    message in her channel view.
 
 3. **Sender's server creates pending delivery** — The message is stored in a
-   `pending_deliveries` table with a random pull token (24-hour expiry). Only the
-   BLAKE3 hash of the token is stored.
+   `pending_deliveries` table with a random pull token (24-hour expiry). Only
+   the SHA-256 hash of the token is stored.
 
 4. **Sender's server notifies recipient** — Alice's server calls `notifyMessage`
    on Bob's server with the pull token and a proof-of-work solution (mined by
@@ -156,7 +156,7 @@ Each message stored on the server contains:
 | Field              | Description                                    |
 | ------------------ | ---------------------------------------------- |
 | `senderAddress`    | Full address (e.g. `alice@acme.com`)           |
-| `encryptedContent` | ACB3-encrypted message content                 |
+| `encryptedContent` | AES-256-GCM-encrypted message content          |
 | `senderPubKey`     | Sender's public key at time of sending         |
 | `recipientPubKey`  | Recipient's public key at time of sending      |
 | `isRead`           | Whether the recipient has viewed this message  |
