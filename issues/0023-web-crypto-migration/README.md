@@ -748,3 +748,61 @@ useEffect(() => {
 - UI no longer freezes during login, save, or password change
 - AES-GCM operations in the browser become ~7x faster (AES-NI)
 - Everything else behaves identically, byte-for-byte
+
+### Result — Pass
+
+Implementation complete. 18 files changed (2 new: `lib/aesgcm.ts` helper and
+`lib/aesgcm.test.ts` compat test; 16 modified: `lib/auth.ts`, `lib/message.ts`,
+`lib/vault.ts`, `server/user.server.ts`, all the route handlers, and the two
+render-time refactors). Build, tests (13/13 including 5 new format-compat
+tests), and lint all pass. Manual smoke test confirms login, save, send,
+channel, and vault flows all work.
+
+**AES-GCM byte compatibility confirmed.** The new `aesgcmEncryptNative` /
+`aesgcmDecryptNative` helpers produce ciphertext in the same format as
+`@webbuf/aesgcm` (`[IV (12 bytes)] || [ciphertext || tag (16 bytes)]`). The
+compat test round-trips data both webbuf→native and native→webbuf
+successfully, and the tamper-detection test confirms GCM auth tag verification
+works on the native path.
+
+**Login UI freeze eliminated.** The main-thread blocking that experiment 1
+measured (100% frame drops during PBKDF2 on the webbuf path) is gone — the
+spinner and CSS animations now run smoothly through the entire login /
+account-save flow.
+
+**Two bugs surfaced during manual testing, both fixed:**
+
+1. **Infinite render loop in `vault.$id.tsx`.** The `olderVersions` array was
+   recomputed via `history.filter(...)` on every render, producing a new
+   reference each time. It was a dependency of the pre-decryption `useEffect`,
+   so the effect re-ran on every render, called `setDecrypted` /
+   `setVersionsDecrypted`, which triggered another render, and so on. Fixed
+   by wrapping `olderVersions` in `useMemo(() => history.filter(...),
+   [history, entry.versionId])` so the array reference is stable between
+   renders.
+
+2. **Decrypt-forever bug in `channel.$address.tsx`.** The line
+   `const encryptionKey = getCachedEncryptionKey();` in the component body
+   called `getCachedEncryptionKey()` on every render, and that function
+   returns a new `FixedBuf` object each time (via `FixedBuf.fromHex(...)`).
+   The new reference was in the dep array of the main decrypt effect, so
+   the effect re-ran on every render. Every re-run set `cancelled = true` on
+   the previous async IIFE, preventing any decryption from completing →
+   messages showed "Decrypting..." forever. Fixed by holding
+   `encryptionKey` in state and populating it from a one-time mount effect,
+   so the reference is stable across renders. The other call sites for
+   `getCachedEncryptionKey()` (inside event handlers and useEffect
+   callbacks) were unaffected because they only call it once per
+   invocation, not once per render.
+
+Both bugs are classic async-migration foot-guns: functions that return fresh
+object references on each call are harmless in sync code (the result is used
+once and discarded) but become correctness bugs the moment they appear in
+effect dependency arrays. Worth watching for in the P-256 migration that
+comes next.
+
+**What's next (experiment 3):** Migrate P-256 (ECDH, ECDSA sign/verify, key
+pair generation) to Web Crypto. This requires solving the compressed↔
+uncompressed public key conversion, the private key import format (PKCS8 or
+JWK), and the ECDSA raw-digest protocol change described in the "known
+complications" section above.
