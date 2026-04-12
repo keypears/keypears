@@ -543,7 +543,7 @@ function ChannelPage() {
             )}
             {!hasMore && messageList.length > 0 && (
               <div className="text-muted-foreground mb-2 text-center text-xs">
-                <p>Beginning of conversation</p>
+                <p>Beginning of conversation.</p>
                 <p className="mt-1">
                   Messages are end-to-end encrypted. Only you and the other
                   party can read them.
