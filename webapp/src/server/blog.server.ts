@@ -39,16 +39,9 @@ let cachedPosts: BlogPost[] | null = null;
 function loadAllPosts(): BlogPost[] {
   if (cachedPosts) return cachedPosts;
 
-  const entries = Object.entries(blogModules)
-    .map(([filepath, raw]) => ({
-      filename: filepath.split("/").pop()!,
-      raw,
-    }))
-    .toSorted((a, b) => a.filename.localeCompare(b.filename))
-    .toReversed();
-
   const posts: BlogPost[] = [];
-  for (const { filename, raw } of entries) {
+  for (const [filepath, raw] of Object.entries(blogModules)) {
+    const filename = filepath.split("/").pop()!;
     const { data, content } = parseFrontmatter(raw);
     const date = new Date(data.date);
     posts.push({
@@ -60,6 +53,16 @@ function loadAllPosts(): BlogPost[] {
       content,
     });
   }
+
+  // Sort newest first by the frontmatter `date` (full ISO timestamp,
+  // minute-resolution). Tiebreak on slug so two posts with the exact
+  // same timestamp still get a stable order. Filename is no longer the
+  // sort key — only the frontmatter date matters, so two posts on the
+  // same day will order correctly as long as their `date` fields differ.
+  posts.sort((a, b) => {
+    const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    return diff !== 0 ? diff : b.slug.localeCompare(a.slug);
+  });
 
   cachedPosts = posts;
   return posts;

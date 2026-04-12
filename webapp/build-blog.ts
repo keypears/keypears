@@ -37,9 +37,7 @@ async function parseMarkdown(content: string): Promise<string> {
 async function loadBlogPosts(): Promise<BlogPost[]> {
   const files = fs
     .readdirSync(BLOG_DIR)
-    .filter((file: string) => file.endsWith(".md"))
-    .toSorted()
-    .toReversed();
+    .filter((file: string) => file.endsWith(".md"));
 
   const posts: BlogPost[] = [];
 
@@ -64,6 +62,16 @@ async function loadBlogPosts(): Promise<BlogPost[]> {
       htmlContent,
     });
   }
+
+  // Sort newest first by the frontmatter `date` (full ISO timestamp,
+  // minute-resolution). Tiebreak on slug so two posts with the exact
+  // same timestamp still get a stable order. Filename is no longer the
+  // sort key — only the frontmatter date matters, so two posts on the
+  // same day will order correctly as long as their `date` fields differ.
+  posts.sort((a, b) => {
+    const diff = b.date.getTime() - a.date.getTime();
+    return diff !== 0 ? diff : b.slug.localeCompare(a.slug);
+  });
 
   return posts;
 }
