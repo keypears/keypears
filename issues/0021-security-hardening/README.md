@@ -307,3 +307,41 @@ All in `server/user.server.ts`. Each already has userId available:
 - `bun run build` — compiles
 - `bun run test` — passes
 - `bun run lint` — clean
+
+### Result — Pass
+
+One file changed (`server/user.server.ts`), six call sites updated to pass
+`userId` into `hashLoginKey()`. In `createUserForDomain()`, reordered to generate
+the id before hashing. Build and tests pass.
+
+## Experiment 4 — Rate limiting: defer to infrastructure
+
+Investigate whether rate limiting should be implemented at the application level
+or the infrastructure level, given the production deployment plan.
+
+### Research
+
+The app will run on AWS Fargate behind an Application Load Balancer (ALB).
+Multiple Fargate tasks will serve traffic concurrently.
+
+**Problem with app-level rate limiting:** In-memory rate limiters (e.g.,
+express-rate-limit) are per-process. Doubling the number of Fargate tasks doubles
+the effective rate limit. A shared store (Redis, database) could fix this, but
+adds infrastructure complexity.
+
+**AWS WAF rate-based rules:** AWS WAF attaches directly to the ALB and evaluates
+rate limits globally across all traffic, regardless of how many tasks are behind
+it. A rate-based rule blocks IPs that exceed a threshold (e.g., 2000 requests per
+5-minute window). Rules can be scoped to URL patterns for different thresholds on
+different endpoints. Cost is ~$10-15/month. Configuration is via Terraform.
+
+### Decision
+
+Rate limiting (finding H3) will be handled at the AWS WAF layer, not in
+application code. This is recorded in `infra/README.md`. The Terraform
+configuration will be built out in a separate issue when deployment work begins.
+
+### Result — Pass (deferred to infrastructure)
+
+No app code changes needed. Created `infra/README.md` documenting the production
+architecture: AWS Fargate + ALB + WAF + PlanetScale, all managed by Terraform.
