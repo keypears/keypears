@@ -1,7 +1,7 @@
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { p256PublicKeyCreate, p256Sign } from "@webbuf/p256";
+import { p256PublicKeyCreate, p256PrivateKeyToJwk } from "@webbuf/p256";
 import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 
 const CLIENT_KDF_ROUNDS = 300_000;
@@ -190,20 +190,35 @@ export function clearCachedEncryptionKey(): void {
  * Sign a PoW challenge request to prove sender identity.
  * Returns the signature hex and timestamp used.
  *
- * Stays synchronous — uses webbuf P-256 and webbuf SHA-256. The P-256
- * migration is deferred to a later experiment because it requires key
- * format conversion and a protocol change for ECDSA raw-digest signing.
+ * Uses Web Crypto ECDSA via JWK import. The message (a plain UTF-8
+ * string) is signed directly — Web Crypto hashes it internally with
+ * SHA-256 before signing, so we do not pre-hash. The matching verify
+ * step on the server side passes the same raw bytes.
  */
-export function signPowRequest(
+export async function signPowRequest(
   senderAddress: string,
   recipientAddress: string,
   privateKey: FixedBuf<32>,
-): { signature: string; timestamp: number } {
+): Promise<{ signature: string; timestamp: number }> {
   const timestamp = Date.now();
-  const digest = sha256Hash(
-    WebBuf.fromUtf8(`${senderAddress}:${recipientAddress}:${timestamp}`),
+  const message = new TextEncoder().encode(
+    `${senderAddress}:${recipientAddress}:${timestamp}`,
   );
-  const k = FixedBuf.fromRandom(32);
-  const sig = p256Sign(digest, privateKey, k);
-  return { signature: sig.buf.toHex(), timestamp };
+  const jwk = p256PrivateKeyToJwk(privateKey);
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    message,
+  );
+  return {
+    signature: WebBuf.fromUint8Array(new Uint8Array(sig)).toHex(),
+    timestamp,
+  };
 }

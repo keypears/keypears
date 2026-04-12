@@ -75,21 +75,33 @@ const getPowChallengeEndpoint = os
       throw new Error("Public key mismatch");
     }
 
-    // Verify the signature
-    const { p256Verify } = await import("@webbuf/p256");
-    const { sha256Hash } = await import("@webbuf/sha256");
+    // Verify the signature. The client signs the raw UTF-8 string with
+    // Web Crypto ECDSA (which hashes internally with SHA-256 before
+    // signing), so we pass the same raw bytes to verify.
+    const { p256PublicKeyToJwk } = await import("@webbuf/p256");
     const { WebBuf } = await import("@webbuf/webbuf");
     const { FixedBuf } = await import("@webbuf/fixedbuf");
 
-    const digest = sha256Hash(
-      WebBuf.fromUtf8(
-        `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
-      ),
+    const message = new TextEncoder().encode(
+      `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
     );
-    const sig = FixedBuf.fromHex(64, input.signature);
-    const pubKey = FixedBuf.fromHex(33, input.senderPubKey);
-
-    if (!p256Verify(sig, digest, pubKey)) {
+    const sigBytes = WebBuf.fromHex(input.signature);
+    const compressedPub = FixedBuf.fromHex(33, input.senderPubKey);
+    const pubJwk = p256PublicKeyToJwk(compressedPub);
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      pubJwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+    const ok = await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      cryptoKey,
+      sigBytes,
+      message,
+    );
+    if (!ok) {
       throw new Error("Invalid signature");
     }
 

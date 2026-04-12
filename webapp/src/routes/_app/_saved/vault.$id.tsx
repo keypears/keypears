@@ -591,7 +591,7 @@ function EntryDetail({
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
-      const { signature, timestamp } = signPowRequest(
+      const { signature, timestamp } = await signPowRequest(
         senderAddress,
         shareAddress,
         myPrivKey,

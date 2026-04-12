@@ -1,7 +1,7 @@
 import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { p256SharedSecret } from "@webbuf/p256";
+import { p256PrivateKeyToJwk, p256PublicKeyToJwk } from "@webbuf/p256";
 import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 import { z } from "zod";
 
@@ -35,13 +35,40 @@ export type MessageContent = TextMessage | SecretMessage;
 export type SecretPayload = SecretMessage["secret"];
 
 // --- ECDH key derivation ---
+//
+// Uses Web Crypto's ECDH via JWK import. deriveBits returns the raw 32-byte
+// X coordinate of d*P (NOT the 33-byte compressed form webbuf returns), so
+// the derived message key is SHA-256(rawX). Both sides of an exchange
+// must use this path to agree on the same key.
 
-export function computeMessageKey(
+export async function computeMessageKey(
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
-): FixedBuf<32> {
-  const ecdhPoint = p256SharedSecret(myPrivKey, theirPubKey);
-  return sha256Hash(ecdhPoint.buf);
+): Promise<FixedBuf<32>> {
+  const privJwk = p256PrivateKeyToJwk(myPrivKey);
+  const pubJwk = p256PublicKeyToJwk(theirPubKey);
+  const [priv, pub] = await Promise.all([
+    crypto.subtle.importKey(
+      "jwk",
+      privJwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      false,
+      ["deriveBits"],
+    ),
+    crypto.subtle.importKey(
+      "jwk",
+      pubJwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      false,
+      [],
+    ),
+  ]);
+  const raw = await crypto.subtle.deriveBits(
+    { name: "ECDH", public: pub },
+    priv,
+    256,
+  );
+  return sha256Hash(WebBuf.fromUint8Array(new Uint8Array(raw)));
 }
 
 // --- Encrypt ---
@@ -51,7 +78,7 @@ export async function encryptMessage(
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
 ): Promise<string> {
-  const key = computeMessageKey(myPrivKey, theirPubKey);
+  const key = await computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "text", text });
   const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
@@ -62,7 +89,7 @@ export async function encryptSecretMessage(
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
 ): Promise<string> {
-  const key = computeMessageKey(myPrivKey, theirPubKey);
+  const key = await computeMessageKey(myPrivKey, theirPubKey);
   const content = JSON.stringify({ version: 1, type: "secret", secret });
   const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
   return encrypted.toHex();
@@ -75,7 +102,7 @@ export async function decryptMessageContent(
   myPrivKey: FixedBuf<32>,
   theirPubKey: FixedBuf<33>,
 ): Promise<MessageContent> {
-  const key = computeMessageKey(myPrivKey, theirPubKey);
+  const key = await computeMessageKey(myPrivKey, theirPubKey);
   const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(encryptedHex), key);
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);

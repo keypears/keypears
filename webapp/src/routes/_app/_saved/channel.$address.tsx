@@ -379,7 +379,7 @@ function ChannelPage() {
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
-      const { signature: reqSig, timestamp } = signPowRequest(
+      const { signature: reqSig, timestamp } = await signPowRequest(
         senderAddress,
         address,
         myPrivKey,
