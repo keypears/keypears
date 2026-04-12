@@ -70,3 +70,56 @@ resource "aws_lb_listener" "https" {
     target_group_arn = aws_lb_target_group.webapp.arn
   }
 }
+
+# Canonicalize www.<domain> to <domain> at the ALB itself. One rule per
+# listener so both http://www and https://www land on https://apex in a
+# single 301 hop instead of two (http→https→apex). The #{path} and
+# #{query} placeholders are ALB redirect-action interpolations — they
+# substitute the request's path and query string server-side, so any
+# deep link survives the redirect unchanged.
+
+resource "aws_lb_listener_rule" "www_to_apex_https" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  action {
+    type = "redirect"
+    redirect {
+      host        = var.domain
+      path        = "/#{path}"
+      query       = "#{query}"
+      protocol    = "HTTPS"
+      port        = "443"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    host_header {
+      values = ["www.${var.domain}"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "www_to_apex_http" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 10
+
+  action {
+    type = "redirect"
+    redirect {
+      host        = var.domain
+      path        = "/#{path}"
+      query       = "#{query}"
+      protocol    = "HTTPS"
+      port        = "443"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    host_header {
+      values = ["www.${var.domain}"]
+    }
+  }
+}
