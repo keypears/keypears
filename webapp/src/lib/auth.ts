@@ -5,7 +5,7 @@ import { p256PublicKeyCreate, p256Sign } from "@webbuf/p256";
 import { aesgcmEncrypt, aesgcmDecrypt } from "@webbuf/aesgcm";
 import { pbkdf2Sha256 } from "@webbuf/pbkdf2-sha256";
 
-const CLIENT_KDF_ROUNDS = 100_000;
+const CLIENT_KDF_ROUNDS = 300_000;
 const ENCRYPTION_KEY_STORAGE_KEY = "keypears_encryption_key";
 const ENTROPY_TIER_STORAGE_KEY = "keypears_entropy_tier";
 
