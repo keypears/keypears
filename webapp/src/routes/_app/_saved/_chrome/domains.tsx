@@ -81,8 +81,13 @@ function DomainsPage() {
   const trimmedDomain = domainInput.trim();
 
   // Live JSON, used both for the highlighted preview and the clipboard
-  // copy. Omit `admin` entirely when blank — it's optional in the spec
-  // and the smaller object is a useful visual cue.
+  // copy. The protocol spec treats `admin` as optional, but THIS server's
+  // claim verification requires it (federation.server.ts:verifyDomainAdmin
+  // rejects a keypears.json with no `admin` field, or one whose value
+  // doesn't match the calling user's address). So in this form admin is
+  // mandatory — we still omit the line from the preview while the field
+  // is empty so the user can see it shrink, but the input is `required`
+  // and the form can't submit without it.
   const jsonString = useMemo(() => {
     const obj: Record<string, string> = { apiDomain: trimmedApiDomain };
     if (trimmedAdmin) obj.admin = trimmedAdmin;
@@ -166,17 +171,19 @@ function DomainsPage() {
               </span>
             </label>
             <label className="text-muted-foreground text-xs">
-              Admin{" "}
-              <span className="text-muted-foreground/70">(optional)</span>
+              Admin
               <input
                 type="text"
                 placeholder={myAddress || `you@${data.apiDomain}`}
                 value={adminInput}
                 onChange={(e) => setAdminInput(e.target.value)}
                 className="bg-background-dark border-border text-foreground mt-1 w-full rounded border px-3 py-2 text-sm"
+                required
               />
               <span className="text-muted-foreground mt-1 block text-[11px]">
-                The KeyPears address authorized to manage this domain.
+                Must be your own KeyPears address. This server verifies that
+                the <code className="text-foreground">admin</code> field
+                matches the user claiming the domain.
               </span>
             </label>
           </div>
