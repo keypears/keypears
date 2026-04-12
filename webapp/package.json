@@ -13,6 +13,7 @@
     "db:push": "bun run db:push:keypears && bun run db:push:passapples",
     "db:push:keypears": "dotenvx run -f .env.dev -- drizzle-kit push",
     "db:push:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push",
+    "db:push:prod": "dotenvx run -f .env.prod -- drizzle-kit push",
     "db:clear": "bun run db:clear:keypears && bun run db:clear:passapples",
     "db:clear:keypears": "dotenvx run -f .env.dev -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:clear:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push --config drizzle.clear.config.ts",
