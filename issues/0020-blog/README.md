@@ -1,5 +1,6 @@
 +++
-status = "open"
+status = "closed"
+closed = "2026-04-11"
 opened = "2026-04-11"
 +++
 
@@ -200,3 +201,37 @@ Add "Blog" to the footer links: "Terms · Privacy · Docs · Blog".
 - "Blog" appears in the main app sidebar.
 - Footer shows "Terms · Privacy · Docs · Blog".
 - Tests and linter pass.
+
+### Result: Pass
+
+All 14 blog posts were imported from kp1 and render at their original URLs.
+The blog index at `/blog` lists all posts. The blog layout has a sidebar with
+post list and active highlighting. Feed files are generated at
+`/blog/feed.xml`, `/blog/atom.xml`, and `/blog/feed.json`. "Blog" was added
+to the main app sidebar and footer. A new blog post, "The KeyPears Rewrite",
+was written and published. The navbar and footer were unified across all
+layouts (blog, docs, and main app). Linter passes with 0 warnings and 0 errors.
+
+## Experiment 2: Write "The KeyPears Rewrite" blog post
+
+This was folded into the Experiment 1 implementation. The blog post was written
+at `webapp/src/blog/2026-04-11-the-keypears-rewrite.md` covering the complete
+rewrite from kp1 to the current stack, including the new KDF, PoW, federation
+model, and documentation.
+
+### Result: Pass
+
+Post renders at `/blog/2026-04-11-the-keypears-rewrite` and appears in the
+blog index and sidebar.
+
+## Conclusion
+
+The blog from kp1 was successfully imported into the new webapp. All 14
+existing blog posts render at their original URLs, preserving SEO and
+external links. A new blog post, "The KeyPears Rewrite", was added announcing
+the rewrite and upcoming launch. RSS, Atom, and JSON Feed files are generated
+as part of the build process. The blog uses a dedicated `_blog` layout with
+its own sidebar, following the same pattern as the docs pages. The navbar and
+footer were unified across the blog, docs, and main app layouts so all pages
+share the same navigation. Key commits: `1be9fcbc` (import blog), `ad227b31`
+(rewrite post), `aaf95558` (unify navbar/footer).
