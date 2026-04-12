@@ -1,0 +1,25 @@
+# Keep the Docker build context small and deterministic.
+.git
+.github
+.claude
+
+# Already-installed deps from the host — the builder stage reinstalls
+# inside the image.
+node_modules
+**/node_modules
+
+# Build outputs regenerated inside the image.
+**/dist
+webapp/public/keypears.pdf
+webapp/public/blog
+
+# Unrelated projects and research checkouts.
+kp1
+vendor
+
+# Infra, docs, and tooling that aren't needed to build the webapp.
+infra
+issues
+.env
+.env.keys
+.DS_Store

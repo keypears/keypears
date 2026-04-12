@@ -43,6 +43,15 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
+    // Health check for load balancers. No DB, no SSR, no auth — just a
+    // cheap 200 that proves the process is accepting requests.
+    if (url.pathname === "/health") {
+      return new Response("ok", {
+        status: 200,
+        headers: { "content-type": "text/plain" },
+      });
+    }
+
     // Serve .well-known/keypears.json
     if (url.pathname === "/.well-known/keypears.json") {
       return addSecurityHeaders(Response.json({ apiDomain: getApiDomain() }));
