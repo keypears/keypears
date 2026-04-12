@@ -231,14 +231,26 @@ function WelcomePage() {
                   </div>
                 )}
               </div>
-              <input
-                type="password"
-                placeholder="Confirm password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-                required
-              />
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
+                  required
+                />
+                {confirm.length > 0 && password !== confirm && (
+                  <p className="text-destructive mt-1 text-xs">
+                    Passwords do not match
+                  </p>
+                )}
+                {confirm.length > 0 && password === confirm && (
+                  <p className="mt-1 text-xs text-green-500">
+                    Passwords match
+                  </p>
+                )}
+              </div>
               <div className="flex items-start gap-3">
                 <Checkbox
                   id="tos"

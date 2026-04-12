@@ -165,14 +165,24 @@ function PasswordPage() {
             </div>
           )}
         </div>
-        <input
-          type="password"
-          placeholder="Confirm new password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-          required
-        />
+        <div>
+          <input
+            type="password"
+            placeholder="Confirm new password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
+            required
+          />
+          {confirm.length > 0 && newPassword !== confirm && (
+            <p className="text-destructive mt-1 text-xs">
+              Passwords do not match
+            </p>
+          )}
+          {confirm.length > 0 && newPassword === confirm && (
+            <p className="mt-1 text-xs text-green-500">Passwords match</p>
+          )}
+        </div>
         {error && <p className="text-danger text-sm">{error}</p>}
         {status && <p className="text-muted-foreground text-sm">{status}</p>}
         <button
