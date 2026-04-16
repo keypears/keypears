@@ -14,6 +14,7 @@ const pageOrder: NavEntry[] = [
   { label: "Proof of Work", path: "/docs/protocol/proof-of-work" },
   { label: "Federation", path: "/docs/federation" },
   { label: "Self-Hosting", path: "/docs/self-hosting" },
+  { label: "Domain Claiming", path: "/docs/domain-claiming" },
   { label: "Security", path: "/docs/security" },
   { label: "Development", path: "/docs/development" },
 ];

@@ -40,6 +40,7 @@ const docsNav = [
   { name: "Proof of Work", path: "/docs/protocol/proof-of-work", icon: Cpu },
   { name: "Federation", path: "/docs/federation", icon: Globe },
   { name: "Self-Hosting", path: "/docs/self-hosting", icon: Server },
+  { name: "Domain Claiming", path: "/docs/domain-claiming", icon: Globe },
   { name: "Security", path: "/docs/security", icon: Shield },
   { name: "Development", path: "/docs/development", icon: Code },
 ];

@@ -79,6 +79,7 @@ keypears/
         welcome.md              # overview
         development.md          # local HTTPS via Caddy + dnsmasq
         self-hosting.md         # running your own server
+        domain-claiming.md      # claiming a domain on a third-party server
         security.md              # threat model and defenses
         federation.md            # federation model
         protocol/
@@ -113,6 +114,7 @@ All documentation lives under `webapp/src/docs/` and is served at `/docs/*`:
 - [webapp/src/docs/development.md](webapp/src/docs/development.md) — Local HTTPS via Caddy + dnsmasq
 - [webapp/src/docs/federation.md](webapp/src/docs/federation.md) — Federation model and cross-domain messaging
 - [webapp/src/docs/self-hosting.md](webapp/src/docs/self-hosting.md) — Run your own server, env vars, claiming your primary domain
+- [webapp/src/docs/domain-claiming.md](webapp/src/docs/domain-claiming.md) — Claiming a domain on a third-party server, bootstrap flow
 - [webapp/src/docs/protocol/key-derivation.md](webapp/src/docs/protocol/key-derivation.md) — Three-tier PBKDF2-HMAC-SHA-256
 - [webapp/src/docs/protocol/encryption.md](webapp/src/docs/protocol/encryption.md) — AES-256-GCM and ECDH on P-256
 - [webapp/src/docs/security.md](webapp/src/docs/security.md) — Threat model and browser defenses

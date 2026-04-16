@@ -25,6 +25,7 @@ import { Route as BlogBlogIndexRouteImport } from './routes/_blog/blog.index'
 import { Route as DocsDocsSelfHostingRouteImport } from './routes/_docs/docs.self-hosting'
 import { Route as DocsDocsSecurityRouteImport } from './routes/_docs/docs.security'
 import { Route as DocsDocsFederationRouteImport } from './routes/_docs/docs.federation'
+import { Route as DocsDocsDomainClaimingRouteImport } from './routes/_docs/docs.domain-claiming'
 import { Route as DocsDocsDevelopmentRouteImport } from './routes/_docs/docs.development'
 import { Route as BlogBlogSlugRouteImport } from './routes/_blog/blog.$slug'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
@@ -116,6 +117,11 @@ const DocsDocsSecurityRoute = DocsDocsSecurityRouteImport.update({
 const DocsDocsFederationRoute = DocsDocsFederationRouteImport.update({
   id: '/docs/federation',
   path: '/docs/federation',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsDocsDomainClaimingRoute = DocsDocsDomainClaimingRouteImport.update({
+  id: '/docs/domain-claiming',
+  path: '/docs/domain-claiming',
   getParentRoute: () => DocsRoute,
 } as any)
 const DocsDocsDevelopmentRoute = DocsDocsDevelopmentRouteImport.update({
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/$profile': typeof PublicProfileRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
+  '/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
   '/docs/federation': typeof DocsDocsFederationRoute
   '/docs/security': typeof DocsDocsSecurityRoute
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/$profile': typeof PublicProfileRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
+  '/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
   '/docs/federation': typeof DocsDocsFederationRoute
   '/docs/security': typeof DocsDocsSecurityRoute
   '/docs/self-hosting': typeof DocsDocsSelfHostingRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
   '/_blog/blog/$slug': typeof BlogBlogSlugRoute
   '/_docs/docs/development': typeof DocsDocsDevelopmentRoute
+  '/_docs/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
   '/_docs/docs/federation': typeof DocsDocsFederationRoute
   '/_docs/docs/security': typeof DocsDocsSecurityRoute
   '/_docs/docs/self-hosting': typeof DocsDocsSelfHostingRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/$profile'
     | '/blog/$slug'
     | '/docs/development'
+    | '/docs/domain-claiming'
     | '/docs/federation'
     | '/docs/security'
     | '/docs/self-hosting'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/$profile'
     | '/blog/$slug'
     | '/docs/development'
+    | '/docs/domain-claiming'
     | '/docs/federation'
     | '/docs/security'
     | '/docs/self-hosting'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/_app/_saved/_chrome'
     | '/_blog/blog/$slug'
     | '/_docs/docs/development'
+    | '/_docs/docs/domain-claiming'
     | '/_docs/docs/federation'
     | '/_docs/docs/security'
     | '/_docs/docs/self-hosting'
@@ -520,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/federation'
       fullPath: '/docs/federation'
       preLoaderRoute: typeof DocsDocsFederationRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/_docs/docs/domain-claiming': {
+      id: '/_docs/docs/domain-claiming'
+      path: '/docs/domain-claiming'
+      fullPath: '/docs/domain-claiming'
+      preLoaderRoute: typeof DocsDocsDomainClaimingRouteImport
       parentRoute: typeof DocsRoute
     }
     '/_docs/docs/development': {
@@ -712,6 +731,7 @@ const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 
 interface DocsRouteChildren {
   DocsDocsDevelopmentRoute: typeof DocsDocsDevelopmentRoute
+  DocsDocsDomainClaimingRoute: typeof DocsDocsDomainClaimingRoute
   DocsDocsFederationRoute: typeof DocsDocsFederationRoute
   DocsDocsSecurityRoute: typeof DocsDocsSecurityRoute
   DocsDocsSelfHostingRoute: typeof DocsDocsSelfHostingRoute
@@ -724,6 +744,7 @@ interface DocsRouteChildren {
 
 const DocsRouteChildren: DocsRouteChildren = {
   DocsDocsDevelopmentRoute: DocsDocsDevelopmentRoute,
+  DocsDocsDomainClaimingRoute: DocsDocsDomainClaimingRoute,
   DocsDocsFederationRoute: DocsDocsFederationRoute,
   DocsDocsSecurityRoute: DocsDocsSecurityRoute,
   DocsDocsSelfHostingRoute: DocsDocsSelfHostingRoute,
