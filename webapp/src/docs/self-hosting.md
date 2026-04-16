@@ -181,4 +181,4 @@ your own domain so the domain is fully self-administered.
    your new address.
 
 Your domain is now self-administered — the admin is an address at the domain
-itself, with no dependency on an external server.
+itself, not an account on a different server.
