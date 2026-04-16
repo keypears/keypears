@@ -4,7 +4,7 @@
   "scripts": {
     "dev:keypears": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev -- vite --port 3500",
     "dev:passapples": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev.passapples -- vite --port 3512",
-    "build": "bun run build:whitepaper && bun run build:blog && vite build",
+    "build": "bun run build:blog && vite build",
     "build:blog": "bun build-blog.ts",
     "start": "bun dist/server/server.js",
     "lint": "oxlint",
@@ -21,7 +21,6 @@
     "db:generate": "dotenvx run -f .env.dev -- drizzle-kit generate",
     "build:icons": "bun run process-icons.ts",
     "test": "dotenvx run -f .env.test -- vitest run",
-    "build:whitepaper": "typst compile ../whitepaper/keypears.typ public/keypears.pdf"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.61.0",

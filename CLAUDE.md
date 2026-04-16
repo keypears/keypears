@@ -140,7 +140,7 @@ Or run individual servers from `webapp/`:
 cd webapp
 bun run dev:keypears      # keypears.test on port 3500
 bun run dev:passapples    # keypears.passapples.test on port 3512
-bun run build             # whitepaper (typst) + blog + vite build
+bun run build             # blog + vite build
 bun run start             # run built server (dist/server/server.js)
 bun run typecheck         # tsc --noEmit
 bun run db:clear          # drop all tables (both databases)

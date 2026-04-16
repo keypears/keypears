@@ -72,11 +72,9 @@ bun run build
 bun run start
 ```
 
-The build step compiles the whitepaper with [Typst](https://typst.app) and
-builds the blog before running `vite build`, so Typst must be installed
-(`brew install typst` on macOS, or see the Typst installation docs). The
-server listens on the configured port. Caddy handles TLS termination and
-proxies requests to the server.
+The build step compiles the blog and runs `vite build`. The server listens on
+the configured port. Caddy handles TLS termination and proxies requests to the
+server.
 
 ## Claiming your primary domain
 
