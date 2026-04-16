@@ -148,3 +148,37 @@ owner adds an `admin` field to their `keypears.json`:
 The admin can then create users and reset passwords for that domain through the
 KeyPears interface. Admin identity is verified against `keypears.json` on every
 privileged action.
+
+### Bootstrapping a self-administered domain
+
+When you first claim a domain, the admin address must already exist — so it
+will typically live on a different server (e.g. `keypears.com`). Once claimed,
+you can create users on the new domain, then transfer admin to an address at
+your own domain so the domain is fully self-administered.
+
+1. **Create an account on an existing server.** For example, sign up as
+   `you@keypears.com`.
+2. **Host `keypears.json` on your domain** with that account as `admin`:
+   ```json
+   {
+     "apiDomain": "keypears.yourdomain.com",
+     "admin": "you@keypears.com"
+   }
+   ```
+3. **Claim the domain.** Log in as `you@keypears.com`, visit `/domains`,
+   enter your domain, and click Claim.
+4. **Create an admin account on the new domain.** Use the domain management
+   panel to create a user (e.g. `you@yourdomain.com`).
+5. **Update `keypears.json`** to point `admin` at the new address:
+   ```json
+   {
+     "apiDomain": "keypears.yourdomain.com",
+     "admin": "you@yourdomain.com"
+   }
+   ```
+6. **Re-claim the domain.** Log in as `you@yourdomain.com`, visit `/domains`,
+   and claim the same domain again. The claim flow updates the admin to
+   your new address.
+
+Your domain is now self-administered — the admin is an address at the domain
+itself, with no dependency on an external server.
