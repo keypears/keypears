@@ -140,13 +140,22 @@ Or run individual servers from `webapp/`:
 cd webapp
 bun run dev:keypears      # keypears.test on port 3500
 bun run dev:passapples    # keypears.passapples.test on port 3512
+bun run build             # whitepaper (typst) + blog + vite build
+bun run start             # run built server (dist/server/server.js)
+bun run typecheck         # tsc --noEmit
 bun run db:clear          # drop all tables (both databases)
 bun run db:push           # push schema to MySQL (both databases)
+bun run db:push:prod      # push schema to prod database
 bun run test              # run tests
 bun run lint              # run linter
 bun run format            # format code
 bun run build:icons       # regenerate images from raw-icons/
+bun run deploy            # build, push, and roll ECS (from repo root)
 ```
+
+TanStack Router's route tree (`routeTree.gen.ts`) is generated automatically
+by the vite plugin at dev/build time. There is no standalone generate command —
+start the dev server or run a build.
 
 ### Environment variables
 
