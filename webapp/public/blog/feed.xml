@@ -4,7 +4,7 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Mon, 20 Apr 2026 12:13:57 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 20 Apr 2026 12:16:43 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -111,13 +111,13 @@ prior relationship between the app and the server.</p>
 <h2>How it works</h2>
 <p>The flow has three steps:</p>
 <p><strong>1. Discovery.</strong> User types <code>alice@example.com</code> into the app's login field. The
-app fetches <code>https://example.com/.well-known/keypears.json</code>, finds the API
-domain (<code>keypears.com</code>), and knows where to send the user.</p>
-<p><strong>2. Redirect and sign.</strong> The app redirects the user to
-<code>https://keypears.com/auth/sign</code> with a challenge payload. The user is already
-logged into KeyPears (or logs in now). The KeyPears server presents the
-challenge — "rssanyway.com wants to verify your identity" — and the user
-approves. Their browser signs the challenge with their P-256 private key.</p>
+app fetches <code>https://example.com/.well-known/keypears.json</code>, finds the user's
+API domain (e.g. <code>keypears.example.com</code>), and knows where to send the user.</p>
+<p><strong>2. Redirect and sign.</strong> The app redirects the user to their KeyPears server —
+<code>https://keypears.example.com/auth/sign</code> — with a challenge payload. The user
+is already logged in (or logs in now). The server presents the challenge —
+"rssanyway.com wants to verify your identity" — and the user approves. Their
+browser signs the challenge with their P-256 private key.</p>
 <p>The challenge isn't a raw string from the app — that would invite
 vulnerabilities. Instead, the KeyPears server computes an HMAC over the app's
 challenge using a server-side key, and the user signs that derived value. The

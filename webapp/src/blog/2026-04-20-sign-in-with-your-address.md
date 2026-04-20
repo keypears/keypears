@@ -133,14 +133,14 @@ prior relationship between the app and the server.
 The flow has three steps:
 
 **1. Discovery.** User types `alice@example.com` into the app's login field. The
-app fetches `https://example.com/.well-known/keypears.json`, finds the API
-domain (`keypears.com`), and knows where to send the user.
+app fetches `https://example.com/.well-known/keypears.json`, finds the user's
+API domain (e.g. `keypears.example.com`), and knows where to send the user.
 
-**2. Redirect and sign.** The app redirects the user to
-`https://keypears.com/auth/sign` with a challenge payload. The user is already
-logged into KeyPears (or logs in now). The KeyPears server presents the
-challenge — "rssanyway.com wants to verify your identity" — and the user
-approves. Their browser signs the challenge with their P-256 private key.
+**2. Redirect and sign.** The app redirects the user to their KeyPears server —
+`https://keypears.example.com/auth/sign` — with a challenge payload. The user
+is already logged in (or logs in now). The server presents the challenge —
+"rssanyway.com wants to verify your identity" — and the user approves. Their
+browser signs the challenge with their P-256 private key.
 
 The challenge isn't a raw string from the app — that would invite
 vulnerabilities. Instead, the KeyPears server computes an HMAC over the app's
