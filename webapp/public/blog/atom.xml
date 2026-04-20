@@ -2,13 +2,341 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2026-04-12T13:19:03.965Z</updated>
+    <updated>2026-04-20T12:13:57.645Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
     <subtitle>Updates and insights from the KeyPears team</subtitle>
     <icon>https://keypears.com/favicon-dark.png</icon>
     <rights>Copyright 2026 Identellica LLC</rights>
+    <entry>
+        <title type="html"><![CDATA[Sign In With Your Address: Why KeyPears is Building a New Auth System]]></title>
+        <id>https://keypears.com/blog/2026-04-20-sign-in-with-your-address</id>
+        <link href="https://keypears.com/blog/2026-04-20-sign-in-with-your-address"/>
+        <updated>2026-04-20T18:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>Every new app you sign up for presents the same depressing choice: create
+another password you'll forget, hand your identity to Google, or wait for a
+six-digit code to arrive in your inbox. We've b...]]></summary>
+        <content type="html"><![CDATA[<p>Every new app you sign up for presents the same depressing choice: create
+another password you'll forget, hand your identity to Google, or wait for a
+six-digit code to arrive in your inbox. We've been choosing between these
+options for twenty years. None of them are good.</p>
+<p>Passwords don't scale. The average person has over a hundred online accounts.
+Password managers help, but they're a patch on a broken model — you're still
+creating a new credential for every service, and the service is still storing a
+hash that can be breached.</p>
+<p>"Sign in with Google" is convenient until you realize you've made a corporation
+the root of your digital identity. Google decides you violated a policy you've
+never read, and suddenly you can't log into your bank, your project management
+tool, your email. Centralized identity providers are a single point of failure
+dressed up as a feature.</p>
+<p>Email OTP is the compromise everyone settled on. It's slow (you wait for the
+email), phishable (the code can be intercepted), and requires the app to run
+email infrastructure or pay for a service. It works. It's also a hack — we're
+using a forty-year-old messaging system as an authentication side channel
+because we never built anything better.</p>
+<h2>What if you already had the answer?</h2>
+<p>Here's the thing: if you have a KeyPears account, you already have everything
+you need to prove your identity to any application on the internet.</p>
+<p>You have an address: <code>alice@example.com</code>.</p>
+<p>You have a P-256 key pair. Your private key lives in your browser, encrypted.
+Your public key is discoverable by anyone who knows your address.</p>
+<p>You can sign things.</p>
+<p>So why can't you just type your address into any app, sign a challenge, and be
+authenticated? No new password. No email. No Google. No waiting.</p>
+<p>That's what we're building.</p>
+<h2>Why not OAuth?</h2>
+<p><a href="https://datatracker.ietf.org/doc/html/rfc6749">OAuth 2.0</a> is the dominant
+redirect-based authentication protocol on the web. "Sign in with GitHub," "Sign
+in with Google" — that's OAuth. It works. It's also solving the wrong problem.</p>
+<p>OAuth was designed for <strong>delegated authorization</strong>: "Let this app read my GitHub
+repos." It answers the question "what can this app do?" not "who is this
+person?" <a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect</a>
+bolts an identity layer on top, but the underlying machinery — client
+registration, client secrets, token endpoints, refresh tokens, scopes — remains.</p>
+<p>The critical problem: <strong>OAuth requires pre-registration.</strong> Before your app can
+authenticate users via GitHub, you must register with GitHub, get a client ID
+and secret, and configure redirect URIs. This works when there are a handful of
+identity providers. It fails completely in a federated system where any domain
+can run a server. You can't require every app to pre-register with every
+possible KeyPears server on the internet.</p>
+<p>OAuth's redirect flow is elegant. We're keeping that. Everything else — client
+registration, tokens, scopes, refresh flows — is baggage from a different
+problem.</p>
+<h2>Why not WebAuthn?</h2>
+<p><a href="https://www.w3.org/TR/webauthn-3/">WebAuthn</a> (the technology behind passkeys
+and hardware security keys) is excellent at what it does: phishing-resistant
+authentication using asymmetric cryptography. The browser mediates the signing,
+the credential is bound to the origin, and no shared secret ever touches a wire.</p>
+<p>But WebAuthn credentials are <strong>device-bound and RP-scoped</strong>. Your passkey for
+GitHub is invisible to every other site. Each relying party gets its own
+credential. There's no federation story — you can't take your WebAuthn identity
+and prove who you are to a new app without registering a new credential there
+first.</p>
+<p>WebAuthn answers "I'm the same person who registered on this site before." It
+doesn't answer "I'm <code>alice@keypears.com</code> and I can prove it."</p>
+<p>We want the signing primitive. We don't want the isolation.</p>
+<h2>Why not DIDs?</h2>
+<p><a href="https://www.w3.org/TR/did-1.1/">Decentralized Identifiers (DIDs)</a> are the
+closest existing work to what we need. A DID is a URI
+(<code>did:web:example.com:alice</code>) that resolves to a DID Document — a JSON file
+listing public keys and service endpoints. DID Auth is a challenge-response
+protocol where you prove control of a DID by signing a challenge with the
+corresponding private key.</p>
+<p>This is almost exactly what we want. The problem is the specification stack.</p>
+<p>DID Documents. Verifiable Credentials. Verifiable Presentations. JSON-LD
+contexts. Proof formats. Resolution methods — there are over a hundred of them,
+each with different trust models, different resolution mechanisms, different
+levels of maturity.</p>
+<p>The core idea is right: discoverable keys, challenge-response authentication,
+federated identity. The execution is an enterprise specification committee's
+fever dream. No normal developer is going to implement the full DID/VC stack to
+add "sign in" to their app.</p>
+<p>We need the substance without the ceremony.</p>
+<h2>The KeyPears approach</h2>
+<p>Here's what authentication should look like in 2026:</p>
+<p><strong>One address.</strong> <code>alice@example.com</code>. Human-readable, memorable, federated —
+just like email.</p>
+<p><strong>One discovery file.</strong> <code>https://example.com/.well-known/keypears.json</code> tells
+any app where to find the server and the user's public key. One JSON file. No
+specification stack.</p>
+<p><strong>One redirect.</strong> App sends the user to their KeyPears server with a challenge.
+User approves. KeyPears server sends them back with a signature.</p>
+<p><strong>One signature.</strong> The app verifies the P-256 signature against the user's
+public key. Done. Authenticated.</p>
+<p>No registration. No tokens. No client secrets. No refresh flows. No scopes. No
+email side channel. Any app can authenticate any user on any server, with zero
+prior relationship between the app and the server.</p>
+<h2>How it works</h2>
+<p>The flow has three steps:</p>
+<p><strong>1. Discovery.</strong> User types <code>alice@example.com</code> into the app's login field. The
+app fetches <code>https://example.com/.well-known/keypears.json</code>, finds the API
+domain (<code>keypears.com</code>), and knows where to send the user.</p>
+<p><strong>2. Redirect and sign.</strong> The app redirects the user to
+<code>https://keypears.com/auth/sign</code> with a challenge payload. The user is already
+logged into KeyPears (or logs in now). The KeyPears server presents the
+challenge — "rssanyway.com wants to verify your identity" — and the user
+approves. Their browser signs the challenge with their P-256 private key.</p>
+<p>The challenge isn't a raw string from the app — that would invite
+vulnerabilities. Instead, the KeyPears server computes an HMAC over the app's
+challenge using a server-side key, and the user signs that derived value. The
+signed payload is meaningless outside this specific flow, unpredictable to the
+app, and bound to the original challenge.</p>
+<p><strong>3. Verify.</strong> The user is redirected back to the app with the signature. The
+app fetches the user's public key via the KeyPears federation API and verifies
+the signature. If it checks out, the user is <code>alice@example.com</code>. Session
+created. Done.</p>
+<p>Total time: one redirect there, one redirect back. Faster than waiting for an
+email. Simpler than managing OAuth tokens. More secure than a password.</p>
+<h2>What this means</h2>
+<p>Any developer can add "Sign in with KeyPears" to their app by:</p>
+<ol>
+<li>Adding an address input field.</li>
+<li>Fetching a well-known JSON file.</li>
+<li>Redirecting to a URL.</li>
+<li>Verifying a signature on the callback.</li>
+</ol>
+<p>No API keys. No developer portal. No registration with anyone. No rate limits.
+No terms of service. If you can verify a P-256 signature, you can authenticate
+KeyPears users.</p>
+<p>This is what "sign in with email" should have been — if email had been designed
+with cryptography from the start.</p>
+<h2>What's next</h2>
+<p>We're building this now. <a href="https://rssanyway.com">RSS Anyway</a> will be the first
+third-party app to authenticate with KeyPears addresses. We'll publish the
+protocol specification as a docs page, release a client library that any app can
+import, and implement the server-side endpoints on KeyPears.</p>
+<p>If you have a KeyPears account, your address will soon be your login everywhere.</p>
+<hr>
+<p>If you want to follow along, the protocol design is happening in the open in our
+<a href="https://github.com/keypears/keypears">GitHub issues</a>. If you want to try
+KeyPears today, create an account at <a href="https://keypears.com">keypears.com</a>.</p>]]></content>
+        <author>
+            <name>Ryan X. Charles</name>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Announcing KeyPears Alpha]]></title>
+        <id>https://keypears.com/blog/2026-04-12-announcing-keypears-alpha</id>
+        <link href="https://keypears.com/blog/2026-04-12-announcing-keypears-alpha"/>
+        <updated>2026-04-13T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[<p>KeyPears is in alpha, live at <a href="https://keypears.com">keypears.com</a>, and the
+entire stack is open source on <a href="https://github.com/keypears/keypears">GitHub</a>
+under MIT. KeyPears i...]]></summary>
+        <content type="html"><![CDATA[<p>KeyPears is in alpha, live at <a href="https://keypears.com">keypears.com</a>, and the
+entire stack is open source on <a href="https://github.com/keypears/keypears">GitHub</a>
+under MIT. KeyPears is a federated end-to-end encrypted protocol for messaging
+and secret storage. Your identity is an email-style address (<code>alice@keypears.com</code>)
+backed by a NIST P-256 key pair. Servers store only ciphertext.</p>
+<p>This post explains what KeyPears is, why we built it, and what you can do
+with it today.</p>
+<h2>What email got right, and what it got wrong</h2>
+<p>Internet communication has relied on email for over forty years. Email got two
+things right: human-readable addresses (<code>name@domain</code>) and federation via DNS.
+Any domain can run a mail server, and servers find each other through MX
+records. That's how email achieved universal reach without central control.</p>
+<p>Email got two things wrong, and four decades of effort haven't fixed them.</p>
+<p><strong>It has no key exchange.</strong> PGP tried. Whitten and Tygar showed in 1999 that
+the majority of test users couldn't successfully encrypt a message even after
+ninety minutes with PGP 5.0 — and a generation later, encrypted email is still
+a niche practice. The cryptography wasn't the problem. The user interface was.
+Key generation, key exchange, trust decisions, and revocation are concepts
+that don't map onto any familiar workflow.</p>
+<p><strong>It has no cost to send.</strong> Spam is economically rational because delivery is
+free. Adam Back proposed Hashcash in 1997 — a small computational cost on each
+message — but SMTP has no way to negotiate proof of work between sender and
+recipient, and you can't make it mandatory without losing every legitimate
+sender who hasn't heard of it.</p>
+<p>The centralized alternatives took a different bargain. Signal solved
+end-to-end encryption for billions of users with a single software update,
+but at the cost of phone-number identity controlled by carriers and a single
+company running every server. Matrix is federated and end-to-end encrypted,
+but it threw out email-compatible addresses (<code>@user:server</code>) and built a
+directed acyclic graph of room state synchronized across homeservers — a
+conceptually rich system that's hard to operate. Keybase combined social-proof
+identity with end-to-end messaging, then was acquired by Zoom and effectively
+shut down — a cautionary case for centralized hosting of decentralization-aspirational
+products.</p>
+<p>We wanted what email got right <em>and</em> what email got wrong, in one protocol,
+mandatory from day one.</p>
+<h2>What KeyPears is</h2>
+<p>KeyPears is a clean-sheet protocol that keeps <code>name@domain</code> addressing and
+DNS-based federation while making Diffie-Hellman key exchange and proof of
+work first-class requirements:</p>
+<ul>
+<li>
+<p><strong>Identity is <code>name@domain</code>.</strong> Same format as email. If you own your domain,
+you own your identity. No phone number, no central registry, no proprietary
+identifier. The address <code>alice@acme.com</code> survives changes in hosting
+provider — only the <code>keypears.json</code> configuration file changes.</p>
+</li>
+<li>
+<p><strong>End-to-end encrypted by default.</strong> Every message and every vault entry is
+encrypted client-side with AES-256-GCM under a key derived via ECDH on NIST
+P-256. The server stores only ciphertext and never possesses the keys to
+decrypt it. Compromise of the server reveals nothing.</p>
+</li>
+<li>
+<p><strong>Boring cryptography, on purpose.</strong> Every primitive is NIST-approved:
+SHA-256, HMAC-SHA-256, PBKDF2-HMAC-SHA-256 (1.2 million total rounds,
+including 600,000 on the server alone), AES-256-GCM, P-256 ECDH and ECDSA.
+Nothing novel, nothing creative — exactly the same primitives that secure
+TLS, WebAuthn, and every smartcard on Earth. A reviewer opening the crypto
+layer should find it boring. Boring is the goal.</p>
+</li>
+<li>
+<p><strong>Proof of work for spam resistance.</strong> Every account creation, login, and
+message requires a proof of work computed client-side via the <code>pow5-64b</code>
+algorithm, designed for efficient GPU execution. Difficulty is configurable
+per server (account creation, login) and per user (first contact, ongoing
+conversation). PoW handles application-level abuse at the points that
+matter. No CAPTCHAs, no third-party verification.</p>
+</li>
+<li>
+<p><strong>Pull-model federation.</strong> When <code>alice@a.com</code> sends a message to
+<code>bob@b.com</code>, her server stores the ciphertext and notifies Bob's server with
+a pull token. Bob's server independently resolves Alice's domain via DNS
+and TLS and pulls the ciphertext using the token. No server-to-server
+signing keys, no new PKI — domain authentication piggybacks on the same
+HTTPS trust model the rest of the web already uses.</p>
+</li>
+</ul>
+<p>If you want the full protocol design, cryptographic construction, federation
+model, and security analysis, the <a href="https://keypears.com/keypears.pdf">whitepaper</a>
+covers it in about a dozen pages.</p>
+<h2>What runs today</h2>
+<p>At <a href="https://keypears.com">keypears.com</a> you can:</p>
+<ul>
+<li>Create an account (PoW-gated, no email verification, no phone number)</li>
+<li>Send and receive end-to-end encrypted messages with anyone on any KeyPears
+server</li>
+<li>Store secrets in an encrypted vault — passwords, credentials, notes, all
+encrypted client-side under a key derived from your private key</li>
+<li>Rotate your P-256 key pair (up to 100 keys per account, with per-key
+passwords for fine-grained recovery)</li>
+<li>Claim a custom domain by hosting a <code>keypears.json</code> file at the well-known
+path</li>
+<li>Manage users on a domain you've claimed, as the verified admin</li>
+</ul>
+<p>The <a href="https://keypears.com/docs">docs</a> walk through addressing, key derivation,
+encryption, proof of work, federation, self-hosting, and the security model.
+If you're the kind of person who reads the protocol page before signing up,
+that's where to start.</p>
+<h2>Open source from day one</h2>
+<p>KeyPears is MIT licensed. Every line of code is on
+<a href="https://github.com/keypears/keypears">GitHub</a>, including:</p>
+<ul>
+<li>The webapp itself (TanStack Start, Bun, MySQL via Drizzle, React 19)</li>
+<li>The proof-of-work algorithm (<code>pow5-64b</code>, Rust → WASM with TypeScript bindings)</li>
+<li>The whitepaper source (Typst)</li>
+<li>The Terraform stack that runs the production server (VPC, ALB, ECS Fargate,
+WAF, ECR, Route53)</li>
+<li>The deploy script</li>
+<li>Every blog post, including this one</li>
+</ul>
+<p>You can run your own KeyPears server today. Fork the repository, change the
+domain in your environment, change the title of the app to whatever you want,
+and deploy. Two domains can already federate with each other and exchange
+end-to-end encrypted messages — that's the model and it works in production.</p>
+<p>If you want to claim a domain you already own without running a server, host a
+<code>/.well-known/keypears.json</code> pointing at any KeyPears server, and create your
+account there. The address <code>alice@yourdomain.com</code> is yours; the hosting is
+just configuration, and you can move it later.</p>
+<h2>A note about alpha</h2>
+<p>KeyPears is in alpha. The protocol has been audited internally multiple times,
+the cryptographic primitives are exclusively NIST-approved, and the security
+model is documented in detail. Every significant decision, including the move
+back to NIST-only primitives and the rewrite to the current architecture, has
+been written up on this blog. <strong>We do not plan to wipe the database.</strong> But:</p>
+<p>If a fundamental flaw is discovered in the protocol — something that can't be
+fixed by a code update without re-deriving everyone's keys or invalidating
+everyone's stored messages — we may have no choice but to wipe the database
+and start over. The alpha label is a precaution, not a prediction. We are
+warning everyone up front so that no one builds a critical workflow on
+KeyPears under the assumption that the data will outlive this phase.</p>
+<p>When we are confident there are no fundamental flaws — measured in months of
+operation under real load with continued review — we will remove the alpha
+flag and the warning that comes with it. Until then, treat KeyPears as a
+system you can rely on for messaging and secret storage <em>most of the time</em>,
+with the caveat that the floor could fall out exactly once. <strong>Don't store the
+only copy of anything you can't afford to recreate.</strong></p>
+<p>Everything we've shipped is in service of making that scenario unlikely. The
+decision to use only NIST primitives, to layer end-to-end encryption inside
+TLS, to make the server store only ciphertext, to rebuild the codebase from
+scratch on a clean foundation — all of it exists so that the alpha flag
+eventually comes off and the database keeps running.</p>
+<h2>Where to go</h2>
+<ul>
+<li><strong>Try it</strong>: <a href="https://keypears.com">keypears.com</a></li>
+<li><strong>Read the docs</strong>: <a href="https://keypears.com/docs">keypears.com/docs</a></li>
+<li><strong>Read the whitepaper</strong>: <a href="https://keypears.com/keypears.pdf">keypears.com/keypears.pdf</a></li>
+<li><strong>Read the source</strong>: <a href="https://github.com/keypears/keypears">github.com/keypears/keypears</a></li>
+<li><strong>Run your own</strong>: clone the repo, follow <code>infra/README.md</code></li>
+</ul>
+<p>If you self-host a KeyPears node and federate with <code>keypears.com</code>, you're
+directly testing the federation layer in production. That's the most useful
+thing you can do for the project right now. If you find a bug, file it on
+GitHub. If you find a cryptographic flaw, please email me directly first.</p>
+<h2>Why this matters</h2>
+<p>Email demonstrated that federated, human-readable addressing can achieve
+universal reach without central control. But email's design assumed trusted
+networks, and four decades of effort have failed to retrofit the two things
+it lacks. Centralized alternatives solved encryption and spam by abandoning
+federation and trading sovereignty for convenience.</p>
+<p>KeyPears takes the third path: a clean-sheet protocol that preserves
+<code>name@domain</code> addressing and DNS-based federation while making Diffie-Hellman
+key exchange and proof of work mandatory from the start. Encryption is the
+only mode. Spam is computationally expensive. No single entity controls
+identity. The cryptography is boring. The protocol is documented. The code
+is open. The alpha is live.</p>
+<p>Thank you for reading this far. If you're the kind of person who'd reach the
+end of a post like this one, you're exactly the kind of person who should try
+KeyPears, run a node, read the whitepaper, and tell us what we got wrong.</p>
+<p>— Ryan</p>]]></content>
+        <author>
+            <name>Ryan X. Charles</name>
+        </author>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Back to NIST: KeyPears Goes All-Standard]]></title>
         <id>https://keypears.com/blog/2026-04-12-back-to-nist</id>
@@ -32,13 +360,13 @@ way: not just the hash function, but every cryptographic primitive in the
 app.</p>
 <h2>What changed</h2>
 <p>Every symmetric primitive is now a NIST standard:</p>
-<p>| Purpose     | Before                           | After                    | NIST standard |
-| ----------- | -------------------------------- | ------------------------ | ------------- |
-| Hash        | BLAKE3                           | SHA-256                  | FIPS 180-4    |
-| MAC         | BLAKE3 keyed MAC                 | HMAC-SHA-256             | FIPS 198-1    |
-| KDF         | Custom BLAKE3 iteration          | PBKDF2-HMAC-SHA-256      | SP 800-132    |
-| Encryption  | ACB3 (AES-256-CBC + BLAKE3-MAC)  | AES-256-GCM              | SP 800-38D    |
-| Key pairs   | secp256k1                        | P-256                    | FIPS 186-5    |</p>
+<p>| Purpose    | Before                          | After               | NIST standard |
+| ---------- | ------------------------------- | ------------------- | ------------- |
+| Hash       | BLAKE3                          | SHA-256             | FIPS 180-4    |
+| MAC        | BLAKE3 keyed MAC                | HMAC-SHA-256        | FIPS 198-1    |
+| KDF        | Custom BLAKE3 iteration         | PBKDF2-HMAC-SHA-256 | SP 800-132    |
+| Encryption | ACB3 (AES-256-CBC + BLAKE3-MAC) | AES-256-GCM         | SP 800-38D    |
+| Key pairs  | secp256k1                       | P-256               | FIPS 186-5    |</p>
 <p>The elliptic curve change is the biggest conceptual shift. secp256k1 is the
 Bitcoin curve — same size as P-256, comparable security, and some of the
 best-quality implementations in existence (<code>libsecp256k1</code> is a work of art).
