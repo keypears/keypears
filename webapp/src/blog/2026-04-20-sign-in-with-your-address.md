@@ -28,8 +28,8 @@ because we never built anything better.
 
 ## What if you already had the answer?
 
-Here's the thing: if you have a KeyPears account, you already have everything
-you need to prove your identity to any application on the internet.
+If you have a KeyPears account, you already have everything you need to prove
+your identity to any application on the internet.
 
 You have an address: `alice@example.com`.
 
@@ -137,8 +137,8 @@ app fetches `https://example.com/.well-known/keypears.json`, finds the user's
 API domain (e.g. `keypears.example.com`), and knows where to send the user.
 
 **2. Redirect and sign.** The app redirects the user to their KeyPears server —
-`https://keypears.example.com/auth/sign` — with a challenge payload. The user
-is already logged in (or logs in now). The server presents the challenge —
+`https://keypears.example.com/auth/sign` — with a challenge payload. The user is
+already logged in (or logs in now). The server presents the challenge —
 "rssanyway.com wants to verify your identity" — and the user approves. Their
 browser signs the challenge with their P-256 private key.
 
