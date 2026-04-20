@@ -258,3 +258,209 @@ Clear direction established. KeyPears Auth is a new protocol that borrows the
 redirect UX from OAuth and the sign-to-authenticate model from LNURL-auth, but
 requires neither client registration nor token management. Next experiment
 should design the full protocol specification.
+
+## Experiment 2: Research WebAuthn, IndieAuth, and DID Auth
+
+### Goal
+
+Complete the prior art survey by analyzing WebAuthn/FIDO2, IndieAuth, and DID
+Auth — the remaining protocols listed in the background section.
+
+### Research findings
+
+#### WebAuthn / FIDO2
+
+**Roles:** Relying Party (website), Client (browser), Authenticator (hardware
+key or platform biometric).
+
+**Registration flow:**
+
+1. RP sends challenge (random bytes) + RP ID (domain) + user info to browser.
+2. Browser forwards to authenticator along with RP ID origin.
+3. Authenticator generates a new key pair scoped to the RP ID. Returns public
+   key + credential ID + attestation, signed by the authenticator.
+4. RP stores: credential ID, public key, sign count, user handle.
+
+**Authentication flow:**
+
+1. RP sends challenge + list of allowed credential IDs.
+2. Browser forwards to authenticator, which looks up credential by RP ID.
+3. Authenticator signs `{authenticatorData || clientDataHash}` where
+   clientDataHash covers the challenge and the origin.
+4. RP verifies signature against stored public key, checks sign count increased.
+
+**Security mechanisms:**
+
+- Phishing resistance: credentials are domain-bound — the authenticator checks
+  RP ID against the origin. A phishing site on a different domain cannot trigger
+  the credential.
+- Replay prevention: server-generated random challenge; sign count monotonically
+  increases.
+- No shared secrets: only public keys stored server-side.
+- Origin binding: the browser embeds the origin into `clientDataJSON`, which is
+  signed.
+
+**Server state:** per-credential: public key, credential ID, sign count.
+Ephemeral: challenge (valid for one ceremony, ~minutes TTL).
+
+**Strengths:** Strongest phishing resistance of any web auth protocol. No
+passwords. Hardware-rooted key material. Well-supported in browsers.
+
+**Weaknesses:** Requires a local authenticator — not portable across devices
+without platform sync (passkeys address this but add cloud trust). No federation
+story; each RP is independent. Cannot prove identity to a third party — the
+credential is RP-scoped.
+
+#### IndieAuth
+
+**Flow:**
+
+1. User enters their URL (e.g. `https://alice.example`) at the client app.
+2. Client fetches that URL, discovers `rel="authorization_endpoint"` via HTML
+   `<link>` tags or HTTP Link headers.
+3. Client redirects user to the authorization endpoint with: `client_id`
+   (client's URL), `redirect_uri`, `state`, `code_challenge` (PKCE), `scope`.
+4. Authorization endpoint authenticates the user (method unspecified).
+5. On approval, authorization endpoint redirects back with an authorization
+   code.
+6. Client exchanges the code at the authorization endpoint. Response includes
+   `me` — the canonical user URL.
+7. Client verifies `me` matches the originally entered URL.
+
+**Security mechanisms:**
+
+- PKCE: `code_challenge`/`code_verifier` prevents authorization code
+  interception.
+- `state` parameter: CSRF protection.
+- Client discovery: authorization endpoint fetches `client_id` URL to verify
+  `redirect_uri`, preventing open redirect attacks.
+- URL canonicalization: the `me` URL must match what was entered.
+
+**Server state:** user accounts, issued authorization codes (short-lived,
+single-use), optionally access tokens.
+
+**Strengths:** URL-as-identity is human-readable and discoverable. Fully
+decentralized — anyone can run their own authorization endpoint. Built on proven
+OAuth 2.0 machinery. Identity URL and auth server can be different.
+
+**Weaknesses:** Relies on DNS/TLS for identity binding — no cryptographic proof
+of identity beyond TLS. Actual authentication method is unspecified. No key
+exchange or encryption. Only works in interactive browser contexts.
+
+#### DID Auth (Decentralized Identity)
+
+**Flow:**
+
+1. Relying party sends a challenge (nonce + domain + timestamp) requesting proof
+   of control of a DID.
+2. User's agent resolves its own DID Document (e.g. `did:web` resolves to
+   `https://domain/.well-known/did.json`).
+3. User signs the challenge using a private key corresponding to a
+   `verificationMethod` listed in the DID Document, producing a Verifiable
+   Presentation.
+4. RP resolves the user's DID Document independently, extracts the public key,
+   and verifies the signature.
+5. RP checks nonce freshness, domain binding, and timestamp.
+
+**Security mechanisms:**
+
+- Decentralized resolution: DID Document is the source of truth for public keys.
+- Challenge nonce: prevents replay.
+- Domain binding: challenge includes the RP's domain; signature covers it.
+- Key rotation: DID Documents can be updated to rotate keys.
+- Verification method specificity: DID Document declares which keys are valid
+  for which purpose (authentication, assertion, key agreement).
+
+**Server state:** minimal — the RP stores the DID string and a nonce
+(ephemeral). Key material is resolved on-demand from the DID Document.
+
+**Strengths:** Cryptographic proof of identity without shared secrets. Works
+across domains naturally. Supports key rotation. `did:web` maps cleanly to
+domain-based identity. Verifiable Presentations can bundle claims alongside
+authentication.
+
+**Weaknesses:** Ecosystem fragmentation — dozens of DID methods with different
+trust models. Complexity: DID Documents, VCs, VPs, JSON-LD contexts — enormous
+specification surface. No standardized browser integration. The specs are large
+and loosely coupled.
+
+### Analysis: what applies to KeyPears
+
+| Aspect              | WebAuthn                | IndieAuth             | DID Auth                       | KeyPears Auth                  |
+| ------------------- | ----------------------- | --------------------- | ------------------------------ | ------------------------------ |
+| Identity format     | Opaque credential ID    | URL                   | DID URI                        | `name@domain`                  |
+| Challenge-response  | Authenticator signs     | OAuth code exchange   | Signed VP                      | P-256 ECDSA                    |
+| Phishing resistance | Strong (origin-bound)   | Moderate (PKCE+state) | Moderate (domain in challenge) | Moderate (domain in challenge) |
+| Federation          | None                    | Via URL discovery     | Via DID resolution             | Via `keypears.json`            |
+| Server state        | Public key + sign count | Auth codes + tokens   | Nonce only                     | Challenge nonce                |
+| Key discovery       | Local only              | None (no crypto keys) | DID Document                   | Federation API                 |
+| Browser integration | Native API              | Redirect flow         | None standard                  | Redirect flow                  |
+
+#### What we take from WebAuthn
+
+1. **P-256 challenge-response pattern**: identical primitive — sign a challenge
+   with a private key, verify against a public key. WebAuthn validates this
+   approach is battle-tested.
+2. **Origin/domain binding in the signed payload**: WebAuthn embeds the origin
+   in `clientDataJSON` which gets signed. KeyPears Auth should similarly bind
+   the requesting app's domain into the challenge data so the signature is
+   contextually bound.
+
+#### What we take from IndieAuth
+
+1. **User enters an identifier to start the flow**: IndieAuth's UX begins with
+   the user typing their URL, then discovery happens. KeyPears Auth begins with
+   the user typing their address, then `keypears.json` discovery happens. Same
+   pattern.
+2. **Decoupled identity and auth server**: in IndieAuth, your URL can point to
+   any authorization endpoint. In KeyPears, your address domain can point to any
+   API domain via `keypears.json`. Same separation.
+
+#### What we take from DID Auth
+
+1. **This is the closest structural analog.** KeyPears addresses function like
+   DIDs with a `did:web`-like resolution model. The `keypears.json` file serves
+   the same role as a DID Document — it tells you where to find endpoints and
+   keys. The P-256 keys in `user_keys` are analogous to `verificationMethod`
+   entries.
+2. **Challenge includes RP domain**: DID Auth binds the challenge to the relying
+   party's domain. We should do the same — the challenge payload should include
+   the third-party app's origin, preventing cross-site reuse.
+3. **Minimal server state**: DID Auth is nearly stateless on the RP side — just
+   a nonce. KeyPears Auth can achieve the same.
+
+#### What we explicitly reject
+
+- **WebAuthn's RP-scoped credentials**: in WebAuthn, each credential is bound to
+  one RP and invisible to others. KeyPears uses one persistent key pair across
+  all apps — the address IS the identity, and cross-site correlation is a
+  feature (your address is public).
+- **IndieAuth's code exchange**: IndieAuth requires a server-to-server code
+  exchange (inherited from OAuth). KeyPears Auth uses direct signature
+  verification — no intermediate code, no token endpoint.
+- **DID's specification complexity**: DID Documents, Verifiable Credentials,
+  JSON-LD — we achieve the same with `keypears.json` + a single federation
+  endpoint for public key lookup.
+
+### Conclusion
+
+KeyPears Auth is essentially **simplified DID Auth with IndieAuth's UX and
+WebAuthn's signing primitive**:
+
+- Email-like addresses instead of DID URIs
+- `keypears.json` instead of DID Documents
+- Browser redirects instead of custom wallet protocols
+- Direct P-256 signature verification instead of Verifiable Presentations
+- No specification stack — one JSON file, one redirect, one signature
+
+The protocol design should include the requesting app's domain in the signed
+challenge payload (from WebAuthn and DID Auth), use a redirect flow starting
+from an address input (from IndieAuth), and verify signatures against
+discoverable public keys (from DID Auth).
+
+### Result: Pass
+
+Survey complete. All five protocols examined. The design direction is confirmed
+from multiple angles: KeyPears Auth is a new protocol that takes the best of
+each without inheriting their complexity. Ready to design the full protocol
+specification.
