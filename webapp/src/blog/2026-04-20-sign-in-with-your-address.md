@@ -14,11 +14,11 @@ Password managers help, but they're a patch on a broken model — you're still
 creating a new credential for every service, and the service is still storing a
 hash that can be breached.
 
-"Sign in with Google" is convenient until you realize you've made a
-corporation the root of your digital identity. Google decides you violated a
-policy you've never read, and suddenly you can't log into your bank, your
-project management tool, your email. Centralized identity providers are a
-single point of failure dressed up as a feature.
+"Sign in with Google" is convenient until you realize you've made a corporation
+the root of your digital identity. Google decides you violated a policy you've
+never read, and suddenly you can't log into your bank, your project management
+tool, your email. Centralized identity providers are a single point of failure
+dressed up as a feature.
 
 Email OTP is the compromise everyone settled on. It's slow (you wait for the
 email), phishable (the code can be intercepted), and requires the app to run
@@ -45,15 +45,15 @@ That's what we're building.
 
 ## Why not OAuth?
 
-OAuth 2.0 is the dominant redirect-based authentication protocol on the web.
-"Sign in with GitHub," "Sign in with Google" — that's OAuth. It works. It's
-also solving the wrong problem.
+[OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) is the dominant
+redirect-based authentication protocol on the web. "Sign in with GitHub," "Sign
+in with Google" — that's OAuth. It works. It's also solving the wrong problem.
 
-OAuth was designed for **delegated authorization**: "Let this app read my
-GitHub repos." It answers the question "what can this app do?" not "who is this
-person?" OpenID Connect bolts an identity layer on top, but the underlying
-machinery — client registration, client secrets, token endpoints, refresh
-tokens, scopes — remains.
+OAuth was designed for **delegated authorization**: "Let this app read my GitHub
+repos." It answers the question "what can this app do?" not "who is this
+person?" [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html)
+bolts an identity layer on top, but the underlying machinery — client
+registration, client secrets, token endpoints, refresh tokens, scopes — remains.
 
 The critical problem: **OAuth requires pre-registration.** Before your app can
 authenticate users via GitHub, you must register with GitHub, get a client ID
@@ -68,10 +68,10 @@ problem.
 
 ## Why not WebAuthn?
 
-WebAuthn (the technology behind passkeys and hardware security keys) is
-excellent at what it does: phishing-resistant authentication using asymmetric
-cryptography. The browser mediates the signing, the credential is bound to the
-origin, and no shared secret ever touches a wire.
+[WebAuthn](https://www.w3.org/TR/webauthn-3/) (the technology behind passkeys
+and hardware security keys) is excellent at what it does: phishing-resistant
+authentication using asymmetric cryptography. The browser mediates the signing,
+the credential is bound to the origin, and no shared secret ever touches a wire.
 
 But WebAuthn credentials are **device-bound and RP-scoped**. Your passkey for
 GitHub is invisible to every other site. Each relying party gets its own
@@ -86,11 +86,12 @@ We want the signing primitive. We don't want the isolation.
 
 ## Why not DIDs?
 
-Decentralized Identifiers (DIDs) are the closest existing work to what we
-need. A DID is a URI (`did:web:example.com:alice`) that resolves to a DID
-Document — a JSON file listing public keys and service endpoints. DID Auth is a
-challenge-response protocol where you prove control of a DID by signing a
-challenge with the corresponding private key.
+[Decentralized Identifiers (DIDs)](https://www.w3.org/TR/did-1.1/) are the
+closest existing work to what we need. A DID is a URI
+(`did:web:example.com:alice`) that resolves to a DID Document — a JSON file
+listing public keys and service endpoints. DID Auth is a challenge-response
+protocol where you prove control of a DID by signing a challenge with the
+corresponding private key.
 
 This is almost exactly what we want. The problem is the specification stack.
 
@@ -110,8 +111,8 @@ We need the substance without the ceremony.
 
 Here's what authentication should look like in 2026:
 
-**One address.** `alice@example.com`. Human-readable, memorable,
-federated — just like email.
+**One address.** `alice@example.com`. Human-readable, memorable, federated —
+just like email.
 
 **One discovery file.** `https://example.com/.well-known/keypears.json` tells
 any app where to find the server and the user's public key. One JSON file. No
@@ -131,10 +132,9 @@ prior relationship between the app and the server.
 
 The flow has three steps:
 
-**1. Discovery.** User types `alice@example.com` into the app's login
-field. The app fetches
-`https://example.com/.well-known/keypears.json`, finds the API domain
-(`keypears.com`), and knows where to send the user.
+**1. Discovery.** User types `alice@example.com` into the app's login field. The
+app fetches `https://example.com/.well-known/keypears.json`, finds the API
+domain (`keypears.com`), and knows where to send the user.
 
 **2. Redirect and sign.** The app redirects the user to
 `https://keypears.com/auth/sign` with a challenge payload. The user is already
@@ -176,14 +176,13 @@ with cryptography from the start.
 
 We're building this now. [RSS Anyway](https://rssanyway.com) will be the first
 third-party app to authenticate with KeyPears addresses. We'll publish the
-protocol specification as a docs page, release a client library that any app
-can import, and implement the server-side endpoints on KeyPears.
+protocol specification as a docs page, release a client library that any app can
+import, and implement the server-side endpoints on KeyPears.
 
-If you have a KeyPears account, your address will soon be your login
-everywhere.
+If you have a KeyPears account, your address will soon be your login everywhere.
 
 ---
 
-If you want to follow along, the protocol design is happening in the open in
-our [GitHub issues](https://github.com/keypears/keypears). If you want to try
+If you want to follow along, the protocol design is happening in the open in our
+[GitHub issues](https://github.com/keypears/keypears). If you want to try
 KeyPears today, create an account at [keypears.com](https://keypears.com).
