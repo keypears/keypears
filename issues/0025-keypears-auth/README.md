@@ -15,3 +15,5 @@ no API keys, no client registration.
 
 - [01-init.md](01-init.md) — Research, protocol design, `/sign` page
   implementation, and `@keypears/auth` library design (Experiments 1–5)
+- [02-library.md](02-library.md) — Build `@keypears/auth` library and integrate
+  into RSS Anyway as first consumer
