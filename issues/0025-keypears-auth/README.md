@@ -34,12 +34,14 @@ leverage this.
 
 ### Design sketch
 
-1. **User enters their KeyPears address** on the third-party site (e.g.
-   `alice@example.com` on rssanyway.com).
+1. **User enters their domain** on the third-party site (e.g. `example.com` on
+   rssanyway.com — the domain from their KeyPears address `alice@example.com`).
 2. **Discovery**: the third-party app fetches
-   `https://example.com/.well-known/keypears.json` to find the API domain.
-3. **Redirect to KeyPears server**: the app redirects the user to their KeyPears
-   server's `/sign` page with a structured signing request.
+   `https://example.com/.well-known/keypears.json` to find the `apiDomain`. The
+   API domain may be the same as the address domain, or it may be different
+   (e.g. `keypears.example.com`, or `keypears.com`).
+3. **Redirect to API domain**: the app redirects the user to the `apiDomain`'s
+   `/sign` page with a structured signing request.
 4. **User reviews and signs**: on the KeyPears server, the user (already logged
    in or prompted to log in) sees a human-readable consent screen rendered from
    the structured request (e.g. "rssanyway.com wants to verify your identity").
@@ -493,12 +495,16 @@ UX.
 
 #### Domain-only input (not full address)
 
-On the third-party app, the user types only their domain (e.g. `keypears.com`),
-not their full address (`alice@keypears.com`). This has two advantages:
+On the third-party app, the user types only their address domain (e.g.
+`example.com` — the part after `@` in their KeyPears address), not their full
+address (`alice@example.com`). The app fetches
+`example.com/.well-known/keypears.json` to discover the `apiDomain` (which may
+be `example.com` itself, `keypears.example.com`, `keypears.com`, or any other
+domain), then redirects to that API domain. This has two advantages:
 
 1. **Privacy**: the third-party app does not learn the user's identity until the
    user explicitly chooses to reveal it on the KeyPears side. The app only knows
-   which server to redirect to.
+   the address domain and the API domain, not the user's name.
 2. **Identity selection**: on the KeyPears `/sign` page, the user can choose
    which identity to present — their primary address, an existing alternate, or
    a brand-new address created just for this app.
@@ -540,21 +546,21 @@ sub-identity creation.
 ### Protocol flow
 
 ```
-Third-party app (rssanyway.com)          User's browser          KeyPears server (keypears.com)
-─────────────────────────────────────────────────────────────────────────────────────────────────
+Third-party app (rssanyway.com)          User's browser          API server (keypears.example.com)
+──────────────────────────────────────────────────────────────────────────────────────────────────
 
-1. User types "keypears.com"
+1. User types "example.com"
    in the domain field
 
 2. App fetches
-   keypears.com/.well-known/keypears.json
-   → finds apiDomain
+   example.com/.well-known/keypears.json
+   → {"apiDomain": "keypears.example.com"}
 
 3. App generates:
    - nonce (32 bytes, hex)
    - state (32 bytes, stored in session)
    Redirects browser to:
-   https://keypears.com/sign?
+   https://keypears.example.com/sign?
      type=sign-in&
      domain=rssanyway.com&
      nonce=abc123...&
@@ -574,7 +580,7 @@ Third-party app (rssanyway.com)          User's browser          KeyPears server
                                                                       verify your identity"
 
                                          6. User selects identity:
-                                            - alice@keypears.com (existing)
+                                            - alice@example.com (existing)
                                             - or creates a new address
 
                                          7. User clicks "Approve"
@@ -583,7 +589,7 @@ Third-party app (rssanyway.com)          User's browser          KeyPears server
                                             {
                                               type: "sign-in",
                                               domain: "rssanyway.com",
-                                              address: "alice@keypears.com",
+                                              address: "alice@example.com",
                                               nonce: "abc123...",
                                               timestamp: "2026-04-21T12:00:00Z",
                                               expires: "2026-04-21T12:10:00Z"
@@ -593,7 +599,7 @@ Third-party app (rssanyway.com)          User's browser          KeyPears server
                                          8. Browser redirects back to:
                                             https://rssanyway.com/auth/callback?
                                               signature=base64...&
-                                              address=alice@keypears.com&
+                                              address=alice@example.com&
                                               nonce=abc123...&
                                               state=xyz789...
 
@@ -601,11 +607,13 @@ Third-party app (rssanyway.com)          User's browser          KeyPears server
    - state matches session
    - nonce matches what it sent
    - expires is still in the future
-   - fetches alice@keypears.com's
+   - discovers example.com's apiDomain
+     via keypears.json
+   - fetches alice@example.com's
      public key via federation API
    - verifies P-256 signature over
      the reconstructed payload
-   → User is alice@keypears.com
+   → User is alice@example.com
      Session created.
 ```
 
@@ -615,7 +623,7 @@ Third-party app (rssanyway.com)          User's browser          KeyPears server
 {
   "type": "sign-in",
   "domain": "rssanyway.com",
-  "address": "alice@keypears.com",
+  "address": "alice@example.com",
   "nonce": "a1b2c3d4e5f6...",
   "timestamp": "2026-04-21T12:00:00Z",
   "expires": "2026-04-21T12:10:00Z"
@@ -704,7 +712,7 @@ proceed to the consent screen.
 │                                          │
 │  Sign in as:                             │
 │                                          │
-│  ○ alice@keypears.com                    │
+│  ○ alice@example.com                     │
 │  ○ bob@keypears.com                      │
 │  ○ Create new address...                 │
 │                                          │
