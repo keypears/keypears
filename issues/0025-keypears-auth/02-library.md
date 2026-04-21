@@ -244,9 +244,7 @@ its session before redirecting.
 
 ```typescript
 export function generateState(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return FixedBuf.fromRandom(32).buf.toHex();
 }
 ```
 
