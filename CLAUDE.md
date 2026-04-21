@@ -11,6 +11,7 @@ keypears/
   issues/               # issue tracking (see "Issues and experiments")
   kp1/                  # archived kp1 codebase (reference only)
   packages/
+    client/             # @keypears/client — typed oRPC client + auth helpers
     pow5-rs/            # PoW algorithm (Rust, compiles to WASM)
     pow5-ts/            # PoW TypeScript wrapper (@keypears/pow5)
   passapples/           # Astro landing page for passapples.test
@@ -40,6 +41,7 @@ keypears/
               $profile.tsx  # profile page
             channel.$address.tsx  # conversation view
             vault.$id.tsx         # vault entry detail (split layout)
+            sign.tsx              # third-party auth signing page
       components/
         Sidebar.tsx     # responsive sidebar + user dropdown
         Footer.tsx      # astrohacker footer
@@ -47,7 +49,7 @@ keypears/
         PowBadge.tsx    # difficulty display (chip icon + formatted number)
         ui/             # shadcn components
       server/
-        api.router.ts      # oRPC router (federation API at /api)
+        api.router.ts      # oRPC router implementing @keypears/client contract (at /api)
         user.functions.ts  # createServerFn wrappers (safe to import from client)
         user.server.ts     # DB logic (server-only)
         message.functions.ts # messaging server functions
@@ -93,13 +95,14 @@ keypears/
 
 - **Framework**: TanStack Start, TanStack Router, React 19
 - **Database**: Drizzle ORM, MySQL
-- **API**: oRPC (type-safe RPC with Zod validation) at `/api`
+- **API**: oRPC (type-safe RPC with Zod validation) at `/api`, contract defined in `@keypears/client`
 - **Styling**: Tailwind CSS v4, shadcn components
 - **Auth**: Three-tier PBKDF2-HMAC-SHA256 KDF (password key -> encryption key + login key)
 - **Sessions**: Random 32-byte tokens, SHA-256-hashed in DB, 30-day expiry
 - **Crypto**: P-256 key pairs, AES-256-GCM encryption, ECDH shared secrets (`@webbuf/*`)
 - **PoW**: pow5-64b algorithm (WebGPU), signed stateless challenges
 - **Federation**: Pull-model message delivery, domain verification via TLS
+- **Third-party auth**: OAuth-style redirect flow with P-256 ECDSA signing (`/sign` page + `@keypears/client` auth helpers)
 - **Env**: dotenvx for encrypted env management
 - **Linting**: oxlint (161 rules)
 - **Formatting**: Prettier

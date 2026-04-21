@@ -342,4 +342,71 @@ Update `packages/client/src/index.ts` to export:
   oRPC call, verify the library accepts the signature. Also test rejection
   cases: bad state, expired, bad signature, `error=access_denied`.
 
+### Result: Pass
+
+Auth functions implemented in `packages/client/src/auth.ts` and
+`packages/client/src/canonical.ts`. The `/sign` page now imports
+`buildCanonicalPayload` from `@keypears/client` so both sides use identical
+payload construction. RSS Anyway integrated successfully as the first consumer
+(see `~/dev/rssanyway` issue 0008) — full sign-in round-trip working across two
+separate servers.
+
+## Experiment 3: Generate nonce/timestamp/expires on the server
+
+### Goal
+
+Move nonce, timestamp, and expires generation from the browser (client-side JS
+in `sign.tsx`) to the KeyPears server (route loader). This ensures the server's
+clock controls the expiry window, not the user's browser clock.
+
+This is a purely internal change to the `/sign` page. The callback API is
+unchanged — third-party apps (RSS Anyway) do not need any changes.
+
+### Current behavior
+
+In `sign.tsx`, the `handleApprove` function generates all three values in the
+browser at click time:
+
+```typescript
+const nonce = generateNonce();
+const timestamp = new Date().toISOString();
+const expires = new Date(Date.now() + SIGN_EXPIRY_MS).toISOString();
+```
+
+### New behavior
+
+The route loader generates the values on the server and passes them to the
+component:
+
+```typescript
+loader: async () => {
+  const [user, keyData] = await Promise.all([getMyUser(), getMyKeys()]);
+  const nonce = FixedBuf.fromRandom(32).buf.toHex();
+  const timestamp = new Date().toISOString();
+  const expires = new Date(Date.now() + SIGN_EXPIRY_MS).toISOString();
+  return { user, keyData, nonce, timestamp, expires };
+},
+```
+
+The component reads them from loader data and uses them in `handleApprove`. The
+nonce generation function moves from the component to the loader. The
+`SIGN_EXPIRY_MS` constant stays.
+
+Note: this uses a server function (the route loader) to generate the values,
+which means it runs on the server during SSR — so the imports
+(`FixedBuf.fromRandom`) must work server-side, which they do (Bun runtime).
+
+### What changes
+
+- `sign.tsx` loader: add nonce/timestamp/expires generation
+- `sign.tsx` component: read from loader data instead of generating on click
+- Remove `generateNonce()` helper from the component
+
+### What does NOT change
+
+- The canonical payload format
+- The callback query params
+- The `@keypears/client` library
+- The third-party app integration
+
 ### Result: Pending
