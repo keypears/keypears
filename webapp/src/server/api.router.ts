@@ -1,5 +1,5 @@
-import { os } from "@orpc/server";
-import { z } from "zod";
+import { implement } from "@orpc/server";
+import { contract, createKeypearsClientFromUrl } from "@keypears/client";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
@@ -19,43 +19,32 @@ import {
 } from "./pow.server";
 import { channelExists, messageExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
 import { resolveApiUrl } from "./federation.server";
 
-// --- oRPC Router ---
+// --- oRPC Router (implements @keypears/client contract) ---
 
-const serverInfo = os.handler(async () => {
+const os = implement(contract);
+
+const serverInfo = os.serverInfo.handler(async () => {
   return {
     domain: getDomain(),
   };
 });
 
-const getPublicKey = os
-  .input(z.object({ address: z.string() }))
-  .handler(async ({ input }) => {
-    const parsed = parseAddress(input.address);
-    if (!parsed) return { publicKey: null };
-    const domain = await getDomainByName(parsed.domain);
-    if (!domain) return { publicKey: null };
-    const user = await getUserByNameAndDomain(parsed.name, domain.id);
-    if (!user || !user.passwordHash) return { publicKey: null };
-    const key = await getActiveKey(user.id);
-    if (!key) return { publicKey: null };
-    return { publicKey: key.publicKey };
-  });
+const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
+  const parsed = parseAddress(input.address);
+  if (!parsed) return { publicKey: null };
+  const domain = await getDomainByName(parsed.domain);
+  if (!domain) return { publicKey: null };
+  const user = await getUserByNameAndDomain(parsed.name, domain.id);
+  if (!user || !user.passwordHash) return { publicKey: null };
+  const key = await getActiveKey(user.id);
+  if (!key) return { publicKey: null };
+  return { publicKey: key.publicKey };
+});
 
-const getPowChallengeEndpoint = os
-  .input(
-    z.object({
-      senderAddress: z.string(),
-      recipientAddress: z.string(),
-      senderPubKey: z.string(),
-      signature: z.string(),
-      timestamp: z.number(),
-    }),
-  )
-  .handler(async ({ input }) => {
+const getPowChallengeEndpoint = os.getPowChallenge.handler(
+  async ({ input }) => {
     // Verify timestamp is recent (5 minutes)
     if (Math.abs(Date.now() - input.timestamp) > 5 * 60 * 1000) {
       throw new Error("Request expired");
@@ -65,12 +54,7 @@ const getPowChallengeEndpoint = os
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
     const senderApiUrl = await resolveApiUrl(senderParsed.domain);
-    const link = new RPCLink({ url: senderApiUrl });
-    const remoteClient: {
-      getPublicKey: (input: { address: string }) => Promise<{
-        publicKey: string | null;
-      }>;
-    } = createORPCClient(link);
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
     const senderKeyResult = await remoteClient.getPublicKey({
       address: input.senderAddress,
     });
@@ -149,141 +133,117 @@ const getPowChallengeEndpoint = os
       input.senderAddress,
       input.recipientAddress,
     );
-  });
+  },
+);
 
-const notifyMessage = os
-  .input(
-    z.object({
-      senderAddress: z.string(),
-      recipientAddress: z.string(),
-      pullToken: z.string(),
-      pow: z.object({
-        solvedHeader: z.string(),
-        target: z.string(),
-        expiresAt: z.number(),
-        signature: z.string(),
-      }),
-    }),
-  )
-  .handler(async ({ input }) => {
-    try {
-      // Verify recipient is local
-      const recipientParsed = parseAddress(input.recipientAddress);
-      if (!recipientParsed) throw new Error("Not found");
-      const recipientDomain = await getDomainByName(recipientParsed.domain);
-      if (!recipientDomain) throw new Error("Not found");
-      const recipientUser = await getUserByNameAndDomain(
-        recipientParsed.name,
-        recipientDomain.id,
-      );
-      if (!recipientUser || !recipientUser.passwordHash)
-        throw new Error("Not found");
+const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
+  try {
+    // Verify recipient is local
+    const recipientParsed = parseAddress(input.recipientAddress);
+    if (!recipientParsed) throw new Error("Not found");
+    const recipientDomain = await getDomainByName(recipientParsed.domain);
+    if (!recipientDomain) throw new Error("Not found");
+    const recipientUser = await getUserByNameAndDomain(
+      recipientParsed.name,
+      recipientDomain.id,
+    );
+    if (!recipientUser || !recipientUser.passwordHash)
+      throw new Error("Not found");
 
-      // Always verify PoW — difficulty is set by getPowChallenge
-      const powResult = await verifyAndConsumePow(
-        input.pow.solvedHeader,
-        input.pow.target,
-        input.pow.expiresAt,
-        input.pow.signature,
-        input.senderAddress,
-        input.recipientAddress,
-      );
-      if (!powResult.valid)
-        throw new Error(`Invalid proof of work: ${powResult.message}`);
+    // Always verify PoW — difficulty is set by getPowChallenge
+    const powResult = await verifyAndConsumePow(
+      input.pow.solvedHeader,
+      input.pow.target,
+      input.pow.expiresAt,
+      input.pow.signature,
+      input.senderAddress,
+      input.recipientAddress,
+    );
+    if (!powResult.valid)
+      throw new Error(`Invalid proof of work: ${powResult.message}`);
 
-      // Resolve the sender's API URL from their domain (verified via TLS)
-      const senderParsed = parseAddress(input.senderAddress);
-      if (!senderParsed) throw new Error("Invalid sender address");
-      const senderApiUrl = await resolveApiUrl(senderParsed.domain);
+    // Resolve the sender's API URL from their domain (verified via TLS)
+    const senderParsed = parseAddress(input.senderAddress);
+    if (!senderParsed) throw new Error("Invalid sender address");
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
 
-      // Pull the message from the sender's server via oRPC
-      const link = new RPCLink({ url: senderApiUrl });
-      const remoteClient: {
-        pullMessage: (input: { token: string }) => Promise<{
-          senderAddress: string;
-          recipientAddress: string;
-          encryptedContent: string;
-          senderPubKey: string;
-          recipientPubKey: string;
-        }>;
-      } = createORPCClient(link);
-      const messageData = await remoteClient.pullMessage({
-        token: input.pullToken,
-      });
-      // Verify message size
-      if (messageData.encryptedContent.length > 50_000) {
-        throw new Error("Message too large");
-      }
-      // Verify the message matches the notification
-      if (messageData.senderAddress !== input.senderAddress)
-        throw new Error("Sender address mismatch");
-      if (messageData.recipientAddress !== input.recipientAddress)
-        throw new Error("Recipient address mismatch");
+    // Pull the message from the sender's server via oRPC
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
+    const messageData = await remoteClient.pullMessage({
+      token: input.pullToken,
+    });
+    // Verify message size
+    if (messageData.encryptedContent.length > 50_000) {
+      throw new Error("Message too large");
+    }
+    // Verify the message matches the notification
+    if (messageData.senderAddress !== input.senderAddress)
+      throw new Error("Sender address mismatch");
+    if (messageData.recipientAddress !== input.recipientAddress)
+      throw new Error("Recipient address mismatch");
 
-      // Store in recipient's channel (idempotent: skip if duplicate)
-      const channelId = await getOrCreateChannel(
-        recipientUser.id,
-        messageData.senderAddress,
-      );
+    // Store in recipient's channel (idempotent: skip if duplicate)
+    const channelId = await getOrCreateChannel(
+      recipientUser.id,
+      messageData.senderAddress,
+    );
 
-      const duplicate = await messageExists(
+    const duplicate = await messageExists(
+      channelId,
+      messageData.senderPubKey,
+      messageData.recipientPubKey,
+      messageData.encryptedContent,
+    );
+
+    if (!duplicate) {
+      await insertMessage(
         channelId,
+        messageData.senderAddress,
+        messageData.encryptedContent,
         messageData.senderPubKey,
         messageData.recipientPubKey,
-        messageData.encryptedContent,
+        false,
       );
-
-      if (!duplicate) {
-        await insertMessage(
-          channelId,
-          messageData.senderAddress,
-          messageData.encryptedContent,
-          messageData.senderPubKey,
-          messageData.recipientPubKey,
-          false,
-        );
-      }
-
-      return { success: true };
-    } catch (err) {
-      console.error("notifyMessage handler failed:", err);
-      throw err;
     }
-  });
 
-const pullMessage = os
-  .input(z.object({ token: z.string() }))
-  .handler(async ({ input }) => {
-    const hash = hashToken(input.token);
+    return { success: true as const };
+  } catch (err) {
+    console.error("notifyMessage handler failed:", err);
+    throw err;
+  }
+});
 
-    // Idempotent pull: return the delivery without deleting it.
-    // Expired deliveries are cleaned up lazily below.
-    const [delivery] = await db
-      .select()
-      .from(pendingDeliveries)
-      .where(eq(pendingDeliveries.tokenHash, hash))
-      .limit(1);
+const pullMessageHandler = os.pullMessage.handler(async ({ input }) => {
+  const hash = hashToken(input.token);
 
-    if (!delivery) throw new Error("Not found");
+  // Idempotent pull: return the delivery without deleting it.
+  // Expired deliveries are cleaned up lazily below.
+  const [delivery] = await db
+    .select()
+    .from(pendingDeliveries)
+    .where(eq(pendingDeliveries.tokenHash, hash))
+    .limit(1);
 
-    // Lazy cleanup: delete expired pending deliveries
-    await db
-      .delete(pendingDeliveries)
-      .where(lt(pendingDeliveries.expiresAt, new Date()));
+  if (!delivery) throw new Error("Not found");
 
-    return {
-      senderAddress: delivery.senderAddress,
-      recipientAddress: delivery.recipientAddress,
-      encryptedContent: delivery.encryptedContent,
-      senderPubKey: delivery.senderPubKey,
-      recipientPubKey: delivery.recipientPubKey,
-    };
-  });
+  // Lazy cleanup: delete expired pending deliveries
+  await db
+    .delete(pendingDeliveries)
+    .where(lt(pendingDeliveries.expiresAt, new Date()));
 
-export const apiRouter = {
+  return {
+    senderAddress: delivery.senderAddress,
+    recipientAddress: delivery.recipientAddress,
+    encryptedContent: delivery.encryptedContent,
+    senderPubKey: delivery.senderPubKey,
+    recipientPubKey: delivery.recipientPubKey,
+  };
+});
+
+export const apiRouter = os.router({
   serverInfo,
   getPublicKey,
   getPowChallenge: getPowChallengeEndpoint,
-  notifyMessage,
-  pullMessage,
-};
+  notifyMessage: notifyMessageHandler,
+  pullMessage: pullMessageHandler,
+});

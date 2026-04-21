@@ -22,6 +22,16 @@
         "typescript": "^6.0.2",
       },
     },
+    "packages/client": {
+      "name": "@keypears/client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@orpc/client": "^1.13.14",
+        "@orpc/contract": "^1.13.14",
+        "@webbuf/p256": "^3.5.1",
+        "zod": "^4.3.6",
+      },
+    },
     "packages/crypto-bench": {
       "name": "@keypears/crypto-bench",
       "version": "1.0.0",
@@ -99,8 +109,10 @@
       "dependencies": {
         "@dotenvx/dotenvx": "^1.61.0",
         "@fontsource-variable/geist": "^5.2.8",
+        "@keypears/client": "workspace:*",
         "@keypears/pow5": "workspace:*",
         "@orpc/client": "^1.13.14",
+        "@orpc/contract": "^1.13.14",
         "@orpc/server": "^1.13.14",
         "@tailwindcss/typography": "^0.5.19",
         "@tanstack/react-router": "^1.168.18",
@@ -410,6 +422,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@keypears/client": ["@keypears/client@workspace:packages/client"],
 
     "@keypears/crypto-bench": ["@keypears/crypto-bench@workspace:packages/crypto-bench"],
 

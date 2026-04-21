@@ -1,27 +1,20 @@
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { newId, hashToken } from "./utils";
 import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
 import { safeFetch } from "./fetch";
 import { isLocalDomain } from "./user.server";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
-import type { RouterClient } from "@orpc/server";
-import type { apiRouter } from "./api.router";
+import {
+  createKeypearsClientFromUrl,
+  type KeypearsJson,
+  type KeypearsClient,
+} from "@keypears/client";
 
-type ApiClient = RouterClient<typeof apiRouter>;
+export type { KeypearsJson };
 
 // --- keypears.json cache (1 minute TTL) ---
-
-const KeypearsJsonSchema = z.object({
-  apiDomain: z.string().optional(),
-  admin: z.string().optional(),
-});
-
-export type KeypearsJson = z.infer<typeof KeypearsJsonSchema>;
 
 const CACHE_TTL_MS = 60_000;
 const keypearsJsonCache = new Map<
@@ -35,12 +28,16 @@ export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
     return cached.data;
   }
 
+  // Use safeFetch for server-side (handles TLS, timeouts, etc.)
   const url = `https://${domain}/.well-known/keypears.json`;
   const response = await safeFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const data = KeypearsJsonSchema.parse(await response.json());
+  const { z } = await import("zod");
+  const data = z
+    .object({ apiDomain: z.string().optional(), admin: z.string().optional() })
+    .parse(await response.json());
   keypearsJsonCache.set(domain, { data, fetchedAt: Date.now() });
   return data;
 }
@@ -57,15 +54,9 @@ export async function resolveApiUrl(domain: string): Promise<string> {
 
 // --- oRPC client for remote servers ---
 
-function createRemoteClient(apiUrl: string): ApiClient {
-  const link = new RPCLink({ url: apiUrl });
-  const client: ApiClient = createORPCClient(link);
-  return client;
-}
-
-async function getRemoteClient(domain: string): Promise<ApiClient> {
+async function getRemoteClient(domain: string): Promise<KeypearsClient> {
   const apiUrl = await resolveApiUrl(domain);
-  return createRemoteClient(apiUrl);
+  return createKeypearsClientFromUrl(apiUrl);
 }
 
 function generateToken(): string {
