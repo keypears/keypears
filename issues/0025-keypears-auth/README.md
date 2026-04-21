@@ -565,14 +565,11 @@ Third-party app (rssanyway.com)          User's browser          API server (key
    → {"apiDomain": "keypears.example.com"}
 
 3. App generates:
-   - nonce (32 bytes, hex)
    - state (32 bytes, stored in session)
    Redirects browser to:
    https://keypears.example.com/sign?
      type=sign-in&
      domain=rssanyway.com&
-     nonce=abc123...&
-     expires=2026-04-21T12:10:00Z&
      redirect_uri=https://rssanyway.com/auth/callback&
      state=xyz789...
 
@@ -581,7 +578,6 @@ Third-party app (rssanyway.com)          User's browser          API server (key
 
                                                                   5. Server validates:
                                                                      - type is known
-                                                                     - expires is in the future
                                                                      - redirect_uri is HTTPS
                                                                      Renders consent screen:
                                                                      "rssanyway.com wants to
@@ -592,6 +588,10 @@ Third-party app (rssanyway.com)          User's browser          API server (key
                                             - or creates a new address
 
                                          7. User clicks "Approve"
+                                            KeyPears generates:
+                                            - nonce (32 bytes, hex)
+                                            - timestamp (now)
+                                            - expires (now + 10 min)
                                             Browser constructs the
                                             signing payload:
                                             {
@@ -609,16 +609,20 @@ Third-party app (rssanyway.com)          User's browser          API server (key
                                               signature=base64...&
                                               address=alice@example.com&
                                               nonce=abc123...&
+                                              timestamp=2026-04-21T12:00:00Z&
+                                              expires=2026-04-21T12:10:00Z&
                                               state=xyz789...
 
 9. App verifies:
    - state matches session
-   - nonce matches what it sent
+   - data matches what it sent (if used)
    - expires is still in the future
    - discovers example.com's apiDomain
      via keypears.json
    - fetches alice@example.com's
      public key via federation API
+   - reconstructs canonical JSON from
+     all callback params + known domain
    - verifies P-256 signature over
      the reconstructed payload
    → User is alice@example.com
@@ -641,13 +645,13 @@ Third-party app (rssanyway.com)          User's browser          API server (key
 
 | Field       | Source          | Description                                            |
 | ----------- | --------------- | ------------------------------------------------------ |
-| `type`      | Third-party app | Always `"sign-in"` for authentication                  |
-| `domain`    | Third-party app | Origin domain of the requesting app                    |
-| `address`   | User (on /sign) | The KeyPears address the user chose to present         |
-| `nonce`     | Third-party app | Random value for replay prevention                     |
-| `data`      | Third-party app | Optional app-specific hex data (max 64 chars/32 bytes) |
-| `timestamp` | KeyPears server | When the signing occurred                              |
-| `expires`   | Third-party app | When the signed payload stops being valid              |
+| `type`      | Third-party app   | Always `"sign-in"` for authentication                  |
+| `domain`    | Third-party app   | Origin domain of the requesting app                    |
+| `address`   | User (on /sign)   | The KeyPears address the user chose to present         |
+| `nonce`     | KeyPears (client) | Random 32-byte hex, generated at signing time          |
+| `data`      | Third-party app   | Optional app-specific hex data (max 64 chars/32 bytes) |
+| `timestamp` | KeyPears (client) | When the signing occurred                              |
+| `expires`   | KeyPears (client) | When the signed payload stops being valid (10 min)     |
 
 The payload is serialized as canonical JSON (sorted keys, no whitespace) before
 signing to ensure both sides produce the same bytes.
@@ -660,42 +664,42 @@ signing to ensure both sides produce the same bytes.
 | -------------- | -------- | ------------------------------------ |
 | `type`         | yes      | Signing template type (`sign-in`)    |
 | `domain`       | yes      | Requesting app's origin domain       |
-| `nonce`        | yes      | Random hex string (min 32 bytes)     |
 | `data`         | no       | App-specific hex data (max 64 chars) |
-| `expires`      | yes      | ISO 8601 timestamp                   |
 | `redirect_uri` | yes      | Where to bounce back (must be HTTPS) |
 | `state`        | yes      | Opaque value for CSRF protection     |
 
 **Callback** (query params):
 
-| Param       | Description                                    |
-| ----------- | ---------------------------------------------- |
-| `signature` | Base64url-encoded P-256 ECDSA signature        |
-| `address`   | The KeyPears address the user chose            |
-| `nonce`     | Echo of the original nonce                     |
-| `data`      | Echo of the original data (if provided)        |
-| `state`     | Echo of the original state (CSRF verification) |
+| Param       | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `signature` | Base64url-encoded P-256 ECDSA signature           |
+| `address`   | The KeyPears address the user chose               |
+| `nonce`     | Server-generated nonce (for payload reconstruction) |
+| `timestamp` | When the signing occurred (ISO 8601)              |
+| `expires`   | When the payload stops being valid (ISO 8601)     |
+| `data`      | Echo of the original data (if provided)           |
+| `state`     | Echo of the original state (CSRF verification)    |
 
 ### Verification steps (third-party app)
 
 1. Verify `state` matches the value stored in the user's session.
-2. Verify `nonce` matches what was originally sent.
+2. Verify `data` matches what was originally sent (if provided).
 3. Check `expires` is still in the future.
-4. Verify `data` matches what was originally sent (if provided).
-5. Reconstruct the signing payload from the known fields (type, domain, address,
-   nonce, data, timestamp, expires).
-6. Fetch the user's public key: discover `address`'s domain via `keypears.json`,
+4. Reconstruct the signing payload from callback params (address, nonce,
+   timestamp, expires) + known fields (type, domain, data).
+5. Fetch the user's public key: discover `address`'s domain via `keypears.json`,
    then call the federation API to get the public key.
-7. Verify the P-256 ECDSA signature over the canonical JSON payload.
-8. Create a session for the authenticated user.
+6. Verify the P-256 ECDSA signature over the canonical JSON payload.
+7. Create a session for the authenticated user.
 
 ### Security properties
 
 - **No API keys**: the KeyPears server does not need to know the third-party app
   in advance. Any HTTPS origin can initiate the flow.
 - **CSRF protection**: `state` parameter, same as OAuth.
-- **Replay prevention**: `nonce` is single-use (the app tracks used nonces) and
-  `expires` bounds the window.
+- **Replay prevention**: `nonce` is generated by the KeyPears client at signing
+  time (32 random bytes) and `expires` bounds the validity window (10 min).
+  The third-party app can track seen nonces to reject replays.
 - **Identity privacy**: the app only learns the user's address after the user
   explicitly selects it on the `/sign` page.
 - **Per-app identities**: users can create throwaway addresses for untrusted
@@ -705,9 +709,10 @@ signing to ensure both sides produce the same bytes.
   obtain a valid signature without the user's active participation on a
   legitimate KeyPears server.
 - **Redirect URI validation**: the KeyPears server enforces HTTPS on the
-  `redirect_uri`. Open redirect attacks are limited because the signature is
-  bound to the `domain` field, not the redirect URI — even if redirected to a
-  different URL, the signature only validates for the original domain.
+  `redirect_uri` and validates that its hostname matches the `domain` parameter
+  (exact match or subdomain). This prevents open redirect attacks — a
+  `redirect_uri` pointing to a different domain is rejected before the consent
+  screen is shown.
 
 ### `/sign` page UI
 

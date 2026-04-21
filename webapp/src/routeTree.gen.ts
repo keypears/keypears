@@ -28,6 +28,7 @@ import { Route as DocsDocsFederationRouteImport } from './routes/_docs/docs.fede
 import { Route as DocsDocsDomainClaimingRouteImport } from './routes/_docs/docs.domain-claiming'
 import { Route as DocsDocsDevelopmentRouteImport } from './routes/_docs/docs.development'
 import { Route as BlogBlogSlugRouteImport } from './routes/_blog/blog.$slug'
+import { Route as AppSavedSignRouteImport } from './routes/_app/_saved/sign'
 import { Route as AppSavedChromeRouteImport } from './routes/_app/_saved/_chrome'
 import { Route as DocsDocsProtocolProofOfWorkRouteImport } from './routes/_docs/docs.protocol.proof-of-work'
 import { Route as DocsDocsProtocolKeyDerivationRouteImport } from './routes/_docs/docs.protocol.key-derivation'
@@ -134,6 +135,11 @@ const BlogBlogSlugRoute = BlogBlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => BlogRoute,
 } as any)
+const AppSavedSignRoute = AppSavedSignRouteImport.update({
+  id: '/sign',
+  path: '/sign',
+  getParentRoute: () => AppSavedRoute,
+} as any)
 const AppSavedChromeRoute = AppSavedChromeRouteImport.update({
   id: '/_chrome',
   getParentRoute: () => AppSavedRoute,
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof PublicProfileRoute
+  '/sign': typeof AppSavedSignRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
@@ -250,6 +257,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/welcome': typeof AppWelcomeRoute
   '/$profile': typeof PublicProfileRoute
+  '/sign': typeof AppSavedSignRoute
   '/blog/$slug': typeof BlogBlogSlugRoute
   '/docs/development': typeof DocsDocsDevelopmentRoute
   '/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/_app/welcome': typeof AppWelcomeRoute
   '/_public/$profile': typeof PublicProfileRoute
   '/_app/_saved/_chrome': typeof AppSavedChromeRouteWithChildren
+  '/_app/_saved/sign': typeof AppSavedSignRoute
   '/_blog/blog/$slug': typeof BlogBlogSlugRoute
   '/_docs/docs/development': typeof DocsDocsDevelopmentRoute
   '/_docs/docs/domain-claiming': typeof DocsDocsDomainClaimingRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/welcome'
     | '/$profile'
+    | '/sign'
     | '/blog/$slug'
     | '/docs/development'
     | '/docs/domain-claiming'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/welcome'
     | '/$profile'
+    | '/sign'
     | '/blog/$slug'
     | '/docs/development'
     | '/docs/domain-claiming'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/_app/welcome'
     | '/_public/$profile'
     | '/_app/_saved/_chrome'
+    | '/_app/_saved/sign'
     | '/_blog/blog/$slug'
     | '/_docs/docs/development'
     | '/_docs/docs/domain-claiming'
@@ -555,6 +567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogBlogSlugRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/_app/_saved/sign': {
+      id: '/_app/_saved/sign'
+      path: '/sign'
+      fullPath: '/sign'
+      preLoaderRoute: typeof AppSavedSignRouteImport
+      parentRoute: typeof AppSavedRoute
+    }
     '/_app/_saved/_chrome': {
       id: '/_app/_saved/_chrome'
       path: ''
@@ -691,12 +710,14 @@ const AppSavedChromeRouteWithChildren = AppSavedChromeRoute._addFileChildren(
 
 interface AppSavedRouteChildren {
   AppSavedChromeRoute: typeof AppSavedChromeRouteWithChildren
+  AppSavedSignRoute: typeof AppSavedSignRoute
   AppSavedChannelAddressRoute: typeof AppSavedChannelAddressRoute
   AppSavedVaultIdRoute: typeof AppSavedVaultIdRoute
 }
 
 const AppSavedRouteChildren: AppSavedRouteChildren = {
   AppSavedChromeRoute: AppSavedChromeRouteWithChildren,
+  AppSavedSignRoute: AppSavedSignRoute,
   AppSavedChannelAddressRoute: AppSavedChannelAddressRoute,
   AppSavedVaultIdRoute: AppSavedVaultIdRoute,
 }
