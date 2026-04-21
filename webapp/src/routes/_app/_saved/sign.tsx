@@ -5,6 +5,7 @@ import { getMyUser, getMyKeys } from "~/server/user.functions";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { p256PrivateKeyToJwk } from "@webbuf/p256";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { buildCanonicalPayload } from "@keypears/client";
 import { Shield, LogIn, X } from "lucide-react";
 
 /** Default signing window: 10 minutes from now. */
@@ -44,34 +45,7 @@ function validateSearchParams(search: SignSearch): string | null {
 }
 
 function generateNonce(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function buildCanonicalPayload(
-  search: SignSearch,
-  address: string,
-  nonce: string,
-  timestamp: string,
-  expires: string,
-): string {
-  const obj: Record<string, string> = {
-    address,
-    domain: search.domain,
-    expires,
-    nonce,
-    timestamp,
-    type: search.type,
-  };
-  if (search.data !== undefined) {
-    obj.data = search.data;
-  }
-  const sorted: Record<string, string> = {};
-  for (const key of Object.keys(obj).toSorted()) {
-    sorted[key] = obj[key]!;
-  }
-  return JSON.stringify(sorted);
+  return FixedBuf.fromRandom(32).buf.toHex();
 }
 
 async function signPayload(
@@ -154,13 +128,15 @@ function SignPage() {
       const nonce = generateNonce();
       const timestamp = new Date().toISOString();
       const expires = new Date(Date.now() + SIGN_EXPIRY_MS).toISOString();
-      const payload = buildCanonicalPayload(
-        search,
-        myAddress,
+      const payload = buildCanonicalPayload({
+        type: search.type,
+        domain: search.domain,
+        address: myAddress,
         nonce,
         timestamp,
         expires,
-      );
+        data: search.data,
+      });
       const signature = await signPayload(payload, privateKey);
 
       const callbackUrl = new URL(search.redirect_uri);

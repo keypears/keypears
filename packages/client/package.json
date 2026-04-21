@@ -7,7 +7,9 @@
   "dependencies": {
     "@orpc/client": "^1.13.14",
     "@orpc/contract": "^1.13.14",
+    "@webbuf/fixedbuf": "^3.5.0",
     "@webbuf/p256": "^3.5.1",
+    "@webbuf/webbuf": "^3.5.0",
     "zod": "^4.3.6"
   }
 }

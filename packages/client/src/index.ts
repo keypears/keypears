@@ -9,3 +9,5 @@ export {
   fetchKeypearsJson,
   type KeypearsJson,
 } from "./discover";
+export { buildCanonicalPayload } from "./canonical";
+export { buildSignUrl, verifyCallback, generateState } from "./auth";
