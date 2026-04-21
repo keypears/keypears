@@ -220,3 +220,128 @@ validation. All 6 ad-hoc client call sites replaced. One fix needed post-merge:
 `header`) and was missing fields — the contract's runtime output validation
 caught it immediately.
 
+## Experiment 2: Add auth functions to `@keypears/client`
+
+### Goal
+
+Add `buildSignUrl`, `verifyCallback`, and `generateState` to `packages/client/`.
+These are the three functions a third-party app calls to integrate KeyPears
+sign-in. They build on `discoverApiDomain` and `getPublicKey` which are already
+in the package.
+
+### New files
+
+```
+packages/client/src/
+  auth.ts             # buildSignUrl, verifyCallback, generateState
+  canonical.ts        # buildCanonicalPayload (shared with /sign page)
+```
+
+### `generateState(): string`
+
+Generate a cryptographically random 32-byte hex string. The app stores this in
+its session before redirecting.
+
+```typescript
+export function generateState(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+```
+
+### `buildSignUrl(options): string`
+
+Construct the URL to redirect the user to for signing.
+
+```typescript
+export function buildSignUrl(options: {
+  apiDomain: string;
+  domain: string;
+  redirectUri: string;
+  state: string;
+  data?: string;
+}): string
+```
+
+Builds
+`https://${apiDomain}/sign?type=sign-in&domain=...&redirect_uri=...&state=...&data=...`.
+
+### `verifyCallback(options): Promise<{ address: string }>`
+
+Verify a callback from the `/sign` page. This is the core security function.
+
+```typescript
+export async function verifyCallback(options: {
+  params: URLSearchParams | Record<string, string>;
+  domain: string;
+  state: string;
+  data?: string;
+}): Promise<{ address: string }>
+```
+
+Steps:
+
+1. Extract from params: `signature`, `address`, `nonce`, `timestamp`, `expires`,
+   `data`, `state`, `error`.
+2. If `error` is present, throw (e.g. `"access_denied"`).
+3. Verify `state` matches `options.state`.
+4. Verify `data` matches `options.data` (if provided).
+5. Check `expires` is still in the future.
+6. Reconstruct the canonical JSON payload using `buildCanonicalPayload` with the
+   callback params + `options.domain`.
+7. Parse `address` to get the user's domain, call `discoverApiDomain` to find
+   the API domain, then call `getPublicKey` via the oRPC client to get the
+   user's compressed P-256 public key.
+8. Decompress the public key using `@webbuf/p256` (`p256PublicKeyToJwk`), import
+   into Web Crypto as an ECDSA verify key.
+9. Decode the base64url signature back to bytes.
+10. Verify the P-256 ECDSA (SHA-256) signature over the canonical JSON bytes.
+11. If valid, return `{ address }`.
+12. If any step fails, throw a descriptive error.
+
+### `buildCanonicalPayload` (`canonical.ts`)
+
+Extract the canonical payload logic from `sign.tsx` into a shared function. Both
+the `/sign` page and `verifyCallback` must produce identical bytes for the same
+inputs.
+
+```typescript
+export function buildCanonicalPayload(fields: {
+  type: string;
+  domain: string;
+  address: string;
+  nonce: string;
+  timestamp: string;
+  expires: string;
+  data?: string;
+}): string
+```
+
+Builds a JSON object with keys sorted alphabetically, omitting `data` if not
+provided. Returns `JSON.stringify(sorted)`.
+
+After creating this in the client, update `sign.tsx` to import and use it
+instead of its local copy. This ensures both sides always agree on the payload
+format.
+
+### Exports
+
+Update `packages/client/src/index.ts` to export:
+
+- `buildSignUrl`
+- `verifyCallback`
+- `generateState`
+- `buildCanonicalPayload`
+
+### Testing
+
+- Unit test `buildCanonicalPayload`: deterministic output, sorted keys, data
+  omission.
+- Unit test `buildSignUrl`: correct URL construction.
+- Unit test `verifyCallback`: generate a real P-256 key pair with Web Crypto,
+  sign a canonical payload, mock `fetch` for `keypears.json` and `getPublicKey`
+  oRPC call, verify the library accepts the signature. Also test rejection
+  cases: bad state, expired, bad signature, `error=access_denied`.
+
+### Result: Pending
