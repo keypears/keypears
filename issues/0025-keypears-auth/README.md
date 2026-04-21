@@ -35,32 +35,48 @@ leverage this.
 ### Design sketch
 
 1. **User enters their KeyPears address** on the third-party site (e.g.
-   `ryan@ryanxcharles.com` on rssanyway.com).
+   `alice@example.com` on rssanyway.com).
 2. **Discovery**: the third-party app fetches
-   `https://ryanxcharles.com/.well-known/keypears.json` to find the API domain.
-3. **Redirect to KeyPears server**: the app redirects the user to the KeyPears
-   server's auth endpoint with a challenge payload.
-4. **User signs the challenge**: on the KeyPears server, the user (already
-   logged in or prompted to log in) signs a derived value. Critically, the user
-   does NOT sign a raw string from the third party — instead, the user signs an
-   HMAC: the server provides a key, which is combined with a salt (chosen by the
-   third-party app) to produce a hash. The user signs that hash.
+   `https://example.com/.well-known/keypears.json` to find the API domain.
+3. **Redirect to KeyPears server**: the app redirects the user to their
+   KeyPears server's `/sign` page with a structured signing request.
+4. **User reviews and signs**: on the KeyPears server, the user (already logged
+   in or prompted to log in) sees a human-readable consent screen rendered from
+   the structured request (e.g. "rssanyway.com wants to verify your identity").
+   The user approves, and their browser signs the structured payload with their
+   P-256 private key.
 5. **Bounce back**: the user is redirected back to the third-party app with the
-   signature and salt.
+   signature and the signed payload.
 6. **Verification**: the third-party app verifies the signature against the
-   user's public key (fetched via federation) and validates the salt matches
-   what it originally sent.
+   user's public key (fetched via federation) and validates the payload fields
+   match what it originally sent.
 
-### Why HMAC-then-sign (not raw signing)
+### Structured signing (not raw or HMAC signing)
 
-If the user signs an arbitrary string from the third party, the third party
-could trick the user into signing something meaningful in another context (e.g.
-a transaction, a message). By having the user sign `HMAC(server_key, salt)`
-instead, the signed value is:
+Users only sign structured payloads validated against known templates. Each
+template has a `type` field that determines its schema and how the consent
+screen renders. For `sign-in`:
 
-- Unpredictable to the third party (they don't know the server key)
-- Meaningless outside this specific auth flow
-- Bound to the specific challenge via the salt
+```json
+{
+  "type": "sign-in",
+  "domain": "rssanyway.com",
+  "address": "alice@example.com",
+  "nonce": "a1b2c3...",
+  "timestamp": "2026-04-21T12:00:00Z",
+  "expires": "2026-04-21T12:10:00Z"
+}
+```
+
+This approach replaces the earlier HMAC-then-sign design. The HMAC was meant to
+prevent the user from signing something meaningful in another context, but typed
+templates solve this more cleanly — a `sign-in` payload cannot be confused with
+a message, a transaction, or any other action because the schema is different.
+
+Structured signing also makes the flow fully verifiable by the third-party app
+without trusting the KeyPears server: the app constructs the payload, the user
+signs it, the app verifies the signature over the exact payload it built. No
+server-side key, no intermediate computation.
 
 ### Prior art to research
 
@@ -215,12 +231,12 @@ client registration.
    app fetches `domain/.well-known/keypears.json` to find the API domain, then
    redirects there. Neither OAuth nor LNURL-auth has this — OAuth assumes you
    know the provider upfront, LNURL-auth uses QR codes.
-2. **HMAC-then-sign (not raw challenge signing)**: LNURL-auth signs `k1`
-   directly, which is safe because `k1` is random. But in a redirect flow, the
-   challenge passes through the browser URL. We don't want the third-party app
-   to be able to replay a challenge from one context in another. The HMAC step
-   binds the challenge to a server-chosen key, making the signed value
-   unpredictable and contextually bound.
+2. **Structured, typed signing**: rather than signing a raw challenge or an
+   HMAC, the user signs a structured JSON payload validated against a known
+   template (e.g. `type: "sign-in"`). The template schema makes the signed
+   value contextually bound — it cannot be confused with a message, transaction,
+   or any other action. The KeyPears UI renders a human-readable consent screen
+   from the template fields.
 3. **Signature verification via federation**: the third-party app verifies the
    signature against the user's public key, which it fetches from the user's
    KeyPears server via the existing federation API. This is the "identity
@@ -240,7 +256,7 @@ delivered via OAuth's redirect UX, with email-style federated discovery:
 
 - From OAuth: redirect flow, `state` parameter, `redirect_uri`
 - From LNURL-auth: challenge-response signing, no client registration, no tokens
-- New to KeyPears: address-based federated discovery, HMAC-then-sign
+- New to KeyPears: address-based federated discovery, structured typed signing
 
 The result is a simple, three-step browser flow:
 
