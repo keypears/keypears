@@ -1,0 +1,1048 @@
+# Research, design, and initial implementation
+
+## Goal
+
+Enable third-party websites (starting with RSS Anyway at `~/dev/rssanyway`) to
+authenticate users via their KeyPears address. Users type their KeyPears address
+into a third-party site, get redirected to their KeyPears server, sign a
+challenge, and get bounced back — authenticated. No passwords, no email OTPs.
+
+This is OAuth + Email OTP rolled into one unified cryptosystem: the user enters
+an address (like email), but instead of receiving a code, they go through a
+redirect-based flow (like OAuth) where they prove ownership by signing a
+challenge with their P-256 private key.
+
+## Background
+
+### The problem
+
+Third-party apps (RSS Anyway, future apps) need to authenticate users without:
+
+- Making users create yet another password
+- Sending email OTPs (requires email infrastructure, slow, phishable)
+- Depending on centralized identity providers (Google, GitHub, etc.)
+
+KeyPears already has the primitives: every user has a P-256 key pair, a
+discoverable address (`name@domain`), and a server that can be located via
+`keypears.json`. What's missing is a standardized flow for third-party apps to
+leverage this.
+
+### Design sketch
+
+1. **User enters their domain** on the third-party site (e.g. `example.com` on
+   rssanyway.com — the domain from their KeyPears address `alice@example.com`).
+2. **Discovery**: the third-party app fetches
+   `https://example.com/.well-known/keypears.json` to find the `apiDomain`. The
+   API domain may be the same as the address domain, or it may be different
+   (e.g. `keypears.example.com`, or `keypears.com`).
+3. **Redirect to API domain**: the app redirects the user to the `apiDomain`'s
+   `/sign` page with a structured signing request.
+4. **User reviews and signs**: on the KeyPears server, the user (already logged
+   in or prompted to log in) sees a human-readable consent screen rendered from
+   the structured request (e.g. "rssanyway.com wants to verify your identity").
+   The user approves, and their browser signs the structured payload with their
+   P-256 private key.
+5. **Bounce back**: the user is redirected back to the third-party app with the
+   signature and the signed payload.
+6. **Verification**: the third-party app verifies the signature against the
+   user's public key (fetched via federation) and validates the payload fields
+   match what it originally sent.
+
+### Structured signing (not raw or HMAC signing)
+
+Users only sign structured payloads validated against known templates. Each
+template has a `type` field that determines its schema and how the consent
+screen renders. For `sign-in`:
+
+```json
+{
+  "type": "sign-in",
+  "domain": "rssanyway.com",
+  "address": "alice@example.com",
+  "nonce": "a1b2c3...",
+  "data": "f4a8b2...",
+  "timestamp": "2026-04-21T12:00:00Z",
+  "expires": "2026-04-21T12:10:00Z"
+}
+```
+
+The `data` field is optional, max 64 hex characters (32 bytes), and opaque to
+KeyPears. The third-party app can use it to bind the signature to app-specific
+state — a session ID hash, a CSRF token, or any other commitment. It is included
+in the signed payload but not rendered on the consent screen (it's not
+human-meaningful). The app verifies it on callback to confirm the signature
+covers the exact context it intended.
+
+This approach replaces the earlier HMAC-then-sign design. The HMAC was meant to
+prevent the user from signing something meaningful in another context, but typed
+templates solve this more cleanly — a `sign-in` payload cannot be confused with
+a message, a transaction, or any other action because the schema is different.
+
+Structured signing also makes the flow fully verifiable by the third-party app
+without trusting the KeyPears server: the app constructs the payload, the user
+signs it, the app verifies the signature over the exact payload it built. No
+server-side key, no intermediate computation.
+
+### Prior art to research
+
+- **OAuth 2.0 / OIDC**: redirect-based flow, authorization codes, state
+  parameter for CSRF prevention, PKCE for public clients
+- **WebAuthn / FIDO2**: challenge-response with asymmetric keys, but
+  device-bound rather than address-bound
+- **IndieAuth**: OAuth-based, uses URLs as identity, discovery via `rel="me"`
+- **DID Auth**: decentralized identity challenge-response
+- **Lightning LNURL-auth**: sign a challenge with a domain-specific key derived
+  from a seed — simple, no passwords, redirect-based
+
+### Key design requirements
+
+- **Stateless challenges where possible**: minimize server-side state
+- **CSRF protection**: third-party app must bind the flow to a session (state
+  parameter, like OAuth)
+- **Replay prevention**: signed challenges must not be reusable
+- **No phishing amplification**: the flow must not make it easier to phish
+  KeyPears credentials than a direct attack on KeyPears itself
+- **Library output**: the result should be a reusable library that any app can
+  integrate, not just RSS Anyway
+
+## Plan
+
+1. Research OAuth 2.0, OIDC, WebAuthn, IndieAuth, LNURL-auth, and DID Auth.
+   Identify which patterns apply and which pitfalls to avoid.
+2. Design the full protocol: endpoints, challenge format, redirect flow,
+   signature format, verification steps.
+3. Implement the KeyPears server-side endpoints (auth challenge, callback).
+4. Implement a client library (`@keypears/auth`) that third-party apps import.
+5. Integrate into RSS Anyway as the first consumer.
+
+## Experiment 1: Research prior art and determine protocol approach
+
+### Goal
+
+Understand OAuth 2.0, OIDC, and LNURL-auth well enough to determine whether
+KeyPears Auth should extend OAuth, follow its patterns loosely, or invent a
+distinct protocol.
+
+### Research findings
+
+#### OAuth 2.0 (RFC 6749) — Authorization Code Grant
+
+**Roles:** Resource Owner (user), Client (third-party app), Authorization Server
+(issues tokens), Resource Server (hosts protected resources).
+
+**Flow:**
+
+1. Client redirects user to Authorization Server with `response_type=code`,
+   `client_id`, `redirect_uri`, `scope`, `state`.
+2. Authorization Server authenticates user and asks for consent.
+3. Authorization Server redirects back to `redirect_uri` with an authorization
+   code and `state`.
+4. Client exchanges code for access token server-to-server (using
+   `client_secret`).
+5. Client uses access token to call APIs.
+
+**Security mechanisms:**
+
+- `state` parameter: random value bound to session, prevents CSRF.
+- Authorization code: single-use, short-lived (~10 min).
+- `client_secret`: code-to-token exchange is server-to-server, secret never
+  reaches browser.
+- `redirect_uri` validation: must exactly match registered URI.
+- PKCE (RFC 7636): for public clients (SPAs, mobile), replaces `client_secret`
+  with a `code_verifier`/`code_challenge` pair.
+
+**Server state:** registered clients (client_id, secret, redirect_uris), issued
+authorization codes, issued tokens.
+
+#### OIDC (OpenID Connect) — Identity layer on OAuth
+
+Adds to OAuth:
+
+- **ID Token**: JWT with `sub`, `iss`, `aud`, `exp`, `nonce`. Signed by the
+  provider. This IS the identity assertion.
+- **UserInfo endpoint**: standard endpoint for profile claims.
+- **Discovery**: `/.well-known/openid-configuration` returns endpoints, signing
+  algorithms, JWKS URI. Enables automatic client configuration.
+- **`nonce`**: client-generated random value embedded in ID token, prevents
+  replay.
+
+Flow is identical to OAuth Authorization Code — just add `scope=openid` and you
+get back an `id_token`.
+
+#### LNURL-auth (Lightning Network)
+
+A fundamentally simpler model: pure challenge-response, no tokens, no scopes, no
+client registration.
+
+**Flow:**
+
+1. Server generates random `k1` (32-byte challenge), encodes as URL/QR.
+2. Wallet scans QR, derives a domain-specific key pair from master seed.
+3. Wallet signs `k1` with the domain-specific private key.
+4. Wallet calls server with `k1`, `sig`, and `key` (public key).
+5. Server verifies signature against provided pubkey. Authenticated.
+
+**Security mechanisms:**
+
+- `k1` is single-use and short-lived (replay prevention).
+- Domain-specific key derivation: each site gets a unique key pair from the same
+  seed — prevents cross-site correlation and defeats phishing (a fake domain
+  produces a useless key pair).
+- No secrets transmitted — only signature and public key.
+
+**Server state:** pending challenges (`k1 → expiry`), user accounts
+(`pubkey → user`). No client registrations, no token stores.
+
+### Analysis: what applies to KeyPears
+
+| Aspect                 | OAuth/OIDC                         | LNURL-auth                      | KeyPears Auth                                                       |
+| ---------------------- | ---------------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| Identity model         | Centralized provider               | Per-domain derived key          | Federated address + persistent key                                  |
+| Discovery              | Client pre-registers with provider | None (QR scan)                  | `keypears.json` on user's domain                                    |
+| User interaction       | Redirect to provider               | Scan QR in wallet               | Redirect to user's KeyPears server                                  |
+| Proof of identity      | Password at provider, then token   | Sign challenge with derived key | Sign challenge with P-256 key                                       |
+| Client registration    | Required (client_id/secret)        | Not needed                      | Not needed                                                          |
+| Tokens/sessions        | Access tokens, refresh tokens      | None — one-shot                 | None — one-shot proof                                               |
+| Cross-site correlation | Same `sub` across all clients      | Impossible by design            | Same public key across all clients (acceptable — address is public) |
+
+#### What we take from OAuth/OIDC
+
+1. **Redirect-based flow**: two browser redirects (app → KeyPears → app). This
+   is the right UX for a web app.
+2. **`state` parameter for CSRF**: the third-party app generates a random state,
+   stores it in session, sends it in the redirect, and verifies it on callback.
+   Essential.
+3. **`redirect_uri` in the challenge**: so the KeyPears server knows where to
+   bounce back. Unlike OAuth, we don't require pre-registration — the URI is
+   part of the signed challenge data itself.
+4. **Discovery via well-known path**: OIDC uses
+   `/.well-known/openid-configuration`. We already have
+   `/.well-known/keypears.json`. Same pattern.
+
+#### What we take from LNURL-auth
+
+1. **Challenge-response with signing**: the core mechanism. User proves identity
+   by signing a challenge, not by entering a password at the provider.
+2. **No client registration**: any app can initiate the flow without
+   pre-registering with the KeyPears server. This is critical for a federated
+   system — you can't require every third-party app to register with every
+   possible KeyPears server.
+3. **Single-use challenges**: replay prevention via tracking used challenges.
+4. **Minimal server state**: only pending challenges need tracking.
+
+#### What we invent new
+
+1. **Federated discovery from an address**: the user types `name@domain`, the
+   app fetches `domain/.well-known/keypears.json` to find the API domain, then
+   redirects there. Neither OAuth nor LNURL-auth has this — OAuth assumes you
+   know the provider upfront, LNURL-auth uses QR codes.
+2. **Structured, typed signing**: rather than signing a raw challenge or an
+   HMAC, the user signs a structured JSON payload validated against a known
+   template (e.g. `type: "sign-in"`). The template schema makes the signed value
+   contextually bound — it cannot be confused with a message, transaction, or
+   any other action. The KeyPears UI renders a human-readable consent screen
+   from the template fields.
+3. **Signature verification via federation**: the third-party app verifies the
+   signature against the user's public key, which it fetches from the user's
+   KeyPears server via the existing federation API. This is the "identity
+   assertion" — equivalent to OIDC's ID token, but it's a raw P-256 signature
+   verifiable against a discoverable public key rather than a JWT signed by a
+   centralized provider.
+
+### Conclusion
+
+**We do NOT need to implement OAuth or be OAuth-compatible.** OAuth solves a
+different problem (delegated authorization — "let this app access my data") and
+requires client registration. KeyPears Auth solves authentication only ("prove
+you own this address") with no pre-registration.
+
+**The protocol is a hybrid** — LNURL-auth's challenge-sign-verify model,
+delivered via OAuth's redirect UX, with email-style federated discovery:
+
+- From OAuth: redirect flow, `state` parameter, `redirect_uri`
+- From LNURL-auth: challenge-response signing, no client registration, no tokens
+- New to KeyPears: address-based federated discovery, structured typed signing
+
+The result is a simple, three-step browser flow:
+
+1. App → KeyPears server (with challenge + state + redirect_uri)
+2. User signs on KeyPears server
+3. KeyPears server → App (with signature + state)
+
+No tokens to manage, no client secrets, no refresh flows. One signature proves
+identity. The app verifies it against the user's public key fetched via
+federation.
+
+### Result: Pass
+
+Clear direction established. KeyPears Auth is a new protocol that borrows the
+redirect UX from OAuth and the sign-to-authenticate model from LNURL-auth, but
+requires neither client registration nor token management. Next experiment
+should design the full protocol specification.
+
+## Experiment 2: Research WebAuthn, IndieAuth, and DID Auth
+
+### Goal
+
+Complete the prior art survey by analyzing WebAuthn/FIDO2, IndieAuth, and DID
+Auth — the remaining protocols listed in the background section.
+
+### Research findings
+
+#### WebAuthn / FIDO2
+
+**Roles:** Relying Party (website), Client (browser), Authenticator (hardware
+key or platform biometric).
+
+**Registration flow:**
+
+1. RP sends challenge (random bytes) + RP ID (domain) + user info to browser.
+2. Browser forwards to authenticator along with RP ID origin.
+3. Authenticator generates a new key pair scoped to the RP ID. Returns public
+   key + credential ID + attestation, signed by the authenticator.
+4. RP stores: credential ID, public key, sign count, user handle.
+
+**Authentication flow:**
+
+1. RP sends challenge + list of allowed credential IDs.
+2. Browser forwards to authenticator, which looks up credential by RP ID.
+3. Authenticator signs `{authenticatorData || clientDataHash}` where
+   clientDataHash covers the challenge and the origin.
+4. RP verifies signature against stored public key, checks sign count increased.
+
+**Security mechanisms:**
+
+- Phishing resistance: credentials are domain-bound — the authenticator checks
+  RP ID against the origin. A phishing site on a different domain cannot trigger
+  the credential.
+- Replay prevention: server-generated random challenge; sign count monotonically
+  increases.
+- No shared secrets: only public keys stored server-side.
+- Origin binding: the browser embeds the origin into `clientDataJSON`, which is
+  signed.
+
+**Server state:** per-credential: public key, credential ID, sign count.
+Ephemeral: challenge (valid for one ceremony, ~minutes TTL).
+
+**Strengths:** Strongest phishing resistance of any web auth protocol. No
+passwords. Hardware-rooted key material. Well-supported in browsers.
+
+**Weaknesses:** Requires a local authenticator — not portable across devices
+without platform sync (passkeys address this but add cloud trust). No federation
+story; each RP is independent. Cannot prove identity to a third party — the
+credential is RP-scoped.
+
+#### IndieAuth
+
+**Flow:**
+
+1. User enters their URL (e.g. `https://alice.example`) at the client app.
+2. Client fetches that URL, discovers `rel="authorization_endpoint"` via HTML
+   `<link>` tags or HTTP Link headers.
+3. Client redirects user to the authorization endpoint with: `client_id`
+   (client's URL), `redirect_uri`, `state`, `code_challenge` (PKCE), `scope`.
+4. Authorization endpoint authenticates the user (method unspecified).
+5. On approval, authorization endpoint redirects back with an authorization
+   code.
+6. Client exchanges the code at the authorization endpoint. Response includes
+   `me` — the canonical user URL.
+7. Client verifies `me` matches the originally entered URL.
+
+**Security mechanisms:**
+
+- PKCE: `code_challenge`/`code_verifier` prevents authorization code
+  interception.
+- `state` parameter: CSRF protection.
+- Client discovery: authorization endpoint fetches `client_id` URL to verify
+  `redirect_uri`, preventing open redirect attacks.
+- URL canonicalization: the `me` URL must match what was entered.
+
+**Server state:** user accounts, issued authorization codes (short-lived,
+single-use), optionally access tokens.
+
+**Strengths:** URL-as-identity is human-readable and discoverable. Fully
+decentralized — anyone can run their own authorization endpoint. Built on proven
+OAuth 2.0 machinery. Identity URL and auth server can be different.
+
+**Weaknesses:** Relies on DNS/TLS for identity binding — no cryptographic proof
+of identity beyond TLS. Actual authentication method is unspecified. No key
+exchange or encryption. Only works in interactive browser contexts.
+
+#### DID Auth (Decentralized Identity)
+
+**Flow:**
+
+1. Relying party sends a challenge (nonce + domain + timestamp) requesting proof
+   of control of a DID.
+2. User's agent resolves its own DID Document (e.g. `did:web` resolves to
+   `https://domain/.well-known/did.json`).
+3. User signs the challenge using a private key corresponding to a
+   `verificationMethod` listed in the DID Document, producing a Verifiable
+   Presentation.
+4. RP resolves the user's DID Document independently, extracts the public key,
+   and verifies the signature.
+5. RP checks nonce freshness, domain binding, and timestamp.
+
+**Security mechanisms:**
+
+- Decentralized resolution: DID Document is the source of truth for public keys.
+- Challenge nonce: prevents replay.
+- Domain binding: challenge includes the RP's domain; signature covers it.
+- Key rotation: DID Documents can be updated to rotate keys.
+- Verification method specificity: DID Document declares which keys are valid
+  for which purpose (authentication, assertion, key agreement).
+
+**Server state:** minimal — the RP stores the DID string and a nonce
+(ephemeral). Key material is resolved on-demand from the DID Document.
+
+**Strengths:** Cryptographic proof of identity without shared secrets. Works
+across domains naturally. Supports key rotation. `did:web` maps cleanly to
+domain-based identity. Verifiable Presentations can bundle claims alongside
+authentication.
+
+**Weaknesses:** Ecosystem fragmentation — dozens of DID methods with different
+trust models. Complexity: DID Documents, VCs, VPs, JSON-LD contexts — enormous
+specification surface. No standardized browser integration. The specs are large
+and loosely coupled.
+
+### Analysis: what applies to KeyPears
+
+| Aspect              | WebAuthn                | IndieAuth             | DID Auth                       | KeyPears Auth                  |
+| ------------------- | ----------------------- | --------------------- | ------------------------------ | ------------------------------ |
+| Identity format     | Opaque credential ID    | URL                   | DID URI                        | `name@domain`                  |
+| Challenge-response  | Authenticator signs     | OAuth code exchange   | Signed VP                      | P-256 ECDSA                    |
+| Phishing resistance | Strong (origin-bound)   | Moderate (PKCE+state) | Moderate (domain in challenge) | Moderate (domain in challenge) |
+| Federation          | None                    | Via URL discovery     | Via DID resolution             | Via `keypears.json`            |
+| Server state        | Public key + sign count | Auth codes + tokens   | Nonce only                     | Challenge nonce                |
+| Key discovery       | Local only              | None (no crypto keys) | DID Document                   | Federation API                 |
+| Browser integration | Native API              | Redirect flow         | None standard                  | Redirect flow                  |
+
+#### What we take from WebAuthn
+
+1. **P-256 challenge-response pattern**: identical primitive — sign a challenge
+   with a private key, verify against a public key. WebAuthn validates this
+   approach is battle-tested.
+2. **Origin/domain binding in the signed payload**: WebAuthn embeds the origin
+   in `clientDataJSON` which gets signed. KeyPears Auth should similarly bind
+   the requesting app's domain into the challenge data so the signature is
+   contextually bound.
+
+#### What we take from IndieAuth
+
+1. **User enters an identifier to start the flow**: IndieAuth's UX begins with
+   the user typing their URL, then discovery happens. KeyPears Auth begins with
+   the user typing their address, then `keypears.json` discovery happens. Same
+   pattern.
+2. **Decoupled identity and auth server**: in IndieAuth, your URL can point to
+   any authorization endpoint. In KeyPears, your address domain can point to any
+   API domain via `keypears.json`. Same separation.
+
+#### What we take from DID Auth
+
+1. **This is the closest structural analog.** KeyPears addresses function like
+   DIDs with a `did:web`-like resolution model. The `keypears.json` file serves
+   the same role as a DID Document — it tells you where to find endpoints and
+   keys. The P-256 keys in `user_keys` are analogous to `verificationMethod`
+   entries.
+2. **Challenge includes RP domain**: DID Auth binds the challenge to the relying
+   party's domain. We should do the same — the challenge payload should include
+   the third-party app's origin, preventing cross-site reuse.
+3. **Minimal server state**: DID Auth is nearly stateless on the RP side — just
+   a nonce. KeyPears Auth can achieve the same.
+
+#### What we explicitly reject
+
+- **WebAuthn's RP-scoped credentials**: in WebAuthn, each credential is bound to
+  one RP and invisible to others. KeyPears uses one persistent key pair across
+  all apps — the address IS the identity, and cross-site correlation is a
+  feature (your address is public).
+- **IndieAuth's code exchange**: IndieAuth requires a server-to-server code
+  exchange (inherited from OAuth). KeyPears Auth uses direct signature
+  verification — no intermediate code, no token endpoint.
+- **DID's specification complexity**: DID Documents, Verifiable Credentials,
+  JSON-LD — we achieve the same with `keypears.json` + a single federation
+  endpoint for public key lookup.
+
+### Conclusion
+
+KeyPears Auth is essentially **simplified DID Auth with IndieAuth's UX and
+WebAuthn's signing primitive**:
+
+- Email-like addresses instead of DID URIs
+- `keypears.json` instead of DID Documents
+- Browser redirects instead of custom wallet protocols
+- Direct P-256 signature verification instead of Verifiable Presentations
+- No specification stack — one JSON file, one redirect, one signature
+
+The protocol design should include the requesting app's domain in the signed
+challenge payload (from WebAuthn and DID Auth), use a redirect flow starting
+from an address input (from IndieAuth), and verify signatures against
+discoverable public keys (from DID Auth).
+
+### Result: Pass
+
+Survey complete. All five protocols examined. The design direction is confirmed
+from multiple angles: KeyPears Auth is a new protocol that takes the best of
+each without inheriting their complexity. Ready to design the full protocol
+specification.
+
+## Experiment 3: Design the `/sign` page and sign-in flow
+
+### Goal
+
+Design the complete sign-in flow including the `/sign` page on the KeyPears
+server, the domain-only input on the third-party app, and the identity selection
+UX.
+
+### Key design decisions
+
+#### Domain-only input (not full address)
+
+On the third-party app, the user types only their address domain (e.g.
+`example.com` — the part after `@` in their KeyPears address), not their full
+address (`alice@example.com`). The app fetches
+`example.com/.well-known/keypears.json` to discover the `apiDomain` (which may
+be `example.com` itself, `keypears.example.com`, `keypears.com`, or any other
+domain), then redirects to that API domain. This has two advantages:
+
+1. **Privacy**: the third-party app does not learn the user's identity until the
+   user explicitly chooses to reveal it on the KeyPears side. The app only knows
+   the address domain and the API domain, not the user's name.
+2. **Identity selection**: on the KeyPears `/sign` page, the user can choose
+   which identity to present — their primary address, an existing alternate, or
+   a brand-new address created just for this app.
+
+The app learns the user's address only after the user signs and is redirected
+back. The address is part of the signed payload, so the app can trust it.
+
+#### No API keys
+
+OAuth requires client registration (client_id, client_secret) because the
+authorization server needs to know which apps may redirect users. This is
+impractical in a federated system — you cannot register with every KeyPears
+server, just as you cannot get an API key for every email server.
+
+KeyPears Auth is registration-free by design. The structured signing payload is
+self-validating: the P-256 signature proves the user approved it, and the
+payload fields (domain, address, nonce, expires) provide all the context needed
+for verification. The KeyPears server does not need to know the third-party app
+in advance.
+
+#### Identity selection on the `/sign` page
+
+When the user arrives at `/sign`, they are already logged in (or prompted to log
+in). The page shows:
+
+1. **The signing request**: which app is asking, what type of action (sign-in),
+   when it expires.
+2. **Identity picker**: a list of the user's addresses on this server. The user
+   can select any existing address or create a new one.
+3. **Create new address**: generates a new identity specifically for this app.
+   This is like email aliases but real — each address has its own key pair. If
+   the app is compromised, burn the address with zero impact on the primary
+   identity.
+
+Creating a new address requires PoW (account creation difficulty). This is a
+potential business model: servers can offer paid tiers that waive PoW for
+sub-identity creation.
+
+### Protocol flow
+
+```
+Third-party app (rssanyway.com)          User's browser          API server (keypears.example.com)
+──────────────────────────────────────────────────────────────────────────────────────────────────
+
+1. User types "example.com"
+   in the domain field
+
+2. App fetches
+   example.com/.well-known/keypears.json
+   → {"apiDomain": "keypears.example.com"}
+
+3. App generates:
+   - state (32 bytes, stored in session)
+   Redirects browser to:
+   https://keypears.example.com/sign?
+     type=sign-in&
+     domain=rssanyway.com&
+     redirect_uri=https://rssanyway.com/auth/callback&
+     state=xyz789...
+
+                                         4. Browser arrives at /sign
+                                            User is logged in (or logs in now)
+
+                                                                  5. Server validates:
+                                                                     - type is known
+                                                                     - redirect_uri is HTTPS
+                                                                     Renders consent screen:
+                                                                     "rssanyway.com wants to
+                                                                      verify your identity"
+
+                                         6. User selects identity:
+                                            - alice@example.com (existing)
+                                            - or creates a new address
+
+                                         7. User clicks "Approve"
+                                            KeyPears generates:
+                                            - nonce (32 bytes, hex)
+                                            - timestamp (now)
+                                            - expires (now + 10 min)
+                                            Browser constructs the
+                                            signing payload:
+                                            {
+                                              type: "sign-in",
+                                              domain: "rssanyway.com",
+                                              address: "alice@example.com",
+                                              nonce: "abc123...",
+                                              timestamp: "2026-04-21T12:00:00Z",
+                                              expires: "2026-04-21T12:10:00Z"
+                                            }
+                                            Signs with P-256 private key
+
+                                         8. Browser redirects back to:
+                                            https://rssanyway.com/auth/callback?
+                                              signature=base64...&
+                                              address=alice@example.com&
+                                              nonce=abc123...&
+                                              timestamp=2026-04-21T12:00:00Z&
+                                              expires=2026-04-21T12:10:00Z&
+                                              state=xyz789...
+
+9. App verifies:
+   - state matches session
+   - data matches what it sent (if used)
+   - expires is still in the future
+   - discovers example.com's apiDomain
+     via keypears.json
+   - fetches alice@example.com's
+     public key via federation API
+   - reconstructs canonical JSON from
+     all callback params + known domain
+   - verifies P-256 signature over
+     the reconstructed payload
+   → User is alice@example.com
+     Session created.
+```
+
+### Signing payload schema: `sign-in`
+
+```json
+{
+  "type": "sign-in",
+  "domain": "rssanyway.com",
+  "address": "alice@example.com",
+  "nonce": "a1b2c3d4e5f6...",
+  "data": "f4a8b2c9...",
+  "timestamp": "2026-04-21T12:00:00Z",
+  "expires": "2026-04-21T12:10:00Z"
+}
+```
+
+| Field       | Source            | Description                                            |
+| ----------- | ----------------- | ------------------------------------------------------ |
+| `type`      | Third-party app   | Always `"sign-in"` for authentication                  |
+| `domain`    | Third-party app   | Origin domain of the requesting app                    |
+| `address`   | User (on /sign)   | The KeyPears address the user chose to present         |
+| `nonce`     | KeyPears (client) | Random 32-byte hex, generated at signing time          |
+| `data`      | Third-party app   | Optional app-specific hex data (max 64 chars/32 bytes) |
+| `timestamp` | KeyPears (client) | When the signing occurred                              |
+| `expires`   | KeyPears (client) | When the signed payload stops being valid (10 min)     |
+
+The payload is serialized as canonical JSON (sorted keys, no whitespace) before
+signing to ensure both sides produce the same bytes.
+
+### Redirect parameters
+
+**To `/sign`** (query params):
+
+| Param          | Required | Description                          |
+| -------------- | -------- | ------------------------------------ |
+| `type`         | yes      | Signing template type (`sign-in`)    |
+| `domain`       | yes      | Requesting app's origin domain       |
+| `data`         | no       | App-specific hex data (max 64 chars) |
+| `redirect_uri` | yes      | Where to bounce back (must be HTTPS) |
+| `state`        | yes      | Opaque value for CSRF protection     |
+
+**Callback** (query params):
+
+| Param       | Description                                         |
+| ----------- | --------------------------------------------------- |
+| `signature` | Base64url-encoded P-256 ECDSA signature             |
+| `address`   | The KeyPears address the user chose                 |
+| `nonce`     | Server-generated nonce (for payload reconstruction) |
+| `timestamp` | When the signing occurred (ISO 8601)                |
+| `expires`   | When the payload stops being valid (ISO 8601)       |
+| `data`      | Echo of the original data (if provided)             |
+| `state`     | Echo of the original state (CSRF verification)      |
+
+### Verification steps (third-party app)
+
+1. Verify `state` matches the value stored in the user's session.
+2. Verify `data` matches what was originally sent (if provided).
+3. Check `expires` is still in the future.
+4. Reconstruct the signing payload from callback params (address, nonce,
+   timestamp, expires) + known fields (type, domain, data).
+5. Fetch the user's public key: discover `address`'s domain via `keypears.json`,
+   then call the federation API to get the public key.
+6. Verify the P-256 ECDSA signature over the canonical JSON payload.
+7. Create a session for the authenticated user.
+
+### Security properties
+
+- **No API keys**: the KeyPears server does not need to know the third-party app
+  in advance. Any HTTPS origin can initiate the flow.
+- **CSRF protection**: `state` parameter, same as OAuth.
+- **Replay prevention**: `nonce` is generated by the KeyPears client at signing
+  time (32 random bytes) and `expires` bounds the validity window (10 min). The
+  third-party app can track seen nonces to reject replays.
+- **Identity privacy**: the app only learns the user's address after the user
+  explicitly selects it on the `/sign` page.
+- **Per-app identities**: users can create throwaway addresses for untrusted
+  apps, limiting exposure.
+- **No phishing amplification**: the `/sign` page runs on the user's own
+  KeyPears server. The user must already be logged in. A phishing site cannot
+  obtain a valid signature without the user's active participation on a
+  legitimate KeyPears server.
+- **Redirect URI validation**: the KeyPears server enforces HTTPS on the
+  `redirect_uri` and validates that its hostname matches the `domain` parameter
+  (exact match or subdomain). This prevents open redirect attacks — a
+  `redirect_uri` pointing to a different domain is rejected before the consent
+  screen is shown.
+
+### `/sign` page UI
+
+The page has three states:
+
+**1. Not logged in**: show the standard KeyPears login form. After login,
+proceed to the consent screen.
+
+**2. Consent screen** (logged in):
+
+```
+┌──────────────────────────────────────────┐
+│  rssanyway.com wants to verify           │
+│  your identity                           │
+│                                          │
+│  Sign in as:                             │
+│                                          │
+│  ○ alice@example.com                     │
+│  ○ bob@keypears.com                      │
+│  ○ Create new address...                 │
+│                                          │
+│  Expires: 10 minutes                     │
+│                                          │
+│  [ Approve ]          [ Deny ]           │
+└──────────────────────────────────────────┘
+```
+
+**3. Create new address** (expanded):
+
+```
+┌──────────────────────────────────────────┐
+│  Create a new address for rssanyway.com  │
+│                                          │
+│  ┌──────────────────┐ @keypears.com      │
+│  │ ________________ │                    │
+│  └──────────────────┘                    │
+│                                          │
+│  ⚡ Proof of work required (~15s)        │
+│                                          │
+│  [ Create & Sign In ]     [ Back ]       │
+└──────────────────────────────────────────┘
+```
+
+### What the third-party app needs to implement
+
+1. A domain input field on the login page.
+2. A server-side handler to initiate the flow: generate nonce + state, store in
+   session, redirect to the KeyPears server's `/sign`.
+3. A callback handler (`/auth/callback`): verify state, nonce, expires, fetch
+   public key, verify signature, create session.
+
+This is the surface area for the `@keypears/auth` client library.
+
+### Result: Pass
+
+Design complete. Protocol flow, payload schemas, redirect parameters, security
+properties, and UI wireframes all specified. Ready for implementation.
+
+## Experiment 4: Build the `/sign` page on KeyPears
+
+### Goal
+
+Implement the `/sign` page on the KeyPears server — the auth provider side of
+the protocol. This page receives a structured signing request via query params
+from a third-party app, presents a consent screen, lets the user select an
+identity and sign the payload, then redirects back to the app with the
+signature.
+
+This experiment builds only the KeyPears side. The third-party app side (RSS
+Anyway) will be built in a subsequent experiment. Testing will be manual:
+construct a `/sign` URL by hand and verify the page renders correctly, the
+signing works, and the redirect fires with the right params.
+
+### What to build
+
+**1. Route: `_app/_saved/sign.tsx`**
+
+The `/sign` page lives under `_app/_saved` because it requires the user to be
+logged in with a saved password (needed to access the private key for signing).
+If the user is not logged in, `_app.tsx` redirects to `/` (login), and after
+login the user lands back at `/sign` with the original query params preserved.
+
+**2. Query param validation**
+
+Validate incoming search params with Zod + `.catch()`:
+
+- `type`: must be `"sign-in"` (only supported type for now)
+- `domain`: required, non-empty string
+- `nonce`: required, hex string, min 64 chars (32 bytes)
+- `data`: optional, hex string, max 64 chars (32 bytes)
+- `expires`: required, ISO 8601 timestamp, must be in the future
+- `redirect_uri`: required, must be HTTPS (or HTTP for localhost in dev)
+- `state`: required, non-empty string
+
+If validation fails, show an error page — do not redirect back (the params are
+untrusted).
+
+**3. Consent screen**
+
+Display:
+
+- The requesting domain prominently ("rssanyway.com wants to verify your
+  identity")
+- Expiration time (human-readable relative, e.g. "Expires in 10 minutes")
+- Identity picker: list of the user's addresses on this server (name@domain for
+  each user account linked to this session)
+- For now, skip "Create new address" — that's a later feature
+- Approve and Deny buttons
+
+**4. Signing (client-side)**
+
+On approve:
+
+1. Get the selected user's address
+2. Construct the canonical signing payload:
+   ```json
+   {"address":"alice@example.com","data":"f4a8b2...","domain":"rssanyway.com","expires":"...","nonce":"abc123...","timestamp":"...","type":"sign-in"}
+   ```
+   Keys sorted alphabetically. Omit `data` key entirely if not provided.
+3. Sign the UTF-8 bytes of the canonical JSON with the user's P-256 private key
+   (ECDSA, SHA-256) using the cached encryption key to decrypt the private key.
+4. Redirect to `redirect_uri` with query params: `signature`, `address`,
+   `nonce`, `data` (if present), `timestamp`, `state`.
+
+**5. Deny**
+
+On deny, redirect to `redirect_uri` with `state` and `error=access_denied`. The
+app can distinguish denial from success by the presence of `error`.
+
+### Implementation notes
+
+- The page is a new route under `_app/_saved/` so it sits outside `_chrome` (no
+  sidebar/footer — clean signing UI).
+- The user may have multiple identities if they are admin of a domain with
+  multiple users. For v1, just show the currently logged-in user's address.
+  Multi-identity selection can come later.
+- Canonical JSON: `JSON.stringify(obj)` with sorted keys produces deterministic
+  output. Use `JSON.stringify(obj, Object.keys(obj).sort())` or build the object
+  with keys in order.
+- The signature is base64url-encoded (no padding) for URL safety.
+
+### Result: Pass
+
+The `/sign` page is implemented at `webapp/src/routes/_app/_saved/sign.tsx`.
+Query params validated, consent screen rendered, P-256 ECDSA signing with
+base64url output, redirect back with all callback params. Nonce, timestamp, and
+expires are generated by the KeyPears client at signing time (not provided by
+the third-party app). The `redirect_uri` hostname is validated against the
+`domain` parameter.
+
+## Experiment 5: Build `@keypears/auth` client library
+
+### Goal
+
+Create a standalone TypeScript package (`@keypears/auth`) that third-party apps
+import to add KeyPears authentication. The library handles discovery, redirect
+URL construction, and callback verification. It should work with any web
+framework (not tied to TanStack, React, or Bun).
+
+### Package location
+
+`packages/auth/` in the keypears monorepo, published as `@keypears/auth`. Added
+to the bun workspace in the root `package.json`.
+
+### API surface
+
+Three functions:
+
+```typescript
+/**
+ * Fetch keypears.json for a domain and return the apiDomain.
+ * Throws if the file is missing, malformed, or unreachable.
+ */
+export async function discoverApiDomain(domain: string): Promise<string>;
+
+/**
+ * Construct the URL to redirect the user to for signing.
+ * The app should redirect the browser to this URL.
+ */
+export function buildSignUrl(options: {
+  apiDomain: string;
+  domain: string;
+  redirectUri: string;
+  state: string;
+  data?: string;
+}): string;
+
+/**
+ * Verify a callback from the /sign page.
+ * Parses the callback query params, validates state and expiry,
+ * fetches the user's public key via federation, and verifies the
+ * P-256 ECDSA signature over the canonical payload.
+ *
+ * Returns the authenticated address on success.
+ * Throws on any verification failure.
+ */
+export async function verifyCallback(options: {
+  /** The full callback URL or its search params */
+  params: URLSearchParams | Record<string, string>;
+  /** The domain the app originally sent in the sign request */
+  domain: string;
+  /** The state the app stored in the session */
+  state: string;
+  /** The data the app sent (if any) */
+  data?: string;
+}): Promise<{ address: string }>;
+```
+
+### Helper: `generateState()`
+
+Convenience function that generates a cryptographically random 32-byte hex
+string for the `state` parameter. The app stores this in its session before
+redirecting.
+
+```typescript
+export function generateState(): string;
+```
+
+### Implementation details
+
+**`discoverApiDomain(domain)`**
+
+1. Fetch `https://${domain}/.well-known/keypears.json`.
+2. Parse JSON, extract `apiDomain` string field.
+3. Return `apiDomain`.
+4. Throw descriptive errors for network failures, missing file, missing field.
+
+**`buildSignUrl(options)`**
+
+1. Construct `https://${apiDomain}/sign`.
+2. Append query params: `type=sign-in`, `domain`, `redirect_uri`, `state`, and
+   `data` (if provided).
+3. Return the URL string.
+
+**`verifyCallback(options)`**
+
+1. Extract from params: `signature`, `address`, `nonce`, `timestamp`, `expires`,
+   `data` (optional), `state`, `error` (optional).
+2. If `error` is present, throw with the error value (e.g. `"access_denied"`).
+3. Verify `state` matches `options.state`.
+4. Verify `data` matches `options.data` (if provided).
+5. Check `expires` is still in the future.
+6. Reconstruct the canonical JSON payload:
+   - `type`: `"sign-in"`
+   - `domain`: from `options.domain`
+   - `address`: from params
+   - `nonce`: from params
+   - `data`: from `options.data` (if provided)
+   - `timestamp`: from params
+   - `expires`: from params
+   - Sort keys alphabetically, `JSON.stringify` with no whitespace.
+7. Discover the user's API domain: parse the address (`name@domain`), fetch
+   `keypears.json` for that domain, get `apiDomain`.
+8. Fetch the user's public key from the federation API:
+   `https://${apiDomain}/api/publicKey?address=${address}`.
+9. Import the public key (compressed P-256, hex) into Web Crypto.
+10. Verify the P-256 ECDSA (SHA-256) signature over the canonical JSON bytes.
+11. If valid, return `{ address }`.
+12. If any step fails, throw a descriptive error.
+
+### Public key fetching
+
+The library needs to fetch a user's public key given their address. The existing
+federation API already exposes this — check what endpoint is available and use
+it. The library should document what API endpoint it calls so server operators
+know what's required.
+
+### Dependencies
+
+Minimal — the library should work in any JS runtime (browser, Node, Bun, Deno):
+
+- `fetch` (globally available in all modern runtimes)
+- `crypto.subtle` (Web Crypto API, available everywhere)
+- No framework dependencies, no `@webbuf/*` (use raw Web Crypto for P-256)
+
+Using raw Web Crypto instead of `@webbuf/p256` keeps the library dependency-
+free. The verification side only needs to import a public key and verify a
+signature — no private key operations.
+
+### Package structure
+
+```
+packages/auth/
+  package.json       # name: @keypears/auth, type: module
+  tsconfig.json
+  src/
+    index.ts         # re-exports all public API
+    discover.ts      # discoverApiDomain()
+    sign-url.ts      # buildSignUrl()
+    verify.ts        # verifyCallback()
+    canonical.ts     # buildCanonicalPayload() (shared with verify)
+    state.ts         # generateState()
+  test/
+    verify.test.ts   # unit tests with mocked fetch
+```
+
+### Testing strategy
+
+- Unit test `buildSignUrl` — pure function, easy to test.
+- Unit test `buildCanonicalPayload` — deterministic JSON output.
+- Unit test `verifyCallback` — mock `fetch` for keypears.json and public key
+  lookup. Generate a real P-256 signature in the test, verify the library
+  accepts it. Also test rejection cases: bad state, expired, bad signature.
+- Integration test: manual end-to-end with the dev server (Experiment 6).
+
+### Result: Pending
+
+## Conclusion
+
+Five experiments established the KeyPears Auth protocol from first principles:
+
+1. **Research** (Experiments 1–2): surveyed OAuth 2.0, OIDC, WebAuthn,
+   IndieAuth, LNURL-auth, and DID Auth. Concluded that KeyPears Auth is a new
+   protocol — not an extension of OAuth — combining LNURL-auth's
+   challenge-sign-verify model, OAuth's redirect UX, and email-style federated
+   discovery.
+
+2. **Protocol design** (Experiment 3): defined the complete sign-in flow. Users
+   enter their domain (not full address) on the third-party app. Discovery via
+   `keypears.json` finds the API domain. The `/sign` page presents a consent
+   screen where the user selects which identity to present. Structured, typed
+   JSON payloads replace both raw signing and HMAC-then-sign. No API keys, no
+   client registration, no tokens. Key design decisions: domain-only input for
+   privacy, per-app throwaway identities, server-generated nonce/timestamp/
+   expires, redirect_uri validated against the domain parameter.
+
+3. **Implementation** (Experiment 4): built the `/sign` page at
+   `webapp/src/routes/_app/_saved/sign.tsx`. Validates query params, renders
+   consent screen, signs canonical JSON with P-256 ECDSA, redirects back with
+   base64url signature.
+
+4. **Library design** (Experiment 5): designed `@keypears/auth` — three
+   functions (`discoverApiDomain`, `buildSignUrl`, `verifyCallback`) plus a
+   `generateState` helper. Zero dependencies, raw Web Crypto, works in any JS
+   runtime. Implementation pending.
+
+Next steps: implement the `@keypears/auth` library and integrate it into RSS
+Anyway as the first consumer.
