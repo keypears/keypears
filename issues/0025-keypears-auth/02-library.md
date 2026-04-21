@@ -27,8 +27,9 @@ imports and conforms to them, and third-party apps import the client directly.
 ### Goal
 
 Create `packages/client/` in the keypears monorepo as `@keypears/client`. Define
-type definitions for all 5 existing oRPC endpoints, provide a client factory,
-and replace the internal federation call sites with the new package.
+Zod schemas for all 5 existing oRPC endpoints (runtime validation + inferred
+TypeScript types), provide a client factory, and replace the internal federation
+call sites with the new package.
 
 ### Package structure
 
@@ -38,72 +39,90 @@ packages/client/
   tsconfig.json
   src/
     index.ts          # re-exports public API
-    types.ts          # type definitions for all oRPC endpoints
+    schemas.ts        # Zod schemas for all oRPC endpoint inputs/outputs
     client.ts         # createKeypearsClient(apiDomain) factory
     discover.ts       # discoverApiDomain(domain) — fetch keypears.json
 ```
 
 ### Dependencies
 
+- `zod` — schemas are the source of truth for the protocol contract
 - `@orpc/client` — oRPC client and RPCLink
 - `@webbuf/p256` — P-256 public key handling (for auth verification later)
 
-### Type definitions (`types.ts`)
+### Zod schemas (`schemas.ts`)
 
-Define input/output types for each endpoint independently of the server's
-router. These are the protocol's type contract:
+Define Zod schemas for each endpoint's input and output. These are the single
+source of truth for the protocol contract — both the server and client import
+them. TypeScript types are inferred with `z.infer<>`.
 
 ```typescript
-export interface ServerInfoOutput {
-  domain: string;
-}
+import { z } from "zod";
 
-export interface GetPublicKeyInput {
-  address: string;
-}
-export interface GetPublicKeyOutput {
-  publicKey: string | null;
-}
+// --- serverInfo ---
+export const serverInfoOutputSchema = z.object({
+  domain: z.string(),
+});
+export type ServerInfoOutput = z.infer<typeof serverInfoOutputSchema>;
 
-export interface GetPowChallengeInput {
-  senderAddress: string;
-  recipientAddress: string;
-  senderPubKey: string;
-  signature: string;
-  timestamp: number;
-}
-export interface GetPowChallengeOutput {
-  solvedHeader: string;
-  target: string;
-  expiresAt: number;
-  signature: string;
-}
+// --- getPublicKey ---
+export const getPublicKeyInputSchema = z.object({
+  address: z.string(),
+});
+export const getPublicKeyOutputSchema = z.object({
+  publicKey: z.string().nullable(),
+});
+export type GetPublicKeyInput = z.infer<typeof getPublicKeyInputSchema>;
+export type GetPublicKeyOutput = z.infer<typeof getPublicKeyOutputSchema>;
 
-export interface NotifyMessageInput {
-  senderAddress: string;
-  recipientAddress: string;
-  pullToken: string;
-  pow: {
-    solvedHeader: string;
-    target: string;
-    expiresAt: number;
-    signature: string;
-  };
-}
-export interface NotifyMessageOutput {
-  success: true;
-}
+// --- getPowChallenge ---
+export const getPowChallengeInputSchema = z.object({
+  senderAddress: z.string(),
+  recipientAddress: z.string(),
+  senderPubKey: z.string(),
+  signature: z.string(),
+  timestamp: z.number(),
+});
+export const getPowChallengeOutputSchema = z.object({
+  solvedHeader: z.string(),
+  target: z.string(),
+  expiresAt: z.number(),
+  signature: z.string(),
+});
+export type GetPowChallengeInput = z.infer<typeof getPowChallengeInputSchema>;
+export type GetPowChallengeOutput = z.infer<typeof getPowChallengeOutputSchema>;
 
-export interface PullMessageInput {
-  token: string;
-}
-export interface PullMessageOutput {
-  senderAddress: string;
-  recipientAddress: string;
-  encryptedContent: string;
-  senderPubKey: string;
-  recipientPubKey: string;
-}
+// --- notifyMessage ---
+export const notifyMessageInputSchema = z.object({
+  senderAddress: z.string(),
+  recipientAddress: z.string(),
+  pullToken: z.string(),
+  pow: z.object({
+    solvedHeader: z.string(),
+    target: z.string(),
+    expiresAt: z.number(),
+    signature: z.string(),
+  }),
+});
+export const notifyMessageOutputSchema = z.object({
+  success: z.literal(true),
+});
+export type NotifyMessageInput = z.infer<typeof notifyMessageInputSchema>;
+export type NotifyMessageOutput = z.infer<typeof notifyMessageOutputSchema>;
+
+// --- pullMessage ---
+export const pullMessageInputSchema = z.object({
+  token: z.string(),
+});
+export const pullMessageOutputSchema = z.object({
+  senderAddress: z.string(),
+  recipientAddress: z.string(),
+  encryptedContent: z.string(),
+  senderPubKey: z.string(),
+  recipientPubKey: z.string(),
+});
+export type PullMessageInput = z.infer<typeof pullMessageInputSchema>;
+export type PullMessageOutput = z.infer<typeof pullMessageOutputSchema>;
 ```
 
 ### Client factory (`client.ts`)
@@ -118,8 +137,7 @@ export function createKeypearsClient(apiDomain: string) {
 }
 ```
 
-The return type will need to conform to the type definitions. The exact
-mechanism depends on how oRPC supports standalone type annotations — investigate
+The return type will need to conform to the schema-inferred types. Investigate
 whether `createORPCClient` can be parameterized with a type, or whether we need
 a typed wrapper.
 
@@ -136,7 +154,24 @@ without caching (the consuming app can cache if it wants).
 
 ### Integration into the keypears server
 
-Replace 5 call sites:
+**Server uses the client's Zod schemas directly.** The server's `api.router.ts`
+imports the input schemas from `@keypears/client` and uses them in `.input()`
+calls. The output types are enforced via explicit return type annotations from
+the client's inferred types. This ensures a single source of truth — if a schema
+changes in the client, the server gets a compile error.
+
+```typescript
+import {
+  getPublicKeyInputSchema,
+  type GetPublicKeyOutput,
+} from "@keypears/client";
+
+const getPublicKey = os
+  .input(getPublicKeyInputSchema)
+  .handler(async ({ input }): Promise<GetPublicKeyOutput> => { ... });
+```
+
+**Replace 6 remote client call sites:**
 
 1. **`federation.server.ts:createRemoteClient()`** — replace with
    `createKeypearsClient()` from `@keypears/client`.
@@ -149,27 +184,8 @@ Replace 5 call sites:
 5. **`api.router.ts:getPowChallengeEndpoint`** — creates an ad-hoc client to
    call `.getPublicKey()` on the sender's server. Replace with
    `createKeypearsClient()`.
-
-The `api.router.ts:notifyMessage` handler also creates an ad-hoc client to call
-`.pullMessage()` — replace that too (6 call sites total).
-
-### Server type conformance
-
-The server's `apiRouter` should be validated against the client's type
-definitions. Investigate whether oRPC supports a pattern like:
-
-```typescript
-import type { GetPublicKeyInput, GetPublicKeyOutput } from "@keypears/client";
-
-const getPublicKey = os
-  .input(z.object({ address: z.string() }) satisfies ZodType<GetPublicKeyInput>)
-  .handler(async ({ input }): Promise<GetPublicKeyOutput> => { ... });
-```
-
-The exact approach depends on oRPC's type system. The goal is compile-time
-verification that the server's implementation matches the client's type
-contract. If oRPC doesn't support this cleanly, explicit return type annotations
-on the handlers are sufficient.
+6. **`api.router.ts:notifyMessage`** — creates an ad-hoc client to call
+   `.pullMessage()`. Replace with `createKeypearsClient()`.
 
 ### Testing
 
