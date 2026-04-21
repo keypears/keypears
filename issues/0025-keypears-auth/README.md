@@ -73,8 +73,8 @@ screen renders. For `sign-in`:
 
 The `data` field is optional, max 64 hex characters (32 bytes), and opaque to
 KeyPears. The third-party app can use it to bind the signature to app-specific
-state — a session ID hash, a CSRF token, or any other commitment. It is
-included in the signed payload but not rendered on the consent screen (it's not
+state — a session ID hash, a CSRF token, or any other commitment. It is included
+in the signed payload but not rendered on the consent screen (it's not
 human-meaningful). The app verifies it on callback to confirm the signature
 covers the exact context it intended.
 
@@ -639,15 +639,15 @@ Third-party app (rssanyway.com)          User's browser          API server (key
 }
 ```
 
-| Field       | Source          | Description                                          |
-| ----------- | --------------- | ---------------------------------------------------- |
-| `type`      | Third-party app | Always `"sign-in"` for authentication                |
-| `domain`    | Third-party app | Origin domain of the requesting app                  |
-| `address`   | User (on /sign) | The KeyPears address the user chose to present       |
-| `nonce`     | Third-party app | Random value for replay prevention                   |
+| Field       | Source          | Description                                            |
+| ----------- | --------------- | ------------------------------------------------------ |
+| `type`      | Third-party app | Always `"sign-in"` for authentication                  |
+| `domain`    | Third-party app | Origin domain of the requesting app                    |
+| `address`   | User (on /sign) | The KeyPears address the user chose to present         |
+| `nonce`     | Third-party app | Random value for replay prevention                     |
 | `data`      | Third-party app | Optional app-specific hex data (max 64 chars/32 bytes) |
-| `timestamp` | KeyPears server | When the signing occurred                            |
-| `expires`   | Third-party app | When the signed payload stops being valid            |
+| `timestamp` | KeyPears server | When the signing occurred                              |
+| `expires`   | Third-party app | When the signed payload stops being valid              |
 
 The payload is serialized as canonical JSON (sorted keys, no whitespace) before
 signing to ensure both sides produce the same bytes.
@@ -658,13 +658,13 @@ signing to ensure both sides produce the same bytes.
 
 | Param          | Required | Description                          |
 | -------------- | -------- | ------------------------------------ |
-| `type`         | yes      | Signing template type (`sign-in`)          |
-| `domain`       | yes      | Requesting app's origin domain             |
-| `nonce`        | yes      | Random hex string (min 32 bytes)           |
-| `data`         | no       | App-specific hex data (max 64 chars)       |
-| `expires`      | yes      | ISO 8601 timestamp                         |
-| `redirect_uri` | yes      | Where to bounce back (must be HTTPS)       |
-| `state`        | yes      | Opaque value for CSRF protection           |
+| `type`         | yes      | Signing template type (`sign-in`)    |
+| `domain`       | yes      | Requesting app's origin domain       |
+| `nonce`        | yes      | Random hex string (min 32 bytes)     |
+| `data`         | no       | App-specific hex data (max 64 chars) |
+| `expires`      | yes      | ISO 8601 timestamp                   |
+| `redirect_uri` | yes      | Where to bounce back (must be HTTPS) |
+| `state`        | yes      | Opaque value for CSRF protection     |
 
 **Callback** (query params):
 
@@ -761,6 +761,92 @@ proceed to the consent screen.
 
 This is the surface area for the `@keypears/auth` client library.
 
-### Result: Pending
+### Result: Pass
 
-Design complete. Next step is implementation.
+Design complete. Protocol flow, payload schemas, redirect parameters, security
+properties, and UI wireframes all specified. Ready for implementation.
+
+## Experiment 4: Build the `/sign` page on KeyPears
+
+### Goal
+
+Implement the `/sign` page on the KeyPears server — the auth provider side of
+the protocol. This page receives a structured signing request via query params
+from a third-party app, presents a consent screen, lets the user select an
+identity and sign the payload, then redirects back to the app with the
+signature.
+
+This experiment builds only the KeyPears side. The third-party app side (RSS
+Anyway) will be built in a subsequent experiment. Testing will be manual:
+construct a `/sign` URL by hand and verify the page renders correctly, the
+signing works, and the redirect fires with the right params.
+
+### What to build
+
+**1. Route: `_app/_saved/sign.tsx`**
+
+The `/sign` page lives under `_app/_saved` because it requires the user to be
+logged in with a saved password (needed to access the private key for signing).
+If the user is not logged in, `_app.tsx` redirects to `/` (login), and after
+login the user lands back at `/sign` with the original query params preserved.
+
+**2. Query param validation**
+
+Validate incoming search params with Zod + `.catch()`:
+
+- `type`: must be `"sign-in"` (only supported type for now)
+- `domain`: required, non-empty string
+- `nonce`: required, hex string, min 64 chars (32 bytes)
+- `data`: optional, hex string, max 64 chars (32 bytes)
+- `expires`: required, ISO 8601 timestamp, must be in the future
+- `redirect_uri`: required, must be HTTPS (or HTTP for localhost in dev)
+- `state`: required, non-empty string
+
+If validation fails, show an error page — do not redirect back (the params are
+untrusted).
+
+**3. Consent screen**
+
+Display:
+
+- The requesting domain prominently ("rssanyway.com wants to verify your
+  identity")
+- Expiration time (human-readable relative, e.g. "Expires in 10 minutes")
+- Identity picker: list of the user's addresses on this server (name@domain for
+  each user account linked to this session)
+- For now, skip "Create new address" — that's a later feature
+- Approve and Deny buttons
+
+**4. Signing (client-side)**
+
+On approve:
+
+1. Get the selected user's address
+2. Construct the canonical signing payload:
+   ```json
+   {"address":"alice@example.com","data":"f4a8b2...","domain":"rssanyway.com","expires":"...","nonce":"abc123...","timestamp":"...","type":"sign-in"}
+   ```
+   Keys sorted alphabetically. Omit `data` key entirely if not provided.
+3. Sign the UTF-8 bytes of the canonical JSON with the user's P-256 private key
+   (ECDSA, SHA-256) using the cached encryption key to decrypt the private key.
+4. Redirect to `redirect_uri` with query params: `signature`, `address`,
+   `nonce`, `data` (if present), `timestamp`, `state`.
+
+**5. Deny**
+
+On deny, redirect to `redirect_uri` with `state` and `error=access_denied`. The
+app can distinguish denial from success by the presence of `error`.
+
+### Implementation notes
+
+- The page is a new route under `_app/_saved/` so it sits outside `_chrome` (no
+  sidebar/footer — clean signing UI).
+- The user may have multiple identities if they are admin of a domain with
+  multiple users. For v1, just show the currently logged-in user's address.
+  Multi-identity selection can come later.
+- Canonical JSON: `JSON.stringify(obj)` with sorted keys produces deterministic
+  output. Use `JSON.stringify(obj, Object.keys(obj).sort())` or build the object
+  with keys in order.
+- The signature is base64url-encoded (no padding) for URL safety.
+
+### Result: Pending
