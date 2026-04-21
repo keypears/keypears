@@ -23,10 +23,13 @@ const getPowChallenge = oc
   )
   .output(
     z.object({
-      solvedHeader: z.string(),
+      header: z.string(),
       target: z.string(),
       expiresAt: z.number(),
+      difficulty: z.number(),
       signature: z.string(),
+      senderAddress: z.string().optional(),
+      recipientAddress: z.string().optional(),
     }),
   );
 
