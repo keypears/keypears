@@ -65,10 +65,18 @@ screen renders. For `sign-in`:
   "domain": "rssanyway.com",
   "address": "alice@example.com",
   "nonce": "a1b2c3...",
+  "data": "f4a8b2...",
   "timestamp": "2026-04-21T12:00:00Z",
   "expires": "2026-04-21T12:10:00Z"
 }
 ```
+
+The `data` field is optional, max 64 hex characters (32 bytes), and opaque to
+KeyPears. The third-party app can use it to bind the signature to app-specific
+state — a session ID hash, a CSRF token, or any other commitment. It is
+included in the signed payload but not rendered on the consent screen (it's not
+human-meaningful). The app verifies it on callback to confirm the signature
+covers the exact context it intended.
 
 This approach replaces the earlier HMAC-then-sign design. The HMAC was meant to
 prevent the user from signing something meaningful in another context, but typed
@@ -625,19 +633,21 @@ Third-party app (rssanyway.com)          User's browser          API server (key
   "domain": "rssanyway.com",
   "address": "alice@example.com",
   "nonce": "a1b2c3d4e5f6...",
+  "data": "f4a8b2c9...",
   "timestamp": "2026-04-21T12:00:00Z",
   "expires": "2026-04-21T12:10:00Z"
 }
 ```
 
-| Field       | Source          | Description                                    |
-| ----------- | --------------- | ---------------------------------------------- |
-| `type`      | Third-party app | Always `"sign-in"` for authentication          |
-| `domain`    | Third-party app | Origin domain of the requesting app            |
-| `address`   | User (on /sign) | The KeyPears address the user chose to present |
-| `nonce`     | Third-party app | Random value for replay prevention             |
-| `timestamp` | KeyPears server | When the signing occurred                      |
-| `expires`   | Third-party app | When the signed payload stops being valid      |
+| Field       | Source          | Description                                          |
+| ----------- | --------------- | ---------------------------------------------------- |
+| `type`      | Third-party app | Always `"sign-in"` for authentication                |
+| `domain`    | Third-party app | Origin domain of the requesting app                  |
+| `address`   | User (on /sign) | The KeyPears address the user chose to present       |
+| `nonce`     | Third-party app | Random value for replay prevention                   |
+| `data`      | Third-party app | Optional app-specific hex data (max 64 chars/32 bytes) |
+| `timestamp` | KeyPears server | When the signing occurred                            |
+| `expires`   | Third-party app | When the signed payload stops being valid            |
 
 The payload is serialized as canonical JSON (sorted keys, no whitespace) before
 signing to ensure both sides produce the same bytes.
@@ -648,12 +658,13 @@ signing to ensure both sides produce the same bytes.
 
 | Param          | Required | Description                          |
 | -------------- | -------- | ------------------------------------ |
-| `type`         | yes      | Signing template type (`sign-in`)    |
-| `domain`       | yes      | Requesting app's origin domain       |
-| `nonce`        | yes      | Random hex string (min 32 bytes)     |
-| `expires`      | yes      | ISO 8601 timestamp                   |
-| `redirect_uri` | yes      | Where to bounce back (must be HTTPS) |
-| `state`        | yes      | Opaque value for CSRF protection     |
+| `type`         | yes      | Signing template type (`sign-in`)          |
+| `domain`       | yes      | Requesting app's origin domain             |
+| `nonce`        | yes      | Random hex string (min 32 bytes)           |
+| `data`         | no       | App-specific hex data (max 64 chars)       |
+| `expires`      | yes      | ISO 8601 timestamp                         |
+| `redirect_uri` | yes      | Where to bounce back (must be HTTPS)       |
+| `state`        | yes      | Opaque value for CSRF protection           |
 
 **Callback** (query params):
 
@@ -662,6 +673,7 @@ signing to ensure both sides produce the same bytes.
 | `signature` | Base64url-encoded P-256 ECDSA signature        |
 | `address`   | The KeyPears address the user chose            |
 | `nonce`     | Echo of the original nonce                     |
+| `data`      | Echo of the original data (if provided)        |
 | `state`     | Echo of the original state (CSRF verification) |
 
 ### Verification steps (third-party app)
@@ -669,12 +681,13 @@ signing to ensure both sides produce the same bytes.
 1. Verify `state` matches the value stored in the user's session.
 2. Verify `nonce` matches what was originally sent.
 3. Check `expires` is still in the future.
-4. Reconstruct the signing payload from the known fields (type, domain, address,
-   nonce, timestamp, expires).
-5. Fetch the user's public key: discover `address`'s domain via `keypears.json`,
+4. Verify `data` matches what was originally sent (if provided).
+5. Reconstruct the signing payload from the known fields (type, domain, address,
+   nonce, data, timestamp, expires).
+6. Fetch the user's public key: discover `address`'s domain via `keypears.json`,
    then call the federation API to get the public key.
-6. Verify the P-256 ECDSA signature over the canonical JSON payload.
-7. Create a session for the authenticated user.
+7. Verify the P-256 ECDSA signature over the canonical JSON payload.
+8. Create a session for the authenticated user.
 
 ### Security properties
 
