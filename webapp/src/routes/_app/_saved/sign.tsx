@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { z } from "zod/v4";
 import { getMyUser, getMyKeys } from "~/server/user.functions";
@@ -10,6 +11,18 @@ import { Shield, LogIn, X } from "lucide-react";
 
 /** Default signing window: 10 minutes from now. */
 const SIGN_EXPIRY_MS = 10 * 60 * 1000;
+
+/** Server function: generate nonce, timestamp, and expires at signing time. */
+const getSigningChallenge = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { FixedBuf } = await import("@webbuf/fixedbuf");
+    return {
+      nonce: FixedBuf.fromRandom(32).buf.toHex(),
+      timestamp: new Date().toISOString(),
+      expires: new Date(Date.now() + SIGN_EXPIRY_MS).toISOString(),
+    };
+  },
+);
 
 const signSearchSchema = z.object({
   type: z.literal("sign-in").catch("sign-in" as const),
@@ -42,10 +55,6 @@ function validateSearchParams(search: SignSearch): string | null {
   }
   if (!search.state) return "Missing state.";
   return null;
-}
-
-function generateNonce(): string {
-  return FixedBuf.fromRandom(32).buf.toHex();
 }
 
 async function signPayload(
@@ -125,9 +134,7 @@ function SignPage() {
     setSigning(true);
     setError("");
     try {
-      const nonce = generateNonce();
-      const timestamp = new Date().toISOString();
-      const expires = new Date(Date.now() + SIGN_EXPIRY_MS).toISOString();
+      const { nonce, timestamp, expires } = await getSigningChallenge();
       const payload = buildCanonicalPayload({
         type: search.type,
         domain: search.domain,

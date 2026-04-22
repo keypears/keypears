@@ -409,4 +409,31 @@ which means it runs on the server during SSR — so the imports
 - The `@keypears/client` library
 - The third-party app integration
 
-### Result: Pending
+### Result: Pass
+
+Implemented as a `createServerFn` called on Approve click (not a loader — avoids
+stale values if user waits). The server generates nonce, timestamp, and expires
+at signing time. The client signs the server-generated values. RSS Anyway
+required no changes — callback API unchanged.
+
+## Conclusion
+
+`@keypears/client` is built and proven:
+
+1. **oRPC contract** (Experiment 1): defines 5 federation endpoints with Zod
+   schemas. The server implements via `implement(contract)` with runtime
+   enforcement. All internal federation call sites migrated.
+
+2. **Auth functions** (Experiment 2): `discoverApiDomain`, `buildSignUrl`,
+   `verifyCallback`, `generateState`, `buildCanonicalPayload`. RSS Anyway
+   integrated as the first consumer — full sign-in round-trip working across
+   two separate servers.
+
+3. **Server-generated challenge** (Experiment 3): nonce, timestamp, and expires
+   are generated on the KeyPears server at signing time, not by the user's
+   browser. No API changes required.
+
+The package is at `packages/client/` with dependencies on `@orpc/client`,
+`@orpc/contract`, `@webbuf/p256`, `@webbuf/fixedbuf`, `@webbuf/webbuf`, and
+`zod`. TanStack Start server functions remain unchanged for the webapp's own
+UI — only federation and auth endpoints live in the oRPC contract.
