@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { z } from "zod/v4";
 import { getMyUser, getMyKeys } from "~/server/user.functions";
+import { authMiddleware } from "~/server/auth-middleware";
 import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
 import { p256PrivateKeyToJwk } from "@webbuf/p256";
 import { FixedBuf } from "@webbuf/fixedbuf";
@@ -13,8 +14,9 @@ import { Shield, LogIn, X } from "lucide-react";
 const SIGN_EXPIRY_MS = 10 * 60 * 1000;
 
 /** Server function: generate nonce, timestamp, and expires at signing time. */
-const getSigningChallenge = createServerFn({ method: "GET" }).handler(
-  async () => {
+const getSigningChallenge = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async () => {
     const { FixedBuf } = await import("@webbuf/fixedbuf");
     return {
       nonce: FixedBuf.fromRandom(32).buf.toHex(),

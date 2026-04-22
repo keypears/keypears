@@ -237,6 +237,11 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
 - Functions with optional auth (works with or without login) use
   `getSessionUserId()` directly — these don't use middleware.
 - Use `.inputValidator()` with Zod for all server function inputs.
+- **Auth rule:** TanStack Start server functions are exposed as HTTP endpoints
+  — route guards (like `_app/_saved`) do NOT protect them. Any server
+  function that should only be callable by authenticated users MUST use
+  `.middleware([authMiddleware])`. A function living in a protected route file
+  is not automatically protected.
 
 **Error handling:**
 - `defaultErrorComponent`, `defaultPendingComponent`, and
