@@ -318,6 +318,22 @@ Password (never stored)
 - Admin verified against `keypears.json` on every privileged action.
 - Admin can create users and reset passwords for their domain.
 
+## Database rules
+
+Never use `mysqlEnum` from Drizzle. MySQL ENUMs are painful to
+migrate — adding or removing a value requires an ALTER TABLE that
+rewrites the entire table on large datasets.
+
+Instead, use a plain `varchar` with Drizzle's `.$type<>()` for
+type-safe string unions:
+
+```ts
+kind: varchar("kind", { length: 16 }).$type<"domain" | "feed">().notNull(),
+```
+
+This stores as a regular `VARCHAR` in MySQL (no migration pain) but
+TypeScript enforces the allowed values at compile time.
+
 ## Database schema
 
 - **domains**: id, domain, adminUserId, openRegistration, allowThirdPartyDomains, createdAt
