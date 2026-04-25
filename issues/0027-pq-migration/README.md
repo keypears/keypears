@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-25"
+closed = "2026-04-25"
 +++
 
 # Replace all classical cryptography with post-quantum
@@ -627,3 +628,35 @@ All type errors fixed and validation gaps closed:
    `recipientPubKey` against federation lookup before remote delivery.
 5. **No inline dynamic imports**: all `await import()` replaced with top-level
    imports.
+
+## Conclusion
+
+KeyPears is fully post-quantum. All P-256 cryptography (ECDSA and ECDH) has
+been replaced with ML-DSA-65 (FIPS 204) for signatures and ML-KEM-768 (FIPS
+203) for key exchange via `@webbuf/aesgcm-mlkem`.
+
+**What changed (27 files in experiment 1, 5 in experiment 2, 5 in experiment 3):**
+
+- Each user has two key pairs: ML-DSA-65 (signing) + ML-KEM-768 (encryption).
+- Messages are encrypted with `aesgcmMlkemEncrypt` to both recipient and sender
+  (for sent-message history), signed with a canonical length-prefixed envelope,
+  and authenticated with AAD binding sender/recipient addresses.
+- Vault encryption derives from the cached encryption key, not an asymmetric key.
+- Auth `/sign` page uses ML-DSA-65 signing with POST-based callback.
+- `@keypears/client` verifies ML-DSA-65 signatures.
+- Server validates sender signing keys, recipient encap keys, PoW binding, and
+  message signatures before storing.
+- Federation inbound validates sender keys against federated lookup and
+  recipient keys against local DB.
+
+**What stays the same:**
+
+- AES-256-GCM, SHA-256, PBKDF2-HMAC-SHA-256, PoW — all quantum-safe.
+- Three-tier key derivation, session management — unchanged.
+- User-facing behavior — identical.
+
+**Known remaining work (deferred):**
+
+- Zod validators should use exact hex length checks for PQ key fields.
+- Remote inbound should size-check key strings before crypto parsing.
+- Docs and blog posts still reference P-256.
