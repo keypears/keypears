@@ -405,4 +405,110 @@ Update `packages/client/package.json`:
 - Manual: sign into RSS Anyway via KeyPears auth (end-to-end PQ)
 - Verify no `@webbuf/p256` imports remain: `grep -r "webbuf/p256" webapp/src/`
 
+### Result: Pass
+
+All 27 files updated. P-256 completely removed — zero `@webbuf/p256` imports
+remain. Typecheck, lint, and tests pass. Dual ML-DSA-65 + ML-KEM-768 key pairs,
+`aesgcm-mlkem` message encryption with sender self-copy, ML-DSA-65 signing for
+PoW and auth, POST-based auth callback, vault key derived from encryption key.
+
+Codex review identified six security issues that need fixing in experiment 2.
+
+## Experiment 2: Fix security gaps from Codex audit
+
+### Goal
+
+Address the six security issues identified by Codex review of experiment 1.
+These are enforcement gaps — the crypto primitives are correct but the
+application doesn't verify signatures, validate keys, or bind context properly.
+
+### Findings to fix
+
+**High 1: Message signatures never verified.**
+
+`verifyMessageSignature` exists in `message.ts` but nothing calls it. Messages
+are stored and displayed without checking the sender's signature.
+
+Fix:
+- In `api.router.ts` `notifyMessageHandler`: after pulling the message from the
+  remote server, verify the `senderSignature` against the `senderPubKey` and
+  `encryptedContent` before inserting. Reject messages with invalid signatures.
+- In `channel.$address.tsx` `tryDecrypt`: verify the signature before
+  decrypting. Display a warning or reject messages with invalid signatures.
+
+**High 2: No server-side key validation on message submission.**
+
+`sendMessage` in `message.functions.ts` trusts whatever `senderPubKey` and
+`recipientPubKey` the client sends. A custom client can submit misleading keys.
+
+Fix:
+- Verify `senderPubKey` matches the authenticated user's active signing key
+  from the database.
+- Verify `recipientPubKey` matches the recipient's actual encap key via
+  federation lookup (for remote recipients) or database lookup (for local).
+- Reject messages where keys don't match.
+
+**High 3: PoW binding not validated.**
+
+The PoW challenge uses `senderAddress`/`recipientAddress` from client input
+without verifying they match the session-derived sender and the requested
+recipient.
+
+Fix:
+- In `sendMessage`, verify that the PoW challenge's sender/recipient addresses
+  match the actual sender (from session) and recipient (from input).
+
+**Medium 4: Signature only covers recipient ciphertext.**
+
+The issue design called for a canonical envelope covering addresses, keys, and
+both ciphertexts. The implementation only signs `recipientCt`.
+
+Fix:
+- Update `encryptMessage`/`encryptSecretMessage` in `message.ts` to build a
+  length-prefixed canonical envelope covering: sender address, recipient
+  address, sender signing pub key, recipient encap pub key, recipient
+  ciphertext, and sender ciphertext. Sign the envelope, not just the
+  recipient ciphertext.
+- Update `verifyMessageSignature` to reconstruct and verify the same envelope.
+- The envelope format: `"KeypearsMessageV1" || len-prefixed fields`.
+
+**Medium 5: No AAD on message encryption.**
+
+`aesgcmMlkemEncrypt` supports AAD but it's not being used. Should bind
+sender/recipient addresses into the AES-GCM authentication tag.
+
+Fix:
+- Pass `WebBuf.fromUtf8(senderAddress + "\0" + recipientAddress)` as AAD to
+  both `aesgcmMlkemEncrypt` calls (recipient copy and sender copy).
+- Pass the same AAD to `aesgcmMlkemDecrypt` in `decryptMessageContent`.
+- `decryptMessageContent` needs sender/recipient address params.
+
+**Medium 6: No size bounds on remote pull fields.**
+
+`notifyMessageHandler` in `api.router.ts` size-checks `encryptedContent` but
+not `senderEncryptedContent` or `senderSignature`.
+
+Fix:
+- Add size checks for `senderEncryptedContent` (same limit as
+  `encryptedContent`) and `senderSignature` (max 6700 hex chars = 3350 bytes).
+
+**Low: Stale P-256 references in docs/comments.**
+
+`packages/client/src/auth.ts` doc comment still says "P-256 ECDSA." Blog and
+doc files still reference P-256. Code imports are clean but prose is stale.
+
+Fix:
+- Update the doc comment in `auth.ts`.
+- Defer blog/doc updates to a documentation experiment.
+
+### Files to modify
+
+1. `webapp/src/lib/message.ts` — canonical envelope, AAD, updated signatures
+2. `webapp/src/server/api.router.ts` — signature verification on pull, size
+   bounds
+3. `webapp/src/server/message.functions.ts` — key validation, PoW binding
+4. `webapp/src/routes/_app/_saved/channel.$address.tsx` — signature
+   verification before display, AAD in decryption
+5. `packages/client/src/auth.ts` — fix doc comment
+
 ### Result: Pending
