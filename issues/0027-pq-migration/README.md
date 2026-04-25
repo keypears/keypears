@@ -124,11 +124,16 @@ A user's identity is now two public keys, not one.
   does not authenticate the sender — anyone with the recipient's public encap
   key can encapsulate. Add a `senderSignature` field to the message schema.
   The recipient verifies the signature against the sender's signing key before
-  trusting the message content. The signature must cover a canonical envelope
-  binding sender identity, recipient identity, public keys, and all
-  ciphertext (both recipient and sender copies). The exact encoding format
-  (length-prefixed binary, canonical JSON, or versioned struct) will be
-  determined during implementation — see "Wire format decisions" below.
+  trusting the message content. The signed bytes are a canonical envelope:
+  ```
+  senderAddress || "\0" || recipientAddress || "\0" ||
+  senderSigningPubKey || recipientEncapPubKey ||
+  kemCiphertext || encryptedContent
+  ```
+  This binds the signature to the full message context — sender identity,
+  recipient identity, both public keys, the KEM ciphertext, and the encrypted
+  content. Prevents replay (wrong recipient), substitution (swapped
+  ciphertext), and impersonation (wrong sender key).
 - **Sent-message decryptability.** With ECDH, both parties derive the same
   shared secret, so the sender can decrypt their own sent messages. With KEM,
   only the recipient can decapsulate. Solution: the sender must also encrypt
@@ -215,26 +220,6 @@ A user's identity is now two public keys, not one.
   addressing.md, federation.md).
 - CLAUDE.md tech stack and crypto sections.
 - Consider a blog post announcing the migration.
-
-### Wire format decisions (to resolve during implementation)
-
-These details are deferred to implementation rather than nailed down here:
-
-- **Signed message envelope encoding.** Raw concatenation with NUL separators is
-  brittle for variable-length fields. Prefer a versioned, length-prefixed binary
-  encoding with a domain separator (e.g. `"KeypearsMessageV1" || len(field) ||
-  field || ...`). The signature must cover both recipient and sender ciphertext
-  copies so neither can be swapped independently.
-- **`@webbuf/aesgcm-mlkem` wire format.** The package returns a combined blob
-  (version byte + KEM ciphertext + AES ciphertext). The signature should sign
-  this combined blob, not separated components. The DB stores the combined blob
-  in `encryptedContent` — no separate KEM ciphertext column.
-- **`senderSignature` column type.** ML-DSA-65 signatures are 3,309 bytes. Use
-  `varbinary(6620)` (hex-encoded) or `varbinary(3400)` (raw binary) depending
-  on whether the Drizzle schema stores hex or raw. Match the existing
-  `binaryHex` pattern.
-- **Final `grep` to verify no P-256 remains.** Check both `webapp/src/` and
-  `packages/client/src/`.
 
 ## Plan
 
@@ -418,7 +403,6 @@ Update `packages/client/package.json`:
 - Manual: create vault entry, verify decryption
 - Manual: visit `/sign` page, approve, verify POST callback works
 - Manual: sign into RSS Anyway via KeyPears auth (end-to-end PQ)
-- Verify no `@webbuf/p256` imports remain:
-  `grep -r "webbuf/p256" webapp/src/ packages/client/src/`
+- Verify no `@webbuf/p256` imports remain: `grep -r "webbuf/p256" webapp/src/`
 
 ### Result: Pending
