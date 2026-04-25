@@ -54,7 +54,7 @@
   metadata such as addresses and vault labels remain plaintext to support
   routing and search. A
   proof-of-work mechanism provides Sybil resistance for account creation,
-  authentication, and messaging without CAPTCHAs or third-party services. A
+  account login, and messaging without CAPTCHAs or third-party services. A
   redirect-based authentication protocol allows third-party applications to
   verify user identity without passwords, API keys, or client registration. This
   paper describes the protocol design, cryptographic construction, federation
@@ -361,7 +361,8 @@ sender and recipient addresses bound as Additional Authenticated Data (AAD).
 Because ML-KEM is a key encapsulation mechanism rather than a key agreement
 protocol, only the recipient can decapsulate the shared secret. The sender
 therefore encrypts a second copy to their own ML-KEM key for sent-message
-history. Both the KEM ciphertext and the AES ciphertext are stored per message.
+history. The KEM ciphertext and AES ciphertext are stored together as a
+combined blob per message.
 
 *Message signing.* ML-KEM encryption alone does not authenticate the
 sender---anyone with the recipient's public encapsulation key can encapsulate.
@@ -577,7 +578,7 @@ independent third-party audit as of this writing.
 centralized and has only partially migrated to post-quantum cryptography:
 Signal's PQXDH protocol~#cite(<signal-pqxdh>) uses ML-KEM for key exchange, but
 identity signatures remain Ed25519 (classical). *Matrix* (2014) is
-federated and encrypted, but uses a proprietary address format and a
+federated and encrypted, but uses a Matrix-specific address format and a
 substantially more complex architecture. *Keybase* (2014) combined social-proof
 identity with encryption, but was acquired by Zoom in 2020---a cautionary
 example of centralized hosting. KeyPears is, to our knowledge, the first
