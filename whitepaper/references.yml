@@ -34,3 +34,33 @@ moxie2016:
   author: Marlinspike, Moxie
   date: 2016-05-10
   url: https://signal.org/blog/the-ecosystem-is-moving/
+
+babbush2026:
+  type: article
+  title: "Securing Elliptic Curve Cryptocurrencies against Quantum Vulnerabilities: Resource Estimates and Mitigations"
+  author:
+    - Babbush, Ryan
+    - Zalcman, Adam
+    - Gidney, Craig
+    - Broughton, Michael
+    - Khattar, Tanuj
+    - Neven, Hartmut
+    - Bergamaschi, Thiago
+    - Drake, Justin
+    - Boneh, Dan
+  date: 2026-04-17
+  url: https://arxiv.org/abs/2603.28846
+
+fips203:
+  type: article
+  title: "Module-Lattice-Based Key-Encapsulation Mechanism Standard"
+  author: National Institute of Standards and Technology
+  serial-number: FIPS 203
+  date: 2024-08-13
+
+fips204:
+  type: article
+  title: "Module-Lattice-Based Digital Signature Standard"
+  author: National Institute of Standards and Technology
+  serial-number: FIPS 204
+  date: 2024-08-13
