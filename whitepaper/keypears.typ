@@ -47,10 +47,12 @@
   addresses (`name@domain`) backed by post-quantum key pairs: ML-DSA-65
   (FIPS~204) for digital signatures and ML-KEM-768 (FIPS~203) for key
   encapsulation. Any domain can host a KeyPears server, and servers discover
-  each other through DNS and a well-known configuration file. All cryptographic
-  operations---key derivation, key encapsulation, encryption, signing, and proof
-  of work---execute client-side using NIST-approved primitives. Servers store
-  only ciphertext and never possess the keys needed to decrypt it. A
+  each other through DNS and a well-known configuration file. Private-key
+  operations, encryption, decryption, and proof-of-work mining execute
+  client-side using NIST-approved primitives. Servers store encrypted message
+  bodies and secret payloads but never possess the keys needed to decrypt them;
+  metadata such as addresses and vault labels remain plaintext to support
+  routing and search. A
   proof-of-work mechanism provides Sybil resistance for account creation,
   authentication, and messaging without CAPTCHAs or third-party services. A
   redirect-based authentication protocol allows third-party applications to
@@ -131,8 +133,9 @@ KeyPears is guided by five principles:
 
 + *Federated.* Any domain can run a KeyPears server. Servers discover each
   other via DNS. No registration authority controls participation.
-+ *End-to-end encrypted.* Servers store only ciphertext. Plaintext never
-  leaves the client. The server operator cannot read messages or vault entries.
++ *End-to-end encrypted.* Message bodies and secret payloads are encrypted
+  client-side; servers store only ciphertext for these. Metadata (addresses,
+  vault labels) is intentionally plaintext for routing and search.
 + *Client-side proof of work.* Every account creation, login, and message
   requires proof of work computed by the client. No CAPTCHAs, no third-party
   verification services.
@@ -243,8 +246,7 @@ Each user holds two types of key pairs:
   4,032-byte signing key. Used for authenticating PoW challenge requests,
   signing messages, and third-party authentication.
 - *ML-KEM-768 encapsulation key pair* (FIPS~203): a 1,184-byte encapsulation
-  key and a 2,400-byte decapsulation key. Used for encrypting messages and
-  vault entries.
+  key and a 2,400-byte decapsulation key. Used for encrypting messages.
 
 Two key pairs are necessary because ML-DSA and ML-KEM are fundamentally
 different algorithms that cannot substitute for each other---unlike classical
@@ -495,9 +497,11 @@ users have communicated.
 
 == Server Compromise
 
-The server stores only ciphertext and hashed credentials (login key hashed with
-600,000 additional rounds of PBKDF2-HMAC-SHA-256). An attacker who captures the
-database cannot read any user content. Brute forcing the login key directly is
+The server stores encrypted message bodies and secret payloads alongside hashed
+credentials (login key hashed with 600,000 additional rounds of
+PBKDF2-HMAC-SHA-256). An attacker who captures the database cannot decrypt
+message content or secret payloads. Metadata (addresses, vault labels, channel
+counterparties) is stored in plaintext. Brute forcing the login key directly is
 infeasible ($2^(256)$ search space). The only realistic attack is a dictionary
 attack against the user's password, requiring 1,200,000 rounds of
 PBKDF2-HMAC-SHA-256 per guess.
@@ -509,8 +513,10 @@ ML-DSA-65 and ML-KEM-768 are based on the Module-LWE/SIS hardness
 assumptions, which are not known to be efficiently solvable by quantum
 computers. Grover's algorithm provides only a quadratic speedup against the
 symmetric primitives (AES-256-GCM, SHA-256, PBKDF2), reducing their effective
-security to 128 bits---still well within safe margins. The proof-of-work
-algorithm is unaffected by quantum attacks.
+security to 128 bits---still well within safe margins. Proof-of-work difficulty
+is calibrated for classical clients; Grover-style speedups do not expose user
+keys or plaintext, but difficulty assumptions may need retuning if quantum
+mining hardware becomes practical.
 
 == Spam and Sybil Attacks
 
@@ -542,8 +548,9 @@ limiting the practical benefit of ephemeral key material. ML-DSA and ML-KEM are
 both lattice-based (Module-LWE); a structural break against this assumption
 family would compromise both. SLH-DSA (FIPS~205), a hash-based signature
 scheme, exists as a conservative fallback but is not currently used due to its
-substantially larger signatures (8--50~KB). No independent audit of any
-post-quantum implementation exists as of this writing.
+substantially larger signatures (8--50~KB). The Rust PQC libraries used by this
+implementation (RustCrypto `ml-kem`, `ml-dsa`, `slh-dsa`) have not received an
+independent third-party audit as of this writing.
 
 = Related Work
 
@@ -567,8 +574,9 @@ post-quantum implementation exists as of this writing.
 
 *PGP* (1991) provides strong cryptography but requires manual key management.
 *Signal* (2013) solved usability with automatic key management, but is
-centralized and has only partially migrated to post-quantum cryptography
-(ML-KEM for key exchange; signatures remain classical). *Matrix* (2014) is
+centralized and has only partially migrated to post-quantum cryptography:
+Signal's PQXDH protocol~#cite(<moxie2016>) uses ML-KEM for key exchange, but
+identity signatures remain Ed25519 (classical). *Matrix* (2014) is
 federated and encrypted, but uses a proprietary address format and a
 substantially more complex architecture. *Keybase* (2014) combined social-proof
 identity with encryption, but was acquired by Zoom in 2020---a cautionary
