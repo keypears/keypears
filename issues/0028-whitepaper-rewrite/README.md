@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-25"
+closed = "2026-04-25"
 +++
 
 # Rewrite the whitepaper for post-quantum KeyPears
@@ -195,4 +196,22 @@ Update the references.yml to add:
 - FIPS 204 (ML-DSA)
 - Signal PQXDH blog post
 
-### Result: Pending
+### Result: Pass
+
+Whitepaper fully rewritten. 8 pages, zero stale P-256 references. All 16
+identified locations updated. New content: post-quantum motivation with Google
+paper citation, dual key pair model, KEM-based message encryption with signing
+envelope and AAD, third-party authentication section, quantum resistance
+analysis, updated related work table (post-quantum + 3rd-party auth rows).
+References updated with Babbush 2026, FIPS 203, FIPS 204. Codex review
+addressed: metadata/ciphertext distinction, client-side scope narrowed, PoW
+quantum claim softened, audit claim scoped to specific libraries, Signal claim
+cited.
+
+## Conclusion
+
+The whitepaper accurately describes KeyPears as a post-quantum federated
+protocol using ML-DSA-65 and ML-KEM-768. All P-256/ECDSA/ECDH references
+replaced. New sections cover the quantum threat, dual key pairs, KEM-based
+encryption with message signing, and third-party authentication. The paper
+is 8 pages with 3 figures, 1 table, and 7 references.
