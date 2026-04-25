@@ -266,9 +266,21 @@ function ChannelPage() {
       return { ok: false, reason: "loading" };
 
     const isSender = keyMap.has(msg.senderPubKey);
-    const myPubKeyHex = isSender ? msg.senderPubKey : msg.recipientPubKey;
 
-    const matchingKey = keyMap.get(myPubKeyHex);
+    // Look up the matching key entry. The keyMap is keyed by signingPublicKey.
+    // If we're the sender, look up by senderPubKey (our signing key).
+    // If we're the recipient, recipientPubKey is an encap key — search by value.
+    let matchingKey: { encryptedSigningKey: string; encryptedDecapKey: string; encapPublicKey: string; loginKeyHash: string | null } | undefined;
+    if (isSender) {
+      matchingKey = keyMap.get(msg.senderPubKey);
+    } else {
+      for (const entry of keyMap.values()) {
+        if (entry.encapPublicKey === msg.recipientPubKey) {
+          matchingKey = entry;
+          break;
+        }
+      }
+    }
     if (!matchingKey) return { ok: false, reason: "wrong-key" };
 
     if (matchingKey.loginKeyHash !== currentPasswordHash) {
