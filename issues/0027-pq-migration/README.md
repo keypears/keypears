@@ -511,4 +511,26 @@ Fix:
    verification before display, AAD in decryption
 5. `packages/client/src/auth.ts` — fix doc comment
 
-### Result: Pending
+### Result: Pass
+
+All six Codex findings fixed:
+
+1. **Signature verification enforced.** `api.router.ts` verifies
+   `senderSignature` on incoming remote messages via `verifyMessageSignature`
+   before inserting. `channel.$address.tsx` verifies before displaying.
+2. **Server-side key validation.** `sendMessage` validates `senderPubKey`
+   matches the authenticated user's active signing key, and `recipientPubKey`
+   matches the recipient's active encap key (local delivery).
+3. **PoW binding validated.** `sendMessage` rejects if PoW
+   `senderAddress`/`recipientAddress` don't match the session-derived sender
+   and the requested recipient.
+4. **Canonical signed envelope.** `message.ts` builds a length-prefixed
+   `KeypearsMessageV1` envelope covering sender address, recipient address,
+   both public keys, and both ciphertexts. Signature covers the full envelope.
+5. **AAD on encryption.** Both `aesgcmMlkemEncrypt` and `aesgcmMlkemDecrypt`
+   pass `senderAddress\0recipientAddress` as AAD. `decryptMessageContent` now
+   requires sender/recipient address params.
+6. **Size bounds.** `api.router.ts` checks `senderEncryptedContent` (100K) and
+   `senderSignature` (6700) sizes on remote pull.
+7. **Doc comment.** `packages/client/src/auth.ts` updated from "P-256 ECDSA"
+   to "ML-DSA-65".
