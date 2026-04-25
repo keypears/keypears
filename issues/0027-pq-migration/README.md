@@ -534,3 +534,80 @@ All six Codex findings fixed:
    `senderSignature` (6700) sizes on remote pull.
 7. **Doc comment.** `packages/client/src/auth.ts` updated from "P-256 ECDSA"
    to "ML-DSA-65".
+
+Codex review found additional issues: type errors from stale `encryptMessage`
+call sites, missing federation key validation on remote inbound, missing
+signature verification on local message storage, and missing remote recipient
+key validation. These are fixed in experiment 3.
+
+## Experiment 3: Fix type errors and remaining validation gaps
+
+### Goal
+
+Fix the compile errors from experiment 2's `encryptMessage` signature change,
+and close the remaining server-side validation gaps identified by Codex.
+
+### Type errors to fix
+
+The `encryptMessage` and `encryptSecretMessage` signatures changed from 4 args
+to 8 args (added sender/recipient addresses and public key hex strings for the
+canonical envelope). Three call sites were not updated:
+
+1. `webapp/src/routes/_app/_saved/_chrome/send.tsx:124` — update to pass all
+   8 args
+2. `webapp/src/routes/_app/_saved/channel.$address.tsx:410` — update to pass
+   all 8 args
+3. `webapp/src/routes/_app/_saved/vault.$id.tsx:569` — `encryptSecretMessage`
+   call, update to pass all 8 args
+
+Also `channel.$address.tsx:253` references undefined `myAddress` in `tryDecrypt`
+— needs to get it from the component's computed `myAddress` variable.
+
+### Validation gaps to fix
+
+**High: Remote inbound messages not validated against federation keys.**
+
+`api.router.ts` verifies the signature against `messageData.senderPubKey` but
+never checks that key actually belongs to the claimed sender via federation
+lookup, or that `recipientPubKey` matches the local recipient's active encap
+key.
+
+Fix:
+- After pulling the message in `notifyMessageHandler`, look up the sender's
+  signing key via `fetchRemotePublicKey(messageData.senderAddress)` and verify
+  `messageData.senderPubKey` matches.
+- Look up the local recipient's active encap key and verify
+  `messageData.recipientPubKey` matches.
+
+**Medium: Local message storage without signature verification.**
+
+`sendMessage` in `message.functions.ts` validates keys but doesn't verify the
+`senderSignature` before storing. The server has all envelope fields and should
+reject invalid signatures.
+
+Fix:
+- Import `verifyMessageSignature` from `~/lib/message`.
+- After key validation and before inserting, verify the signature. Reject if
+  invalid.
+
+**Medium: Remote outbound trusts client-supplied recipientPubKey.**
+
+In the remote delivery branch of `sendMessage`, the server stores and delivers
+whatever `recipientPubKey` the client sends without checking it against the
+recipient's actual key via federation.
+
+Fix:
+- In the remote branch, call `fetchRemotePublicKey(input.recipientAddress)` and
+  verify `input.recipientPubKey` matches the result's `encapPublicKey`.
+
+### Files to modify
+
+1. `webapp/src/routes/_app/_saved/_chrome/send.tsx` — fix encryptMessage call
+2. `webapp/src/routes/_app/_saved/channel.$address.tsx` — fix encryptMessage
+   call and myAddress reference
+3. `webapp/src/routes/_app/_saved/vault.$id.tsx` — fix encryptSecretMessage call
+4. `webapp/src/server/api.router.ts` — federation key validation on remote pull
+5. `webapp/src/server/message.functions.ts` — signature verification before
+   store, remote recipient key validation
+
+### Result: Pending
