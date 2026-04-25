@@ -5,14 +5,17 @@ same addresses for KeyPears without any changes.
 
 ## Identity model
 
-Each user holds one or more P-256 (NIST) key pairs. The most recent key is the
-**active key**, used for ECDH key agreement in new messages. Users may rotate
-keys freely, up to 100 per account. Old keys are retained so that messages
-encrypted under previous keys can still be decrypted.
+Each user holds one or more pairs of post-quantum keys: an **ML-DSA-65**
+(FIPS 204) signing key pair and an **ML-KEM-768** (FIPS 203) encryption key
+pair. The most recent keys are the **active keys** — the ML-KEM-768
+encapsulation key is used for key encapsulation in new messages, and the
+ML-DSA-65 verification key is used to authenticate the sender. Users may
+rotate keys freely, up to 100 per account. Old keys are retained so that
+messages encrypted under previous keys can still be decrypted.
 
-Private keys are encrypted client-side with AES-256-GCM under the user's
-encryption key and stored on the server as ciphertext. The server cannot
-decrypt them.
+Signing keys and decapsulation keys are encrypted client-side with AES-256-GCM
+under the user's encryption key and stored on the server as ciphertext. The
+server cannot decrypt them.
 
 ## Domain ownership
 

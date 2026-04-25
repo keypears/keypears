@@ -60,8 +60,8 @@ settings page.
 ## Authenticated challenges
 
 Challenge requests for messaging are **authenticated**: the sender must sign the
-request with their P-256 (NIST) private key. The recipient's server verifies the
-signature by looking up the sender's public key via federation.
+request with their ML-DSA-65 signing key. The recipient's server verifies the
+signature by looking up the sender's signing public key via federation.
 
 Both sender and recipient addresses are signed into the challenge payload by the
 server's HMAC-SHA-256. This prevents:

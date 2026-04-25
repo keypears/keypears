@@ -1,12 +1,13 @@
 KeyPears is a federated protocol for end-to-end encrypted communication and
 secret management. User identities are email-style addresses (`name@domain`)
-backed by NIST P-256 key pairs. Any domain can host a KeyPears server, and
-servers discover each other through DNS.
+backed by post-quantum key pairs (ML-DSA-65 for signing, ML-KEM-768 for
+encryption). Any domain can host a KeyPears server, and servers discover each
+other through DNS.
 
 ## What KeyPears does
 
 - **Encrypted messaging** between users on any domain, with automatic key
-  exchange via ECDH.
+  encapsulation via ML-KEM-768.
 - **Secret vault** for storing passwords, credentials, and notes, encrypted
   client-side.
 - **Federated identity** — your address is `name@domain`, the same format as
@@ -24,8 +25,8 @@ servers discover each other through DNS.
 
 ## How it works
 
-All cryptographic operations — key derivation, Diffie-Hellman key exchange,
-encryption, and proof of work — execute client-side. Servers store only
+All cryptographic operations — key derivation, key encapsulation,
+encryption, signing, and proof of work — execute client-side. Servers store only
 ciphertext and never possess the keys needed to decrypt it.
 
 For a concise protocol overview, read the [whitepaper](/keypears.pdf).

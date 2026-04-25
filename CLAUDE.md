@@ -1,6 +1,6 @@
 # KeyPears
 
-An end-to-end encrypted secret sharing system built on federated Diffie-Hellman
+An end-to-end encrypted secret sharing system built on federated post-quantum
 key exchange. User identities are KeyPears addresses (e.g. `alice@keypears.com`).
 
 ## Project structure
@@ -71,7 +71,7 @@ keypears/
       lib/
         auth.ts         # three-tier PBKDF2-SHA256 KDF + encryption key caching
         config.ts       # domain config + derived secrets
-        message.ts      # ECDH encryption/decryption
+        message.ts      # ML-KEM encryption/decryption
         vault.ts        # vault key derivation + entry encrypt/decrypt
         channel-context.tsx # React context for channel polling
         use-pow-miner.ts   # shared PoW mining hook
@@ -87,7 +87,7 @@ keypears/
         protocol/
           addressing.md          # address format and identity
           key-derivation.md      # three-tier PBKDF2-HMAC-SHA-256
-          encryption.md          # AES-256-GCM, ECDH on P-256
+          encryption.md          # AES-256-GCM, ML-KEM-768
           proof-of-work.md       # pow5-64b challenges
 ```
 
@@ -99,10 +99,10 @@ keypears/
 - **Styling**: Tailwind CSS v4, shadcn components
 - **Auth**: Three-tier PBKDF2-HMAC-SHA256 KDF (password key -> encryption key + login key)
 - **Sessions**: Random 32-byte tokens, SHA-256-hashed in DB, 30-day expiry
-- **Crypto**: P-256 key pairs, AES-256-GCM encryption, ECDH shared secrets (`@webbuf/*`)
+- **Crypto**: ML-DSA-65 signatures, ML-KEM-768 key encapsulation, AES-256-GCM encryption (`@webbuf/mldsa`, `@webbuf/mlkem`, `@webbuf/aesgcm-mlkem`)
 - **PoW**: pow5-64b algorithm (WebGPU), signed stateless challenges
 - **Federation**: Pull-model message delivery, domain verification via TLS
-- **Third-party auth**: OAuth-style redirect flow with P-256 ECDSA signing (`/sign` page + `@keypears/client` auth helpers)
+- **Third-party auth**: OAuth-style redirect flow with ML-DSA-65 signing (`/sign` page + `@keypears/client` auth helpers)
 - **Env**: dotenvx for encrypted env management
 - **Linting**: oxlint (161 rules)
 - **Formatting**: Prettier
@@ -119,7 +119,7 @@ All documentation lives under `webapp/src/docs/` and is served at `/docs/*`:
 - [webapp/src/docs/self-hosting.md](webapp/src/docs/self-hosting.md) — Run your own server, env vars, claiming your primary domain
 - [webapp/src/docs/domain-claiming.md](webapp/src/docs/domain-claiming.md) — Claiming a domain on a third-party server, bootstrap flow
 - [webapp/src/docs/protocol/key-derivation.md](webapp/src/docs/protocol/key-derivation.md) — Three-tier PBKDF2-HMAC-SHA-256
-- [webapp/src/docs/protocol/encryption.md](webapp/src/docs/protocol/encryption.md) — AES-256-GCM and ECDH on P-256
+- [webapp/src/docs/protocol/encryption.md](webapp/src/docs/protocol/encryption.md) — AES-256-GCM and ML-KEM-768
 - [webapp/src/docs/security.md](webapp/src/docs/security.md) — Threat model and browser defenses
 
 **Env var invariant:** whenever you add, remove, or change an environment
@@ -261,13 +261,13 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
 ```
 Password (never stored)
   -> Password Key (ephemeral, discarded after use)
-    -> Encryption Key (cached in localStorage, encrypts private keys)
+    -> Encryption Key (cached in localStorage, encrypts ML-DSA signing keys and ML-KEM decapsulation keys)
     -> Login Key (sent to server once, then discarded)
 ```
 
 - All KDF uses PBKDF2-HMAC-SHA-256 (RFC 8018), 300k rounds per client tier, 600k on server.
 - Only the encryption key is cached. Password key is ephemeral.
-- If localStorage is compromised: attacker can decrypt keys but cannot
+- If localStorage is compromised: attacker can decrypt ML-DSA signing keys and ML-KEM decapsulation keys but cannot
   impersonate the user (login key is a sibling, not derivable from encryption key).
 - Server hashes the login key with 600k additional rounds using a per-user salt (derived from userId) before storing. Total: 1.2M rounds from password to stored hash; server path alone meets the OWASP Password Storage Cheat Sheet recommendation of 600k rounds for PBKDF2-HMAC-SHA-256.
 
@@ -287,7 +287,7 @@ Password (never stored)
   - `messageDifficulty` — subsequent messages (default 7M).
   - Server-enforced minimums: 7M for both.
   - Users configure via sliders on the Settings page.
-- Challenge requests are authenticated: sender signs with P-256 ECDSA,
+- Challenge requests are authenticated: sender signs with ML-DSA-65,
   recipient verifies via federation public key lookup. This prevents
   probing channel existence (social graph privacy).
 - Both sender and recipient addresses are signed into the challenge
@@ -299,18 +299,18 @@ Password (never stored)
 
 ### Key management
 
-- Users can rotate P-256 key pairs (max 100 per account).
-- Active key = most recent row in `user_keys` table.
+- Users can rotate key pairs (max 100 per account). Each key row contains an ML-DSA-65 signing key pair and an ML-KEM-768 encapsulation key pair.
+- Active key = most recent row in `user_keys` table (both signing and encapsulation keys).
 - Each key tracks `loginKeyHash` — identifies which password encrypted it.
-- Keys encrypted with the current login password auto-decrypt.
+- Signing keys and decapsulation keys encrypted with the current login password auto-decrypt.
 - Keys encrypted with a different password show as "locked" — user can
   re-encrypt by entering the old password on the Keys page.
 
 ### Password change
 
-- Only re-encrypts keys that match the current password.
+- Only re-encrypts signing keys and decapsulation keys that match the current password.
 - Keys under a different password are left untouched.
-- Server atomically updates password hash + re-encrypted keys.
+- Server atomically updates password hash + re-encrypted signing keys and decapsulation keys.
 
 ### Domain claiming
 
@@ -338,12 +338,12 @@ TypeScript enforces the allowed values at compile time.
 
 - **domains**: id, domain, adminUserId, openRegistration, allowThirdPartyDomains, createdAt
 - **users**: id, domainId, name, passwordHash, channelDifficulty, messageDifficulty, expiresAt, createdAt
-- **user_keys**: id, userId, keyNumber, publicKey, encryptedPrivateKey, loginKeyHash, createdAt
+- **user_keys**: id, userId, keyNumber, signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey, loginKeyHash, createdAt
 - **sessions**: tokenHash (PK), userId, expiresAt, createdAt
-- **vault_entries**: id, userId, name, type, searchTerms, publicKey, encryptedData, createdAt, updatedAt
+- **vault_entries**: id, userId, name, type, searchTerms, keyId, encryptedData, createdAt, updatedAt
 - **channels**: id, ownerId, counterpartyAddress, createdAt, updatedAt
-- **messages**: id, channelId, senderAddress, encryptedContent, senderPubKey, recipientPubKey, isRead, createdAt
-- **pending_deliveries**: id, tokenHash, senderAddress, recipientAddress, encryptedContent, senderPubKey, recipientPubKey, createdAt
+- **messages**: id, channelId, senderAddress, encryptedContent, senderEncryptedContent, senderPubKey, recipientPubKey, senderSignature, isRead, createdAt
+- **pending_deliveries**: id, tokenHash, senderAddress, recipientAddress, encryptedContent, senderEncryptedContent, senderPubKey, recipientPubKey, senderSignature, createdAt
 - **used_pow**: solvedHeaderHash (PK), solvedHeader, target, expiresAt, createdAt
 - **pow_log**: id, userId, algorithm, difficulty, cumulativeDifficulty, createdAt
 

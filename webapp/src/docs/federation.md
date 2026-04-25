@@ -94,11 +94,13 @@ server via oRPC:
 ```typescript
 const client = createRemoteClient(recipientApiUrl);
 const result = await client.getPublicKey({ address: "alice@acme.com" });
-// result.publicKey = "02abc...def"
+// result.signingPublicKey = "..." (ML-DSA-65 verification key)
+// result.encapPublicKey = "..."   (ML-KEM-768 encapsulation key)
 ```
 
-The server returns the user's **active** public key (the most recently rotated
-P-256 key). This is used to compute the ECDH shared secret for encryption.
+The server returns the user's **active** public keys (the most recently rotated
+key pair): an ML-DSA-65 signing public key for signature verification and an
+ML-KEM-768 encapsulation public key for key encapsulation.
 
 ## Message delivery
 
@@ -168,8 +170,8 @@ Each message stored on the server contains:
 | `recipientPubKey`  | Recipient's public key at time of sending     |
 | `isRead`           | Whether the recipient has viewed this message |
 
-Both public keys are stored so the recipient knows which keys to use for ECDH
-decryption, even after key rotation.
+Both public keys are stored so the recipient knows which keys to use for
+ML-KEM decapsulation, even after key rotation.
 
 ### Message size limit
 
@@ -185,7 +187,7 @@ API is mounted at `/api` and provides the following public procedures:
 | Procedure         | Description                                                       |
 | ----------------- | ----------------------------------------------------------------- |
 | `serverInfo`      | Returns domain info                                               |
-| `getPublicKey`    | Returns active public key for an address                          |
+| `getPublicKey`    | Returns active signing and encapsulation public keys for an address |
 | `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
 | `notifyMessage`   | Notifies server of a new incoming message                         |
 | `pullMessage`     | Serves a pending message delivery (idempotent, token-based)       |

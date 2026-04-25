@@ -4,6 +4,7 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0030](0030-message-retention/README.md)         | Message Retention              | 2026-04-25 |
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |

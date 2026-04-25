@@ -48,7 +48,7 @@ impractical.
 ## Social-graph probing
 
 Proof-of-work challenge requests for messaging are authenticated: the sender
-must sign the request with their P-256 (NIST) private key, and the recipient's
+must sign the request with their ML-DSA-65 signing key, and the recipient's
 server verifies the signature via federation.
 
 An unauthenticated party cannot request a challenge, and therefore cannot probe
@@ -69,9 +69,10 @@ the response came from the real domain.
 ## Client storage theft
 
 An attacker who compromises a user's client storage obtains the encryption key,
-which can decrypt the user's P-256 private keys. However, the login key is a
-cryptographic sibling of the encryption key (derived from the same parent with
-a different salt), not a child.
+which can decrypt the user's ML-DSA-65 signing keys and ML-KEM-768
+decapsulation keys. However, the login key is a cryptographic sibling of the
+encryption key (derived from the same parent with a different salt), not a
+child.
 
 The attacker cannot derive the login key, cannot impersonate the user on the
 server, and cannot access the server-side session. The attack surface is limited
@@ -126,6 +127,14 @@ which is important because in-memory rate limiting in Node.js would scale
 incorrectly with horizontal autoscaling.
 
 See `infra/README.md` for the deployment architecture.
+
+## Quantum resistance
+
+KeyPears uses post-quantum cryptographic algorithms standardized by NIST:
+ML-DSA-65 (FIPS 204) for digital signatures and ML-KEM-768 (FIPS 203) for key
+encapsulation. These algorithms are designed to resist attacks from both
+classical and quantum computers. A future cryptographically relevant quantum
+computer cannot retroactively decrypt captured ciphertext or forge signatures.
 
 ## Limitations
 

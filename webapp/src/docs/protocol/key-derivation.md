@@ -35,7 +35,7 @@ encryption key and login key, then it is discarded. It is never stored.
 
 The encryption key is derived from the password key with a different salt and
 another 300,000 rounds of PBKDF2-HMAC-SHA-256. It is used to encrypt and
-decrypt private keys (P-256) using AES-256-GCM.
+decrypt ML-DSA signing keys and ML-KEM decapsulation keys using AES-256-GCM.
 
 The encryption key **never leaves the client**. It is not sent to the server.
 It is cached on the client after the user enters their password (on account
@@ -73,7 +73,7 @@ independently.
 
 **NIST-approved primitives.** All primitives are NIST-approved: SHA-256
 (FIPS 180-4), HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM
-(SP 800-38D), and P-256 (FIPS 186-5). The server-side tier alone performs
+(SP 800-38D), ML-DSA-65 (FIPS 204), and ML-KEM-768 (FIPS 203). The server-side tier alone performs
 600,000 rounds of PBKDF2-HMAC-SHA-256, matching the OWASP Password Storage
 Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256. The full
 password-to-hash chain exceeds 1,200,000 rounds.
@@ -87,7 +87,7 @@ key, then discarded. The password key is used to derive the encryption key and
 login key, then discarded. Only the encryption key is cached.
 
 **If client storage is compromised:** The attacker gets the encryption key and
-can decrypt private keys on that device. But they CANNOT derive the login key
+can decrypt ML-DSA signing keys and ML-KEM decapsulation keys on that device. But they CANNOT derive the login key
 (it's a sibling, not a child) and cannot impersonate the user on the server.
 They also cannot recover the user's password.
 
@@ -126,9 +126,10 @@ re-encrypted:
 
 ## Key rotation
 
-When rotating keys, a new P-256 key pair is generated. The private key is
-encrypted with the cached encryption key and stored in the `user_keys` table
-alongside the public key. The most recent key is the active key. The new key's
+When rotating keys, new ML-DSA-65 and ML-KEM-768 key pairs are generated. The
+signing key and decapsulation key are encrypted with the cached encryption key
+and stored in the `user_keys` table alongside the public keys. The most recent
+keys are the active keys. The new key's
 `loginKeyHash` is set to match the user's current password hash.
 
 If the cached encryption key is missing (cleared client storage, new device),
@@ -144,7 +145,8 @@ discarded.
 | MAC             | HMAC-SHA-256                             | `@webbuf/sha256`             |
 | KDF             | PBKDF2-HMAC-SHA-256 (RFC 8018)           | Web Crypto (`crypto.subtle`) |
 | Encryption      | AES-256-GCM (AEAD)                       | `@webbuf/aesgcm`             |
-| Key pairs       | P-256 (NIST, FIPS 186-5)                 | `@webbuf/p256`               |
+| Signing keys    | ML-DSA-65 (NIST, FIPS 204)               | `@webbuf/mldsa`              |
+| Encryption keys | ML-KEM-768 (NIST, FIPS 203)              | `@webbuf/mlkem`              |
 | Rounds per tier | 300,000 client-side, 600,000 server-side |                              |
 
 ## Implementation
