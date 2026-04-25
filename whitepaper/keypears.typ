@@ -48,8 +48,8 @@
   (FIPS~204) for digital signatures and ML-KEM-768 (FIPS~203) for key
   encapsulation. Any domain can host a KeyPears server, and servers discover
   each other through DNS and a well-known configuration file. Private-key
-  operations, encryption, decryption, and proof-of-work mining execute
-  client-side using NIST-approved primitives. Servers store encrypted message
+  operations, encryption, and decryption use NIST-approved primitives and
+  execute client-side; proof-of-work mining also executes client-side. Servers store encrypted message
   bodies and secret payloads but never possess the keys needed to decrypt them;
   metadata such as addresses and vault labels remain plaintext to support
   routing and search. A
@@ -549,7 +549,7 @@ both lattice-based (Module-LWE); a structural break against this assumption
 family would compromise both. SLH-DSA (FIPS~205), a hash-based signature
 scheme, exists as a conservative fallback but is not currently used due to its
 substantially larger signatures (8--50~KB). The Rust PQC libraries used by this
-implementation (RustCrypto `ml-kem`, `ml-dsa`, `slh-dsa`) have not received an
+implementation (RustCrypto `ml-kem` and `ml-dsa`) have not received an
 independent third-party audit as of this writing.
 
 = Related Work
@@ -575,7 +575,7 @@ independent third-party audit as of this writing.
 *PGP* (1991) provides strong cryptography but requires manual key management.
 *Signal* (2013) solved usability with automatic key management, but is
 centralized and has only partially migrated to post-quantum cryptography:
-Signal's PQXDH protocol~#cite(<moxie2016>) uses ML-KEM for key exchange, but
+Signal's PQXDH protocol~#cite(<signal-pqxdh>) uses ML-KEM for key exchange, but
 identity signatures remain Ed25519 (classical). *Matrix* (2014) is
 federated and encrypted, but uses a proprietary address format and a
 substantially more complex architecture. *Keybase* (2014) combined social-proof
