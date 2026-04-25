@@ -18,6 +18,7 @@
     "db:clear": "bun run db:clear:keypears && bun run db:clear:passapples",
     "db:clear:keypears": "dotenvx run -f .env.dev -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:clear:passapples": "dotenvx run -f .env.dev.passapples -- drizzle-kit push --config drizzle.clear.config.ts",
+    "db:clear:prod": "dotenvx run -f .env.prod -- drizzle-kit push --config drizzle.clear.config.ts",
     "db:generate": "dotenvx run -f .env.dev -- drizzle-kit generate",
     "build:icons": "bun run process-icons.ts",
     "test": "dotenvx run -f .env.test -- vitest run"
