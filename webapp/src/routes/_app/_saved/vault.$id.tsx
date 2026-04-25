@@ -42,6 +42,7 @@ import { signPowRequest } from "~/lib/auth";
 import { PowModal } from "~/components/PowModal";
 import type { VaultEntryData } from "~/lib/vault";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
 import {
   KeyRound,
   FileText,
@@ -441,7 +442,7 @@ function EntryDetail({
     let cancelled = false;
     (async () => {
       const result = await tryDecryptVaultEntry(
-        entry.encryptedData,
+        WebBuf.fromHex(entry.encryptedData as string),
         encryptionKey,
       );
       if (cancelled) return;
@@ -453,7 +454,7 @@ function EntryDetail({
       for (const ver of olderVersions) {
         if (!keyMap.has(ver.keyId)) continue;
         const verResult = await tryDecryptVaultEntry(
-          ver.encryptedData,
+          WebBuf.fromHex(ver.encryptedData as string),
           encryptionKey,
         );
         if (cancelled) return;
@@ -504,7 +505,7 @@ function EntryDetail({
         data = { type: "text", text: editText };
       }
 
-      const encryptedData = await encryptVaultEntry(data, encryptionKey);
+      const encryptedDataBuf = await encryptVaultEntry(data, encryptionKey);
       const result = await updateEntry({
         data: {
           secretId: entry.id,
@@ -512,7 +513,7 @@ function EntryDetail({
           type: entry.type,
           searchTerms: editSearchTerms,
           keyId: entry.keyId,
-          encryptedData,
+          encryptedData: encryptedDataBuf.toHex(),
         },
       });
       setEditing(false);
@@ -560,7 +561,7 @@ function EntryDetail({
       const encKey = getCachedEncryptionKey();
       if (!encKey) throw new Error("Encryption key not found");
       const mySigningKey = await decryptSigningKey(
-        myActiveKey.encryptedSigningKey,
+        WebBuf.fromHex(myActiveKey.encryptedSigningKey as string),
         encKey,
       );
 
@@ -568,26 +569,26 @@ function EntryDetail({
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
 
-      const senderEncapPubKey = FixedBuf.fromHex(1184, myActiveKey.encapPublicKey);
-      const recipientEncapPubKey = FixedBuf.fromHex(1184, recipientKey.encapPublicKey);
+      const senderEncapPubKey = FixedBuf.fromHex(1184, myActiveKey.encapPublicKey as string);
+      const recipientEncapPubKey = FixedBuf.fromHex(1184, recipientKey.encapPublicKey as string);
       const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptSecretMessage(
         secret,
         senderAddress,
         shareAddress,
         mySigningKey,
-        myActiveKey.signingPublicKey,
+        WebBuf.fromHex(myActiveKey.signingPublicKey as string),
         senderEncapPubKey,
         recipientEncapPubKey,
-        recipientKey.encapPublicKey,
+        WebBuf.fromHex(recipientKey.encapPublicKey as string),
       );
 
       pendingShareRef.current = {
         recipientAddress: shareAddress,
-        encryptedContent: recipientCiphertext,
-        senderEncryptedContent: senderCiphertext,
-        senderSignature: msgSignature,
-        senderPubKey: myActiveKey.signingPublicKey,
-        recipientPubKey: recipientKey.encapPublicKey,
+        encryptedContent: recipientCiphertext.toHex(),
+        senderEncryptedContent: senderCiphertext.toHex(),
+        senderSignature: msgSignature.toHex(),
+        senderPubKey: myActiveKey.signingPublicKey as string,
+        recipientPubKey: recipientKey.encapPublicKey as string,
       };
 
       // Get PoW challenge
@@ -601,7 +602,7 @@ function EntryDetail({
         data: {
           recipientAddress: shareAddress,
           senderAddress,
-          senderPubKey: myActiveKey.signingPublicKey,
+          senderPubKey: myActiveKey.signingPublicKey as string,
           signature,
           timestamp,
         },
@@ -1157,7 +1158,7 @@ function EntryDetail({
                             onClick={async () => {
                               const encKey = getCachedEncryptionKey();
                               if (!verDecrypted?.ok || !isUnlockable || !encKey) return;
-                              const encryptedData = await encryptVaultEntry(
+                              const encryptedDataBuf = await encryptVaultEntry(
                                 verDecrypted.data,
                                 encKey,
                               );
@@ -1172,7 +1173,7 @@ function EntryDetail({
                                   type: entry.type,
                                   searchTerms: entry.searchTerms,
                                   keyId: entry.keyId,
-                                  encryptedData,
+                                  encryptedData: encryptedDataBuf.toHex(),
                                 },
                               });
                               onSaved(result.id);

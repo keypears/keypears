@@ -2,6 +2,7 @@ import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
 import { newId, hashToken } from "./utils";
 import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
 import { safeFetch } from "./fetch";
@@ -129,11 +130,11 @@ export async function fetchRemotePowChallenge(input: {
 export async function deliverRemoteMessage(
   senderAddress: string,
   recipientAddress: string,
-  encryptedContent: string,
-  senderEncryptedContent: string,
-  senderPubKey: string,
-  recipientPubKey: string,
-  senderSignature: string,
+  encryptedContent: WebBuf,
+  senderEncryptedContent: WebBuf,
+  senderPubKey: WebBuf,
+  recipientPubKey: WebBuf,
+  senderSignature: WebBuf,
   pow: {
     solvedHeader: string;
     target: string;
@@ -163,14 +164,15 @@ export async function deliverRemoteMessage(
   });
 
   // 2. Notify recipient's server, passing client-mined PoW if provided
+  // Convert WebBuf to hex for oRPC wire format
   const client = await getRemoteClient(parsed.domain);
   try {
     await client.notifyMessage({
       senderAddress,
       recipientAddress,
       pullToken: token,
-      senderEncryptedContent,
-      senderSignature,
+      senderEncryptedContent: senderEncryptedContent.toHex(),
+      senderSignature: senderSignature.toHex(),
       pow,
     });
   } catch (err) {

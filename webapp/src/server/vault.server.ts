@@ -1,6 +1,7 @@
 import { db } from "~/db";
 import { secrets, secretVersions } from "~/db/schema";
 import { eq, and, desc, lt, or, like, max } from "drizzle-orm";
+import type { WebBuf } from "@webbuf/webbuf";
 import { newId } from "./utils";
 
 export async function createVaultEntry(
@@ -9,7 +10,7 @@ export async function createVaultEntry(
   type: string,
   searchTerms: string,
   keyId: string,
-  encryptedData: string,
+  encryptedData: WebBuf,
   sourceMessageId?: string,
   sourceAddress?: string,
 ): Promise<{ id: string; secretId: string }> {
@@ -46,7 +47,7 @@ export async function createNewVersion(
   type: string,
   searchTerms: string,
   keyId: string,
-  encryptedData: string,
+  encryptedData: WebBuf,
 ): Promise<string> {
   const [maxRow] = await db
     .select({ maxVersion: max(secretVersions.version) })

@@ -229,10 +229,10 @@ export const saveMyUser = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
-      input.signingPublicKey,
-      input.encapPublicKey,
-      input.encryptedSigningKey,
-      input.encryptedDecapKey,
+      WebBuf.fromHex(input.signingPublicKey),
+      WebBuf.fromHex(input.encapPublicKey),
+      WebBuf.fromHex(input.encryptedSigningKey),
+      WebBuf.fromHex(input.encryptedDecapKey),
     );
     // Replace the 1-day session with a 30-day session
     const token = getCookie(COOKIE_NAME);
@@ -303,10 +303,10 @@ export const rotateKey = createServerFn({ method: "POST" })
     if (!row.passwordHash) throw new Error("Account not saved");
     const result = await insertKey(
       row.id,
-      input.signingPublicKey,
-      input.encapPublicKey,
-      input.encryptedSigningKey,
-      input.encryptedDecapKey,
+      WebBuf.fromHex(input.signingPublicKey),
+      WebBuf.fromHex(input.encapPublicKey),
+      WebBuf.fromHex(input.encryptedSigningKey),
+      WebBuf.fromHex(input.encryptedDecapKey),
       row.passwordHash,
     );
     return { keyNumber: result.keyNumber };
@@ -318,7 +318,16 @@ export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
   const user = await getUserById(userId);
   if (!user) return { keys: [], passwordHash: null };
   const keyList = await getRecentKeys(userId, 100);
-  return { keys: keyList, passwordHash: user.passwordHash };
+  return {
+    keys: keyList.map((k) => ({
+      ...k,
+      signingPublicKey: k.signingPublicKey.toHex(),
+      encapPublicKey: k.encapPublicKey.toHex(),
+      encryptedSigningKey: k.encryptedSigningKey.toHex(),
+      encryptedDecapKey: k.encryptedDecapKey.toHex(),
+    })),
+    passwordHash: user.passwordHash,
+  };
 });
 
 export const getProfile = createServerFn({ method: "GET" })
@@ -336,7 +345,7 @@ export const getProfile = createServerFn({ method: "GET" })
     ]);
     return {
       name: row.name,
-      signingPublicKey: activeKey?.signingPublicKey ?? null,
+      signingPublicKey: activeKey?.signingPublicKey.toHex() ?? null,
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
     };
@@ -367,7 +376,12 @@ export const getPowHistoryForAddress = createServerFn({ method: "GET" })
 export const getMyEncryptedKeys = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context: { userId } }) => {
-    return getAllEncryptedKeys(userId);
+    const rows = await getAllEncryptedKeys(userId);
+    return rows.map((k) => ({
+      ...k,
+      encryptedSigningKey: k.encryptedSigningKey.toHex(),
+      encryptedDecapKey: k.encryptedDecapKey.toHex(),
+    }));
   });
 
 export const changeMyPassword = createServerFn({ method: "POST" })
@@ -388,7 +402,15 @@ export const changeMyPassword = createServerFn({ method: "POST" })
     const row = await getUserById(userId);
     if (!row) throw new Error("User not found");
     if (!row.passwordHash) throw new Error("Account not saved");
-    await changePassword(row.id, input.newLoginKey, input.reEncryptedKeys);
+    await changePassword(
+      row.id,
+      input.newLoginKey,
+      input.reEncryptedKeys.map((k) => ({
+        id: k.id,
+        encryptedSigningKey: WebBuf.fromHex(k.encryptedSigningKey),
+        encryptedDecapKey: WebBuf.fromHex(k.encryptedDecapKey),
+      })),
+    );
     // Revoke all other sessions
     const currentHash = hashCurrentToken();
     if (currentHash) {
@@ -411,8 +433,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
     await reEncryptKey(
       userId,
       input.keyId,
-      input.encryptedSigningKey,
-      input.encryptedDecapKey,
+      WebBuf.fromHex(input.encryptedSigningKey),
+      WebBuf.fromHex(input.encryptedDecapKey),
       input.loginKey,
     );
     return { success: true };
@@ -487,10 +509,10 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
-      input.signingPublicKey,
-      input.encapPublicKey,
-      input.encryptedSigningKey,
-      input.encryptedDecapKey,
+      WebBuf.fromHex(input.signingPublicKey),
+      WebBuf.fromHex(input.encapPublicKey),
+      WebBuf.fromHex(input.encryptedSigningKey),
+      WebBuf.fromHex(input.encryptedDecapKey),
     );
   });
 
@@ -514,10 +536,10 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
     await resetUserPassword(
       input.userId,
       input.newLoginKey,
-      input.signingPublicKey,
-      input.encapPublicKey,
-      input.encryptedSigningKey,
-      input.encryptedDecapKey,
+      WebBuf.fromHex(input.signingPublicKey),
+      WebBuf.fromHex(input.encapPublicKey),
+      WebBuf.fromHex(input.encryptedSigningKey),
+      WebBuf.fromHex(input.encryptedDecapKey),
     );
     return { success: true };
   });

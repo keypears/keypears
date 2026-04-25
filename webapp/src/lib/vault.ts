@@ -37,19 +37,18 @@ export type VaultEntryData = z.infer<typeof VaultEntryData>;
 export async function encryptVaultEntry(
   data: VaultEntryData,
   encryptionKey: FixedBuf<32>,
-): Promise<string> {
+): Promise<WebBuf> {
   const vaultKey = deriveVaultKey(encryptionKey);
   const json = JSON.stringify(data);
-  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(json), vaultKey);
-  return encrypted.toHex();
+  return aesgcmEncryptNative(WebBuf.fromUtf8(json), vaultKey);
 }
 
 export async function decryptVaultEntry(
-  hex: string,
+  encrypted: WebBuf,
   encryptionKey: FixedBuf<32>,
 ): Promise<VaultEntryData> {
   const vaultKey = deriveVaultKey(encryptionKey);
-  const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(hex), vaultKey);
+  const decrypted = await aesgcmDecryptNative(encrypted, vaultKey);
   return VaultEntryData.parse(JSON.parse(decrypted.toUtf8()));
 }
 
@@ -58,12 +57,12 @@ export type DecryptResult =
   | { ok: false; reason: "locked" | "invalid"; raw?: string };
 
 export async function tryDecryptVaultEntry(
-  hex: string,
+  encrypted: WebBuf,
   encryptionKey: FixedBuf<32>,
 ): Promise<DecryptResult> {
   try {
     const vaultKey = deriveVaultKey(encryptionKey);
-    const decrypted = await aesgcmDecryptNative(WebBuf.fromHex(hex), vaultKey);
+    const decrypted = await aesgcmDecryptNative(encrypted, vaultKey);
     const json = decrypted.toUtf8();
     const parsed = VaultEntryData.safeParse(JSON.parse(json));
     if (parsed.success) {

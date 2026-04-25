@@ -25,6 +25,7 @@ import { PowSolutionSchema } from "./schemas";
 import { getSessionUserId } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
+import { WebBuf } from "@webbuf/webbuf";
 import { parseAddress, makeAddress } from "~/lib/config";
 import { verifyMessageSignature } from "~/lib/message";
 import {
@@ -47,9 +48,9 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
       if (!user || !user.passwordHash) return null;
       const key = await getActiveKey(user.id);
       if (!key) return null;
-      return { signingPublicKey: key.signingPublicKey, encapPublicKey: key.encapPublicKey };
+      return { signingPublicKey: key.signingPublicKey.toHex(), encapPublicKey: key.encapPublicKey.toHex() };
     }
-    // Remote user — proxy the request
+    // Remote user — proxy the request (already returns hex from oRPC)
     const remoteKeys = await fetchRemotePublicKey(address);
     return remoteKeys;
   });
@@ -87,9 +88,18 @@ export const sendMessage = createServerFn({ method: "POST" })
     // Validate senderPubKey matches the authenticated user's active signing key
     const senderActiveKey = await getActiveKey(senderId);
     if (!senderActiveKey) throw new Error("No active key");
-    if (input.senderPubKey !== senderActiveKey.signingPublicKey) {
+    if (input.senderPubKey !== senderActiveKey.signingPublicKey.toHex()) {
       throw new Error("senderPubKey does not match your active signing key");
     }
+
+    // Convert hex inputs to WebBuf for DB and crypto operations
+    const encryptedContentBuf = WebBuf.fromHex(input.encryptedContent);
+    const senderEncryptedContentBuf = WebBuf.fromHex(
+      input.senderEncryptedContent,
+    );
+    const senderPubKeyBuf = WebBuf.fromHex(input.senderPubKey);
+    const recipientPubKeyBuf = WebBuf.fromHex(input.recipientPubKey);
+    const senderSignatureBuf = WebBuf.fromHex(input.senderSignature);
 
     // Validate PoW binding: sender/recipient in PoW must match actual addresses
     if (input.pow.senderAddress !== senderAddress) {
@@ -103,11 +113,11 @@ export const sendMessage = createServerFn({ method: "POST" })
     const sigValid = verifyMessageSignature(
       senderAddress,
       input.recipientAddress,
-      input.senderPubKey,
-      input.recipientPubKey,
-      input.encryptedContent,
-      input.senderEncryptedContent,
-      input.senderSignature,
+      senderPubKeyBuf,
+      recipientPubKeyBuf,
+      encryptedContentBuf,
+      senderEncryptedContentBuf,
+      senderSignatureBuf,
     );
     if (!sigValid) throw new Error("Invalid sender signature");
 
@@ -132,7 +142,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       // Validate recipientPubKey matches the recipient's active encap key
       const recipientActiveKey = await getActiveKey(recipientUser.id);
       if (!recipientActiveKey) throw new Error("Recipient has no active key");
-      if (input.recipientPubKey !== recipientActiveKey.encapPublicKey) {
+      if (input.recipientPubKey !== recipientActiveKey.encapPublicKey.toHex()) {
         throw new Error(
           "recipientPubKey does not match recipient's active encap key",
         );
@@ -161,21 +171,21 @@ export const sendMessage = createServerFn({ method: "POST" })
       await insertMessage(
         senderChannelId,
         senderAddress,
-        input.encryptedContent,
-        input.senderEncryptedContent,
-        input.senderPubKey,
-        input.recipientPubKey,
-        input.senderSignature,
+        encryptedContentBuf,
+        senderEncryptedContentBuf,
+        senderPubKeyBuf,
+        recipientPubKeyBuf,
+        senderSignatureBuf,
         true,
       );
       await insertMessage(
         recipientChannelId,
         senderAddress,
-        input.encryptedContent,
-        input.senderEncryptedContent,
-        input.senderPubKey,
-        input.recipientPubKey,
-        input.senderSignature,
+        encryptedContentBuf,
+        senderEncryptedContentBuf,
+        senderPubKeyBuf,
+        recipientPubKeyBuf,
+        senderSignatureBuf,
         false,
       );
     } else {
@@ -196,22 +206,22 @@ export const sendMessage = createServerFn({ method: "POST" })
       await insertMessage(
         senderChannelId,
         senderAddress,
-        input.encryptedContent,
-        input.senderEncryptedContent,
-        input.senderPubKey,
-        input.recipientPubKey,
-        input.senderSignature,
+        encryptedContentBuf,
+        senderEncryptedContentBuf,
+        senderPubKeyBuf,
+        recipientPubKeyBuf,
+        senderSignatureBuf,
         true,
       );
 
       await deliverRemoteMessage(
         senderAddress,
         input.recipientAddress,
-        input.encryptedContent,
-        input.senderEncryptedContent,
-        input.senderPubKey,
-        input.recipientPubKey,
-        input.senderSignature,
+        encryptedContentBuf,
+        senderEncryptedContentBuf,
+        senderPubKeyBuf,
+        recipientPubKeyBuf,
+        senderSignatureBuf,
         input.pow,
       );
     }
@@ -252,12 +262,32 @@ async function resolveChannel(userId: string, counterpartyAddress: string) {
   return channel;
 }
 
+function messagesToHex<
+  T extends {
+    encryptedContent: WebBuf;
+    senderEncryptedContent: WebBuf;
+    senderPubKey: WebBuf;
+    recipientPubKey: WebBuf;
+    senderSignature: WebBuf;
+  },
+>(rows: T[]) {
+  return rows.map((m) => ({
+    ...m,
+    encryptedContent: m.encryptedContent.toHex(),
+    senderEncryptedContent: m.senderEncryptedContent.toHex(),
+    senderPubKey: m.senderPubKey.toHex(),
+    recipientPubKey: m.recipientPubKey.toHex(),
+    senderSignature: m.senderSignature.toHex(),
+  }));
+}
+
 export const getMessagesForChannel = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .inputValidator(z.string())
   .handler(async ({ data: counterpartyAddress, context: { userId } }) => {
     const channel = await resolveChannel(userId, counterpartyAddress);
-    return getChannelMessages(channel.id, userId);
+    const rows = await getChannelMessages(channel.id, userId);
+    return messagesToHex(rows);
   });
 
 export const getOlderMessages = createServerFn({ method: "GET" })
@@ -270,7 +300,13 @@ export const getOlderMessages = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context: { userId } }) => {
     const channel = await resolveChannel(userId, data.counterpartyAddress);
-    return getChannelMessages(channel.id, userId, undefined, data.beforeId);
+    const rows = await getChannelMessages(
+      channel.id,
+      userId,
+      undefined,
+      data.beforeId,
+    );
+    return messagesToHex(rows);
   });
 
 export const pollNewMessages = createServerFn({ method: "GET" })
@@ -283,7 +319,8 @@ export const pollNewMessages = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context: { userId } }) => {
     const channel = await resolveChannel(userId, data.counterpartyAddress);
-    return getNewMessages(channel.id, userId, data.afterId);
+    const rows = await getNewMessages(channel.id, userId, data.afterId);
+    return messagesToHex(rows);
   });
 
 export const markChannelAsRead = createServerFn({ method: "POST" })
@@ -311,10 +348,10 @@ export const getMyActiveEncryptedKey = createServerFn({
     const key = await getActiveKey(userId);
     if (!key) throw new Error("No key found");
     return {
-      signingPublicKey: key.signingPublicKey,
-      encapPublicKey: key.encapPublicKey,
-      encryptedSigningKey: key.encryptedSigningKey,
-      encryptedDecapKey: key.encryptedDecapKey,
+      signingPublicKey: key.signingPublicKey.toHex(),
+      encapPublicKey: key.encapPublicKey.toHex(),
+      encryptedSigningKey: key.encryptedSigningKey.toHex(),
+      encryptedDecapKey: key.encryptedDecapKey.toHex(),
     };
   });
 

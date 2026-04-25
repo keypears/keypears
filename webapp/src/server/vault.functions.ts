@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { WebBuf } from "@webbuf/webbuf";
 import { authMiddleware } from "./auth-middleware";
 import {
   createVaultEntry,
@@ -33,7 +34,7 @@ export const createEntry = createServerFn({ method: "POST" })
       data.type,
       data.searchTerms,
       data.keyId,
-      data.encryptedData,
+      WebBuf.fromHex(data.encryptedData),
       data.sourceMessageId,
       data.sourceAddress,
     );
@@ -52,19 +53,28 @@ export const getMyEntries = createServerFn({ method: "GET" })
       .optional(),
   )
   .handler(async ({ data, context: { userId } }) => {
-    return getVaultEntries(
+    const rows = await getVaultEntries(
       userId,
       data?.query,
       data?.beforeUpdatedAt,
       data?.beforeId,
     );
+    return rows.map((r) => ({
+      ...r,
+      encryptedData: r.encryptedData.toHex(),
+    }));
   });
 
 export const getEntry = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .inputValidator(z.string())
   .handler(async ({ data: versionId, context: { userId } }) => {
-    return getVaultEntry(userId, versionId);
+    const row = await getVaultEntry(userId, versionId);
+    if (!row) return null;
+    return {
+      ...row,
+      encryptedData: row.encryptedData.toHex(),
+    };
   });
 
 export const updateEntry = createServerFn({ method: "POST" })
@@ -87,7 +97,7 @@ export const updateEntry = createServerFn({ method: "POST" })
       data.type,
       data.searchTerms,
       data.keyId,
-      data.encryptedData,
+      WebBuf.fromHex(data.encryptedData),
     );
     return { id };
   });
@@ -112,5 +122,9 @@ export const getHistory = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .inputValidator(z.string())
   .handler(async ({ data: secretId, context: { userId } }) => {
-    return getSecretHistory(userId, secretId);
+    const rows = await getSecretHistory(userId, secretId);
+    return rows.map((r) => ({
+      ...r,
+      encryptedData: r.encryptedData.toHex(),
+    }));
   });

@@ -71,11 +71,11 @@ function PasswordPage() {
       for (const key of encryptedKeys) {
         try {
           const signingKeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedSigningKey),
+            WebBuf.fromHex(key.encryptedSigningKey as string),
             oldEncryptionKey,
           );
           const decapKeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedDecapKey),
+            WebBuf.fromHex(key.encryptedDecapKey as string),
             oldEncryptionKey,
           );
           const reEncSigningKey = await aesgcmEncryptNative(

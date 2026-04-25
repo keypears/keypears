@@ -60,8 +60,8 @@ function lengthPrefix(field: WebBuf): WebBuf {
 function buildSignedEnvelope(
   senderAddress: string,
   recipientAddress: string,
-  senderSigningPubKeyHex: string,
-  recipientEncapPubKeyHex: string,
+  senderSigningPubKey: WebBuf,
+  recipientEncapPubKey: WebBuf,
   recipientCiphertext: WebBuf,
   senderCiphertext: WebBuf,
 ): WebBuf {
@@ -69,8 +69,8 @@ function buildSignedEnvelope(
     lengthPrefix(ENVELOPE_DOMAIN),
     lengthPrefix(WebBuf.fromUtf8(senderAddress)),
     lengthPrefix(WebBuf.fromUtf8(recipientAddress)),
-    lengthPrefix(WebBuf.fromHex(senderSigningPubKeyHex)),
-    lengthPrefix(WebBuf.fromHex(recipientEncapPubKeyHex)),
+    lengthPrefix(senderSigningPubKey),
+    lengthPrefix(recipientEncapPubKey),
     lengthPrefix(recipientCiphertext),
     lengthPrefix(senderCiphertext),
   ]);
@@ -79,9 +79,9 @@ function buildSignedEnvelope(
 // --- Encrypt ---
 
 export interface EncryptedMessage {
-  recipientCiphertext: string;
-  senderCiphertext: string;
-  signature: string;
+  recipientCiphertext: WebBuf;
+  senderCiphertext: WebBuf;
+  signature: WebBuf;
 }
 
 export function encryptMessage(
@@ -89,10 +89,10 @@ export function encryptMessage(
   senderAddress: string,
   recipientAddress: string,
   senderSigningKey: FixedBuf<4032>,
-  senderSigningPubKeyHex: string,
+  senderSigningPubKey: WebBuf,
   senderEncapKey: FixedBuf<1184>,
   recipientEncapKey: FixedBuf<1184>,
-  recipientEncapPubKeyHex: string,
+  recipientEncapPubKey: WebBuf,
 ): EncryptedMessage {
   const content = JSON.stringify({ version: 1, type: "text", text });
   const plaintext = WebBuf.fromUtf8(content);
@@ -102,16 +102,16 @@ export function encryptMessage(
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
-    senderSigningPubKeyHex,
-    recipientEncapPubKeyHex,
+    senderSigningPubKey,
+    recipientEncapPubKey,
     recipientCt,
     senderCt,
   );
   const sig = mlDsa65Sign(senderSigningKey, envelope);
   return {
-    recipientCiphertext: recipientCt.toHex(),
-    senderCiphertext: senderCt.toHex(),
-    signature: sig.buf.toHex(),
+    recipientCiphertext: recipientCt,
+    senderCiphertext: senderCt,
+    signature: sig.buf,
   };
 }
 
@@ -120,10 +120,10 @@ export function encryptSecretMessage(
   senderAddress: string,
   recipientAddress: string,
   senderSigningKey: FixedBuf<4032>,
-  senderSigningPubKeyHex: string,
+  senderSigningPubKey: WebBuf,
   senderEncapKey: FixedBuf<1184>,
   recipientEncapKey: FixedBuf<1184>,
-  recipientEncapPubKeyHex: string,
+  recipientEncapPubKey: WebBuf,
 ): EncryptedMessage {
   const content = JSON.stringify({ version: 1, type: "secret", secret });
   const plaintext = WebBuf.fromUtf8(content);
@@ -133,16 +133,16 @@ export function encryptSecretMessage(
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
-    senderSigningPubKeyHex,
-    recipientEncapPubKeyHex,
+    senderSigningPubKey,
+    recipientEncapPubKey,
     recipientCt,
     senderCt,
   );
   const sig = mlDsa65Sign(senderSigningKey, envelope);
   return {
-    recipientCiphertext: recipientCt.toHex(),
-    senderCiphertext: senderCt.toHex(),
-    signature: sig.buf.toHex(),
+    recipientCiphertext: recipientCt,
+    senderCiphertext: senderCt,
+    signature: sig.buf,
   };
 }
 
@@ -151,39 +151,35 @@ export function encryptSecretMessage(
 export function verifyMessageSignature(
   senderAddress: string,
   recipientAddress: string,
-  senderSigningPubKeyHex: string,
-  recipientEncapPubKeyHex: string,
-  recipientCiphertextHex: string,
-  senderCiphertextHex: string,
-  signatureHex: string,
+  senderSigningPubKey: WebBuf,
+  recipientEncapPubKey: WebBuf,
+  recipientCiphertext: WebBuf,
+  senderCiphertext: WebBuf,
+  signature: WebBuf,
 ): boolean {
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
-    senderSigningPubKeyHex,
-    recipientEncapPubKeyHex,
-    WebBuf.fromHex(recipientCiphertextHex),
-    WebBuf.fromHex(senderCiphertextHex),
+    senderSigningPubKey,
+    recipientEncapPubKey,
+    recipientCiphertext,
+    senderCiphertext,
   );
-  const verifyingKey = FixedBuf.fromHex(1952, senderSigningPubKeyHex);
-  const signature = FixedBuf.fromHex(3309, signatureHex);
-  return mlDsa65Verify(verifyingKey, envelope, signature);
+  const verifyingKey = FixedBuf.fromBuf(1952, senderSigningPubKey);
+  const sig = FixedBuf.fromBuf(3309, signature);
+  return mlDsa65Verify(verifyingKey, envelope, sig);
 }
 
 // --- Decrypt ---
 
 export function decryptMessageContent(
-  encryptedHex: string,
+  encrypted: WebBuf,
   decapKey: FixedBuf<2400>,
   senderAddress: string,
   recipientAddress: string,
 ): MessageContent {
   const aad = buildMessageAad(senderAddress, recipientAddress);
-  const decrypted = aesgcmMlkemDecrypt(
-    decapKey,
-    WebBuf.fromHex(encryptedHex),
-    aad,
-  );
+  const decrypted = aesgcmMlkemDecrypt(decapKey, encrypted, aad);
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 

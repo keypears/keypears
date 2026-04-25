@@ -30,6 +30,7 @@ import { createEntry } from "~/server/vault.functions";
 import { PowModal } from "~/components/PowModal";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
 import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
 import {
   Send as SendIcon,
   LockKeyhole,
@@ -114,17 +115,24 @@ function ChannelPage() {
     null,
   );
   useEffect(() => {
-    getMyActiveEncryptedKey().then(setMyKeyData);
+    getMyActiveEncryptedKey().then((d) =>
+      setMyKeyData({
+        signingPublicKey: d.signingPublicKey as string,
+        encapPublicKey: d.encapPublicKey as string,
+        encryptedSigningKey: d.encryptedSigningKey as string,
+        encryptedDecapKey: d.encryptedDecapKey as string,
+      }),
+    );
     getMyKeys().then((data) => {
       const map = new Map<
         string,
         { encryptedSigningKey: string; encryptedDecapKey: string; encapPublicKey: string; loginKeyHash: string | null }
       >();
       for (const k of data.keys) {
-        map.set(k.signingPublicKey, {
-          encryptedSigningKey: k.encryptedSigningKey,
-          encryptedDecapKey: k.encryptedDecapKey,
-          encapPublicKey: k.encapPublicKey,
+        map.set(k.signingPublicKey as string, {
+          encryptedSigningKey: k.encryptedSigningKey as string,
+          encryptedDecapKey: k.encryptedDecapKey as string,
+          encapPublicKey: k.encapPublicKey as string,
           loginKeyHash: k.loginKeyHash,
         });
       }
@@ -272,11 +280,11 @@ function ChannelPage() {
       const sigValid = verifyMessageSignature(
         msg.senderAddress,
         isSender ? address : myAddress,
-        msg.senderPubKey,
-        msg.recipientPubKey,
-        msg.encryptedContent,
-        msg.senderEncryptedContent,
-        msg.senderSignature,
+        WebBuf.fromHex(msg.senderPubKey),
+        WebBuf.fromHex(msg.recipientPubKey),
+        WebBuf.fromHex(msg.encryptedContent),
+        WebBuf.fromHex(msg.senderEncryptedContent),
+        WebBuf.fromHex(msg.senderSignature),
       );
       if (!sigValid) {
         console.error("[tryDecrypt] invalid sender signature");
@@ -284,7 +292,7 @@ function ChannelPage() {
       }
 
       const myDecapKey = await decryptDecapKey(
-        matchingKey.encryptedDecapKey,
+        WebBuf.fromHex(matchingKey.encryptedDecapKey),
         encryptionKey,
       );
       const ciphertextHex = isSender
@@ -295,7 +303,7 @@ function ChannelPage() {
       return {
         ok: true,
         content: decryptMessageContent(
-          ciphertextHex,
+          WebBuf.fromHex(ciphertextHex),
           myDecapKey,
           senderAddr,
           recipientAddr,
@@ -356,7 +364,7 @@ function ChannelPage() {
       secret.secretType === "login"
         ? { type: "login" as const, ...fields }
         : { type: "text" as const, text: fields.text ?? "" };
-    const encryptedData = await encryptVaultEntry(data, encryptionKey);
+    const encryptedDataBuf = await encryptVaultEntry(data, encryptionKey);
     // Get keyId from active key data
     const activeKeyData = await getMyKeys();
     const activeKey = activeKeyData.keys[0];
@@ -367,7 +375,7 @@ function ChannelPage() {
         type: secret.secretType,
         searchTerms: "",
         keyId: activeKey.id,
-        encryptedData,
+        encryptedData: encryptedDataBuf.toHex(),
         sourceMessageId: messageId,
         sourceAddress: senderAddress,
       },
@@ -403,33 +411,33 @@ function ChannelPage() {
       // Look up recipient's encap public key from existing messages or fetch it
       const recipientKeyResult = await getPublicKeyForAddress({ data: address });
       if (!recipientKeyResult) throw new Error("Cannot determine recipient key");
-      const recipientEncapPubKey = recipientKeyResult.encapPublicKey;
+      const recipientEncapPubKeyHex = recipientKeyResult.encapPublicKey as string;
 
       const mySigningKey = await decryptSigningKey(
-        myKeyData.encryptedSigningKey,
+        WebBuf.fromHex(myKeyData.encryptedSigningKey),
         encryptionKey,
       );
       const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
-      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientEncapPubKey);
+      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientEncapPubKeyHex);
       const senderAddress = myAddress!;
       const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptMessage(
         text,
         senderAddress,
         address,
         mySigningKey,
-        myKeyData.signingPublicKey,
+        WebBuf.fromHex(myKeyData.signingPublicKey),
         myEncapPubKey,
         theirEncapPubKey,
-        recipientEncapPubKey,
+        WebBuf.fromHex(recipientEncapPubKeyHex),
       );
 
       pendingSendRef.current = {
         recipientAddress: address,
-        encryptedContent: recipientCiphertext,
-        senderEncryptedContent: senderCiphertext,
-        senderSignature: msgSignature,
+        encryptedContent: recipientCiphertext.toHex(),
+        senderEncryptedContent: senderCiphertext.toHex(),
+        senderSignature: msgSignature.toHex(),
         senderPubKey: myKeyData.signingPublicKey,
-        recipientPubKey: recipientEncapPubKey,
+        recipientPubKey: recipientEncapPubKeyHex,
       };
 
       // Sign the challenge request

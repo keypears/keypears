@@ -249,14 +249,14 @@ function CreateEntryForm({
         data = { type: "text", text };
       }
 
-      const encryptedData = await encryptVaultEntry(data, encryptionKey);
+      const encryptedDataBuf = await encryptVaultEntry(data, encryptionKey);
       const result = await createEntry({
         data: {
           name,
           type,
           searchTerms,
           keyId: activeKeyId,
-          encryptedData,
+          encryptedData: encryptedDataBuf.toHex(),
         },
       });
       onCreated(result.id);

@@ -12,6 +12,7 @@ import {
   decryptDecapKey,
 } from "~/lib/auth";
 import { aesgcmEncryptNative } from "~/lib/aesgcm";
+import { WebBuf } from "@webbuf/webbuf";
 import { RotateCw, Lock, Unlock, X } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/keys")({
@@ -60,10 +61,15 @@ function KeysPage() {
 
     setRotating(true);
     try {
-      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
+      const keyPair =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       await rotateKey({
-        data: { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey },
+        data: {
+          signingPublicKey: keyPair.signingPublicKey.toHex(),
+          encapPublicKey: keyPair.encapPublicKey.toHex(),
+          encryptedSigningKey: keyPair.encryptedSigningKey.toHex(),
+          encryptedDecapKey: keyPair.encryptedDecapKey.toHex(),
+        },
       });
       await router.invalidate();
       setPassword("");
@@ -97,11 +103,11 @@ function KeysPage() {
 
       setKeyStatus("Decrypting...");
       const signingKey = await decryptSigningKey(
-        key.encryptedSigningKey,
+        WebBuf.fromHex(key.encryptedSigningKey),
         oldEncryptionKey,
       );
       const decapKey = await decryptDecapKey(
-        key.encryptedDecapKey,
+        WebBuf.fromHex(key.encryptedDecapKey),
         oldEncryptionKey,
       );
 

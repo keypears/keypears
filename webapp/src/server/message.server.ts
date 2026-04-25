@@ -1,6 +1,7 @@
 import { db } from "~/db";
 import { channels, messages, secrets } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
+import type { WebBuf } from "@webbuf/webbuf";
 import { newId } from "./utils";
 
 export async function getOrCreateChannel(
@@ -60,9 +61,9 @@ export async function channelExists(
 
 export async function messageExists(
   channelId: string,
-  senderPubKey: string,
-  recipientPubKey: string,
-  encryptedContent: string,
+  senderPubKey: WebBuf,
+  recipientPubKey: WebBuf,
+  encryptedContent: WebBuf,
 ): Promise<boolean> {
   const [row] = await db
     .select({ id: messages.id })
@@ -82,11 +83,11 @@ export async function messageExists(
 export async function insertMessage(
   channelId: string,
   senderAddress: string,
-  encryptedContent: string,
-  senderEncryptedContent: string,
-  senderPubKey: string,
-  recipientPubKey: string,
-  senderSignature: string,
+  encryptedContent: WebBuf,
+  senderEncryptedContent: WebBuf,
+  senderPubKey: WebBuf,
+  recipientPubKey: WebBuf,
+  senderSignature: WebBuf,
   isRead: boolean,
 ) {
   const id = newId();

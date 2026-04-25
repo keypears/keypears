@@ -130,7 +130,7 @@ function WelcomePage() {
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
       const encryptionKey =
         await deriveEncryptionKeyFromPasswordKey(passwordKey);
-      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
+      const keyPair =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       cacheEncryptionKey(encryptionKey);
       const entropy = calculatePasswordEntropy(password);
@@ -140,10 +140,10 @@ function WelcomePage() {
           name: parsed.name,
           domain: parsed.domain,
           loginKey,
-          signingPublicKey,
-          encapPublicKey,
-          encryptedSigningKey,
-          encryptedDecapKey,
+          signingPublicKey: keyPair.signingPublicKey.toHex(),
+          encapPublicKey: keyPair.encapPublicKey.toHex(),
+          encryptedSigningKey: keyPair.encryptedSigningKey.toHex(),
+          encryptedDecapKey: keyPair.encryptedDecapKey.toHex(),
         },
       });
       navigate({ to: "/home" });

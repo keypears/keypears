@@ -99,7 +99,7 @@ function SignPage() {
         if (k.loginKeyHash === keyData.passwordHash) {
           try {
             const priv = await decryptSigningKey(
-              k.encryptedSigningKey,
+              WebBuf.fromHex(k.encryptedSigningKey as string),
               encryptionKey,
             );
             if (!cancelled) setPrivateKey(priv);

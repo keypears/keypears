@@ -117,10 +117,10 @@ export async function createUserForDomain(
   name: string,
   domainId: string,
   loginKeyHex: string,
-  signingPublicKey: string,
-  encapPublicKey: string,
-  encryptedSigningKey: string,
-  encryptedDecapKey: string,
+  signingPublicKey: WebBuf,
+  encapPublicKey: WebBuf,
+  encryptedSigningKey: WebBuf,
+  encryptedDecapKey: WebBuf,
 ) {
   // Check name uniqueness within domain
   const existing = await getUserByNameAndDomain(name, domainId);
@@ -149,10 +149,10 @@ export async function createUserForDomain(
 export async function resetUserPassword(
   userId: string,
   newLoginKeyHex: string,
-  signingPublicKey: string,
-  encapPublicKey: string,
-  encryptedSigningKey: string,
-  encryptedDecapKey: string,
+  signingPublicKey: WebBuf,
+  encapPublicKey: WebBuf,
+  encryptedSigningKey: WebBuf,
+  encryptedDecapKey: WebBuf,
 ) {
   const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
   await db
@@ -273,10 +273,10 @@ const MAX_KEYS_PER_USER = 100;
 
 export async function insertKey(
   userId: string,
-  signingPublicKey: string,
-  encapPublicKey: string,
-  encryptedSigningKey: string,
-  encryptedDecapKey: string,
+  signingPublicKey: WebBuf,
+  encapPublicKey: WebBuf,
+  encryptedSigningKey: WebBuf,
+  encryptedDecapKey: WebBuf,
   loginKeyHash?: string,
 ) {
   return db.transaction(async (tx) => {
@@ -316,10 +316,10 @@ export async function saveUser(
   name: string,
   domainId: string,
   loginKeyHex: string,
-  signingPublicKey: string,
-  encapPublicKey: string,
-  encryptedSigningKey: string,
-  encryptedDecapKey: string,
+  signingPublicKey: WebBuf,
+  encapPublicKey: WebBuf,
+  encryptedSigningKey: WebBuf,
+  encryptedDecapKey: WebBuf,
 ) {
   // Check name uniqueness within domain
   const existing = await getUserByNameAndDomain(name, domainId);
@@ -384,8 +384,8 @@ export async function changePassword(
   newLoginKeyHex: string,
   reEncryptedKeys: {
     id: string;
-    encryptedSigningKey: string;
-    encryptedDecapKey: string;
+    encryptedSigningKey: WebBuf;
+    encryptedDecapKey: WebBuf;
   }[],
 ) {
   const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
@@ -411,8 +411,8 @@ export async function changePassword(
 export async function reEncryptKey(
   userId: string,
   keyId: string,
-  encryptedSigningKey: string,
-  encryptedDecapKey: string,
+  encryptedSigningKey: WebBuf,
+  encryptedDecapKey: WebBuf,
   loginKeyHex: string,
 ) {
   const loginKeyHash = await hashLoginKey(loginKeyHex, userId);

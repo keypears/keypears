@@ -46,7 +46,7 @@ export async function verifyAndConsumePow(
   try {
     await db.insert(usedPow).values({
       solvedHeaderHash: headerHash,
-      solvedHeader: solvedHeaderHex,
+      solvedHeader: WebBuf.fromHex(solvedHeaderHex),
       target: targetHex,
       expiresAt: new Date(expiresAt),
     });

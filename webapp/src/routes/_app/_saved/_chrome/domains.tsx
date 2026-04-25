@@ -406,7 +406,7 @@ function DomainCard({
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
       const encryptionKey =
         await deriveEncryptionKeyFromPasswordKey(passwordKey);
-      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
+      const keyPair =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
       setAddStatus("Creating user...");
@@ -415,10 +415,10 @@ function DomainCard({
           domain,
           name,
           loginKey,
-          signingPublicKey,
-          encapPublicKey,
-          encryptedSigningKey,
-          encryptedDecapKey,
+          signingPublicKey: keyPair.signingPublicKey.toHex(),
+          encapPublicKey: keyPair.encapPublicKey.toHex(),
+          encryptedSigningKey: keyPair.encryptedSigningKey.toHex(),
+          encryptedDecapKey: keyPair.encryptedDecapKey.toHex(),
         },
       });
 
@@ -454,7 +454,7 @@ function DomainCard({
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
       const encryptionKey =
         await deriveEncryptionKeyFromPasswordKey(passwordKey);
-      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
+      const keyPair =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
 
       setResetStatus("Resetting password...");
@@ -463,10 +463,10 @@ function DomainCard({
           domain,
           userId: resetUserId,
           newLoginKey: loginKey,
-          signingPublicKey,
-          encapPublicKey,
-          encryptedSigningKey,
-          encryptedDecapKey,
+          signingPublicKey: keyPair.signingPublicKey.toHex(),
+          encapPublicKey: keyPair.encapPublicKey.toHex(),
+          encryptedSigningKey: keyPair.encryptedSigningKey.toHex(),
+          encryptedDecapKey: keyPair.encryptedDecapKey.toHex(),
         },
       });
 

@@ -45,7 +45,7 @@ const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
   if (!user || !user.passwordHash) return { signingPublicKey: null, encapPublicKey: null };
   const key = await getActiveKey(user.id);
   if (!key) return { signingPublicKey: null, encapPublicKey: null };
-  return { signingPublicKey: key.signingPublicKey, encapPublicKey: key.encapPublicKey };
+  return { signingPublicKey: key.signingPublicKey.toHex(), encapPublicKey: key.encapPublicKey.toHex() };
 });
 
 const getPowChallengeEndpoint = os.getPowChallenge.handler(
@@ -165,15 +165,24 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     if (messageData.recipientAddress !== input.recipientAddress)
       throw new Error("Recipient address mismatch");
 
+    // Convert hex strings from oRPC to WebBuf for crypto and DB operations
+    const encryptedContentBuf = WebBuf.fromHex(messageData.encryptedContent);
+    const senderEncryptedContentBuf = WebBuf.fromHex(
+      messageData.senderEncryptedContent,
+    );
+    const senderPubKeyBuf = WebBuf.fromHex(messageData.senderPubKey);
+    const recipientPubKeyBuf = WebBuf.fromHex(messageData.recipientPubKey);
+    const senderSignatureBuf = WebBuf.fromHex(messageData.senderSignature);
+
     // Verify sender signature over the message envelope
     const sigValid = verifyMessageSignature(
       messageData.senderAddress,
       messageData.recipientAddress,
-      messageData.senderPubKey,
-      messageData.recipientPubKey,
-      messageData.encryptedContent,
-      messageData.senderEncryptedContent,
-      messageData.senderSignature,
+      senderPubKeyBuf,
+      recipientPubKeyBuf,
+      encryptedContentBuf,
+      senderEncryptedContentBuf,
+      senderSignatureBuf,
     );
     if (!sigValid) {
       throw new Error("Invalid sender signature");
@@ -189,7 +198,7 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     // Verify recipientPubKey matches the local recipient's active encap key
     const recipientActiveKey = await getActiveKey(recipientUser.id);
     if (!recipientActiveKey) throw new Error("Recipient has no active key");
-    if (recipientActiveKey.encapPublicKey !== messageData.recipientPubKey) {
+    if (recipientActiveKey.encapPublicKey.toHex() !== messageData.recipientPubKey) {
       throw new Error("recipientPubKey does not match recipient's encap key");
     }
 
@@ -201,20 +210,20 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
 
     const duplicate = await messageExists(
       channelId,
-      messageData.senderPubKey,
-      messageData.recipientPubKey,
-      messageData.encryptedContent,
+      senderPubKeyBuf,
+      recipientPubKeyBuf,
+      encryptedContentBuf,
     );
 
     if (!duplicate) {
       await insertMessage(
         channelId,
         messageData.senderAddress,
-        messageData.encryptedContent,
-        messageData.senderEncryptedContent,
-        messageData.senderPubKey,
-        messageData.recipientPubKey,
-        messageData.senderSignature,
+        encryptedContentBuf,
+        senderEncryptedContentBuf,
+        senderPubKeyBuf,
+        recipientPubKeyBuf,
+        senderSignatureBuf,
         false,
       );
     }
@@ -247,11 +256,11 @@ const pullMessageHandler = os.pullMessage.handler(async ({ input }) => {
   return {
     senderAddress: delivery.senderAddress,
     recipientAddress: delivery.recipientAddress,
-    encryptedContent: delivery.encryptedContent,
-    senderEncryptedContent: delivery.senderEncryptedContent,
-    senderPubKey: delivery.senderPubKey,
-    recipientPubKey: delivery.recipientPubKey,
-    senderSignature: delivery.senderSignature,
+    encryptedContent: delivery.encryptedContent.toHex(),
+    senderEncryptedContent: delivery.senderEncryptedContent.toHex(),
+    senderPubKey: delivery.senderPubKey.toHex(),
+    recipientPubKey: delivery.recipientPubKey.toHex(),
+    senderSignature: delivery.senderSignature.toHex(),
   };
 });
 

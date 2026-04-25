@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 import { UUID } from "uuidv7";
+import { WebBuf } from "@webbuf/webbuf";
 
 // --- Custom column types ---
 
@@ -27,19 +28,34 @@ const binaryId = customType<{ data: string }>({
   },
 });
 
-/** varbinary(N) in MySQL, hex string in TypeScript */
-const binaryHex = (name: string, length: number) =>
-  customType<{ data: string }>({
+/** blob in MySQL (up to 64KB), WebBuf in TypeScript */
+const blob = (name: string) =>
+  customType<{ data: WebBuf }>({
     dataType() {
-      return `varbinary(${length})`;
-    },
-    toDriver(data: string) {
-      return Buffer.from(data, "hex");
+      return "blob";
     },
     fromDriver(data) {
-      return Buffer.from(data as Buffer).toString("hex");
+      return WebBuf.from(data as Buffer);
+    },
+    toDriver(data) {
+      return Buffer.from(data);
     },
   })(name);
+
+/** mediumblob in MySQL (up to 16MB), WebBuf in TypeScript */
+const mediumBlob = (name: string) =>
+  customType<{ data: WebBuf }>({
+    dataType() {
+      return "mediumblob";
+    },
+    fromDriver(data) {
+      return WebBuf.from(data as Buffer);
+    },
+    toDriver(data) {
+      return Buffer.from(data);
+    },
+  })(name);
+
 
 // --- Tables ---
 
@@ -88,10 +104,10 @@ export const keys = mysqlTable(
     id: binaryId("id").primaryKey(),
     userId: binaryId("user_id").notNull(),
     keyNumber: int("key_number").notNull(),
-    signingPublicKey: varchar("signing_public_key", { length: 3904 }).notNull(),
-    encryptedSigningKey: binaryHex("encrypted_signing_key", 4100).notNull(),
-    encapPublicKey: varchar("encap_public_key", { length: 2368 }).notNull(),
-    encryptedDecapKey: binaryHex("encrypted_decap_key", 2500).notNull(),
+    signingPublicKey: blob("signing_public_key").notNull(),
+    encryptedSigningKey: blob("encrypted_signing_key").notNull(),
+    encapPublicKey: blob("encap_public_key").notNull(),
+    encryptedDecapKey: blob("encrypted_decap_key").notNull(),
     loginKeyHash: varchar("login_key_hash", { length: 255 }),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -159,7 +175,7 @@ export const secretVersions = mysqlTable(
     secretId: binaryId("secret_id").notNull(),
     version: int("version").notNull(),
     keyId: binaryId("key_id").notNull(),
-    encryptedData: binaryHex("encrypted_data", 10000).notNull(),
+    encryptedData: mediumBlob("encrypted_data").notNull(),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
       .notNull(),
@@ -176,11 +192,11 @@ export const messages = mysqlTable(
     id: binaryId("id").primaryKey(),
     channelId: binaryId("channel_id").notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-    encryptedContent: binaryHex("encrypted_content", 50000).notNull(),
-    senderEncryptedContent: binaryHex("sender_encrypted_content", 50000).notNull(),
-    senderPubKey: varchar("sender_pub_key", { length: 3904 }).notNull(),
-    recipientPubKey: varchar("recipient_pub_key", { length: 2368 }).notNull(),
-    senderSignature: binaryHex("sender_signature", 6700).notNull(),
+    encryptedContent: mediumBlob("encrypted_content").notNull(),
+    senderEncryptedContent: mediumBlob("sender_encrypted_content").notNull(),
+    senderPubKey: blob("sender_pub_key").notNull(),
+    recipientPubKey: blob("recipient_pub_key").notNull(),
+    senderSignature: blob("sender_signature").notNull(),
     isRead: boolean("is_read").notNull().default(false),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -199,11 +215,11 @@ export const pendingDeliveries = mysqlTable(
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
     recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
-    encryptedContent: binaryHex("encrypted_content", 50000).notNull(),
-    senderEncryptedContent: binaryHex("sender_encrypted_content", 50000).notNull(),
-    senderPubKey: varchar("sender_pub_key", { length: 3904 }).notNull(),
-    recipientPubKey: varchar("recipient_pub_key", { length: 2368 }).notNull(),
-    senderSignature: binaryHex("sender_signature", 6700).notNull(),
+    encryptedContent: mediumBlob("encrypted_content").notNull(),
+    senderEncryptedContent: mediumBlob("sender_encrypted_content").notNull(),
+    senderPubKey: blob("sender_pub_key").notNull(),
+    recipientPubKey: blob("recipient_pub_key").notNull(),
+    senderSignature: blob("sender_signature").notNull(),
     expiresAt: datetime("expires_at").notNull(),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -237,7 +253,7 @@ export const usedPow = mysqlTable(
     solvedHeaderHash: varchar("solved_header_hash", {
       length: 64,
     }).primaryKey(),
-    solvedHeader: binaryHex("solved_header", 64).notNull(),
+    solvedHeader: blob("solved_header").notNull(),
     target: varchar("target", { length: 64 }).notNull(),
     expiresAt: datetime("expires_at").notNull(),
     createdAt: datetime("created_at")

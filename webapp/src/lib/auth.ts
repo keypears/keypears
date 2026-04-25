@@ -143,10 +143,10 @@ export async function deriveEncryptionKeyFromPasswordKey(
 export async function generateAndEncryptKeyPairFromEncryptionKey(
   encryptionKey: FixedBuf<32>,
 ): Promise<{
-  signingPublicKey: string;
-  encapPublicKey: string;
-  encryptedSigningKey: string;
-  encryptedDecapKey: string;
+  signingPublicKey: WebBuf;
+  encapPublicKey: WebBuf;
+  encryptedSigningKey: WebBuf;
+  encryptedDecapKey: WebBuf;
 }> {
   const { verifyingKey, signingKey } = mlDsa65KeyPair();
   const { encapsulationKey, decapsulationKey } = mlKem768KeyPair();
@@ -159,32 +159,26 @@ export async function generateAndEncryptKeyPairFromEncryptionKey(
     encryptionKey,
   );
   return {
-    signingPublicKey: verifyingKey.buf.toHex(),
-    encapPublicKey: encapsulationKey.buf.toHex(),
-    encryptedSigningKey: encryptedSigningKey.toHex(),
-    encryptedDecapKey: encryptedDecapKey.toHex(),
+    signingPublicKey: verifyingKey.buf,
+    encapPublicKey: encapsulationKey.buf,
+    encryptedSigningKey,
+    encryptedDecapKey,
   };
 }
 
 export async function decryptSigningKey(
-  encryptedHex: string,
+  encrypted: WebBuf,
   encryptionKey: FixedBuf<32>,
 ): Promise<FixedBuf<4032>> {
-  const decrypted = await aesgcmDecryptNative(
-    WebBuf.fromHex(encryptedHex),
-    encryptionKey,
-  );
+  const decrypted = await aesgcmDecryptNative(encrypted, encryptionKey);
   return FixedBuf.fromBuf(4032, decrypted);
 }
 
 export async function decryptDecapKey(
-  encryptedHex: string,
+  encrypted: WebBuf,
   encryptionKey: FixedBuf<32>,
 ): Promise<FixedBuf<2400>> {
-  const decrypted = await aesgcmDecryptNative(
-    WebBuf.fromHex(encryptedHex),
-    encryptionKey,
-  );
+  const decrypted = await aesgcmDecryptNative(encrypted, encryptionKey);
   return FixedBuf.fromBuf(2400, decrypted);
 }
 
