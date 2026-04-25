@@ -156,11 +156,6 @@ A user's identity is now two public keys, not one.
 - CLAUDE.md tech stack and crypto sections.
 - Consider a blog post announcing the migration.
 
-### 10. RSS Anyway (`~/dev/rssanyway`)
-
-- Update to handle POST-based auth callback instead of GET.
-- Update `@keypears/client` dependency.
-
 ## Plan
 
 1. Update the DB schema for PQ key sizes, delete existing data.
@@ -169,4 +164,4 @@ A user's identity is now two public keys, not one.
 4. Update the federation API contract and all call sites.
 5. Update the auth protocol for ML-DSA-65 signatures and POST callback.
 6. Update `@keypears/client` for PQ verification.
-7. Update docs, CLAUDE.md, and RSS Anyway.
+7. Update docs and CLAUDE.md.
