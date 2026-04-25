@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-24"
+closed = "2026-04-25"
 +++
 
 # Post-quantum cryptography migration
@@ -255,5 +256,21 @@ constant-time guarantees.
 The ecosystem is ready. `@noble/post-quantum` provides all four NIST PQC
 algorithms in pure TypeScript with 300K monthly downloads. RustCrypto provides
 pure Rust implementations that compile to WASM. No independent audits exist for
-any PQC library yet, but adoption is growing rapidly. Next experiment should
-design the specific hybrid scheme for KeyPears.
+any PQC library yet, but adoption is growing rapidly.
+
+## Conclusion
+
+The algorithm selection is complete:
+
+- **Signatures**: ML-DSA-65 (FIPS 204) via `@webbuf/mldsa`
+- **Key exchange**: ML-KEM-768 (FIPS 203) via `@webbuf/aesgcm-mlkem`
+- **Approach**: pure post-quantum, no hybrid — KeyPears has zero users so there
+  is no migration cost. The database will be deleted and all classical
+  cryptography (P-256 ECDSA, P-256 ECDH) removed entirely.
+
+The `@webbuf/*` packages provide everything needed: three NIST PQC primitives
+(`@webbuf/mlkem`, `@webbuf/mldsa`, `@webbuf/slhdsa`), high-level encryption
+(`@webbuf/aesgcm-mlkem`), AAD support for context binding, hedged signing by
+default, and NIST ACVP test vector coverage.
+
+Implementation is tracked in [issue 0027](../0027-pq-migration/README.md).
