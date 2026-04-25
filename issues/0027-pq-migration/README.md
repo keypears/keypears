@@ -80,16 +80,26 @@ A user's identity is now two public keys, not one.
   - Or one large column
 
 **`messages` table:**
-- `senderPubKey` varchar(66) → varchar(3904) or larger (ML-DSA-65 signing key)
-- `recipientPubKey` varchar(66) → varchar(2368) or larger (ML-KEM-768 encap key)
-- `encryptedContent` → wire format changes (now includes KEM ciphertext)
+- `senderPubKey` varchar(66) → varchar(3904) (ML-DSA-65 signing key)
+- `recipientPubKey` varchar(66) → varchar(2368) (ML-KEM-768 encap key)
+- Add `senderSignature` mediumblob — ML-DSA-65 signature over the canonical
+  message envelope (see section 3 for signed bytes specification)
+- `encryptedContent` → wire format changes (now includes KEM ciphertext from
+  `@webbuf/aesgcm-mlkem`)
+- Add `senderEncryptedContent` mediumblob — message encrypted to the sender's
+  own encap key, so the sender can decrypt their sent history
 
 **`pending_deliveries` table:**
-- Same changes as messages.
+- Same changes as messages (add `senderSignature`, widen pub key columns).
 
 **`secret_versions` table (vault):**
-- `publicKey` varchar(66) → needs to store ML-KEM-768 encap key
-- `encryptedData` → wire format changes
+- `publicKey` varchar(66) → replace with `keyId` binaryId — references the
+  `user_keys` row that was used to derive the vault key. The vault key is now
+  derived from the cached encryption key (see section 4), so the full public
+  key is not needed — only the key ID to track which password/key pair
+  encrypted the entry.
+- `encryptedData` → no wire format change (still AES-GCM, key derivation
+  changes but the ciphertext format doesn't)
 
 ### 2. Key generation and storage (`webapp/src/lib/auth.ts`)
 
@@ -114,7 +124,16 @@ A user's identity is now two public keys, not one.
   does not authenticate the sender — anyone with the recipient's public encap
   key can encapsulate. Add a `senderSignature` field to the message schema.
   The recipient verifies the signature against the sender's signing key before
-  trusting the message content.
+  trusting the message content. The signed bytes are a canonical envelope:
+  ```
+  senderAddress || "\0" || recipientAddress || "\0" ||
+  senderSigningPubKey || recipientEncapPubKey ||
+  kemCiphertext || encryptedContent
+  ```
+  This binds the signature to the full message context — sender identity,
+  recipient identity, both public keys, the KEM ciphertext, and the encrypted
+  content. Prevents replay (wrong recipient), substitution (swapped
+  ciphertext), and impersonation (wrong sender key).
 - **Sent-message decryptability.** With ECDH, both parties derive the same
   shared secret, so the sender can decrypt their own sent messages. With KEM,
   only the recipient can decapsulate. Solution: the sender must also encrypt
@@ -299,22 +318,12 @@ the code. The signature is a `FixedBuf<3309>` — hex-encode for transport.
 
 ### Auth signing (`webapp/src/routes/_app/_saved/sign.tsx`)
 
-Replace `signPayload`:
+**Deferred to a later experiment.** The `/sign` page and `@keypears/client`'s
+`verifyCallback` must be migrated together — switching one without the other
+breaks third-party sign-in. This experiment only changes PoW request signing
+(`signPowRequest` in `auth.ts`), not auth challenge signing.
 
-```typescript
-// Current: P-256 ECDSA → base64url
-const sig = await crypto.subtle.sign(...);
-return base64urlEncode(sig);
-
-// New: ML-DSA-65 → base64url
-const sig = mlDsa65Sign(signingKey, payloadBytes);
-return base64urlEncode(sig.buf);
-```
-
-The `signPayload` function signature changes: it takes an ML-DSA-65 signing
-key (`FixedBuf<4032>`) instead of a P-256 private key (`FixedBuf<32>`).
-
-### Server-side verification (`webapp/src/server/api.router.ts`)
+### Server-side PoW verification (`webapp/src/server/api.router.ts`)
 
 Replace P-256 ECDSA verification in `getPowChallengeEndpoint`:
 
@@ -360,38 +369,41 @@ Update input validators for functions that accept keys:
 ### Dependencies
 
 Add to `webapp/package.json`:
-- `@webbuf/mldsa`
-- `@webbuf/mlkem`
+- `@webbuf/mldsa` (this experiment)
+- `@webbuf/mlkem` (this experiment)
+- `@webbuf/aesgcm-mlkem` (message encryption experiment)
 
 Remove:
-- `@webbuf/p256` (after all P-256 usage is gone — may still be needed for
-  message encryption until experiment 2)
+- `@webbuf/p256` (after all P-256 usage is gone — `/sign` page and message
+  encryption still use it until their respective experiments)
 
 ### What this experiment does NOT change
 
-- Message encryption (still P-256 ECDH — migrated in experiment 2)
-- `@keypears/client` contract and auth verification (experiment 3)
-- Documentation (experiment 4)
+- Message encryption (still P-256 ECDH — migrated in a later experiment)
+- Auth `/sign` page signing and `@keypears/client` verification — these must
+  be migrated together in one experiment so the signer and verifier both
+  switch to ML-DSA-65 at the same time. Switching `/sign` to ML-DSA while
+  `verifyCallback` still expects P-256 would break all third-party sign-in.
+- Documentation
 
 ### Files to modify
 
 1. `webapp/src/db/schema.ts` — new columns, wider varchar/varbinary
-2. `webapp/src/lib/auth.ts` — key gen, decrypt, sign
+2. `webapp/src/lib/auth.ts` — key gen, decrypt, sign (PoW signing only)
 3. `webapp/src/server/user.server.ts` — key storage/retrieval
 4. `webapp/src/server/user.functions.ts` — input validators, key operations
-5. `webapp/src/server/api.router.ts` — signature verification
+5. `webapp/src/server/api.router.ts` — PoW signature verification
 6. `webapp/src/server/message.functions.ts` — public key references
 7. `webapp/src/server/vault.functions.ts` — key length validators
 8. `webapp/src/server/federation.server.ts` — remote public key lookup
 9. `webapp/src/routes/_app/welcome.tsx` — account creation
 10. `webapp/src/routes/_app/_saved/_chrome/keys.tsx` — key management
-11. `webapp/src/routes/_app/_saved/sign.tsx` — auth signing
-12. `webapp/src/routes/_app/_saved/vault.$id.tsx` — key decryption for vault
-13. `webapp/src/routes/_app/_saved/channel.$address.tsx` — key decryption for messaging
-14. `webapp/src/routes/_app/_saved/_chrome/send.tsx` — PoW request signing
-15. `webapp/src/lib/p256.test.ts` — delete or replace with ML-DSA tests
-16. `webapp/package.json` — add `@webbuf/mldsa`, `@webbuf/mlkem`
-17. `packages/client/src/contract.ts` — update `getPublicKey` output schema
+11. `webapp/src/routes/_app/_saved/vault.$id.tsx` — key decryption for vault
+12. `webapp/src/routes/_app/_saved/channel.$address.tsx` — key decryption
+13. `webapp/src/routes/_app/_saved/_chrome/send.tsx` — PoW request signing
+14. `webapp/src/lib/p256.test.ts` — delete or replace with ML-DSA tests
+15. `webapp/package.json` — add `@webbuf/mldsa`, `@webbuf/mlkem`
+16. `packages/client/src/contract.ts` — update `getPublicKey` output schema
 
 ### Testing
 
