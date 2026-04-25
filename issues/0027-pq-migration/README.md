@@ -110,21 +110,57 @@ A user's identity is now two public keys, not one.
 - The sender needs the recipient's ML-KEM encapsulation key (not their signing
   key).
 - Add AAD with sender/recipient addresses for context binding.
+- **Sender must sign each message with ML-DSA-65.** ML-KEM encryption alone
+  does not authenticate the sender — anyone with the recipient's public encap
+  key can encapsulate. Add a `senderSignature` field to the message schema.
+  The recipient verifies the signature against the sender's signing key before
+  trusting the message content.
+- **Sent-message decryptability.** With ECDH, both parties derive the same
+  shared secret, so the sender can decrypt their own sent messages. With KEM,
+  only the recipient can decapsulate. Solution: the sender must also encrypt
+  the message to themselves (encapsulate to their own encap key) and store a
+  second KEM ciphertext. The message schema needs either a
+  `senderEncryptedContent` column or the sender stores a copy in their own
+  channel using their own encap key.
+- The current UI determines message direction via
+  `keyMap.has(msg.senderPubKey)` — check which pub key matches the user's key
+  map. With separate signing/encap keys, this logic needs updating.
 
 ### 4. Vault encryption (`webapp/src/lib/vault.ts`)
 
-- Vault entries are encrypted with the user's own key. Replace ECDH self-
-  encryption with ML-KEM self-encapsulation, or simpler: derive a vault
-  encryption key from the encryption key directly (no asymmetric crypto needed
-  for self-encryption).
+- Current implementation uses `HMAC(privateKey, "vault-key")` to derive a
+  symmetric vault key, then AES-GCM encrypts with that key. It does NOT use
+  ECDH self-encryption.
+- The private key used is the P-256 private key (32 bytes). With PQ, we have
+  two private keys (ML-DSA signing key and ML-KEM decap key). The vault key
+  should derive from the ML-KEM decapsulation key or from the encryption key
+  directly.
+- Simpler approach: derive the vault key from the cached encryption key
+  (the PBKDF2-derived key from the password) instead of from an asymmetric
+  private key. This removes the asymmetric dependency entirely for vault
+  encryption, which is always self-encryption.
+- The `secret_versions.publicKey` column currently identifies which P-256 key
+  was used to encrypt each entry (so the UI knows which private key to try for
+  decryption). With the new model, this should identify the key pair (by key
+  number or key ID) rather than storing the full public key.
 
 ### 5. Federation API (`webapp/src/server/api.router.ts`, `@keypears/client`)
 
-- `getPublicKey` response needs to return both public keys (signing + encap).
-  Update the oRPC contract in `@keypears/client`.
-- Update all federation call sites that use public keys.
+- `getPublicKey` response needs to return both public keys with explicit roles:
+  `signingPublicKey` (ML-DSA-65 verifying key) and `encapPublicKey` (ML-KEM-768
+  encapsulation key). Update the oRPC contract in `@keypears/client`.
+- Call sites must use the correct key for the correct purpose:
+  - Auth and PoW verification → `signingPublicKey`
+  - Message encryption → `encapPublicKey`
+  - Misusing these (e.g. trying to encrypt with a signing key) is a type error
+    because they have different sizes.
 - Signature verification in `getPowChallenge` handler: replace P-256 ECDSA
   verify with ML-DSA-65 verify.
+- Update `webapp/src/server/message.functions.ts` — message sending uses
+  public keys from federation.
+- Update `webapp/src/server/federation.server.ts` — remote public key lookup.
+- Update validators in `webapp/src/server/vault.functions.ts` that reference
+  key lengths.
 
 ### 6. Auth protocol (`webapp/src/routes/_app/_saved/sign.tsx`, `@keypears/client`)
 
@@ -133,15 +169,25 @@ A user's identity is now two public keys, not one.
   of P-256. Replace `@webbuf/p256` with `@webbuf/mldsa`.
 - **Auth callback must switch from GET to POST.** ML-DSA-65 signatures are
   3,309 bytes; base64url-encoded that's ~4,412 chars. Combined with other
-  params, this exceeds safe URL length limits. The callback must submit a POST
-  form instead of redirecting with query params.
+  params, this exceeds safe URL length limits. The `/sign` page must submit
+  a hidden HTML form via POST instead of `window.location.href` redirect.
+  The form fields are the same as the current query params: `signature`,
+  `address`, `nonce`, `timestamp`, `expires`, `data`, `state`.
+- The deny flow can remain GET (only sends `error` and `state`, which are
+  small).
 
 ### 7. Client package (`packages/client/`)
 
-- Update `@keypears/client` contract: `getPublicKey` returns two keys.
-- Update `verifyCallback`: ML-DSA-65 signature verification.
-- Replace `@webbuf/p256` dependency with `@webbuf/mldsa`.
-- Update `buildSignUrl` / callback handling for POST-based callback.
+- Update `@keypears/client` contract: `getPublicKey` returns
+  `{ signingPublicKey: string | null, encapPublicKey: string | null }`.
+- Update `verifyCallback`: ML-DSA-65 signature verification via
+  `@webbuf/mldsa` `mlDsa65Verify`. Replace `@webbuf/p256` dependency.
+- Update `verifyCallback` to accept POST body params (currently only accepts
+  `URLSearchParams` or `Record<string, string>` — this still works if the
+  consuming app parses the POST body into one of those formats, but the
+  docs and type signature should make this explicit).
+- `buildSignUrl` remains unchanged (the initial redirect TO the `/sign` page
+  is still GET with small params).
 
 ### 8. UI components
 
@@ -329,19 +375,23 @@ Remove:
 
 ### Files to modify
 
-1. `webapp/src/db/schema.ts` — new columns
+1. `webapp/src/db/schema.ts` — new columns, wider varchar/varbinary
 2. `webapp/src/lib/auth.ts` — key gen, decrypt, sign
 3. `webapp/src/server/user.server.ts` — key storage/retrieval
 4. `webapp/src/server/user.functions.ts` — input validators, key operations
 5. `webapp/src/server/api.router.ts` — signature verification
-6. `webapp/src/routes/_app/welcome.tsx` — account creation
-7. `webapp/src/routes/_app/_saved/_chrome/keys.tsx` — key management
-8. `webapp/src/routes/_app/_saved/sign.tsx` — auth signing
-9. `webapp/src/routes/_app/_saved/vault.$id.tsx` — key decryption for vault
-10. `webapp/src/routes/_app/_saved/channel.$address.tsx` — key decryption for messaging
-11. `webapp/src/routes/_app/_saved/_chrome/send.tsx` — PoW request signing
-12. `webapp/src/lib/p256.test.ts` — delete or replace with ML-DSA tests
-13. `webapp/package.json` — add `@webbuf/mldsa`, `@webbuf/mlkem`
+6. `webapp/src/server/message.functions.ts` — public key references
+7. `webapp/src/server/vault.functions.ts` — key length validators
+8. `webapp/src/server/federation.server.ts` — remote public key lookup
+9. `webapp/src/routes/_app/welcome.tsx` — account creation
+10. `webapp/src/routes/_app/_saved/_chrome/keys.tsx` — key management
+11. `webapp/src/routes/_app/_saved/sign.tsx` — auth signing
+12. `webapp/src/routes/_app/_saved/vault.$id.tsx` — key decryption for vault
+13. `webapp/src/routes/_app/_saved/channel.$address.tsx` — key decryption for messaging
+14. `webapp/src/routes/_app/_saved/_chrome/send.tsx` — PoW request signing
+15. `webapp/src/lib/p256.test.ts` — delete or replace with ML-DSA tests
+16. `webapp/package.json` — add `@webbuf/mldsa`, `@webbuf/mlkem`
+17. `packages/client/src/contract.ts` — update `getPublicKey` output schema
 
 ### Testing
 
