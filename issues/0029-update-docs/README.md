@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-25"
+closed = "2026-04-25"
 +++
 
 # Update documentation for post-quantum migration
@@ -129,4 +130,17 @@ sections to update:
 - Blog posts have the historical note but content unchanged
 - `bun run typecheck && bun run lint && bun run test` still pass
 
-### Result: Pending
+### Result: Pass
+
+All 8 files updated. Zero P-256/ECDSA/ECDH references remain in CLAUDE.md or
+webapp/src/docs/. Blog posts left untouched as historical documents. Typecheck,
+lint, and tests pass.
+
+## Conclusion
+
+All documentation updated to reflect the post-quantum migration. CLAUDE.md
+tech stack, auth architecture, key management, and database schema sections
+rewritten for ML-DSA-65 + ML-KEM-768. Seven protocol docs updated: addressing,
+key-derivation, encryption, proof-of-work, security, federation, welcome.
+Security docs gained a quantum resistance section. Blog posts preserved as
+historical records.
