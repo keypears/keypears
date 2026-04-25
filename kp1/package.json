@@ -1,8 +1,0 @@
-{
-  "name": "keypears",
-  "private": true,
-  "packageManager": "pnpm@10.25.0",
-  "scripts": {
-    "build:packages": "pnpm --filter @keypears/lib build && pnpm --filter @keypears/api-server build"
-  }
-}

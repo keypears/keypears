@@ -1,1 +1,0 @@
-ALTER TABLE `vault` ADD `last_accessed_at` integer;
