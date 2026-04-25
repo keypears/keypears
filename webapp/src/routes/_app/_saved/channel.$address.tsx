@@ -46,11 +46,14 @@ import {
 export const Route = createFileRoute("/_app/_saved/channel/$address")({
   loader: async ({ params }) => {
     const address = params.address;
-    const [msgs, channels] = await Promise.all([
+    const [msgs, channels, user] = await Promise.all([
       getMessagesForChannel({ data: address }),
       getMyChannels(),
+      getMyUser(),
     ]);
-    return { address, messages: msgs, channels };
+    const myAddress =
+      user?.name && user?.domain ? `${user.name}@${user.domain}` : null;
+    return { address, messages: msgs, channels, myAddress };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -66,6 +69,7 @@ function ChannelPage() {
     address,
     messages: initialMessages,
     channels: initialChannels,
+    myAddress,
   } = Route.useLoaderData();
   const [messageList, setMessageList] = useState(initialMessages);
   const [channels, setChannels] = useState(initialChannels);
@@ -407,11 +411,16 @@ function ChannelPage() {
       );
       const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
       const theirEncapPubKey = FixedBuf.fromHex(1184, recipientEncapPubKey);
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptMessage(
+      const senderAddress = myAddress!;
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptMessage(
         text,
+        senderAddress,
+        address,
         mySigningKey,
+        myKeyData.signingPublicKey,
         myEncapPubKey,
         theirEncapPubKey,
+        recipientEncapPubKey,
       );
 
       pendingSendRef.current = {
@@ -423,10 +432,7 @@ function ChannelPage() {
         recipientPubKey: recipientEncapPubKey,
       };
 
-      // Build sender address and sign the challenge request
-      const me = await getMyUser();
-      if (!me?.name || !me.domain) throw new Error("Account not saved");
-      const senderAddress = `${me.name}@${me.domain}`;
+      // Sign the challenge request
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         address,

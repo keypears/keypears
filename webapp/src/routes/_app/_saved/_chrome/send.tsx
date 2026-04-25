@@ -121,11 +121,20 @@ function SendPage() {
       );
       const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
       const theirEncapPubKey = FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey);
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptMessage(
+      // Build sender address
+      const me = await getMyUser();
+      if (!me?.name || !me.domain) throw new Error("Account not saved");
+      const senderAddress = `${me.name}@${me.domain}`;
+
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptMessage(
         text,
+        senderAddress,
+        recipient,
         mySigningKey,
+        myKeyData.signingPublicKey,
         myEncapPubKey,
         theirEncapPubKey,
+        recipientKeyResult.encapPublicKey,
       );
 
       // Store the prepared message and fetch PoW challenge
@@ -138,11 +147,6 @@ function SendPage() {
         recipientPubKey: recipientKeyResult.encapPublicKey,
       };
       setStatus("");
-
-      // Build sender address and sign the challenge request
-      const me = await getMyUser();
-      if (!me?.name || !me.domain) throw new Error("Account not saved");
-      const senderAddress = `${me.name}@${me.domain}`;
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         recipient,

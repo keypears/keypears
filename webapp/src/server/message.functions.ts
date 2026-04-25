@@ -26,6 +26,7 @@ import { getSessionUserId } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { parseAddress, makeAddress } from "~/lib/config";
+import { verifyMessageSignature } from "~/lib/message";
 import {
   fetchRemotePublicKey,
   deliverRemoteMessage,
@@ -98,6 +99,18 @@ export const sendMessage = createServerFn({ method: "POST" })
       throw new Error("PoW recipientAddress does not match recipient");
     }
 
+    // Verify sender signature before storing
+    const sigValid = verifyMessageSignature(
+      senderAddress,
+      input.recipientAddress,
+      input.senderPubKey,
+      input.recipientPubKey,
+      input.encryptedContent,
+      input.senderEncryptedContent,
+      input.senderSignature,
+    );
+    if (!sigValid) throw new Error("Invalid sender signature");
+
     const parsed = parseAddress(input.recipientAddress);
     if (!parsed) throw new Error("Invalid recipient address");
 
@@ -167,6 +180,14 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
+      // Validate recipientPubKey against federation lookup
+      const remoteKeys = await fetchRemotePublicKey(input.recipientAddress);
+      if (!remoteKeys) throw new Error("Recipient not found via federation");
+      if (remoteKeys.encapPublicKey !== input.recipientPubKey) {
+        throw new Error(
+          "recipientPubKey does not match recipient's federated encap key",
+        );
+      }
       // PoW is verified by recipient's server in notifyMessage.
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,

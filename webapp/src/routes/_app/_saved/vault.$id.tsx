@@ -564,13 +564,21 @@ function EntryDetail({
         encKey,
       );
 
+      const me = await getMyUser();
+      if (!me?.name || !me.domain) throw new Error("Account not saved");
+      const senderAddress = `${me.name}@${me.domain}`;
+
       const senderEncapPubKey = FixedBuf.fromHex(1184, myActiveKey.encapPublicKey);
       const recipientEncapPubKey = FixedBuf.fromHex(1184, recipientKey.encapPublicKey);
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptSecretMessage(
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptSecretMessage(
         secret,
+        senderAddress,
+        shareAddress,
         mySigningKey,
+        myActiveKey.signingPublicKey,
         senderEncapPubKey,
         recipientEncapPubKey,
+        recipientKey.encapPublicKey,
       );
 
       pendingShareRef.current = {
@@ -584,9 +592,6 @@ function EntryDetail({
 
       // Get PoW challenge
       setShareStatus("Requesting proof of work...");
-      const me = await getMyUser();
-      if (!me?.name || !me.domain) throw new Error("Account not saved");
-      const senderAddress = `${me.name}@${me.domain}`;
       const { signature, timestamp } = signPowRequest(
         senderAddress,
         shareAddress,

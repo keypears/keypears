@@ -610,4 +610,20 @@ Fix:
 5. `webapp/src/server/message.functions.ts` — signature verification before
    store, remote recipient key validation
 
-### Result: Pending
+### Result: Pass
+
+All type errors fixed and validation gaps closed:
+
+1. **Type errors**: `encryptMessage`/`encryptSecretMessage` calls updated to
+   8 args in send.tsx, channel.tsx, vault.tsx. `myAddress` loaded from route
+   loader in channel.tsx.
+2. **Federation key validation on inbound**: `api.router.ts` verifies
+   `senderPubKey` against the sender's federated signing key via
+   `fetchRemotePublicKey`, and `recipientPubKey` against the local recipient's
+   active encap key.
+3. **Signature verification before storage**: `message.functions.ts` calls
+   `verifyMessageSignature` before inserting messages locally.
+4. **Remote recipient key validation**: `message.functions.ts` validates
+   `recipientPubKey` against federation lookup before remote delivery.
+5. **No inline dynamic imports**: all `await import()` replaced with top-level
+   imports.

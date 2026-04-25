@@ -1,5 +1,7 @@
 import { implement } from "@orpc/server";
 import { contract, createKeypearsClientFromUrl } from "@keypears/client";
+import { verifyMessageSignature } from "~/lib/message";
+import { fetchRemotePublicKey } from "./federation.server";
 import { mlDsa65Verify } from "@webbuf/mldsa";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -164,7 +166,6 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       throw new Error("Recipient address mismatch");
 
     // Verify sender signature over the message envelope
-    const { verifyMessageSignature } = await import("~/lib/message");
     const sigValid = verifyMessageSignature(
       messageData.senderAddress,
       messageData.recipientAddress,
@@ -176,6 +177,20 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     );
     if (!sigValid) {
       throw new Error("Invalid sender signature");
+    }
+
+    // Verify senderPubKey matches the sender's federated signing key
+    const senderKeys = await fetchRemotePublicKey(messageData.senderAddress);
+    if (!senderKeys) throw new Error("Sender not found via federation");
+    if (senderKeys.signingPublicKey !== messageData.senderPubKey) {
+      throw new Error("senderPubKey does not match federated signing key");
+    }
+
+    // Verify recipientPubKey matches the local recipient's active encap key
+    const recipientActiveKey = await getActiveKey(recipientUser.id);
+    if (!recipientActiveKey) throw new Error("Recipient has no active key");
+    if (recipientActiveKey.encapPublicKey !== messageData.recipientPubKey) {
+      throw new Error("recipientPubKey does not match recipient's encap key");
     }
 
     // Store in recipient's channel (idempotent: skip if duplicate)
