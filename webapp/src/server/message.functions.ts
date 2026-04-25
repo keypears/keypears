@@ -83,6 +83,21 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (!senderDomain) throw new Error("Domain not found");
     const senderAddress = makeAddress(senderUser.name, senderDomain.domain);
 
+    // Validate senderPubKey matches the authenticated user's active signing key
+    const senderActiveKey = await getActiveKey(senderId);
+    if (!senderActiveKey) throw new Error("No active key");
+    if (input.senderPubKey !== senderActiveKey.signingPublicKey) {
+      throw new Error("senderPubKey does not match your active signing key");
+    }
+
+    // Validate PoW binding: sender/recipient in PoW must match actual addresses
+    if (input.pow.senderAddress !== senderAddress) {
+      throw new Error("PoW senderAddress does not match session");
+    }
+    if (input.pow.recipientAddress !== input.recipientAddress) {
+      throw new Error("PoW recipientAddress does not match recipient");
+    }
+
     const parsed = parseAddress(input.recipientAddress);
     if (!parsed) throw new Error("Invalid recipient address");
 
@@ -100,6 +115,15 @@ export const sendMessage = createServerFn({ method: "POST" })
       if (recipientUser.id === senderUser.id)
         throw new Error("Cannot message yourself");
       if (!recipientUser.passwordHash) throw new Error("Recipient not found");
+
+      // Validate recipientPubKey matches the recipient's active encap key
+      const recipientActiveKey = await getActiveKey(recipientUser.id);
+      if (!recipientActiveKey) throw new Error("Recipient has no active key");
+      if (input.recipientPubKey !== recipientActiveKey.encapPublicKey) {
+        throw new Error(
+          "recipientPubKey does not match recipient's active encap key",
+        );
+      }
 
       // Verify PoW locally (addresses bound in challenge signature)
       const powResult = await verifyAndConsumePow(

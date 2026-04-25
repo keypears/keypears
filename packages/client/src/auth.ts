@@ -61,7 +61,7 @@ function base64urlDecode(str: string): Uint8Array {
  * Verify a callback from the /sign page.
  *
  * Validates state, data, and expiry. Fetches the user's public key via
- * federation. Verifies the P-256 ECDSA signature over the canonical payload.
+ * federation. Verifies the ML-DSA-65 signature over the canonical payload.
  *
  * Returns the authenticated address on success. Throws on any failure.
  */

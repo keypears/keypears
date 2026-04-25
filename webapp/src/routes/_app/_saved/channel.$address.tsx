@@ -18,7 +18,11 @@ import {
   decryptDecapKey,
   signPowRequest,
 } from "~/lib/auth";
-import { encryptMessage, decryptMessageContent } from "~/lib/message";
+import {
+  encryptMessage,
+  decryptMessageContent,
+  verifyMessageSignature,
+} from "~/lib/message";
 import type { MessageContent } from "~/lib/message";
 import { encryptVaultEntry } from "~/lib/vault";
 import type { VaultEntryData } from "~/lib/vault";
@@ -237,14 +241,16 @@ function ChannelPage() {
 
   type DecryptableMsg = {
     id: string;
+    senderAddress: string;
     encryptedContent: string;
     senderEncryptedContent: string;
     senderPubKey: string;
     recipientPubKey: string;
+    senderSignature: string;
   };
 
   async function tryDecrypt(msg: DecryptableMsg): Promise<DecryptResult> {
-    if (!encryptionKey || keyMap.size === 0)
+    if (!encryptionKey || keyMap.size === 0 || !myAddress)
       return { ok: false, reason: "loading" };
 
     const isSender = keyMap.has(msg.senderPubKey);
@@ -258,16 +264,37 @@ function ChannelPage() {
     }
 
     try {
+      // Verify sender signature before trusting
+      const sigValid = verifyMessageSignature(
+        msg.senderAddress,
+        isSender ? address : myAddress,
+        msg.senderPubKey,
+        msg.recipientPubKey,
+        msg.encryptedContent,
+        msg.senderEncryptedContent,
+        msg.senderSignature,
+      );
+      if (!sigValid) {
+        console.error("[tryDecrypt] invalid sender signature");
+        return { ok: false, reason: "error" };
+      }
+
       const myDecapKey = await decryptDecapKey(
         matchingKey.encryptedDecapKey,
         encryptionKey,
       );
-      const ciphertextHex = isSender ? msg.senderEncryptedContent : msg.encryptedContent;
+      const ciphertextHex = isSender
+        ? msg.senderEncryptedContent
+        : msg.encryptedContent;
+      const senderAddr = msg.senderAddress;
+      const recipientAddr = isSender ? address : myAddress;
       return {
         ok: true,
-        content: await decryptMessageContent(
+        content: decryptMessageContent(
           ciphertextHex,
           myDecapKey,
+          senderAddr,
+          recipientAddr,
         ),
       };
     } catch (err) {

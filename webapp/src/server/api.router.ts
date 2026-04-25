@@ -147,15 +147,36 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     const messageData = await remoteClient.pullMessage({
       token: input.pullToken,
     });
-    // Verify message size
-    if (messageData.encryptedContent.length > 50_000) {
+    // Verify message sizes
+    if (messageData.encryptedContent.length > 100_000) {
       throw new Error("Message too large");
+    }
+    if (messageData.senderEncryptedContent.length > 100_000) {
+      throw new Error("Sender encrypted content too large");
+    }
+    if (messageData.senderSignature.length > 6700) {
+      throw new Error("Sender signature too large");
     }
     // Verify the message matches the notification
     if (messageData.senderAddress !== input.senderAddress)
       throw new Error("Sender address mismatch");
     if (messageData.recipientAddress !== input.recipientAddress)
       throw new Error("Recipient address mismatch");
+
+    // Verify sender signature over the message envelope
+    const { verifyMessageSignature } = await import("~/lib/message");
+    const sigValid = verifyMessageSignature(
+      messageData.senderAddress,
+      messageData.recipientAddress,
+      messageData.senderPubKey,
+      messageData.recipientPubKey,
+      messageData.encryptedContent,
+      messageData.senderEncryptedContent,
+      messageData.senderSignature,
+    );
+    if (!sigValid) {
+      throw new Error("Invalid sender signature");
+    }
 
     // Store in recipient's channel (idempotent: skip if duplicate)
     const channelId = await getOrCreateChannel(
