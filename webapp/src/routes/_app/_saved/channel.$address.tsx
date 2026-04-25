@@ -165,8 +165,10 @@ function ChannelPage() {
   useEffect(() => {
     let active = true;
     async function poll() {
+      // Wait for the initial message list to be set so lastIdRef is valid
+      await new Promise((resolve) => setTimeout(resolve, 500));
       while (active) {
-        if (!document.hidden) {
+        if (!document.hidden && lastIdRef.current) {
           try {
             const newMsgs = await pollNewMessages({
               data: {
@@ -176,7 +178,11 @@ function ChannelPage() {
             });
             if (!active) break;
             if (newMsgs.length > 0) {
-              setMessageList((prev) => [...prev, ...newMsgs]);
+              setMessageList((prev) => {
+                const existingIds = new Set(prev.map((m) => m.id));
+                const unique = newMsgs.filter((m) => !existingIds.has(m.id));
+                return unique.length > 0 ? [...prev, ...unique] : prev;
+              });
               markChannelAsRead({ data: address });
             }
           } catch {
