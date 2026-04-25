@@ -103,13 +103,14 @@ export async function verifyDomainAdmin(
 
 export async function fetchRemotePublicKey(
   address: string,
-): Promise<string | null> {
+): Promise<{ signingPublicKey: string; encapPublicKey: string } | null> {
   const parsed = parseAddress(address);
   if (!parsed) return null;
 
   const client = await getRemoteClient(parsed.domain);
   const result = await client.getPublicKey({ address });
-  return result.publicKey;
+  if (!result.signingPublicKey || !result.encapPublicKey) return null;
+  return { signingPublicKey: result.signingPublicKey, encapPublicKey: result.encapPublicKey };
 }
 
 export async function fetchRemotePowChallenge(input: {
@@ -129,8 +130,10 @@ export async function deliverRemoteMessage(
   senderAddress: string,
   recipientAddress: string,
   encryptedContent: string,
+  senderEncryptedContent: string,
   senderPubKey: string,
   recipientPubKey: string,
+  senderSignature: string,
   pow: {
     solvedHeader: string;
     target: string;
@@ -152,8 +155,10 @@ export async function deliverRemoteMessage(
     senderAddress,
     recipientAddress,
     encryptedContent,
+    senderEncryptedContent,
     senderPubKey,
     recipientPubKey,
+    senderSignature,
     expiresAt,
   });
 
@@ -164,6 +169,8 @@ export async function deliverRemoteMessage(
       senderAddress,
       recipientAddress,
       pullToken: token,
+      senderEncryptedContent,
+      senderSignature,
       pow,
     });
   } catch (err) {

@@ -6,6 +6,7 @@ import {
   getOlderMessages,
   sendMessage,
   getMyActiveEncryptedKey,
+  getPublicKeyForAddress,
   getRemotePowChallenge,
   pollNewMessages,
   markChannelAsRead,
@@ -13,7 +14,8 @@ import {
 import { getMyKeys, getMyUser } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
-  decryptPrivateKey,
+  decryptSigningKey,
+  decryptDecapKey,
   signPowRequest,
 } from "~/lib/auth";
 import { encryptMessage, decryptMessageContent } from "~/lib/message";
@@ -92,11 +94,13 @@ function ChannelPage() {
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
 
   const [myKeyData, setMyKeyData] = useState<{
-    publicKey: string;
-    encryptedPrivateKey: string;
+    signingPublicKey: string;
+    encapPublicKey: string;
+    encryptedSigningKey: string;
+    encryptedDecapKey: string;
   } | null>(null);
   const [keyMap, setKeyMap] = useState<
-    Map<string, { encryptedPrivateKey: string; loginKeyHash: string | null }>
+    Map<string, { encryptedSigningKey: string; encryptedDecapKey: string; encapPublicKey: string; loginKeyHash: string | null }>
   >(new Map());
   const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(
     null,
@@ -106,11 +110,13 @@ function ChannelPage() {
     getMyKeys().then((data) => {
       const map = new Map<
         string,
-        { encryptedPrivateKey: string; loginKeyHash: string | null }
+        { encryptedSigningKey: string; encryptedDecapKey: string; encapPublicKey: string; loginKeyHash: string | null }
       >();
       for (const k of data.keys) {
-        map.set(k.publicKey, {
-          encryptedPrivateKey: k.encryptedPrivateKey,
+        map.set(k.signingPublicKey, {
+          encryptedSigningKey: k.encryptedSigningKey,
+          encryptedDecapKey: k.encryptedDecapKey,
+          encapPublicKey: k.encapPublicKey,
           loginKeyHash: k.loginKeyHash,
         });
       }
@@ -232,6 +238,7 @@ function ChannelPage() {
   type DecryptableMsg = {
     id: string;
     encryptedContent: string;
+    senderEncryptedContent: string;
     senderPubKey: string;
     recipientPubKey: string;
   };
@@ -242,7 +249,6 @@ function ChannelPage() {
 
     const isSender = keyMap.has(msg.senderPubKey);
     const myPubKeyHex = isSender ? msg.senderPubKey : msg.recipientPubKey;
-    const theirPubKeyHex = isSender ? msg.recipientPubKey : msg.senderPubKey;
 
     const matchingKey = keyMap.get(myPubKeyHex);
     if (!matchingKey) return { ok: false, reason: "wrong-key" };
@@ -252,17 +258,16 @@ function ChannelPage() {
     }
 
     try {
-      const myPrivKey = await decryptPrivateKey(
-        matchingKey.encryptedPrivateKey,
+      const myDecapKey = await decryptDecapKey(
+        matchingKey.encryptedDecapKey,
         encryptionKey,
       );
-      const theirPubKey = FixedBuf.fromHex(33, theirPubKeyHex);
+      const ciphertextHex = isSender ? msg.senderEncryptedContent : msg.encryptedContent;
       return {
         ok: true,
         content: await decryptMessageContent(
-          msg.encryptedContent,
-          myPrivKey,
-          theirPubKey,
+          ciphertextHex,
+          myDecapKey,
         ),
       };
     } catch (err) {
@@ -316,21 +321,21 @@ function ChannelPage() {
   ) {
     const fields = secret.fields as Record<string, string>;
     if (!myKeyData || !encryptionKey) return;
-    const myPrivKey = await decryptPrivateKey(
-      myKeyData.encryptedPrivateKey,
-      encryptionKey,
-    );
     const data: VaultEntryData =
       secret.secretType === "login"
         ? { type: "login" as const, ...fields }
         : { type: "text" as const, text: fields.text ?? "" };
-    const encryptedData = await encryptVaultEntry(data, myPrivKey);
+    const encryptedData = await encryptVaultEntry(data, encryptionKey);
+    // Get keyId from active key data
+    const activeKeyData = await getMyKeys();
+    const activeKey = activeKeyData.keys[0];
+    if (!activeKey) throw new Error("No active key");
     const result = await createEntry({
       data: {
         name: secret.name,
         type: secret.secretType,
         searchTerms: "",
-        publicKey: myKeyData.publicKey,
+        keyId: activeKey.id,
         encryptedData,
         sourceMessageId: messageId,
         sourceAddress: senderAddress,
@@ -351,6 +356,8 @@ function ChannelPage() {
   const pendingSendRef = useRef<{
     recipientAddress: string;
     encryptedContent: string;
+    senderEncryptedContent: string;
+    senderSignature: string;
     senderPubKey: string;
     recipientPubKey: string;
   } | null>(null);
@@ -362,46 +369,48 @@ function ChannelPage() {
     setSending(true);
 
     try {
-      const otherMsg = messageList.find(
-        (m) => m.senderPubKey !== myKeyData.publicKey,
-      );
-      const recipientPubKeyHex =
-        otherMsg?.senderPubKey ?? messageList[0]?.recipientPubKey;
-      if (!recipientPubKeyHex) throw new Error("Cannot determine recipient");
+      // Look up recipient's encap public key from existing messages or fetch it
+      const recipientKeyResult = await getPublicKeyForAddress({ data: address });
+      if (!recipientKeyResult) throw new Error("Cannot determine recipient key");
+      const recipientEncapPubKey = recipientKeyResult.encapPublicKey;
 
-      const myPrivKey = await decryptPrivateKey(
-        myKeyData.encryptedPrivateKey,
+      const mySigningKey = await decryptSigningKey(
+        myKeyData.encryptedSigningKey,
         encryptionKey,
       );
-      const theirPubKey = FixedBuf.fromHex(33, recipientPubKeyHex);
-      const encryptedContent = await encryptMessage(
+      const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
+      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientEncapPubKey);
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptMessage(
         text,
-        myPrivKey,
-        theirPubKey,
+        mySigningKey,
+        myEncapPubKey,
+        theirEncapPubKey,
       );
 
       pendingSendRef.current = {
         recipientAddress: address,
-        encryptedContent,
-        senderPubKey: myKeyData.publicKey,
-        recipientPubKey: recipientPubKeyHex,
+        encryptedContent: recipientCiphertext,
+        senderEncryptedContent: senderCiphertext,
+        senderSignature: msgSignature,
+        senderPubKey: myKeyData.signingPublicKey,
+        recipientPubKey: recipientEncapPubKey,
       };
 
       // Build sender address and sign the challenge request
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
-      const { signature: reqSig, timestamp } = await signPowRequest(
+      const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         address,
-        myPrivKey,
+        mySigningKey,
       );
 
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: address,
           senderAddress,
-          senderPubKey: myKeyData.publicKey,
+          senderPubKey: myKeyData.signingPublicKey,
           signature: reqSig,
           timestamp,
         },

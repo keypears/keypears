@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { z } from "zod/v4";
 import { getMyUser, getMyKeys } from "~/server/user.functions";
 import { authMiddleware } from "~/server/auth-middleware";
-import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
-import { p256PrivateKeyToJwk } from "@webbuf/p256";
+import { getCachedEncryptionKey, decryptSigningKey } from "~/lib/auth";
+import { mlDsa65Sign } from "@webbuf/mldsa";
+import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { buildCanonicalPayload } from "@keypears/client";
 import { Shield, LogIn, X } from "lucide-react";
@@ -59,26 +60,13 @@ function validateSearchParams(search: SignSearch): string | null {
   return null;
 }
 
-async function signPayload(
+function signPayload(
   payload: string,
-  privateKey: FixedBuf<32>,
-): Promise<string> {
-  const message = new TextEncoder().encode(payload);
-  const jwk = p256PrivateKeyToJwk(privateKey);
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    { name: "ECDSA", hash: "SHA-256" },
-    key,
-    message,
-  );
-  // base64url encode (no padding)
-  const bytes = new Uint8Array(sig);
+  signingKey: FixedBuf<4032>,
+): string {
+  const message = WebBuf.fromUtf8(payload);
+  const sig = mlDsa65Sign(signingKey, message);
+  const bytes = new Uint8Array(sig.buf);
   const base64 = btoa(String.fromCharCode(...bytes));
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
@@ -97,7 +85,7 @@ function SignPage() {
   const search = Route.useSearch();
   const { user, keyData } = Route.useLoaderData();
 
-  const [privateKey, setPrivateKey] = useState<FixedBuf<32> | null>(null);
+  const [privateKey, setPrivateKey] = useState<FixedBuf<4032> | null>(null);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState("");
 
@@ -110,8 +98,8 @@ function SignPage() {
       for (const k of keyData.keys) {
         if (k.loginKeyHash === keyData.passwordHash) {
           try {
-            const priv = await decryptPrivateKey(
-              k.encryptedPrivateKey,
+            const priv = await decryptSigningKey(
+              k.encryptedSigningKey,
               encryptionKey,
             );
             if (!cancelled) setPrivateKey(priv);
@@ -146,20 +134,29 @@ function SignPage() {
         expires,
         data: search.data,
       });
-      const signature = await signPayload(payload, privateKey);
+      const signature = signPayload(payload, privateKey);
 
-      const callbackUrl = new URL(search.redirect_uri);
-      callbackUrl.searchParams.set("signature", signature);
-      callbackUrl.searchParams.set("address", myAddress);
-      callbackUrl.searchParams.set("nonce", nonce);
-      callbackUrl.searchParams.set("timestamp", timestamp);
-      callbackUrl.searchParams.set("expires", expires);
-      if (search.data !== undefined) {
-        callbackUrl.searchParams.set("data", search.data);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = search.redirect_uri;
+      const fields: Record<string, string> = {
+        signature,
+        address: myAddress,
+        nonce,
+        timestamp,
+        expires,
+        state: search.state,
+      };
+      if (search.data !== undefined) fields.data = search.data;
+      for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
       }
-      callbackUrl.searchParams.set("state", search.state);
-
-      window.location.href = callbackUrl.toString();
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Signing failed. Try again.",

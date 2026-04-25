@@ -11,7 +11,7 @@ import {
 import { getMyKeys } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
-  decryptPrivateKey,
+  decryptSigningKey,
   calculatePasswordEntropy,
   entropyTier,
   entropyLabel,
@@ -107,43 +107,25 @@ function VaultDetailPage() {
     setEntries(initialEntries);
   }, [initialEntries]);
 
-  // Key map
+  // Key map — tracks which keyIds are unlockable with the current password.
+  // Vault encryption uses the cached encryptionKey directly (same for all keys
+  // under the same password), so we don't need to store decrypted keys here.
   const [keyMap, setKeyMap] = useState<
-    Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
+    Map<string, { keyNumber: number }>
   >(new Map());
-  const [activePublicKey, setActivePublicKey] = useState<string | null>(null);
+  const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const encryptionKey = getCachedEncryptionKey();
-    if (!encryptionKey) return;
-    let cancelled = false;
-    (async () => {
-      const map = new Map<
-        string,
-        { privateKey: FixedBuf<32>; keyNumber: number }
-      >();
-      for (const k of keyData.keys) {
-        if (k.loginKeyHash === keyData.passwordHash) {
-          try {
-            const priv = await decryptPrivateKey(
-              k.encryptedPrivateKey,
-              encryptionKey,
-            );
-            map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
-          } catch {
-            // locked key
-          }
-        }
+    const map = new Map<string, { keyNumber: number }>();
+    for (const k of keyData.keys) {
+      if (k.loginKeyHash === keyData.passwordHash) {
+        map.set(k.id, { keyNumber: k.keyNumber });
       }
-      if (cancelled) return;
-      setKeyMap(map);
-      if (keyData.keys.length > 0) {
-        setActivePublicKey(keyData.keys[0].publicKey);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    }
+    setKeyMap(map);
+    if (keyData.keys.length > 0) {
+      setActiveKeyId(keyData.keys[0].id);
+    }
   }, [keyData]);
 
   // Search
@@ -158,15 +140,15 @@ function VaultDetailPage() {
     }, 300);
   }
 
-  function getKeyNumber(publicKey: string): number | null {
-    const k = keyMap.get(publicKey);
+  function getKeyNumber(keyId: string): number | null {
+    const k = keyMap.get(keyId);
     if (k) return k.keyNumber;
-    const match = keyData.keys.find((key) => key.publicKey === publicKey);
+    const match = keyData.keys.find((key) => key.id === keyId);
     return match?.keyNumber ?? null;
   }
 
-  function isLocked(publicKey: string): boolean {
-    return !keyMap.has(publicKey);
+  function isLocked(keyId: string): boolean {
+    return !keyMap.has(keyId);
   }
 
   // EntryList is rendered inline (not as a nested component) to avoid
@@ -205,7 +187,7 @@ function VaultDetailPage() {
         <div className="border-border/30 border-t" />
         <div className="flex-1 overflow-y-auto">
           {entries.map((e) => {
-            const locked = isLocked(e.publicKey);
+            const locked = isLocked(e.keyId);
             const Icon = locked
               ? Lock
               : e.type === "login"
@@ -299,7 +281,7 @@ function VaultDetailPage() {
               <EntryDetail
                 entry={entry}
                 keyMap={keyMap}
-                activePublicKey={activePublicKey}
+                activeKeyId={activeKeyId}
                 getKeyNumber={getKeyNumber}
                 isLocked={isLocked}
                 onDeleted={() => navigate({ to: "/vault" })}
@@ -353,7 +335,7 @@ function FieldRow({
 function EntryDetail({
   entry,
   keyMap,
-  activePublicKey,
+  activeKeyId,
   getKeyNumber,
   isLocked,
   onDeleted,
@@ -365,7 +347,7 @@ function EntryDetail({
     name: string;
     type: string;
     searchTerms: string;
-    publicKey: string;
+    keyId: string;
     encryptedData: string;
     sourceMessageId: string | null;
     sourceAddress: string | null;
@@ -376,10 +358,10 @@ function EntryDetail({
     version: number;
     versionCreatedAt: Date;
   };
-  keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
-  activePublicKey: string | null;
-  getKeyNumber: (pk: string) => number | null;
-  isLocked: (pk: string) => boolean;
+  keyMap: Map<string, { keyNumber: number }>;
+  activeKeyId: string | null;
+  getKeyNumber: (keyId: string) => number | null;
+  isLocked: (keyId: string) => boolean;
   onDeleted: () => void;
   onSaved: (id: string) => void;
   // `secret_versions` rows only carry the versioned encrypted payload
@@ -390,7 +372,7 @@ function EntryDetail({
   history: Array<{
     id: string;
     version: number;
-    publicKey: string;
+    keyId: string;
     encryptedData: string;
     createdAt: Date;
   }>;
@@ -416,6 +398,8 @@ function EntryDetail({
   const pendingShareRef = useRef<{
     recipientAddress: string;
     encryptedContent: string;
+    senderEncryptedContent: string;
+    senderSignature: string;
     senderPubKey: string;
     recipientPubKey: string;
   } | null>(null);
@@ -437,9 +421,9 @@ function EntryDetail({
   // Copy state
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const locked = isLocked(entry.publicKey);
-  const keyNum = getKeyNumber(entry.publicKey);
-  const keyInfo = keyMap.get(entry.publicKey);
+  const locked = isLocked(entry.keyId);
+  const keyNum = getKeyNumber(entry.keyId);
+  const isUnlockable = keyMap.has(entry.keyId);
 
   // Pre-decrypt in an effect so render stays synchronous
   const [decrypted, setDecrypted] = useState<DecryptResult | null>(null);
@@ -448,7 +432,8 @@ function EntryDetail({
   >(new Map());
 
   useEffect(() => {
-    if (!keyInfo) {
+    const encryptionKey = getCachedEncryptionKey();
+    if (!isUnlockable || !encryptionKey) {
       setDecrypted(null);
       setVersionsDecrypted(new Map());
       return;
@@ -457,7 +442,7 @@ function EntryDetail({
     (async () => {
       const result = await tryDecryptVaultEntry(
         entry.encryptedData,
-        keyInfo.privateKey,
+        encryptionKey,
       );
       if (cancelled) return;
       setDecrypted(result);
@@ -466,11 +451,10 @@ function EntryDetail({
       // panel can render them synchronously from state.
       const vmap = new Map<string, DecryptResult>();
       for (const ver of olderVersions) {
-        const verKeyInfo = keyMap.get(ver.publicKey);
-        if (!verKeyInfo) continue;
+        if (!keyMap.has(ver.keyId)) continue;
         const verResult = await tryDecryptVaultEntry(
           ver.encryptedData,
-          verKeyInfo.privateKey,
+          encryptionKey,
         );
         if (cancelled) return;
         vmap.set(ver.id, verResult);
@@ -480,7 +464,7 @@ function EntryDetail({
     return () => {
       cancelled = true;
     };
-  }, [entry.encryptedData, keyInfo, olderVersions, keyMap]);
+  }, [entry.encryptedData, isUnlockable, olderVersions, keyMap]);
 
   function startEditing() {
     if (!decrypted || !decrypted.ok) return;
@@ -500,7 +484,8 @@ function EntryDetail({
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!keyInfo || !decrypted?.ok) return;
+    const encryptionKey = getCachedEncryptionKey();
+    if (!isUnlockable || !encryptionKey || !decrypted?.ok) return;
     setError("");
     setSaving(true);
 
@@ -519,14 +504,14 @@ function EntryDetail({
         data = { type: "text", text: editText };
       }
 
-      const encryptedData = await encryptVaultEntry(data, keyInfo.privateKey);
+      const encryptedData = await encryptVaultEntry(data, encryptionKey);
       const result = await updateEntry({
         data: {
           secretId: entry.id,
           name: editName,
           type: entry.type,
           searchTerms: editSearchTerms,
-          publicKey: entry.publicKey,
+          keyId: entry.keyId,
           encryptedData,
         },
       });
@@ -550,7 +535,7 @@ function EntryDetail({
 
   async function handleShare(e: React.FormEvent) {
     e.preventDefault();
-    if (!decrypted?.ok || !keyInfo) return;
+    if (!decrypted?.ok || !isUnlockable) return;
     setError("");
     setShareStatus("Looking up recipient...");
     try {
@@ -570,27 +555,31 @@ function EntryDetail({
               )
             : { text: decrypted.data.text },
       };
-      // Get my active key for ECDH encryption
+      // Get my active key for encryption
       const myActiveKey = await getMyActiveEncryptedKey();
       const encKey = getCachedEncryptionKey();
       if (!encKey) throw new Error("Encryption key not found");
-      const myPrivKey = await decryptPrivateKey(
-        myActiveKey.encryptedPrivateKey,
+      const mySigningKey = await decryptSigningKey(
+        myActiveKey.encryptedSigningKey,
         encKey,
       );
 
-      const theirPubKey = FixedBuf.fromHex(33, recipientKey.publicKey);
-      const encryptedContent = await encryptSecretMessage(
+      const senderEncapPubKey = FixedBuf.fromHex(1184, myActiveKey.encapPublicKey);
+      const recipientEncapPubKey = FixedBuf.fromHex(1184, recipientKey.encapPublicKey);
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptSecretMessage(
         secret,
-        myPrivKey,
-        theirPubKey,
+        mySigningKey,
+        senderEncapPubKey,
+        recipientEncapPubKey,
       );
 
       pendingShareRef.current = {
         recipientAddress: shareAddress,
-        encryptedContent,
-        senderPubKey: myActiveKey.publicKey,
-        recipientPubKey: recipientKey.publicKey,
+        encryptedContent: recipientCiphertext,
+        senderEncryptedContent: senderCiphertext,
+        senderSignature: msgSignature,
+        senderPubKey: myActiveKey.signingPublicKey,
+        recipientPubKey: recipientKey.encapPublicKey,
       };
 
       // Get PoW challenge
@@ -598,16 +587,16 @@ function EntryDetail({
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
-      const { signature, timestamp } = await signPowRequest(
+      const { signature, timestamp } = signPowRequest(
         senderAddress,
         shareAddress,
-        myPrivKey,
+        mySigningKey,
       );
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: shareAddress,
           senderAddress,
-          senderPubKey: myActiveKey.publicKey,
+          senderPubKey: myActiveKey.signingPublicKey,
           signature,
           timestamp,
         },
@@ -912,7 +901,7 @@ function EntryDetail({
           )}
           <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
             {keyNum !== null && <span>Key #{keyNum}</span>}
-            {activePublicKey && entry.publicKey !== activePublicKey && (
+            {activeKeyId && entry.keyId !== activeKeyId && (
               <span className="text-yellow-500">older key</span>
             )}
             <span>
@@ -1161,10 +1150,11 @@ function EntryDetail({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={async () => {
-                              if (!verDecrypted?.ok || !keyInfo) return;
+                              const encKey = getCachedEncryptionKey();
+                              if (!verDecrypted?.ok || !isUnlockable || !encKey) return;
                               const encryptedData = await encryptVaultEntry(
                                 verDecrypted.data,
-                                keyInfo.privateKey,
+                                encKey,
                               );
                               const result = await updateEntry({
                                 data: {
@@ -1176,7 +1166,7 @@ function EntryDetail({
                                   name: entry.name,
                                   type: entry.type,
                                   searchTerms: entry.searchTerms,
-                                  publicKey: entry.publicKey,
+                                  keyId: entry.keyId,
                                   encryptedData,
                                 },
                               });

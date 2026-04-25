@@ -1,6 +1,6 @@
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { p256PublicKeyToJwk, p256PublicKeyVerify } from "@webbuf/p256";
+import { mlDsa65Verify } from "@webbuf/mldsa";
 import { discoverApiDomain } from "./discover";
 import { createKeypearsClient } from "./client";
 import { buildCanonicalPayload } from "./canonical";
@@ -134,35 +134,15 @@ export async function verifyCallback(options: {
   const apiDomain = await discoverApiDomain(parsed.domain);
   const client = createKeypearsClient(apiDomain);
   const result = await client.getPublicKey({ address });
-  if (!result.publicKey) {
+  if (!result.signingPublicKey) {
     throw new Error(`Public key not found for ${address}`);
   }
 
-  // Import the compressed P-256 public key into Web Crypto
-  const compressedPub = FixedBuf.fromHex(33, result.publicKey);
-  if (!p256PublicKeyVerify(compressedPub)) {
-    throw new Error("Invalid public key from server");
-  }
-  const pubJwk = p256PublicKeyToJwk(compressedPub);
-  const cryptoKey = await crypto.subtle.importKey(
-    "jwk",
-    pubJwk,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["verify"],
-  );
-
-  // Decode the base64url signature
-  const sigBytes = base64urlDecode(signature);
-
-  // Verify the signature over the canonical payload
-  const payloadBytes = new TextEncoder().encode(payload);
-  const valid = await crypto.subtle.verify(
-    { name: "ECDSA", hash: "SHA-256" },
-    cryptoKey,
-    new Uint8Array(sigBytes),
-    new Uint8Array(payloadBytes),
-  );
+  // Verify the ML-DSA-65 signature
+  const verifyingKey = FixedBuf.fromHex(1952, result.signingPublicKey);
+  const sig = FixedBuf.fromBuf(3309, WebBuf.fromUint8Array(base64urlDecode(signature)));
+  const payloadBytes = WebBuf.fromUtf8(payload);
+  const valid = mlDsa65Verify(verifyingKey, payloadBytes, sig);
 
   if (!valid) {
     throw new Error("Invalid signature — authentication failed");

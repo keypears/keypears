@@ -2,10 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { getMyEntries, createEntry } from "~/server/vault.functions";
 import { getMyKeys } from "~/server/user.functions";
-import { getCachedEncryptionKey, decryptPrivateKey } from "~/lib/auth";
+import { getCachedEncryptionKey } from "~/lib/auth";
 import { encryptVaultEntry } from "~/lib/vault";
 import type { VaultEntryData } from "~/lib/vault";
-import { FixedBuf } from "@webbuf/fixedbuf";
+
 import {
   calculatePasswordEntropy,
   entropyTier,
@@ -40,43 +40,23 @@ function VaultPage() {
     setHasMore(initialEntries.length >= 20);
   }, [initialEntries]);
 
-  // Build key map
+  // Build key map — tracks which keyIds are unlockable with the current password.
   const [keyMap, setKeyMap] = useState<
-    Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>
+    Map<string, { keyNumber: number }>
   >(new Map());
-  const [activePublicKey, setActivePublicKey] = useState<string | null>(null);
+  const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const encryptionKey = getCachedEncryptionKey();
-    if (!encryptionKey) return;
-    let cancelled = false;
-    (async () => {
-      const map = new Map<
-        string,
-        { privateKey: FixedBuf<32>; keyNumber: number }
-      >();
-      for (const k of keyData.keys) {
-        if (k.loginKeyHash === keyData.passwordHash) {
-          try {
-            const priv = await decryptPrivateKey(
-              k.encryptedPrivateKey,
-              encryptionKey,
-            );
-            map.set(k.publicKey, { privateKey: priv, keyNumber: k.keyNumber });
-          } catch {
-            // locked key
-          }
-        }
+    const map = new Map<string, { keyNumber: number }>();
+    for (const k of keyData.keys) {
+      if (k.loginKeyHash === keyData.passwordHash) {
+        map.set(k.id, { keyNumber: k.keyNumber });
       }
-      if (cancelled) return;
-      setKeyMap(map);
-      if (keyData.keys.length > 0) {
-        setActivePublicKey(keyData.keys[0].publicKey);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    }
+    setKeyMap(map);
+    if (keyData.keys.length > 0) {
+      setActiveKeyId(keyData.keys[0].id);
+    }
   }, [keyData]);
 
   // Search with debounce
@@ -113,15 +93,15 @@ function VaultPage() {
     }
   }
 
-  function getKeyNumber(publicKey: string): number | null {
-    const k = keyMap.get(publicKey);
+  function getKeyNumber(keyId: string): number | null {
+    const k = keyMap.get(keyId);
     if (k) return k.keyNumber;
-    const match = keyData.keys.find((key) => key.publicKey === publicKey);
+    const match = keyData.keys.find((key) => key.id === keyId);
     return match?.keyNumber ?? null;
   }
 
-  function isLocked(publicKey: string): boolean {
-    return !keyMap.has(publicKey);
+  function isLocked(keyId: string): boolean {
+    return !keyMap.has(keyId);
   }
 
   return (
@@ -153,8 +133,7 @@ function VaultPage() {
       {/* Create form */}
       {creating && (
         <CreateEntryForm
-          activePublicKey={activePublicKey}
-          keyMap={keyMap}
+          activeKeyId={activeKeyId}
           onCreated={(id: string) => {
             navigate({ to: "/vault/$id", params: { id } });
           }}
@@ -173,8 +152,8 @@ function VaultPage() {
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           {entries.map((entry) => {
-            const keyNum = getKeyNumber(entry.publicKey);
-            const locked = isLocked(entry.publicKey);
+            const keyNum = getKeyNumber(entry.keyId);
+            const locked = isLocked(entry.keyId);
             const Icon = entry.type === "login" ? KeyRound : FileText;
             return (
               <Link
@@ -227,13 +206,11 @@ function VaultPage() {
 }
 
 function CreateEntryForm({
-  activePublicKey,
-  keyMap,
+  activeKeyId,
   onCreated,
   onCancel,
 }: {
-  activePublicKey: string | null;
-  keyMap: Map<string, { privateKey: FixedBuf<32>; keyNumber: number }>;
+  activeKeyId: string | null;
   onCreated: (id: string) => void;
   onCancel: () => void;
 }) {
@@ -251,9 +228,9 @@ function CreateEntryForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!activePublicKey) return;
-    const keyInfo = keyMap.get(activePublicKey);
-    if (!keyInfo) return;
+    if (!activeKeyId) return;
+    const encryptionKey = getCachedEncryptionKey();
+    if (!encryptionKey) return;
 
     setError("");
     setSaving(true);
@@ -272,13 +249,13 @@ function CreateEntryForm({
         data = { type: "text", text };
       }
 
-      const encryptedData = await encryptVaultEntry(data, keyInfo.privateKey);
+      const encryptedData = await encryptVaultEntry(data, encryptionKey);
       const result = await createEntry({
         data: {
           name,
           type,
           searchTerms,
-          publicKey: activePublicKey,
+          keyId: activeKeyId,
           encryptedData,
         },
       });
@@ -501,7 +478,7 @@ function CreateEntryForm({
 
         <button
           type="submit"
-          disabled={saving || !activePublicKey}
+          disabled={saving || !activeKeyId}
           className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 text-sm transition-all disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save"}

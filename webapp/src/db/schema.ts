@@ -88,8 +88,10 @@ export const keys = mysqlTable(
     id: binaryId("id").primaryKey(),
     userId: binaryId("user_id").notNull(),
     keyNumber: int("key_number").notNull(),
-    publicKey: varchar("public_key", { length: 66 }).notNull(),
-    encryptedPrivateKey: binaryHex("encrypted_private_key", 256).notNull(),
+    signingPublicKey: varchar("signing_public_key", { length: 3904 }).notNull(),
+    encryptedSigningKey: binaryHex("encrypted_signing_key", 4100).notNull(),
+    encapPublicKey: varchar("encap_public_key", { length: 2368 }).notNull(),
+    encryptedDecapKey: binaryHex("encrypted_decap_key", 2500).notNull(),
     loginKeyHash: varchar("login_key_hash", { length: 255 }),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -156,7 +158,7 @@ export const secretVersions = mysqlTable(
     id: binaryId("id").primaryKey(),
     secretId: binaryId("secret_id").notNull(),
     version: int("version").notNull(),
-    publicKey: varchar("public_key", { length: 66 }).notNull(),
+    keyId: binaryId("key_id").notNull(),
     encryptedData: binaryHex("encrypted_data", 10000).notNull(),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -174,9 +176,11 @@ export const messages = mysqlTable(
     id: binaryId("id").primaryKey(),
     channelId: binaryId("channel_id").notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
-    encryptedContent: binaryHex("encrypted_content", 25000).notNull(),
-    senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
-    recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+    encryptedContent: binaryHex("encrypted_content", 50000).notNull(),
+    senderEncryptedContent: binaryHex("sender_encrypted_content", 50000).notNull(),
+    senderPubKey: varchar("sender_pub_key", { length: 3904 }).notNull(),
+    recipientPubKey: varchar("recipient_pub_key", { length: 2368 }).notNull(),
+    senderSignature: binaryHex("sender_signature", 6700).notNull(),
     isRead: boolean("is_read").notNull().default(false),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -195,9 +199,11 @@ export const pendingDeliveries = mysqlTable(
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     senderAddress: varchar("sender_address", { length: 255 }).notNull(),
     recipientAddress: varchar("recipient_address", { length: 255 }).notNull(),
-    encryptedContent: binaryHex("encrypted_content", 25000).notNull(),
-    senderPubKey: varchar("sender_pub_key", { length: 66 }).notNull(),
-    recipientPubKey: varchar("recipient_pub_key", { length: 66 }).notNull(),
+    encryptedContent: binaryHex("encrypted_content", 50000).notNull(),
+    senderEncryptedContent: binaryHex("sender_encrypted_content", 50000).notNull(),
+    senderPubKey: varchar("sender_pub_key", { length: 3904 }).notNull(),
+    recipientPubKey: varchar("recipient_pub_key", { length: 2368 }).notNull(),
+    senderSignature: binaryHex("sender_signature", 6700).notNull(),
     expiresAt: datetime("expires_at").notNull(),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)

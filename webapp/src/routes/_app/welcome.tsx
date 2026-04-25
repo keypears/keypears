@@ -130,7 +130,7 @@ function WelcomePage() {
       const loginKey = await deriveLoginKeyFromPasswordKey(passwordKey);
       const encryptionKey =
         await deriveEncryptionKeyFromPasswordKey(passwordKey);
-      const { publicKey, encryptedPrivateKey } =
+      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       cacheEncryptionKey(encryptionKey);
       const entropy = calculatePasswordEntropy(password);
@@ -140,8 +140,10 @@ function WelcomePage() {
           name: parsed.name,
           domain: parsed.domain,
           loginKey,
-          publicKey,
-          encryptedPrivateKey,
+          signingPublicKey,
+          encapPublicKey,
+          encryptedSigningKey,
+          encryptedDecapKey,
         },
       });
       navigate({ to: "/home" });

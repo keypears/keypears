@@ -46,11 +46,11 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
       if (!user || !user.passwordHash) return null;
       const key = await getActiveKey(user.id);
       if (!key) return null;
-      return { publicKey: key.publicKey };
+      return { signingPublicKey: key.signingPublicKey, encapPublicKey: key.encapPublicKey };
     }
     // Remote user — proxy the request
-    const publicKey = await fetchRemotePublicKey(address);
-    return publicKey ? { publicKey } : null;
+    const remoteKeys = await fetchRemotePublicKey(address);
+    return remoteKeys;
   });
 
 const MAX_CIPHERTEXT_LENGTH = 50_000; // hex chars (~25KB plaintext)
@@ -63,8 +63,12 @@ export const sendMessage = createServerFn({ method: "POST" })
       encryptedContent: z
         .string()
         .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
+      senderEncryptedContent: z
+        .string()
+        .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
       senderPubKey: z.string(),
       recipientPubKey: z.string(),
+      senderSignature: z.string(),
       pow: PowSolutionSchema,
     }),
   )
@@ -121,16 +125,20 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderChannelId,
         senderAddress,
         input.encryptedContent,
+        input.senderEncryptedContent,
         input.senderPubKey,
         input.recipientPubKey,
+        input.senderSignature,
         true,
       );
       await insertMessage(
         recipientChannelId,
         senderAddress,
         input.encryptedContent,
+        input.senderEncryptedContent,
         input.senderPubKey,
         input.recipientPubKey,
+        input.senderSignature,
         false,
       );
     } else {
@@ -144,8 +152,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderChannelId,
         senderAddress,
         input.encryptedContent,
+        input.senderEncryptedContent,
         input.senderPubKey,
         input.recipientPubKey,
+        input.senderSignature,
         true,
       );
 
@@ -153,8 +163,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderAddress,
         input.recipientAddress,
         input.encryptedContent,
+        input.senderEncryptedContent,
         input.senderPubKey,
         input.recipientPubKey,
+        input.senderSignature,
         input.pow,
       );
     }
@@ -254,8 +266,10 @@ export const getMyActiveEncryptedKey = createServerFn({
     const key = await getActiveKey(userId);
     if (!key) throw new Error("No key found");
     return {
-      publicKey: key.publicKey,
-      encryptedPrivateKey: key.encryptedPrivateKey,
+      signingPublicKey: key.signingPublicKey,
+      encapPublicKey: key.encapPublicKey,
+      encryptedSigningKey: key.encryptedSigningKey,
+      encryptedDecapKey: key.encryptedDecapKey,
     };
   });
 

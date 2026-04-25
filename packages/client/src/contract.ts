@@ -9,7 +9,7 @@ const serverInfo = oc.output(
 
 const getPublicKey = oc
   .input(z.object({ address: z.string() }))
-  .output(z.object({ publicKey: z.string().nullable() }));
+  .output(z.object({ signingPublicKey: z.string().nullable(), encapPublicKey: z.string().nullable() }));
 
 const getPowChallenge = oc
   .input(
@@ -39,6 +39,8 @@ const notifyMessage = oc
       senderAddress: z.string(),
       recipientAddress: z.string(),
       pullToken: z.string(),
+      senderEncryptedContent: z.string(),
+      senderSignature: z.string(),
       pow: z.object({
         solvedHeader: z.string(),
         target: z.string(),
@@ -56,8 +58,10 @@ const pullMessage = oc
       senderAddress: z.string(),
       recipientAddress: z.string(),
       encryptedContent: z.string(),
+      senderEncryptedContent: z.string(),
       senderPubKey: z.string(),
       recipientPubKey: z.string(),
+      senderSignature: z.string(),
     }),
   );
 

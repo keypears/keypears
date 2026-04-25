@@ -1,15 +1,13 @@
-import { sha256Hash } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import {
-  p256PrivateKeyToJwk,
-  p256PublicKeyToJwk,
-  p256PublicKeyVerify,
-} from "@webbuf/p256";
-import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
+  aesgcmMlkemEncrypt,
+  aesgcmMlkemDecrypt,
+} from "@webbuf/aesgcm-mlkem";
+import { mlDsa65Sign, mlDsa65Verify } from "@webbuf/mldsa";
 import { z } from "zod";
 
-// --- Message schemas (no unions) ---
+// --- Message schemas ---
 
 const MessageEnvelope = z.object({
   version: z.number(),
@@ -38,85 +36,70 @@ export type MessageContent = TextMessage | SecretMessage;
 
 export type SecretPayload = SecretMessage["secret"];
 
-// --- ECDH key derivation ---
-//
-// Uses Web Crypto's ECDH via JWK import. deriveBits returns the raw 32-byte
-// X coordinate of d*P (NOT the 33-byte compressed form webbuf returns), so
-// the derived message key is SHA-256(rawX). Both sides of an exchange
-// must use this path to agree on the same key.
-
-export async function computeMessageKey(
-  myPrivKey: FixedBuf<32>,
-  theirPubKey: FixedBuf<33>,
-): Promise<FixedBuf<32>> {
-  // Validate the peer's public key is a well-formed P-256 point on the
-  // curve before doing any ECDH. P-256 has cofactor 1, so on-curve implies
-  // the correct prime-order subgroup — no separate subgroup check needed.
-  if (!p256PublicKeyVerify(theirPubKey)) {
-    throw new Error("Invalid P-256 public key");
-  }
-  const privJwk = p256PrivateKeyToJwk(myPrivKey);
-  const pubJwk = p256PublicKeyToJwk(theirPubKey);
-  const [priv, pub] = await Promise.all([
-    crypto.subtle.importKey(
-      "jwk",
-      privJwk,
-      { name: "ECDH", namedCurve: "P-256" },
-      false,
-      ["deriveBits"],
-    ),
-    crypto.subtle.importKey(
-      "jwk",
-      pubJwk,
-      { name: "ECDH", namedCurve: "P-256" },
-      false,
-      [],
-    ),
-  ]);
-  const raw = await crypto.subtle.deriveBits(
-    { name: "ECDH", public: pub },
-    priv,
-    256,
-  );
-  return sha256Hash(WebBuf.fromUint8Array(new Uint8Array(raw)));
-}
-
 // --- Encrypt ---
 
-export async function encryptMessage(
-  text: string,
-  myPrivKey: FixedBuf<32>,
-  theirPubKey: FixedBuf<33>,
-): Promise<string> {
-  const key = await computeMessageKey(myPrivKey, theirPubKey);
-  const content = JSON.stringify({ version: 1, type: "text", text });
-  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
-  return encrypted.toHex();
+export interface EncryptedMessage {
+  recipientCiphertext: string;
+  senderCiphertext: string;
+  signature: string;
 }
 
-export async function encryptSecretMessage(
+export function encryptMessage(
+  text: string,
+  senderSigningKey: FixedBuf<4032>,
+  senderEncapKey: FixedBuf<1184>,
+  recipientEncapKey: FixedBuf<1184>,
+): EncryptedMessage {
+  const content = JSON.stringify({ version: 1, type: "text", text });
+  const plaintext = WebBuf.fromUtf8(content);
+  const recipientCt = aesgcmMlkemEncrypt(recipientEncapKey, plaintext);
+  const senderCt = aesgcmMlkemEncrypt(senderEncapKey, plaintext);
+  const sig = mlDsa65Sign(senderSigningKey, recipientCt);
+  return {
+    recipientCiphertext: recipientCt.toHex(),
+    senderCiphertext: senderCt.toHex(),
+    signature: sig.buf.toHex(),
+  };
+}
+
+export function encryptSecretMessage(
   secret: SecretPayload,
-  myPrivKey: FixedBuf<32>,
-  theirPubKey: FixedBuf<33>,
-): Promise<string> {
-  const key = await computeMessageKey(myPrivKey, theirPubKey);
+  senderSigningKey: FixedBuf<4032>,
+  senderEncapKey: FixedBuf<1184>,
+  recipientEncapKey: FixedBuf<1184>,
+): EncryptedMessage {
   const content = JSON.stringify({ version: 1, type: "secret", secret });
-  const encrypted = await aesgcmEncryptNative(WebBuf.fromUtf8(content), key);
-  return encrypted.toHex();
+  const plaintext = WebBuf.fromUtf8(content);
+  const recipientCt = aesgcmMlkemEncrypt(recipientEncapKey, plaintext);
+  const senderCt = aesgcmMlkemEncrypt(senderEncapKey, plaintext);
+  const sig = mlDsa65Sign(senderSigningKey, recipientCt);
+  return {
+    recipientCiphertext: recipientCt.toHex(),
+    senderCiphertext: senderCt.toHex(),
+    signature: sig.buf.toHex(),
+  };
+}
+
+// --- Verify ---
+
+export function verifyMessageSignature(
+  senderSigningPubKeyHex: string,
+  recipientCiphertextHex: string,
+  signatureHex: string,
+): boolean {
+  const verifyingKey = FixedBuf.fromHex(1952, senderSigningPubKeyHex);
+  const recipientCt = WebBuf.fromHex(recipientCiphertextHex);
+  const signature = FixedBuf.fromHex(3309, signatureHex);
+  return mlDsa65Verify(verifyingKey, recipientCt, signature);
 }
 
 // --- Decrypt ---
 
-export async function decryptMessageContent(
+export function decryptMessageContent(
   encryptedHex: string,
-  myPrivKey: FixedBuf<32>,
-  theirPubKey: FixedBuf<33>,
-): Promise<MessageContent> {
-  const key = await computeMessageKey(myPrivKey, theirPubKey);
-  const decrypted = await aesgcmDecryptNative(
-    WebBuf.fromHex(encryptedHex),
-    key,
-  );
+  decapKey: FixedBuf<2400>,
+): MessageContent {
+  const decrypted = aesgcmMlkemDecrypt(decapKey, WebBuf.fromHex(encryptedHex));
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 
@@ -129,19 +112,4 @@ export async function decryptMessageContent(
     return { version: envelope.version, type: "secret", secret };
   }
   throw new Error(`Unknown message type: ${envelope.type}`);
-}
-
-/** Legacy convenience — decrypts and returns just the text for text messages. */
-export async function decryptMessage(
-  encryptedHex: string,
-  myPrivKey: FixedBuf<32>,
-  theirPubKey: FixedBuf<33>,
-): Promise<string> {
-  const content = await decryptMessageContent(
-    encryptedHex,
-    myPrivKey,
-    theirPubKey,
-  );
-  if (content.type !== "text") throw new Error("Not a text message");
-  return content.text;
 }

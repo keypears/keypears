@@ -7,7 +7,6 @@ import {
   deriveEncryptionKeyFromPasswordKey,
   getCachedEncryptionKey,
   cacheEncryptionKey,
-  decryptPrivateKey,
   calculatePasswordEntropy,
   entropyTier,
   entropyLabel,
@@ -15,7 +14,8 @@ import {
   cacheEntropyTier,
   getCachedEntropyTier,
 } from "~/lib/auth";
-import { aesgcmEncryptNative } from "~/lib/aesgcm";
+import { aesgcmEncryptNative, aesgcmDecryptNative } from "~/lib/aesgcm";
+import { WebBuf } from "@webbuf/webbuf";
 
 export const Route = createFileRoute("/_app/_saved/_chrome/password")({
   head: () => ({ meta: [{ title: "Password — KeyPears" }] }),
@@ -67,20 +67,29 @@ function PasswordPage() {
         await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
       const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
-      const reEncryptedKeys: { id: string; encryptedPrivateKey: string }[] = [];
+      const reEncryptedKeys: { id: string; encryptedSigningKey: string; encryptedDecapKey: string }[] = [];
       for (const key of encryptedKeys) {
         try {
-          const privateKey = await decryptPrivateKey(
-            key.encryptedPrivateKey,
+          const signingKeyBuf = await aesgcmDecryptNative(
+            WebBuf.fromHex(key.encryptedSigningKey),
             oldEncryptionKey,
           );
-          const reEncrypted = await aesgcmEncryptNative(
-            privateKey.buf,
+          const decapKeyBuf = await aesgcmDecryptNative(
+            WebBuf.fromHex(key.encryptedDecapKey),
+            oldEncryptionKey,
+          );
+          const reEncSigningKey = await aesgcmEncryptNative(
+            signingKeyBuf,
+            newEncryptionKey,
+          );
+          const reEncDecapKey = await aesgcmEncryptNative(
+            decapKeyBuf,
             newEncryptionKey,
           );
           reEncryptedKeys.push({
             id: key.id,
-            encryptedPrivateKey: reEncrypted.toHex(),
+            encryptedSigningKey: reEncSigningKey.toHex(),
+            encryptedDecapKey: reEncDecapKey.toHex(),
           });
         } catch {
           // Key encrypted with a different password — skip it

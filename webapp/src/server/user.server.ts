@@ -117,8 +117,10 @@ export async function createUserForDomain(
   name: string,
   domainId: string,
   loginKeyHex: string,
-  publicKey: string,
-  encryptedPrivateKey: string,
+  signingPublicKey: string,
+  encapPublicKey: string,
+  encryptedSigningKey: string,
+  encryptedDecapKey: string,
 ) {
   // Check name uniqueness within domain
   const existing = await getUserByNameAndDomain(name, domainId);
@@ -133,22 +135,38 @@ export async function createUserForDomain(
     passwordHash,
     expiresAt: null,
   });
-  await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
+  await insertKey(
+    id,
+    signingPublicKey,
+    encapPublicKey,
+    encryptedSigningKey,
+    encryptedDecapKey,
+    passwordHash,
+  );
   return { id };
 }
 
 export async function resetUserPassword(
   userId: string,
   newLoginKeyHex: string,
-  publicKey: string,
-  encryptedPrivateKey: string,
+  signingPublicKey: string,
+  encapPublicKey: string,
+  encryptedSigningKey: string,
+  encryptedDecapKey: string,
 ) {
   const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
   await db
     .update(users)
     .set({ passwordHash: newPasswordHash })
     .where(eq(users.id, userId));
-  await insertKey(userId, publicKey, encryptedPrivateKey, newPasswordHash);
+  await insertKey(
+    userId,
+    signingPublicKey,
+    encapPublicKey,
+    encryptedSigningKey,
+    encryptedDecapKey,
+    newPasswordHash,
+  );
   // Revoke all sessions for this user
   await db.delete(sessions).where(eq(sessions.userId, userId));
 }
@@ -255,8 +273,10 @@ const MAX_KEYS_PER_USER = 100;
 
 export async function insertKey(
   userId: string,
-  publicKey: string,
-  encryptedPrivateKey: string,
+  signingPublicKey: string,
+  encapPublicKey: string,
+  encryptedSigningKey: string,
+  encryptedDecapKey: string,
   loginKeyHash?: string,
 ) {
   return db.transaction(async (tx) => {
@@ -280,12 +300,14 @@ export async function insertKey(
       id,
       userId,
       keyNumber,
-      publicKey,
-      encryptedPrivateKey,
+      signingPublicKey,
+      encapPublicKey,
+      encryptedSigningKey,
+      encryptedDecapKey,
       loginKeyHash: loginKeyHash ?? null,
     });
 
-    return { keyNumber };
+    return { keyNumber, keyId: id };
   });
 }
 
@@ -294,8 +316,10 @@ export async function saveUser(
   name: string,
   domainId: string,
   loginKeyHex: string,
-  publicKey: string,
-  encryptedPrivateKey: string,
+  signingPublicKey: string,
+  encapPublicKey: string,
+  encryptedSigningKey: string,
+  encryptedDecapKey: string,
 ) {
   // Check name uniqueness within domain
   const existing = await getUserByNameAndDomain(name, domainId);
@@ -314,7 +338,14 @@ export async function saveUser(
       expiresAt: null,
     })
     .where(eq(users.id, id));
-  await insertKey(id, publicKey, encryptedPrivateKey, passwordHash);
+  await insertKey(
+    id,
+    signingPublicKey,
+    encapPublicKey,
+    encryptedSigningKey,
+    encryptedDecapKey,
+    passwordHash,
+  );
 }
 
 export async function getRecentKeys(userId: string, limit = 10) {
@@ -322,8 +353,10 @@ export async function getRecentKeys(userId: string, limit = 10) {
     .select({
       id: keys.id,
       keyNumber: keys.keyNumber,
-      publicKey: keys.publicKey,
-      encryptedPrivateKey: keys.encryptedPrivateKey,
+      signingPublicKey: keys.signingPublicKey,
+      encapPublicKey: keys.encapPublicKey,
+      encryptedSigningKey: keys.encryptedSigningKey,
+      encryptedDecapKey: keys.encryptedDecapKey,
       loginKeyHash: keys.loginKeyHash,
       createdAt: keys.createdAt,
     })
@@ -338,7 +371,8 @@ export async function getAllEncryptedKeys(userId: string) {
     .select({
       id: keys.id,
       keyNumber: keys.keyNumber,
-      encryptedPrivateKey: keys.encryptedPrivateKey,
+      encryptedSigningKey: keys.encryptedSigningKey,
+      encryptedDecapKey: keys.encryptedDecapKey,
     })
     .from(keys)
     .where(eq(keys.userId, userId))
@@ -348,7 +382,11 @@ export async function getAllEncryptedKeys(userId: string) {
 export async function changePassword(
   userId: string,
   newLoginKeyHex: string,
-  reEncryptedKeys: { id: string; encryptedPrivateKey: string }[],
+  reEncryptedKeys: {
+    id: string;
+    encryptedSigningKey: string;
+    encryptedDecapKey: string;
+  }[],
 ) {
   const newPasswordHash = await hashLoginKey(newLoginKeyHex, userId);
   await db.transaction(async (tx) => {
@@ -361,7 +399,8 @@ export async function changePassword(
       await tx
         .update(keys)
         .set({
-          encryptedPrivateKey: key.encryptedPrivateKey,
+          encryptedSigningKey: key.encryptedSigningKey,
+          encryptedDecapKey: key.encryptedDecapKey,
           loginKeyHash: newPasswordHash,
         })
         .where(and(eq(keys.id, key.id), eq(keys.userId, userId)));
@@ -372,13 +411,14 @@ export async function changePassword(
 export async function reEncryptKey(
   userId: string,
   keyId: string,
-  encryptedPrivateKey: string,
+  encryptedSigningKey: string,
+  encryptedDecapKey: string,
   loginKeyHex: string,
 ) {
   const loginKeyHash = await hashLoginKey(loginKeyHex, userId);
   const result = await db
     .update(keys)
-    .set({ encryptedPrivateKey, loginKeyHash })
+    .set({ encryptedSigningKey, encryptedDecapKey, loginKeyHash })
     .where(and(eq(keys.id, keyId), eq(keys.userId, userId)));
   if (result[0].affectedRows === 0) {
     throw new Error("Key not found");

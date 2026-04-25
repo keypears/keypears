@@ -212,8 +212,10 @@ export const saveMyUser = createServerFn({ method: "POST" })
       name: nameSchema,
       domain: z.string(),
       loginKey: z.string(),
-      publicKey: z.string(),
-      encryptedPrivateKey: z.string(),
+      signingPublicKey: z.string(),
+      encapPublicKey: z.string(),
+      encryptedSigningKey: z.string(),
+      encryptedDecapKey: z.string(),
     }),
   )
   .middleware([authMiddleware])
@@ -227,8 +229,10 @@ export const saveMyUser = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
-      input.publicKey,
-      input.encryptedPrivateKey,
+      input.signingPublicKey,
+      input.encapPublicKey,
+      input.encryptedSigningKey,
+      input.encryptedDecapKey,
     );
     // Replace the 1-day session with a 30-day session
     const token = getCookie(COOKIE_NAME);
@@ -286,8 +290,10 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 export const rotateKey = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      publicKey: z.string(),
-      encryptedPrivateKey: z.string(),
+      signingPublicKey: z.string(),
+      encapPublicKey: z.string(),
+      encryptedSigningKey: z.string(),
+      encryptedDecapKey: z.string(),
     }),
   )
   .middleware([authMiddleware])
@@ -297,8 +303,10 @@ export const rotateKey = createServerFn({ method: "POST" })
     if (!row.passwordHash) throw new Error("Account not saved");
     const result = await insertKey(
       row.id,
-      input.publicKey,
-      input.encryptedPrivateKey,
+      input.signingPublicKey,
+      input.encapPublicKey,
+      input.encryptedSigningKey,
+      input.encryptedDecapKey,
       row.passwordHash,
     );
     return { keyNumber: result.keyNumber };
@@ -328,7 +336,7 @@ export const getProfile = createServerFn({ method: "GET" })
     ]);
     return {
       name: row.name,
-      publicKey: activeKey?.publicKey ?? null,
+      signingPublicKey: activeKey?.signingPublicKey ?? null,
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
     };
@@ -369,7 +377,8 @@ export const changeMyPassword = createServerFn({ method: "POST" })
       reEncryptedKeys: z.array(
         z.object({
           id: z.string(),
-          encryptedPrivateKey: z.string(),
+          encryptedSigningKey: z.string(),
+          encryptedDecapKey: z.string(),
         }),
       ),
     }),
@@ -392,7 +401,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       keyId: z.string(),
-      encryptedPrivateKey: z.string(),
+      encryptedSigningKey: z.string(),
+      encryptedDecapKey: z.string(),
       loginKey: z.string(),
     }),
   )
@@ -401,7 +411,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
     await reEncryptKey(
       userId,
       input.keyId,
-      input.encryptedPrivateKey,
+      input.encryptedSigningKey,
+      input.encryptedDecapKey,
       input.loginKey,
     );
     return { success: true };
@@ -459,8 +470,10 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       domain: z.string(),
       name: nameSchema,
       loginKey: z.string(),
-      publicKey: z.string(),
-      encryptedPrivateKey: z.string(),
+      signingPublicKey: z.string(),
+      encapPublicKey: z.string(),
+      encryptedSigningKey: z.string(),
+      encryptedDecapKey: z.string(),
     }),
   )
   .middleware([authMiddleware])
@@ -474,8 +487,10 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
-      input.publicKey,
-      input.encryptedPrivateKey,
+      input.signingPublicKey,
+      input.encapPublicKey,
+      input.encryptedSigningKey,
+      input.encryptedDecapKey,
     );
   });
 
@@ -485,8 +500,10 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
       domain: z.string(),
       userId: z.string(),
       newLoginKey: z.string(),
-      publicKey: z.string(),
-      encryptedPrivateKey: z.string(),
+      signingPublicKey: z.string(),
+      encapPublicKey: z.string(),
+      encryptedSigningKey: z.string(),
+      encryptedDecapKey: z.string(),
     }),
   )
   .middleware([authMiddleware])
@@ -497,8 +514,10 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
     await resetUserPassword(
       input.userId,
       input.newLoginKey,
-      input.publicKey,
-      input.encryptedPrivateKey,
+      input.signingPublicKey,
+      input.encapPublicKey,
+      input.encryptedSigningKey,
+      input.encryptedDecapKey,
     );
     return { success: true };
   });

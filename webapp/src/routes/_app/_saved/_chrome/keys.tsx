@@ -8,7 +8,8 @@ import {
   deriveEncryptionKeyFromPasswordKey,
   generateAndEncryptKeyPairFromEncryptionKey,
   cacheEncryptionKey,
-  decryptPrivateKey,
+  decryptSigningKey,
+  decryptDecapKey,
 } from "~/lib/auth";
 import { aesgcmEncryptNative } from "~/lib/aesgcm";
 import { RotateCw, Lock, Unlock, X } from "lucide-react";
@@ -59,10 +60,10 @@ function KeysPage() {
 
     setRotating(true);
     try {
-      const { publicKey, encryptedPrivateKey } =
+      const { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey } =
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       await rotateKey({
-        data: { publicKey, encryptedPrivateKey },
+        data: { signingPublicKey, encapPublicKey, encryptedSigningKey, encryptedDecapKey },
       });
       await router.invalidate();
       setPassword("");
@@ -95,14 +96,22 @@ function KeysPage() {
       if (!key) throw new Error("Key not found");
 
       setKeyStatus("Decrypting...");
-      const privateKey = await decryptPrivateKey(
-        key.encryptedPrivateKey,
+      const signingKey = await decryptSigningKey(
+        key.encryptedSigningKey,
+        oldEncryptionKey,
+      );
+      const decapKey = await decryptDecapKey(
+        key.encryptedDecapKey,
         oldEncryptionKey,
       );
 
       setKeyStatus("Re-encrypting...");
-      const reEncrypted = await aesgcmEncryptNative(
-        privateKey.buf,
+      const reEncSigningKey = await aesgcmEncryptNative(
+        signingKey.buf,
+        newEncryptionKey,
+      );
+      const reEncDecapKey = await aesgcmEncryptNative(
+        decapKey.buf,
         newEncryptionKey,
       );
 
@@ -110,7 +119,8 @@ function KeysPage() {
       await reEncryptMyKey({
         data: {
           keyId: changingKeyId,
-          encryptedPrivateKey: reEncrypted.toHex(),
+          encryptedSigningKey: reEncSigningKey.toHex(),
+          encryptedDecapKey: reEncDecapKey.toHex(),
           loginKey: newLoginKey,
         },
       });

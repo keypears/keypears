@@ -20,7 +20,7 @@ export const createEntry = createServerFn({ method: "POST" })
       name: z.string().min(1).max(255),
       type: z.string().min(1).max(32),
       searchTerms: z.string().max(255).default(""),
-      publicKey: z.string().length(66),
+      keyId: z.string(),
       encryptedData: z.string().max(MAX_ENCRYPTED_DATA_LENGTH),
       sourceMessageId: z.string().optional(),
       sourceAddress: z.string().optional(),
@@ -32,7 +32,7 @@ export const createEntry = createServerFn({ method: "POST" })
       data.name,
       data.type,
       data.searchTerms,
-      data.publicKey,
+      data.keyId,
       data.encryptedData,
       data.sourceMessageId,
       data.sourceAddress,
@@ -75,7 +75,7 @@ export const updateEntry = createServerFn({ method: "POST" })
       name: z.string().min(1).max(255),
       type: z.string().min(1).max(32),
       searchTerms: z.string().max(255).default(""),
-      publicKey: z.string().length(66),
+      keyId: z.string(),
       encryptedData: z.string().max(MAX_ENCRYPTED_DATA_LENGTH),
     }),
   )
@@ -86,7 +86,7 @@ export const updateEntry = createServerFn({ method: "POST" })
       data.name,
       data.type,
       data.searchTerms,
-      data.publicKey,
+      data.keyId,
       data.encryptedData,
     );
     return { id };

@@ -83,8 +83,10 @@ export async function insertMessage(
   channelId: string,
   senderAddress: string,
   encryptedContent: string,
+  senderEncryptedContent: string,
   senderPubKey: string,
   recipientPubKey: string,
+  senderSignature: string,
   isRead: boolean,
 ) {
   const id = newId();
@@ -93,8 +95,10 @@ export async function insertMessage(
     channelId,
     senderAddress,
     encryptedContent,
+    senderEncryptedContent,
     senderPubKey,
     recipientPubKey,
+    senderSignature,
     isRead,
   });
   await db
@@ -159,8 +163,10 @@ export async function getChannelMessages(
       channelId: messages.channelId,
       senderAddress: messages.senderAddress,
       encryptedContent: messages.encryptedContent,
+      senderEncryptedContent: messages.senderEncryptedContent,
       senderPubKey: messages.senderPubKey,
       recipientPubKey: messages.recipientPubKey,
+      senderSignature: messages.senderSignature,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
       savedVaultEntryId: secrets.latestVersionId,
@@ -188,8 +194,10 @@ export async function getNewMessages(
       channelId: messages.channelId,
       senderAddress: messages.senderAddress,
       encryptedContent: messages.encryptedContent,
+      senderEncryptedContent: messages.senderEncryptedContent,
       senderPubKey: messages.senderPubKey,
       recipientPubKey: messages.recipientPubKey,
+      senderSignature: messages.senderSignature,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
       savedVaultEntryId: secrets.latestVersionId,

@@ -8,7 +8,7 @@ export async function createVaultEntry(
   name: string,
   type: string,
   searchTerms: string,
-  publicKey: string,
+  keyId: string,
   encryptedData: string,
   sourceMessageId?: string,
   sourceAddress?: string,
@@ -21,7 +21,7 @@ export async function createVaultEntry(
       id: versionId,
       secretId,
       version: 1,
-      publicKey,
+      keyId,
       encryptedData,
     });
     await tx.insert(secrets).values({
@@ -45,7 +45,7 @@ export async function createNewVersion(
   name: string,
   type: string,
   searchTerms: string,
-  publicKey: string,
+  keyId: string,
   encryptedData: string,
 ): Promise<string> {
   const [maxRow] = await db
@@ -60,7 +60,7 @@ export async function createNewVersion(
       id: versionId,
       secretId,
       version: nextVersion,
-      publicKey,
+      keyId,
       encryptedData,
     });
     await tx
@@ -112,7 +112,7 @@ export async function getVaultEntries(
       name: secrets.name,
       type: secrets.type,
       searchTerms: secrets.searchTerms,
-      publicKey: secretVersions.publicKey,
+      keyId: secretVersions.keyId,
       encryptedData: secretVersions.encryptedData,
       createdAt: secrets.updatedAt,
       versionId: secretVersions.id,
@@ -138,7 +138,7 @@ export async function getVaultEntry(userId: string, versionId: string) {
       updatedAt: secrets.updatedAt,
       versionId: secretVersions.id,
       version: secretVersions.version,
-      publicKey: secretVersions.publicKey,
+      keyId: secretVersions.keyId,
       encryptedData: secretVersions.encryptedData,
       versionCreatedAt: secretVersions.createdAt,
     })
@@ -202,7 +202,7 @@ export async function getSecretHistory(userId: string, secretId: string) {
     .select({
       id: secretVersions.id,
       version: secretVersions.version,
-      publicKey: secretVersions.publicKey,
+      keyId: secretVersions.keyId,
       encryptedData: secretVersions.encryptedData,
       createdAt: secretVersions.createdAt,
     })

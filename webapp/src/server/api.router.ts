@@ -1,5 +1,8 @@
 import { implement } from "@orpc/server";
 import { contract, createKeypearsClientFromUrl } from "@keypears/client";
+import { mlDsa65Verify } from "@webbuf/mldsa";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { WebBuf } from "@webbuf/webbuf";
 import { db } from "~/db";
 import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
@@ -33,14 +36,14 @@ const serverInfo = os.serverInfo.handler(async () => {
 
 const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
   const parsed = parseAddress(input.address);
-  if (!parsed) return { publicKey: null };
+  if (!parsed) return { signingPublicKey: null, encapPublicKey: null };
   const domain = await getDomainByName(parsed.domain);
-  if (!domain) return { publicKey: null };
+  if (!domain) return { signingPublicKey: null, encapPublicKey: null };
   const user = await getUserByNameAndDomain(parsed.name, domain.id);
-  if (!user || !user.passwordHash) return { publicKey: null };
+  if (!user || !user.passwordHash) return { signingPublicKey: null, encapPublicKey: null };
   const key = await getActiveKey(user.id);
-  if (!key) return { publicKey: null };
-  return { publicKey: key.publicKey };
+  if (!key) return { signingPublicKey: null, encapPublicKey: null };
+  return { signingPublicKey: key.signingPublicKey, encapPublicKey: key.encapPublicKey };
 });
 
 const getPowChallengeEndpoint = os.getPowChallenge.handler(
@@ -58,46 +61,18 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     const senderKeyResult = await remoteClient.getPublicKey({
       address: input.senderAddress,
     });
-    if (!senderKeyResult.publicKey) throw new Error("Sender not found");
+    if (!senderKeyResult.signingPublicKey) throw new Error("Sender not found");
 
     // Verify the provided public key matches the federation lookup
-    if (senderKeyResult.publicKey !== input.senderPubKey) {
+    if (senderKeyResult.signingPublicKey !== input.senderPubKey) {
       throw new Error("Public key mismatch");
     }
 
-    // Verify the signature. The client signs the raw UTF-8 string with
-    // Web Crypto ECDSA (which hashes internally with SHA-256 before
-    // signing), so we pass the same raw bytes to verify.
-    const { p256PublicKeyToJwk, p256PublicKeyVerify } =
-      await import("@webbuf/p256");
-    const { WebBuf } = await import("@webbuf/webbuf");
-    const { FixedBuf } = await import("@webbuf/fixedbuf");
-
-    const message = new TextEncoder().encode(
-      `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
-    );
-    const sigBytes = WebBuf.fromHex(input.signature);
-    const compressedPub = FixedBuf.fromHex(33, input.senderPubKey);
-    // Validate the public key is a well-formed P-256 point on the curve
-    // before passing it to the verifier. P-256 has cofactor 1, so on-curve
-    // implies the correct prime-order subgroup.
-    if (!p256PublicKeyVerify(compressedPub)) {
-      throw new Error("Invalid sender public key");
-    }
-    const pubJwk = p256PublicKeyToJwk(compressedPub);
-    const cryptoKey = await crypto.subtle.importKey(
-      "jwk",
-      pubJwk,
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["verify"],
-    );
-    const ok = await crypto.subtle.verify(
-      { name: "ECDSA", hash: "SHA-256" },
-      cryptoKey,
-      sigBytes,
-      message,
-    );
+    // Verify the ML-DSA-65 signature
+    const verifyingKey = FixedBuf.fromHex(1952, input.senderPubKey);
+    const message = WebBuf.fromUtf8(`${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`);
+    const sig = FixedBuf.fromHex(3309, input.signature);
+    const ok = mlDsa65Verify(verifyingKey, message, sig);
     if (!ok) {
       throw new Error("Invalid signature");
     }
@@ -200,8 +175,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
         channelId,
         messageData.senderAddress,
         messageData.encryptedContent,
+        messageData.senderEncryptedContent,
         messageData.senderPubKey,
         messageData.recipientPubKey,
+        messageData.senderSignature,
         false,
       );
     }
@@ -235,8 +212,10 @@ const pullMessageHandler = os.pullMessage.handler(async ({ input }) => {
     senderAddress: delivery.senderAddress,
     recipientAddress: delivery.recipientAddress,
     encryptedContent: delivery.encryptedContent,
+    senderEncryptedContent: delivery.senderEncryptedContent,
     senderPubKey: delivery.senderPubKey,
     recipientPubKey: delivery.recipientPubKey,
+    senderSignature: delivery.senderSignature,
   };
 });
 

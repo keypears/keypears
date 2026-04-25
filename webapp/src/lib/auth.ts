@@ -1,7 +1,8 @@
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { p256PublicKeyCreate, p256PrivateKeyToJwk } from "@webbuf/p256";
+import { mlDsa65KeyPair, mlDsa65Sign } from "@webbuf/mldsa";
+import { mlKem768KeyPair } from "@webbuf/mlkem";
 import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 
 const CLIENT_KDF_ROUNDS = 300_000;
@@ -142,28 +143,49 @@ export async function deriveEncryptionKeyFromPasswordKey(
 export async function generateAndEncryptKeyPairFromEncryptionKey(
   encryptionKey: FixedBuf<32>,
 ): Promise<{
-  publicKey: string;
-  encryptedPrivateKey: string;
+  signingPublicKey: string;
+  encapPublicKey: string;
+  encryptedSigningKey: string;
+  encryptedDecapKey: string;
 }> {
-  const privateKey = FixedBuf.fromRandom(32);
-  const publicKey = p256PublicKeyCreate(privateKey);
-  const encryptedPrivateKey = await aesgcmEncryptNative(
-    privateKey.buf,
+  const { verifyingKey, signingKey } = mlDsa65KeyPair();
+  const { encapsulationKey, decapsulationKey } = mlKem768KeyPair();
+  const encryptedSigningKey = await aesgcmEncryptNative(
+    signingKey.buf,
+    encryptionKey,
+  );
+  const encryptedDecapKey = await aesgcmEncryptNative(
+    decapsulationKey.buf,
     encryptionKey,
   );
   return {
-    publicKey: publicKey.buf.toHex(),
-    encryptedPrivateKey: encryptedPrivateKey.toHex(),
+    signingPublicKey: verifyingKey.buf.toHex(),
+    encapPublicKey: encapsulationKey.buf.toHex(),
+    encryptedSigningKey: encryptedSigningKey.toHex(),
+    encryptedDecapKey: encryptedDecapKey.toHex(),
   };
 }
 
-export async function decryptPrivateKey(
-  encryptedPrivateKeyHex: string,
+export async function decryptSigningKey(
+  encryptedHex: string,
   encryptionKey: FixedBuf<32>,
-): Promise<FixedBuf<32>> {
-  const encryptedBuf = WebBuf.fromHex(encryptedPrivateKeyHex);
-  const decrypted = await aesgcmDecryptNative(encryptedBuf, encryptionKey);
-  return FixedBuf.fromBuf(32, decrypted);
+): Promise<FixedBuf<4032>> {
+  const decrypted = await aesgcmDecryptNative(
+    WebBuf.fromHex(encryptedHex),
+    encryptionKey,
+  );
+  return FixedBuf.fromBuf(4032, decrypted);
+}
+
+export async function decryptDecapKey(
+  encryptedHex: string,
+  encryptionKey: FixedBuf<32>,
+): Promise<FixedBuf<2400>> {
+  const decrypted = await aesgcmDecryptNative(
+    WebBuf.fromHex(encryptedHex),
+    encryptionKey,
+  );
+  return FixedBuf.fromBuf(2400, decrypted);
 }
 
 // --- Encryption key caching (localStorage) ---
@@ -190,35 +212,20 @@ export function clearCachedEncryptionKey(): void {
  * Sign a PoW challenge request to prove sender identity.
  * Returns the signature hex and timestamp used.
  *
- * Uses Web Crypto ECDSA via JWK import. The message (a plain UTF-8
- * string) is signed directly — Web Crypto hashes it internally with
- * SHA-256 before signing, so we do not pre-hash. The matching verify
- * step on the server side passes the same raw bytes.
+ * Uses ML-DSA-65 via @webbuf/mldsa (synchronous WASM).
  */
-export async function signPowRequest(
+export function signPowRequest(
   senderAddress: string,
   recipientAddress: string,
-  privateKey: FixedBuf<32>,
-): Promise<{ signature: string; timestamp: number }> {
+  signingKey: FixedBuf<4032>,
+): { signature: string; timestamp: number } {
   const timestamp = Date.now();
-  const message = new TextEncoder().encode(
+  const message = WebBuf.fromUtf8(
     `${senderAddress}:${recipientAddress}:${timestamp}`,
   );
-  const jwk = p256PrivateKeyToJwk(privateKey);
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    { name: "ECDSA", hash: "SHA-256" },
-    key,
-    message,
-  );
+  const sig = mlDsa65Sign(signingKey, message);
   return {
-    signature: WebBuf.fromUint8Array(new Uint8Array(sig)).toHex(),
+    signature: sig.buf.toHex(),
     timestamp,
   };
 }

@@ -10,7 +10,7 @@ import {
 import { getMyUser } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
-  decryptPrivateKey,
+  decryptSigningKey,
   signPowRequest,
 } from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
@@ -91,6 +91,8 @@ function SendPage() {
   const pendingSendRef = useRef<{
     recipientAddress: string;
     encryptedContent: string;
+    senderEncryptedContent: string;
+    senderSignature: string;
     senderPubKey: string;
     recipientPubKey: string;
   } | null>(null);
@@ -113,23 +115,27 @@ function SendPage() {
       const encryptionKey = getCachedEncryptionKey();
       if (!encryptionKey) throw new Error("Please log in again");
 
-      const myPrivKey = await decryptPrivateKey(
-        myKeyData.encryptedPrivateKey,
+      const mySigningKey = await decryptSigningKey(
+        myKeyData.encryptedSigningKey,
         encryptionKey,
       );
-      const theirPubKey = FixedBuf.fromHex(33, recipientKeyResult.publicKey);
-      const encryptedContent = await encryptMessage(
+      const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
+      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey);
+      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = await encryptMessage(
         text,
-        myPrivKey,
-        theirPubKey,
+        mySigningKey,
+        myEncapPubKey,
+        theirEncapPubKey,
       );
 
       // Store the prepared message and fetch PoW challenge
       pendingSendRef.current = {
         recipientAddress: recipient,
-        encryptedContent,
-        senderPubKey: myKeyData.publicKey,
-        recipientPubKey: recipientKeyResult.publicKey,
+        encryptedContent: recipientCiphertext,
+        senderEncryptedContent: senderCiphertext,
+        senderSignature: msgSignature,
+        senderPubKey: myKeyData.signingPublicKey,
+        recipientPubKey: recipientKeyResult.encapPublicKey,
       };
       setStatus("");
 
@@ -137,17 +143,17 @@ function SendPage() {
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
-      const { signature: reqSig, timestamp } = await signPowRequest(
+      const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         recipient,
-        myPrivKey,
+        mySigningKey,
       );
 
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: recipient,
           senderAddress,
-          senderPubKey: myKeyData.publicKey,
+          senderPubKey: myKeyData.signingPublicKey,
           signature: reqSig,
           timestamp,
         },

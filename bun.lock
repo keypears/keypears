@@ -29,7 +29,7 @@
         "@orpc/client": "^1.13.14",
         "@orpc/contract": "^1.13.14",
         "@webbuf/fixedbuf": "^3.5.0",
-        "@webbuf/p256": "^3.5.1",
+        "@webbuf/mldsa": "^3.6.0",
         "@webbuf/webbuf": "^3.5.0",
         "zod": "^4.3.6",
       },
@@ -120,8 +120,10 @@
         "@tanstack/react-router": "^1.168.18",
         "@tanstack/react-start": "^1.167.32",
         "@webbuf/aesgcm": "^3.5.0",
+        "@webbuf/aesgcm-mlkem": "^3.6.0",
         "@webbuf/fixedbuf": "^3.5.0",
-        "@webbuf/p256": "^3.5.1",
+        "@webbuf/mldsa": "^3.6.0",
+        "@webbuf/mlkem": "^3.6.0",
         "@webbuf/pbkdf2-sha256": "^3.5.1",
         "@webbuf/sha256": "^3.5.0",
         "@webbuf/webbuf": "^3.5.0",
@@ -967,9 +969,15 @@
 
     "@webbuf/aesgcm": ["@webbuf/aesgcm@3.5.0", "", { "peerDependencies": { "@webbuf/fixedbuf": "^3.5.0", "@webbuf/webbuf": "^3.5.0" } }, "sha512-XF9TKoD+KLpjxjU3mYPydRWnSzeWO33OX+SyB/wmzCisiSvbdYeXwGARHwnnzp921BcCq8RWSz3zB8nDug7zjA=="],
 
+    "@webbuf/aesgcm-mlkem": ["@webbuf/aesgcm-mlkem@3.6.0", "", { "peerDependencies": { "@webbuf/aesgcm": "^3.6.0", "@webbuf/fixedbuf": "^3.6.0", "@webbuf/mlkem": "^3.6.0", "@webbuf/sha256": "^3.6.0", "@webbuf/webbuf": "^3.6.0" } }, "sha512-GMS5X2wohbC8CwV+HhymGWQk7EJ28Y7iWuQZ63DtFGjc0fKQsJzLul227JzZG7NhSqmUi2X4sX2T1VZj1xouLg=="],
+
     "@webbuf/blake3": ["@webbuf/blake3@3.5.0", "", { "peerDependencies": { "@webbuf/fixedbuf": "^3.5.0", "@webbuf/webbuf": "^3.5.0" } }, "sha512-+QiV1Fo70aSzS2M/xyJwatOHwtpnqkUMLjIMd5Iom8UEHCiovfaxZM94yopCBYw5Lda0tMSXyKTcMcyqIWbRlg=="],
 
     "@webbuf/fixedbuf": ["@webbuf/fixedbuf@3.5.0", "", { "peerDependencies": { "@webbuf/webbuf": "^3.5.0" } }, "sha512-feVXv+K4dHLNq7iGTj5uzQ/S/+cFLak0MmeRz8hZne//B+vUnX6g+Z19Z7I2T0TLIFvYZEZS14ttry7N8AWgOg=="],
+
+    "@webbuf/mldsa": ["@webbuf/mldsa@3.6.0", "", { "peerDependencies": { "@webbuf/fixedbuf": "^3.6.0", "@webbuf/webbuf": "^3.6.0" } }, "sha512-E9fb/zKsMB5y/soApv9V4i7SNMHV3ma2KxPFUi5z30kjPWDafddlwhUPVRYRxSAmUM4gbD4WI5mlbTWBSSXebg=="],
+
+    "@webbuf/mlkem": ["@webbuf/mlkem@3.6.0", "", { "peerDependencies": { "@webbuf/fixedbuf": "^3.6.0", "@webbuf/webbuf": "^3.6.0" } }, "sha512-IMEMswoj2eb56a1Ve2KlHauks2DoBLj8R11zGx8k9iKKvuZStHMRS4/81uWsXVas43PS25EDYhRTiKX56ZciQw=="],
 
     "@webbuf/p256": ["@webbuf/p256@3.5.1", "", { "peerDependencies": { "@webbuf/fixedbuf": "^3.5.0", "@webbuf/webbuf": "^3.5.0" } }, "sha512-xhg1tiHVclBO7mmySIqsmJWpg87kqr/dvbCmSma6Zl9sOZsejkwHx06m8UpgFtESpjHW2fMWtFmuMH3XqJPW+A=="],
 
