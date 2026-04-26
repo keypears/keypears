@@ -507,17 +507,47 @@ the login key is a cryptographic sibling (derived from the same parent with a
 different salt), not a child. The attacker cannot impersonate the user on the
 server.
 
+== Forward Secrecy
+
+KeyPears provides end-to-end encryption, hybrid post-quantum defense-in-depth,
+authenticated messages, and key rotation, but not forward secrecy or
+post-compromise security in the Signal sense. This is a deliberate design
+choice, not an omission.
+
+Forward secrecy protects against an attacker who passively records encrypted
+traffic and later compromises a long-term key. TLS 1.3 provides this property
+for the transport layer via ephemeral Diffie-Hellman: an attacker who later
+compromises a TLS server key cannot decrypt previously recorded network
+sessions. KeyPears benefits from that property while messages are in transit.
+
+KeyPears does _not_ provide message-level forward secrecy. Application
+ciphertexts are intentionally stored on servers for later retrieval, and those
+ciphertexts can be copied from databases, logs, backups, or compromised
+endpoints independently of TLS. If a user's long-term X25519 private key and
+ML-KEM decapsulation key are later extracted from client storage, previously
+stored message ciphertexts encrypted to those keys are decryptable.
+
+Signal addresses this class of endpoint-compromise risk with the Double Ratchet
+protocol, which derives a fresh key for every message and deletes old message
+keys. However, this requires prekey bundles, chain-key state,
+skipped-message-key handling, multi-device synchronization, and recovery
+mechanisms---substantial protocol complexity that is difficult to federate.
+KeyPears messages are also intentionally persistent: users retrieve messages
+across sessions and devices, so the client must retain enough key material to
+read its own inbox. Key rotation (up to 100 key sets per account) limits
+exposure for future messages, but it does not make old messages forward-secret
+while old keys are retained for decryption. User-initiated message deletion can
+reduce retained ciphertext, subject to normal limits around backups and copied
+data.
+
 == Limitations
 
 KeyPears does not protect against compromised endpoints, weak passwords, or
-DNS-level attacks. The protocol does not provide forward secrecy in the Signal
-sense; messages persist on the server for later retrieval, limiting the
-practical benefit of ephemeral key material. SLH-DSA (FIPS~205), a hash-based
-signature scheme, exists as a fallback against a structural break in lattice
-cryptography but is not currently used due to its substantially larger
-signatures (8--50~KB). The Rust PQC libraries used by this implementation
-(RustCrypto `ml-kem` and `ml-dsa`) have not received an independent
-third-party audit as of this writing.
+DNS-level attacks. SLH-DSA (FIPS~205), a hash-based signature scheme, exists
+as a fallback against a structural break in lattice cryptography but is not
+currently used due to its substantially larger signatures (8--50~KB). The Rust
+PQC libraries used by this implementation (RustCrypto `ml-kem` and `ml-dsa`)
+have not received an independent third-party audit as of this writing.
 
 = Related Work
 
