@@ -3,86 +3,53 @@ status = "open"
 opened = "2026-04-25"
 +++
 
-# Message retention and old-message cleanup
+# Channel message management
 
 ## Goal
 
-Add configurable per-channel message retention so users can delete old stored
-messages without complicating the cryptographic protocol.
+Add per-message and bulk message deletion in channel conversations. Each
+message gets a three-dot menu with "Delete" and "Delete earlier" options.
+All deletions are local-only — they remove messages from the current user's
+channel, not the counterparty's.
 
-This is a retention-based compromise mitigation, not cryptographic forward
-secrecy. KeyPears messages are currently encrypted to long-term ML-KEM keys. If
-an encrypted message remains stored and the recipient's decapsulation key is
-later compromised, that ciphertext may be decryptable. Deleting old ciphertext
-reduces the amount of stored data available after a later key compromise while
-preserving the current simple protocol.
+## Behavior
 
-## Product behavior
+**Delete (single message):**
+- Removes one message from the user's channel
+- No confirmation dialog — the action is obvious
+- Local-only — does not affect the counterparty's copy
 
-Each channel should have a retention setting:
+**Delete earlier (bulk):**
+- Deletes all messages in the channel created before the selected message
+  (both sent and received)
+- Requires confirmation ("Delete all messages before this one? This cannot
+  be undone.")
+- Local-only — does not affect the counterparty's copies
 
-- Keep forever
-- Delete after 1 day
-- Delete after 7 days
-- Delete after 30 days
-- Delete after 90 days
-- Delete after 1 year
+## UI
 
-Default new channels to 7 days unless a global user setting overrides it.
+Each message bubble in `channel.$address.tsx` gets a vertical three-dot menu
+(EllipsisVertical icon from lucide-react). The menu appears on hover or tap.
+Two options:
 
-The channel screen should expose an action such as:
+1. **Delete** — deletes this message
+2. **Delete earlier** — deletes all messages before this one (with confirmation)
 
-> Delete messages older than 7 days
+## Implementation
 
-The action deletes this user's local/server-side copies for that channel only.
-It does not delete the counterparty's copies, remote server backups, screenshots,
-exports, or any message data already stored elsewhere.
+**Server functions** (`message.functions.ts` or `message.server.ts`):
+- `deleteMessage({ messageId })` — delete a single message row, scoped to
+  the authenticated user's channels
+- `deleteEarlierMessages({ channelId, beforeId })` — delete all messages
+  in the channel with `id < beforeId`, scoped to the user's channels
 
-## Implementation plan
+**Security**: both functions must verify the message/channel belongs to the
+authenticated user. Use `authMiddleware`.
 
-1. Add a global user message retention preference.
-2. Add a per-channel retention override.
-3. Add a server function that deletes messages in a channel older than the
-   effective retention cutoff.
-4. Add a channel-screen cleanup button that shows the effective retention window
-   and deletes matching messages after confirmation.
-5. Apply retention automatically when opening a channel or loading messages.
-6. Consider a later background cleanup job, but do not require one for the first
-   implementation.
+**UI**: after deletion, remove the message(s) from the local `messageList`
+state. No need to refetch — just filter the state.
 
-## Data model
+## Plan
 
-Likely schema additions:
-
-- `users.defaultMessageRetentionDays` nullable integer
-- `channels.messageRetentionDays` nullable integer
-
-`null` means keep forever. A channel-level value overrides the user default.
-
-For privacy, delete whole message rows rather than blanking only
-`encryptedContent`. Keeping stubs preserves metadata and can confuse users.
-
-## Security wording
-
-The whitepaper and docs should describe this precisely:
-
-> KeyPears supports configurable message retention. Users may delete encrypted
-> message bodies after a chosen interval, reducing the amount of ciphertext
-> available to an attacker after later key compromise. This is a
-> retention-based mitigation rather than cryptographic forward secrecy.
-
-## Non-goals
-
-- Do not add signed prekeys, one-time prekeys, or a double ratchet.
-- Do not attempt remote deletion from the counterparty's account.
-- Do not call this cryptographic forward secrecy.
-- Do not change the message encryption format.
-
-## Open questions
-
-- Should the default be 7 days globally, or should existing users/channels keep
-  forever until they opt in?
-- Should cleanup run automatically on channel open, message send, message
-  receive, or only via the manual button in the first version?
-- Should the UI offer channel-specific retention in the channel settings only,
-  or also in a global settings page?
+1. Add server functions for single and bulk delete.
+2. Add the three-dot menu to each message in the channel page.
