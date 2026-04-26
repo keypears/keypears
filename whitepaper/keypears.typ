@@ -1,7 +1,7 @@
 #import "@preview/cetz:0.3.4"
 
 #set document(
-  title: "KeyPears: Post-Quantum Federated Secret Exchange",
+  title: "KeyPears: Hybrid Post-Quantum Federated Secret Exchange",
   author: "Ryan X. Charles",
 )
 
@@ -23,7 +23,7 @@
 
 #align(center)[
   #text(size: 16pt, weight: "bold")[
-    KeyPears: Post-Quantum Federated Secret Exchange
+    KeyPears: Hybrid Post-Quantum Federated Secret Exchange
   ]
 
   #v(0.5em)
@@ -44,15 +44,16 @@
 #par(first-line-indent: 0pt)[
   *Abstract.* KeyPears is a federated protocol for end-to-end encrypted
   communication and secret management. User identities are email-style
-  addresses (`name@domain`) backed by post-quantum key pairs: ML-DSA-65
-  (FIPS~204) for digital signatures and ML-KEM-768 (FIPS~203) for key
-  encapsulation. Any domain can host a KeyPears server, and servers discover
-  each other through DNS and a well-known configuration file. Private-key
-  operations, encryption, and decryption use NIST-approved primitives and
-  execute client-side; proof-of-work mining also executes client-side. Servers store encrypted message
-  bodies and secret payloads but never possess the keys needed to decrypt them;
-  metadata such as addresses and vault labels remain plaintext to support
-  routing and search. A
+  addresses (`name@domain`) backed by hybrid post-quantum key pairs: Ed25519 +
+  ML-DSA-65 (FIPS~204) for composite signatures and X25519 + ML-KEM-768
+  (FIPS~203) for hybrid key encapsulation. An attacker must break both classical
+  and post-quantum algorithms to compromise any operation. Any domain can host a
+  KeyPears server, and servers discover each other through DNS and a well-known
+  configuration file. Private-key operations, encryption, and decryption use
+  NIST-approved primitives and execute client-side; proof-of-work mining also
+  executes client-side. Servers store encrypted message bodies and secret
+  payloads but never possess the keys needed to decrypt them; metadata such as
+  addresses and vault labels remain plaintext to support routing and search. A
   proof-of-work mechanism provides Sybil resistance for account creation,
   account login, and messaging without CAPTCHAs or third-party services. A
   redirect-based authentication protocol allows third-party applications to
@@ -82,50 +83,39 @@ encryption requires users to manage keys manually. PGP attempted this:
 public-key cryptography layered onto email via key servers and a web of trust.
 Whitten and Tygar demonstrated the result in 1999~#cite(<whitten1999>): given
 90 minutes with PGP~5.0, the majority of test participants could not
-successfully encrypt a message. Many sent plaintext believing it was encrypted.
-The problem was not the cryptography but the user interface---key generation,
-key exchange, trust decisions, and revocation are concepts that do not map onto
-any familiar workflow. Twenty-seven years later, encrypted email remains a
-niche practice.
+successfully encrypt a message. The problem was not the cryptography but the
+user interface. Twenty-seven years later, encrypted email remains a niche
+practice.
 
-*No cost to send.* Delivering an email costs the sender nothing. This makes
-spam economically rational: the cost of sending a million messages is
-negligible, and even a tiny conversion rate is profitable. Back proposed
-Hashcash in 1997~#cite(<back2002>)---a proof-of-work scheme that imposes a
-computational cost on each message, making bulk sending expensive. The idea was
-sound, but SMTP has no mechanism to negotiate proof of work between sender and
-receiver. Hashcash could not be deployed on email because backwards
-compatibility prevents making it mandatory.
+*No cost to send.* Delivering an email costs the sender nothing, making spam
+economically rational. Back proposed Hashcash in 1997~#cite(<back2002>)---a
+proof-of-work scheme that imposes a computational cost on each message. The
+idea was sound, but SMTP has no mechanism to negotiate proof of work, and
+backwards compatibility prevents making it mandatory.
 
-Attempts to layer fixes onto email have produced extraordinary complexity.
-DMARC~#cite(<rfc7489>), published in 2015, requires three interlocking
-mechanisms---SPF, DKIM, and DMARC itself---each with its own DNS records,
-failure modes, and deployment challenges. After years of effort, DMARC
-authenticates the sender's domain but provides zero confidentiality.
+Centralized alternatives solved these problems by abandoning federation.
+Signal~#cite(<moxie2016>) provides automatic key management and end-to-end
+encryption, but identity is bound to phone numbers and a single organization
+runs every server.
 
-Centralized alternatives have taken a different approach. Signal solved
-end-to-end encryption for billions of users with a single software update, but
-at the cost of centralized identity: your address is a phone number controlled
-by a carrier, and a single organization runs every server. As Marlinspike
-argued~#cite(<moxie2016>), centralization enables rapid iteration---but it also
-means one entity controls your identity, your keys, and your social graph.
-
-Meanwhile, the cryptographic landscape is shifting. Quantum computers threaten
-the elliptic-curve cryptography that underpins most modern systems. Babbush et
-al.~#cite(<babbush2026>) demonstrated in April 2026 that breaking 256-bit
-elliptic-curve discrete logarithms requires only ~1,200 logical qubits and ~90
-million Toffoli gates---executable in approximately 9 minutes on a
-superconducting architecture with fewer than half a million physical qubits.
-This is a 20-fold reduction from prior estimates. Every system still using P-256,
-Ed25519, or X25519 is on borrowed time.
+Meanwhile, quantum computers threaten the elliptic-curve cryptography that
+underpins most modern systems. Babbush et al.~#cite(<babbush2026>)
+demonstrated in April 2026 that breaking 256-bit elliptic-curve discrete
+logarithms requires only ~1,200 logical qubits---executable in approximately
+9 minutes on a superconducting architecture with fewer than half a million
+physical qubits. The industry consensus~#cite(<signal-pqxdh>)#cite(<openpgp-pqc>)
+is that hybrid constructions---combining classical and post-quantum
+algorithms---provide defense-in-depth during the transition: if a structural
+flaw is discovered in lattice cryptography, classical algorithms still protect;
+if a quantum computer arrives, post-quantum algorithms still protect.
 
 We propose a protocol that keeps what email got right---federated `name@domain`
-addressing and DNS-based server discovery---while adding what email could not:
-post-quantum key encapsulation for end-to-end encryption, and proof of work for
-spam mitigation. Both are mandatory from day one, not retrofitted onto a
-protocol that was never designed for them. All asymmetric cryptography uses
-NIST-standardized post-quantum algorithms: ML-KEM-768~#cite(<fips203>) for key
-encapsulation and ML-DSA-65~#cite(<fips204>) for digital signatures.
+addressing and DNS-based server discovery---while adding hybrid post-quantum
+key exchange for end-to-end encryption, composite signatures for
+authentication, and proof of work for spam mitigation. All asymmetric
+cryptography combines classical Curve25519 primitives (X25519~#cite(<fips203>),
+Ed25519) with NIST-standardized post-quantum algorithms
+(ML-KEM-768~#cite(<fips203>), ML-DSA-65~#cite(<fips204>)).
 
 = Design Principles
 
@@ -137,12 +127,12 @@ KeyPears is guided by five principles:
   client-side; servers store only ciphertext for these. Metadata (addresses,
   vault labels) is intentionally plaintext for routing and search.
 + *Client-side proof of work.* Every account creation, login, and message
-  requires proof of work computed by the client. No CAPTCHAs, no third-party
-  verification services.
+  requires proof of work computed by the client.
 + *DNS-based identity.* Addresses are `name@domain`. Identity is bound to DNS
   domain ownership, not to a phone number or a central registry.
-+ *Post-quantum by default.* All asymmetric cryptography uses NIST-finalized
-  post-quantum standards. No classical elliptic-curve algorithms remain.
++ *Hybrid post-quantum by default.* Classical (Ed25519, X25519) and
+  post-quantum (ML-DSA-65, ML-KEM-768) algorithms are combined in every
+  cryptographic operation. Both must be broken to compromise the system.
 
 = Overview
 
@@ -186,10 +176,10 @@ communicated before.
 
     y += step
     line((col-a, y), (col-bs, y), mark: (end: ">"), stroke: (dash: "dotted"))
-    content(((col-a + col-bs) / 2, y + 0.25), text(size: 7pt)[3. PoW challenge (ML-DSA signed)])
+    content(((col-a + col-bs) / 2, y + 0.25), text(size: 7pt)[3. PoW challenge (composite signed)])
 
     y += step
-    content((col-a + 1.5, y), text(size: 7pt)[4. Mine PoW (GPU)  ·  5. KEM + encrypt + sign])
+    content((col-a + 1.5, y), text(size: 7pt)[4. Mine PoW  ·  5. DH + KEM + encrypt + sign])
 
     y += step
     line((col-a, y), (col-as, y), mark: (end: ">"))
@@ -214,22 +204,24 @@ communicated before.
 )
 
 + Alice's client asks her server for Bob's public keys. Her server fetches
-  Bob's ML-KEM-768 encapsulation key and ML-DSA-65 signing key from Bob's
-  server via the federation API.
+  all four of Bob's public keys (Ed25519, X25519, ML-DSA-65, ML-KEM-768) from
+  Bob's server via the federation API.
 + Alice's client requests a proof-of-work challenge from Bob's server. The
-  request is signed with Alice's ML-DSA-65 signing key to prove her identity.
+  request is signed with Alice's composite Ed25519 + ML-DSA-65 key.
 + Alice's client mines the challenge on the GPU.
-+ Alice encapsulates a fresh shared secret to Bob's ML-KEM-768 key, derives an
-  AES-256 key via HKDF-SHA-256, and encrypts the message with AES-256-GCM. She
-  also encrypts a second copy to her own ML-KEM key for sent-message history.
-  She signs a canonical envelope covering both ciphertexts with ML-DSA-65.
-+ Alice sends the ciphertexts, signature, and PoW solution to her server.
++ Alice computes an X25519 DH shared secret and encapsulates to Bob's
+  ML-KEM-768 key. Both shared secrets are combined via HKDF-SHA-256 to derive
+  an AES-256 key. She encrypts the message and a second copy to her own keys
+  for sent-message history. She signs a canonical envelope with composite
+  Ed25519 + ML-DSA-65.
++ Alice sends the ciphertexts, composite signature, and PoW solution to her
+  server.
 + Alice's server stores her copy, creates a pull token, and notifies
   Bob's server.
 + Bob's server independently resolves Alice's domain via DNS and TLS. It pulls
-  the ciphertext, verifies the ML-DSA-65 signature, and stores the message.
-+ Bob's client retrieves the ciphertext, decapsulates the shared secret with
-  his ML-KEM-768 decapsulation key, and decrypts.
+  the ciphertext, verifies the composite signature, and stores the message.
++ Bob's client retrieves the ciphertext, re-derives the X25519 DH shared
+  secret and decapsulates ML-KEM-768, and decrypts.
 
 At no point does any server possess the plaintext or the keys needed to derive
 it.
@@ -240,22 +232,29 @@ A KeyPears address has the form `name@domain`---intentionally identical to an
 email address. The domain is a standard DNS domain. An organization with
 existing email addresses can use the same addresses for KeyPears.
 
-Each user holds two types of key pairs:
+Each user holds four types of key pairs:
 
+- *Ed25519 key pair*: a 32-byte public key and 32-byte private key. Used as the
+  classical component of composite signatures.
 - *ML-DSA-65 signing key pair* (FIPS~204): a 1,952-byte verifying key and a
-  4,032-byte signing key. Used for authenticating PoW challenge requests,
-  signing messages, and third-party authentication.
+  4,032-byte signing key. Used as the post-quantum component of composite
+  signatures.
+- *X25519 key pair*: a 32-byte public key and 32-byte private key. Used as the
+  classical component of hybrid key exchange.
 - *ML-KEM-768 encapsulation key pair* (FIPS~203): a 1,184-byte encapsulation
-  key and a 2,400-byte decapsulation key. Used for encrypting messages.
+  key and a 2,400-byte decapsulation key. Used as the post-quantum component
+  of hybrid key exchange.
 
-Two key pairs are necessary because ML-DSA and ML-KEM are fundamentally
-different algorithms that cannot substitute for each other---unlike classical
-P-256, which served both signature and key-agreement roles from a single key.
+Four key pairs are necessary because each algorithm serves a distinct role.
+Ed25519 and ML-DSA-65 are independent signature schemes combined into a
+composite. X25519 and ML-KEM-768 are independent key exchange/encapsulation
+mechanisms combined in the hybrid encryption layer.
 
-Users may rotate key pairs freely, up to 100 per account. Old keys are retained
-so that messages encrypted under previous keys can still be decrypted. Private
-keys are encrypted client-side with AES-256-GCM under the user's encryption key
-(Section~5) and stored on the server as ciphertext.
+Users may rotate all four key pairs atomically, up to 100 sets per account.
+Old keys are retained so that messages encrypted under previous keys can still
+be decrypted. All private keys are encrypted client-side with AES-256-GCM
+under the user's encryption key (Section~5) and stored on the server as
+ciphertext.
 
 = Key Derivation
 
@@ -327,18 +326,13 @@ password key, used to derive the encryption key and login key, then discarded.
 
 *Tier 2a: Password Key #sym.arrow Encryption Key.* A second 300,000-round
 PBKDF2 derivation with a distinct salt produces the encryption key. This key
-is cached on the client and used to encrypt and decrypt ML-DSA signing keys
-and ML-KEM decapsulation keys. It is never sent to the server.
+is cached on the client and used to encrypt and decrypt all four private keys
+(Ed25519, X25519, ML-DSA-65, ML-KEM-768). It is never sent to the server.
 
-*Tier 2b: Password Key #sym.arrow Login Key.* A parallel 300,000-round PBKDF2
-derivation with a different salt produces the login key. This key is sent to
-the server exactly once, then discarded. The server hashes it with an
-additional 600,000 rounds using a per-user salt before storage.
-
-The encryption key and login key are derived from the same parent with
-different salts, making them cryptographically independent. An attacker who
-compromises client storage obtains the encryption key but cannot derive the
-login key or impersonate the user on the server.
+*Tier 2b: Password Key #sym.arrow Login Key.* A parallel derivation produces
+the login key. This key is sent to the server exactly once, then discarded.
+The server hashes it with an additional 600,000 rounds using a per-user salt
+before storage.
 
 *Vault key.* A separate key for encrypting stored secrets is derived as
 $K_"vault" = "HMAC-SHA-256"(K_"encryption",$ `"vault-key-v2"`$)$. Each vault
@@ -349,37 +343,30 @@ entry is independently encrypted with AES-256-GCM under $K_"vault"$.
 KeyPears uses AES-256-GCM (NIST SP 800-38D) for all symmetric encryption.
 Two encryption modes are used.
 
-*Message encryption.* When Alice sends a message to Bob, she encapsulates a
-fresh shared secret to Bob's ML-KEM-768 encapsulation key. The AES-256 key is
-derived via HKDF-SHA-256 (RFC~5869):
+*Hybrid message encryption.* When Alice sends a message to Bob, she computes
+an X25519 Diffie-Hellman shared secret using her private key and Bob's public
+key, and encapsulates a fresh shared secret to Bob's ML-KEM-768 encapsulation
+key. The AES-256 key is derived from both shared secrets via HKDF-SHA-256
+(RFC~5869):
 
-$ K_"AES" = "HKDF-SHA-256"("salt" = 0^(32), "IKM" = K_"shared", "info" = "webbuf:aesgcm-mlkem v1") $
+$ K_"AES" = "HKDF-SHA-256"("salt" = 0^(32), "IKM" = S_"X25519" || S_"ML-KEM", "info") $
 
-The message payload is encrypted with AES-256-GCM using $K_"AES"$, with the
-sender and recipient addresses bound as Additional Authenticated Data (AAD).
+where info = `"webbuf:aesgcm-x25519dh-mlkem v1"`. An attacker must break both
+X25519 ECDH and ML-KEM-768 to recover the message key. The message payload is
+encrypted with AES-256-GCM using $K_"AES"$, with the sender and recipient
+addresses bound as Additional Authenticated Data (AAD). The sender encrypts a
+second copy to their own keys for sent-message history. The KEM ciphertext and
+AES ciphertext are stored together as a combined blob per message.
 
-Because ML-KEM is a key encapsulation mechanism rather than a key agreement
-protocol, only the recipient can decapsulate the shared secret. The sender
-therefore encrypts a second copy to their own ML-KEM key for sent-message
-history. The KEM ciphertext and AES ciphertext are stored together as a
-combined blob per message.
+*Composite message signing.* The sender signs a canonical length-prefixed
+envelope with composite Ed25519 + ML-DSA-65 (3,374 bytes: 1 version byte +
+64-byte Ed25519 signature + 3,309-byte ML-DSA-65 signature). Both halves must
+verify independently. The envelope covers sender address, recipient address,
+all public keys, and both ciphertexts.
 
-*Message signing.* ML-KEM encryption alone does not authenticate the
-sender---anyone with the recipient's public encapsulation key can encapsulate.
-The sender signs a canonical length-prefixed envelope with ML-DSA-65:
-
-#align(center)[
-  #text(size: 9pt)[`"KeypearsMessageV1"` ∥ sender address ∥ recipient address ∥
-  signing key ∥ encap key ∥ recipient ciphertext ∥ sender ciphertext]
-]
-
-Each field is length-prefixed (4-byte big-endian length + data). The recipient
-verifies this signature before trusting the message content.
-
-*Vault encryption.* The vault stores secrets---passwords, credentials, and
-notes---encrypted under the vault key derived from the encryption key
-(Section~5). The server stores ciphertext alongside user-provided plaintext
-labels to enable server-side search without revealing secret content.
+*Vault encryption.* The vault stores secrets encrypted under the vault key
+derived from the encryption key (Section~5). The server stores ciphertext
+alongside user-provided plaintext labels to enable server-side search.
 
 = Federation
 
@@ -402,32 +389,25 @@ patterns are supported:
     let box-h = 0.9
     let gap = 5.0
 
-    // Pattern 1: Self-hosted
     let x1 = 1.5
     rect((x1 - box-w / 2, 0), (x1 + box-w / 2, box-h))
     content((x1, box-h / 2), text(size: 8pt)[`acme.com`\ address + API])
     content((x1, -0.4), text(size: 7pt, weight: "bold")[Self-hosted])
 
-    // Pattern 2: Subdomain
     let x2 = x1 + gap
     rect((x2 - box-w / 2, 0.9), (x2 + box-w / 2, 0.9 + box-h))
     content((x2, 0.9 + box-h / 2), text(size: 8pt)[`acme.com`\ address domain])
-
     rect((x2 - box-w / 2, -0.6), (x2 + box-w / 2, -0.6 + box-h))
     content((x2, -0.6 + box-h / 2), text(size: 8pt)[`kp.acme.com`\ API server])
-
     line((x2, 0.9), (x2, -0.6 + box-h), mark: (end: ">"))
     content((x2 + 2.3, 0.5), text(size: 7pt)[keypears.json])
     content((x2, -1.0), text(size: 7pt, weight: "bold")[Subdomain])
 
-    // Pattern 3: Third-party
     let x3 = x2 + gap
     rect((x3 - box-w / 2, 0.9), (x3 + box-w / 2, 0.9 + box-h))
     content((x3, 0.9 + box-h / 2), text(size: 8pt)[`acme.com`\ address domain])
-
     rect((x3 - box-w / 2, -0.6), (x3 + box-w / 2, -0.6 + box-h))
     content((x3, -0.6 + box-h / 2), text(size: 8pt)[`keypears.com`\ hosted API])
-
     line((x3, 0.9), (x3, -0.6 + box-h), mark: (end: ">"))
     content((x3 + 2.8, 0.5), text(size: 7pt)[keypears.json + admin field])
     content((x3, -1.0), text(size: 7pt, weight: "bold")[Third-party hosted])
@@ -438,38 +418,26 @@ patterns are supported:
 *Pull-model message delivery.* Cross-domain messages use a pull model rather
 than server-to-server push. The sender's server stores the ciphertext and
 issues a pull token. It notifies the recipient's server, which independently
-resolves the sender's domain via DNS and TLS---it does not trust the
-notification. The recipient pulls the ciphertext, verifies the ML-DSA-65
-message signature, and stores the message. This design provides domain
-verification without server signing keys.
+resolves the sender's domain via DNS and TLS. The recipient pulls the
+ciphertext, verifies the composite signature, and stores the message.
 
 = Third-Party Authentication
 
 KeyPears provides a redirect-based authentication protocol that allows any
-third-party application to verify a user's identity. The flow requires no API
-keys, no client registration, and no pre-existing relationship between the
-application and the KeyPears server---unlike OAuth, which requires client
-registration with each identity provider.
+third-party application to verify a user's identity without API keys, client
+registration, or pre-existing relationships.
 
-+ The user types their domain (e.g., `example.com`) on the third-party
-  application.
-+ The application fetches `keypears.json` from the user's domain to discover
-  the API domain.
++ The user types their domain on the third-party application.
++ The application fetches `keypears.json` to discover the API domain.
 + The application redirects the user's browser to the KeyPears server's `/sign`
   page with a structured signing request.
 + The user reviews a consent screen and approves. The KeyPears server generates
   a nonce, timestamp, and expiry, and the user signs a canonical JSON payload
-  with their ML-DSA-65 key.
-+ The signed response is submitted back to the application via HTTP POST (POST
-  is required because ML-DSA-65 signatures are 3,309 bytes, exceeding URL
-  length limits).
-+ The application verifies the signature by fetching the user's signing key via
-  federation, reconstructing the canonical payload, and calling ML-DSA-65
-  verify.
-
-The user's address is not revealed to the application until they explicitly
-approve on the KeyPears server, providing identity privacy. Users can create
-per-application addresses for untrusted services.
+  with their composite Ed25519 + ML-DSA-65 key.
++ The signed response is submitted back via HTTP POST (POST is required because
+  composite signatures are 3,374 bytes, exceeding URL length limits).
++ The application verifies the composite signature by fetching the user's
+  public keys via federation.
 
 = Proof of Work
 
@@ -488,11 +456,10 @@ algorithm via WebGPU. Servers never mine.
 and login. Individual users set difficulty for incoming messages.
 
 *Authenticated challenges.* Challenge requests require the sender to sign
-with their ML-DSA-65 signing key. The recipient's server verifies the
-signature by looking up the sender's signing key via federation. Both sender
-and recipient addresses are bound into the challenge. This prevents
-social-graph probing: an unauthenticated party cannot discover whether two
-users have communicated.
+with their composite Ed25519 + ML-DSA-65 key. The recipient's server verifies
+both the Ed25519 and ML-DSA-65 components via federation. Both sender and
+recipient addresses are bound into the challenge. This prevents social-graph
+probing.
 
 = Security Analysis
 
@@ -502,22 +469,20 @@ The server stores encrypted message bodies and secret payloads alongside hashed
 credentials (login key hashed with 600,000 additional rounds of
 PBKDF2-HMAC-SHA-256). An attacker who captures the database cannot decrypt
 message content or secret payloads. Metadata (addresses, vault labels, channel
-counterparties) is stored in plaintext. Brute forcing the login key directly is
-infeasible ($2^(256)$ search space). The only realistic attack is a dictionary
-attack against the user's password, requiring 1,200,000 rounds of
-PBKDF2-HMAC-SHA-256 per guess.
+counterparties) is stored in plaintext.
 
 == Quantum Resistance
 
-All asymmetric cryptography uses NIST-finalized post-quantum standards.
-ML-DSA-65 and ML-KEM-768 are based on the Module-LWE/SIS hardness
-assumptions, which are not known to be efficiently solvable by quantum
-computers. Grover's algorithm provides only a quadratic speedup against the
-symmetric primitives (AES-256-GCM, SHA-256, PBKDF2), reducing their effective
-security to 128 bits---still well within safe margins. Proof-of-work difficulty
-is calibrated for classical clients; Grover-style speedups do not expose user
-keys or plaintext, but difficulty assumptions may need retuning if quantum
-mining hardware becomes practical.
+KeyPears uses a hybrid construction combining classical (Ed25519, X25519) and
+post-quantum (ML-DSA-65, ML-KEM-768) algorithms in every cryptographic
+operation. An attacker must break both to compromise any operation. This
+provides defense-in-depth matching the approach adopted by Signal~#cite(<signal-pqxdh>),
+Chrome TLS, and the IETF OpenPGP PQC draft~#cite(<openpgp-pqc>): if a
+structural flaw is discovered in lattice-based cryptography, the classical
+algorithms still protect; if a cryptographically relevant quantum computer
+arrives, the post-quantum algorithms still protect. Grover's algorithm provides
+only a quadratic speedup against symmetric primitives, reducing their effective
+security to 128 bits---still well within safe margins.
 
 == Spam and Sybil Attacks
 
@@ -535,23 +500,22 @@ identity because TLS guarantees the response came from the real domain.
 == Client Storage Theft
 
 An attacker who compromises client storage obtains the encryption key, which
-can decrypt the user's ML-DSA signing keys and ML-KEM decapsulation keys.
-However, the login key is a cryptographic sibling (derived from the same parent
-with a different salt), not a child. The attacker cannot impersonate the user
-on the server.
+can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM). However,
+the login key is a cryptographic sibling (derived from the same parent with a
+different salt), not a child. The attacker cannot impersonate the user on the
+server.
 
 == Limitations
 
 KeyPears does not protect against compromised endpoints, weak passwords, or
-DNS-level attacks such as BGP hijacking. The protocol does not provide forward
-secrecy in the Signal sense; messages persist on the server for later retrieval,
-limiting the practical benefit of ephemeral key material. ML-DSA and ML-KEM are
-both lattice-based (Module-LWE); a structural break against this assumption
-family would compromise both. SLH-DSA (FIPS~205), a hash-based signature
-scheme, exists as a conservative fallback but is not currently used due to its
-substantially larger signatures (8--50~KB). The Rust PQC libraries used by this
-implementation (RustCrypto `ml-kem` and `ml-dsa`) have not received an
-independent third-party audit as of this writing.
+DNS-level attacks. The protocol does not provide forward secrecy in the Signal
+sense; messages persist on the server for later retrieval, limiting the
+practical benefit of ephemeral key material. SLH-DSA (FIPS~205), a hash-based
+signature scheme, exists as a fallback against a structural break in lattice
+cryptography but is not currently used due to its substantially larger
+signatures (8--50~KB). The Rust PQC libraries used by this implementation
+(RustCrypto `ml-kem` and `ml-dsa`) have not received an independent
+third-party audit as of this writing.
 
 = Related Work
 
@@ -566,7 +530,7 @@ independent third-party audit as of this writing.
     [E2E encryption], [Manual], [Automatic], [Automatic], [Automatic],
     [Spam mitigation], [None], [Phone reg.], [Rate limits], [Proof of work],
     [Key management], [Manual], [Automatic], [Automatic], [Automatic],
-    [Post-quantum], [No], [KEM only], [No], [Full (KEM+sig)],
+    [Post-quantum], [No], [Hybrid KEM], [No], [Hybrid KEM+sig],
     [3rd-party auth], [No], [No], [No], [Yes],
     [Open source], [Yes], [Yes], [Yes], [Yes],
   ),
@@ -575,24 +539,21 @@ independent third-party audit as of this writing.
 
 *PGP* (1991) provides strong cryptography but requires manual key management.
 *Signal* (2013) solved usability with automatic key management, but is
-centralized and has only partially migrated to post-quantum cryptography:
-Signal's PQXDH protocol~#cite(<signal-pqxdh>) uses ML-KEM for key exchange, but
-identity signatures remain Ed25519 (classical). *Matrix* (2014) is
-federated and encrypted, but uses a Matrix-specific address format and a
-substantially more complex architecture. *Keybase* (2014) combined social-proof
-identity with encryption, but was acquired by Zoom in 2020---a cautionary
-example of centralized hosting. KeyPears is, to our knowledge, the first
-federated messaging system with full post-quantum cryptography for both key
-exchange and signatures.
+centralized. Signal's PQXDH protocol~#cite(<signal-pqxdh>) uses hybrid X25519 +
+ML-KEM for key exchange, but identity signatures remain classical Ed25519.
+*Matrix* (2014) is federated and encrypted, but uses a Matrix-specific address
+format and a substantially more complex architecture. *Keybase* (2014) combined
+social-proof identity with encryption, but was acquired by Zoom in 2020.
+KeyPears is, to our knowledge, the first federated messaging system with full
+hybrid post-quantum cryptography for both key exchange and signatures.
 
 = Future Work
 
 Several extensions are planned. *Group messaging* with multi-party key
-agreement would extend the protocol beyond pairwise communication. *SLH-DSA
-fallback support* would provide assumption diversity against a potential
-structural break in lattice cryptography. *Public-key transparency logs* would
-provide auditability for key rotations. A *native mobile client* with
-hardware-backed key storage would improve security for the encryption key.
+agreement would extend the protocol beyond pairwise communication. *Public-key
+transparency logs* would provide auditability for key rotations. A *native
+mobile client* with hardware-backed key storage would improve security for
+the encryption key.
 
 = Conclusion
 
@@ -601,12 +562,12 @@ universal reach. But email's design assumed trusted networks, and four decades
 of effort have failed to retrofit encryption and spam resistance. Centralized
 alternatives solved these problems by abandoning federation. KeyPears takes a
 different path: a clean-sheet protocol that preserves `name@domain` addressing
-and DNS-based federation while making post-quantum key encapsulation, message
-signing, and proof of work mandatory from the start. The result is a system
-where encryption is the only mode, spam is computationally expensive, identity
-authentication requires no passwords or API keys, and no single entity controls
-identity---built on cryptography designed to withstand the next generation of
-computing.
+and DNS-based federation while making hybrid post-quantum key exchange,
+composite signing, and proof of work mandatory from the start. The result is a
+system where encryption is the only mode, spam is computationally expensive,
+identity authentication requires no passwords or API keys, and no single entity
+controls identity---built on cryptography designed to withstand both today's
+threats and tomorrow's.
 
 // --- References ---
 

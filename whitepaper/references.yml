@@ -58,6 +58,18 @@ signal-pqxdh:
   date: 2023-09-19
   url: https://signal.org/blog/pqxdh/
 
+openpgp-pqc:
+  type: article
+  title: "Post-Quantum Cryptography in OpenPGP"
+  author:
+    - Strenzke, Falko
+    - Wussler, Aron
+  serial-number: draft-ietf-openpgp-pqc-07
+  parent:
+    type: periodical
+    title: Internet Engineering Task Force
+  date: 2025-02
+
 fips203:
   type: article
   title: "Module-Lattice-Based Key-Encapsulation Mechanism Standard"
