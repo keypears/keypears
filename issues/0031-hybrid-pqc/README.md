@@ -414,6 +414,19 @@ Keep existing ML-DSA and ML-KEM columns unchanged.
 **`webapp/src/server/message.server.ts`:**
 - `insertMessage`: add `senderEd25519PubKey` parameter
 
+**`webapp/src/server/message.functions.ts` (continued):**
+- `getRemotePowChallenge`: add `senderEd25519PubKey` to input validator. Pass
+  through to `fetchRemotePowChallenge`.
+
+**`webapp/src/server/federation.server.ts` (continued):**
+- `fetchRemotePowChallenge`: add `senderEd25519PubKey` to the input passed to
+  `client.getPowChallenge()`.
+
+**Route callers of `getRemotePowChallenge` (send.tsx, channel.$address.tsx,
+vault.$id.tsx):**
+- All three pass `senderEd25519PubKey` alongside `senderPubKey` when
+  requesting a PoW challenge.
+
 **`webapp/src/routes/_app/_saved/sign.tsx`:**
 - Decrypt both Ed25519 and ML-DSA keys for composite signing
 - `signPayload`: use `sigEd25519MldsaSign` with both keys
