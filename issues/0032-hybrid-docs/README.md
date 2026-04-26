@@ -171,4 +171,77 @@ Must stay within 8 pages. The hybrid descriptions are slightly longer but the
 key sizes are mostly the same (Ed25519/X25519 are 32 bytes — the PQ keys
 dominate). Keep the text tight.
 
+### Result: Pass
+
+Whitepaper fully rewritten for hybrid Curve25519 + PQ. Every section updated:
+abstract, intro, design principles, overview, identity (four key pairs),
+encryption (HKDF formula with both shared secrets), signing (composite 3,374
+bytes), auth, PoW, security (hybrid defense-in-depth), related work, conclusion.
+Added OpenPGP PQC draft reference. Fixed erroneous FIPS 203 citation next to
+X25519 per Codex review. 8 pages, 8 references.
+
+## Experiment 2: Update CLAUDE.md and protocol docs
+
+### Goal
+
+Update CLAUDE.md and all webapp protocol docs to reflect the hybrid Curve25519
++ PQ design. The whitepaper is done (experiment 1). These are the remaining
+stale files.
+
+### CLAUDE.md changes
+
+- **Tech stack crypto line**: currently says "ML-DSA-65 signatures, ML-KEM-768
+  key encapsulation" — add Ed25519, X25519, composite signatures, hybrid
+  encryption, and the new packages (`@webbuf/sig-ed25519-mldsa`,
+  `@webbuf/aesgcm-x25519dh-mlkem`, `@webbuf/ed25519`, `@webbuf/x25519`)
+- **Auth architecture**: "ML-DSA-65 + ML-KEM-768 key pairs" → four key pairs
+  (Ed25519, X25519, ML-DSA-65, ML-KEM-768). Update encryption key description
+  to mention all four private keys.
+- **Key management**: update for four key pairs rotated atomically
+- **Database schema**: `user_keys` has 8 key columns. Messages have 3
+  additional columns (senderEd25519PubKey, senderX25519PubKey,
+  recipientX25519PubKey).
+- **PoW section**: composite signing for challenges
+
+### Protocol docs changes
+
+**`webapp/src/docs/protocol/encryption.md`**:
+- Hybrid encryption: X25519 DH + ML-KEM-768 via HKDF-SHA-256
+- Composite signatures: Ed25519 + ML-DSA-65 (3,374 bytes)
+
+**`webapp/src/docs/protocol/addressing.md`**:
+- Four key pairs per user
+
+**`webapp/src/docs/protocol/key-derivation.md`**:
+- Encryption key encrypts all four private keys
+
+**`webapp/src/docs/protocol/proof-of-work.md`**:
+- Composite signing for PoW challenges
+
+**`webapp/src/docs/security.md`**:
+- Hybrid defense-in-depth rationale
+- Client storage theft: four private keys
+
+**`webapp/src/docs/federation.md`**:
+- getPublicKey returns four public keys
+
+**`webapp/src/docs/welcome.md`**:
+- Update crypto overview for hybrid
+
+### Files to modify (8 total)
+
+1. `CLAUDE.md`
+2. `webapp/src/docs/protocol/encryption.md`
+3. `webapp/src/docs/protocol/addressing.md`
+4. `webapp/src/docs/protocol/key-derivation.md`
+5. `webapp/src/docs/protocol/proof-of-work.md`
+6. `webapp/src/docs/security.md`
+7. `webapp/src/docs/federation.md`
+8. `webapp/src/docs/welcome.md`
+
+### Verification
+
+- `grep -rn "pure.*PQ\|pure.*post-quantum\|two.*key pairs\|ML-DSA-65 signing key pair\|ML-KEM-768 encapsulation key pair" CLAUDE.md webapp/src/docs/` — zero matches for stale pure-PQ language
+- No code changes — docs only
+
 ### Result: Pending
