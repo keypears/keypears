@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-26"
+closed = "2026-04-26"
 +++
 
 # Update whitepaper and docs for hybrid crypto
@@ -244,4 +245,18 @@ stale files.
 - `grep -rn "pure.*PQ\|pure.*post-quantum\|two.*key pairs\|ML-DSA-65 signing key pair\|ML-KEM-768 encapsulation key pair" CLAUDE.md webapp/src/docs/` — zero matches for stale pure-PQ language
 - No code changes — docs only
 
-### Result: Pending
+### Result: Pass
+
+All 8 files updated. Zero stale pure-PQ references remain. CLAUDE.md tech
+stack, auth architecture, key management, DB schema, PoW, and password change
+sections all reflect four key pairs and hybrid crypto. Seven protocol docs
+updated for hybrid encryption, composite signatures, four key pairs, and
+defense-in-depth security rationale.
+
+## Conclusion
+
+All documentation updated for the hybrid Curve25519 + PQ design. The whitepaper
+(experiment 1) and all docs/CLAUDE.md (experiment 2) now accurately describe
+four key pairs (Ed25519, X25519, ML-DSA-65, ML-KEM-768), composite signatures
+(3,374 bytes), and hybrid encryption (X25519 DH + ML-KEM-768 via
+HKDF-SHA-256).
