@@ -165,16 +165,21 @@ queue, no silent retry, and no delayed bounce notification.
 
 Each message stored on the server contains:
 
-| Field              | Description                                   |
-| ------------------ | --------------------------------------------- |
-| `senderAddress`    | Full address (e.g. `alice@acme.com`)          |
-| `encryptedContent` | AES-256-GCM-encrypted message content         |
-| `senderPubKey`     | Sender's public key at time of sending        |
-| `recipientPubKey`  | Recipient's public key at time of sending     |
-| `isRead`           | Whether the recipient has viewed this message |
+| Field                    | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `senderAddress`          | Full address (e.g. `alice@acme.com`)                     |
+| `encryptedContent`       | Hybrid-encrypted message (recipient's copy)              |
+| `senderEncryptedContent` | Hybrid-encrypted message (sender's copy)                 |
+| `senderEd25519PubKey`    | Sender's Ed25519 public key                              |
+| `senderX25519PubKey`     | Sender's X25519 public key                               |
+| `senderPubKey`           | Sender's ML-DSA-65 verifying key                         |
+| `recipientX25519PubKey`  | Recipient's X25519 public key                            |
+| `recipientPubKey`        | Recipient's ML-KEM-768 encapsulation key                 |
+| `senderSignature`        | Composite Ed25519 + ML-DSA-65 signature (3,374 bytes)    |
+| `isRead`                 | Whether the recipient has viewed this message             |
 
-Both public keys are stored so the recipient knows which keys to use for
-hybrid decryption (X25519 DH and ML-KEM decapsulation), even after key rotation.
+All keys are stored so the recipient can verify the composite signature and
+perform hybrid decryption, even after key rotation.
 
 ### Message size limit
 

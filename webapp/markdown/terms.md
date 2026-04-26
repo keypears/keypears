@@ -12,9 +12,9 @@ use KeyPears.
 
 ## 1. Description of Service
 
-KeyPears is an end-to-end encrypted messaging system using Diffie-Hellman
-key exchange. Messages are encrypted on your device before being sent.
-Neither KeyPears nor any server operator can read your messages.
+KeyPears is an end-to-end encrypted messaging system using hybrid
+post-quantum cryptography. Messages are encrypted on your device before
+being sent. Neither KeyPears nor any server operator can read your messages.
 
 ## 2. Account Responsibility
 

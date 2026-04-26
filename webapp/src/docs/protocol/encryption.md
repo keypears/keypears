@@ -94,12 +94,18 @@ AES-256-GCM produces authenticated ciphertext in the following format:
 
 Each message stored on the server contains:
 
-| Field              | Description                               |
-| ------------------ | ----------------------------------------- |
-| `senderAddress`    | Full address (e.g. `alice@acme.com`)      |
-| `encryptedContent` | AES-256-GCM-encrypted message content     |
-| `senderPubKey`     | Sender's public key at time of sending    |
-| `recipientPubKey`  | Recipient's public key at time of sending |
+| Field                    | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `senderAddress`          | Full address (e.g. `alice@acme.com`)                     |
+| `encryptedContent`       | Hybrid-encrypted message (recipient's copy)              |
+| `senderEncryptedContent` | Hybrid-encrypted message (sender's copy for sent history)|
+| `senderEd25519PubKey`    | Sender's Ed25519 public key (for composite sig verify)   |
+| `senderX25519PubKey`     | Sender's X25519 public key (for hybrid DH)               |
+| `senderPubKey`           | Sender's ML-DSA-65 verifying key (for composite sig)     |
+| `recipientX25519PubKey`  | Recipient's X25519 public key (for hybrid DH)            |
+| `recipientPubKey`        | Recipient's ML-KEM-768 encapsulation key                 |
+| `senderSignature`        | Composite Ed25519 + ML-DSA-65 signature (3,374 bytes)    |
 
-Both public keys are stored so the recipient knows which keys to use for
-hybrid decryption (X25519 DH and ML-KEM decapsulation), even after key rotation.
+All public keys are stored so the recipient can verify the composite signature
+and perform hybrid decryption (X25519 DH + ML-KEM decapsulation), even after
+key rotation.

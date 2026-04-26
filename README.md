@@ -1,11 +1,13 @@
 # KeyPears
 
-**Diffie-Hellman Key Exchange System**
+**Hybrid Post-Quantum Federated Secret Exchange**
 
 KeyPears is an end-to-end encrypted secret sharing system built on federated
-Diffie-Hellman key exchange. Your identity is a KeyPears address (e.g.
-`alice@keypears.com`) tied to a P-256 (NIST) public key. Discover anyone's
-public key by their address, derive a shared secret, and communicate securely.
+hybrid post-quantum key exchange. Your identity is a KeyPears address (e.g.
+`alice@keypears.com`) backed by four key pairs: Ed25519 + ML-DSA-65 for
+composite signatures and X25519 + ML-KEM-768 for hybrid encryption. An attacker
+must break both classical and post-quantum algorithms to compromise any
+operation.
 
 ## How it works
 

@@ -12,13 +12,14 @@ data we collect, how we use it, and your rights.
 
 ## 1. End-to-End Encryption
 
-All messages are encrypted on your device using Diffie-Hellman key
-exchange before being sent. The server stores only ciphertext. Neither
-the server operator nor any third party can read your messages.
+All messages are encrypted on your device using hybrid post-quantum
+cryptography (X25519 + ML-KEM-768) before being sent. The server stores
+only ciphertext. Neither the server operator nor any third party can read
+your messages.
 
 ## 2. What We Collect
 
-- **Account data**: Your username, domain, and public key. Your password
+- **Account data**: Your username, domain, and public keys. Your password
   is never stored — only a cryptographic hash derived from it.
 - **Encrypted messages**: Stored as ciphertext. We cannot decrypt them.
 - **Proof-of-work history**: Computational work performed by your device,
@@ -38,7 +39,7 @@ the server operator nor any third party can read your messages.
 - To deliver encrypted messages between users
 - To verify your identity during login
 - To prevent spam via proof-of-work
-- To display your public profile (username, public key, PoW history)
+- To display your public profile (username, public keys, PoW history)
 
 ## 5. Data Sharing
 
