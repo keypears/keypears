@@ -21,6 +21,6 @@
     "concurrently": "^9.2.1"
   },
   "dependencies": {
-    "@webbuf/p256": "^3.5.1"
+    "@webbuf/p256": "^3.8.0"
   }
 }
