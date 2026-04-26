@@ -5,17 +5,23 @@ same addresses for KeyPears without any changes.
 
 ## Identity model
 
-Each user holds one or more pairs of post-quantum keys: an **ML-DSA-65**
-(FIPS 204) signing key pair and an **ML-KEM-768** (FIPS 203) encryption key
-pair. The most recent keys are the **active keys** — the ML-KEM-768
-encapsulation key is used for key encapsulation in new messages, and the
-ML-DSA-65 verification key is used to authenticate the sender. Users may
+Each user holds one or more sets of four key pairs:
+
+- **Ed25519** — classical signing (32-byte public key)
+- **X25519** — classical Diffie-Hellman (32-byte public key)
+- **ML-DSA-65** (FIPS 204) — post-quantum signing (1,952-byte public key)
+- **ML-KEM-768** (FIPS 203) — post-quantum key encapsulation (1,184-byte public key)
+
+The most recent keys are the **active keys**. Signatures use composite
+Ed25519 + ML-DSA-65 (both must verify). Encryption uses hybrid X25519 +
+ML-KEM-768 (both shared secrets are combined via HKDF-SHA-256). Users may
 rotate keys freely, up to 100 per account. Old keys are retained so that
 messages encrypted under previous keys can still be decrypted.
 
-Signing keys and decapsulation keys are encrypted client-side with AES-256-GCM
-under the user's encryption key and stored on the server as ciphertext. The
-server cannot decrypt them.
+All four private keys (Ed25519 signing key, X25519 private key, ML-DSA
+signing key, and ML-KEM decapsulation key) are encrypted client-side with
+AES-256-GCM under the user's encryption key and stored on the server as
+ciphertext. The server cannot decrypt them.
 
 ## Domain ownership
 

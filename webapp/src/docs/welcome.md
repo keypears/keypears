@@ -1,13 +1,13 @@
 KeyPears is a federated protocol for end-to-end encrypted communication and
 secret management. User identities are email-style addresses (`name@domain`)
-backed by post-quantum key pairs (ML-DSA-65 for signing, ML-KEM-768 for
-encryption). Any domain can host a KeyPears server, and servers discover each
-other through DNS.
+backed by hybrid classical + post-quantum key pairs: Ed25519 + ML-DSA-65 for
+composite signing, and X25519 + ML-KEM-768 for hybrid encryption. Any domain
+can host a KeyPears server, and servers discover each other through DNS.
 
 ## What KeyPears does
 
-- **Encrypted messaging** between users on any domain, with automatic key
-  encapsulation via ML-KEM-768.
+- **Encrypted messaging** between users on any domain, with hybrid X25519 +
+  ML-KEM-768 key encapsulation.
 - **Secret vault** for storing passwords, credentials, and notes, encrypted
   client-side.
 - **Federated identity** — your address is `name@domain`, the same format as

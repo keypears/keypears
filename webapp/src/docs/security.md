@@ -48,8 +48,8 @@ impractical.
 ## Social-graph probing
 
 Proof-of-work challenge requests for messaging are authenticated: the sender
-must sign the request with their ML-DSA-65 signing key, and the recipient's
-server verifies the signature via federation.
+must sign the request with a composite Ed25519 + ML-DSA-65 signature, and the
+recipient's server verifies both signatures via federation.
 
 An unauthenticated party cannot request a challenge, and therefore cannot probe
 whether two users have a communication channel. Both addresses are signed into
@@ -69,8 +69,8 @@ the response came from the real domain.
 ## Client storage theft
 
 An attacker who compromises a user's client storage obtains the encryption key,
-which can decrypt the user's ML-DSA-65 signing keys and ML-KEM-768
-decapsulation keys. However, the login key is a cryptographic sibling of the
+which can decrypt all four of the user's private keys (Ed25519, X25519, ML-DSA,
+and ML-KEM). However, the login key is a cryptographic sibling of the
 encryption key (derived from the same parent with a different salt), not a
 child.
 
@@ -128,13 +128,25 @@ incorrectly with horizontal autoscaling.
 
 See `infra/README.md` for the deployment architecture.
 
-## Quantum resistance
+## Hybrid defense-in-depth
 
-KeyPears uses post-quantum cryptographic algorithms standardized by NIST:
-ML-DSA-65 (FIPS 204) for digital signatures and ML-KEM-768 (FIPS 203) for key
-encapsulation. These algorithms are designed to resist attacks from both
-classical and quantum computers. A future cryptographically relevant quantum
-computer cannot retroactively decrypt captured ciphertext or forge signatures.
+KeyPears uses a hybrid cryptographic design that combines classical and
+post-quantum algorithms at every layer:
+
+- **Signing**: composite Ed25519 + ML-DSA-65 (both must verify)
+- **Encryption**: hybrid X25519 + ML-KEM-768 (both shared secrets combined via HKDF-SHA-256)
+
+This hybrid approach provides defense-in-depth: an attacker must break **both**
+the classical and post-quantum algorithms to compromise confidentiality or
+forge signatures. A breakthrough against lattice-based cryptography alone does
+not compromise the system (X25519 and Ed25519 still protect it). Conversely,
+a future quantum computer that breaks elliptic curves cannot compromise the
+system either (ML-KEM-768 and ML-DSA-65 still protect it).
+
+ML-DSA-65 (FIPS 204) and ML-KEM-768 (FIPS 203) are NIST-standardized
+post-quantum algorithms designed to resist attacks from both classical and
+quantum computers. Ed25519 and X25519 are widely deployed, well-studied
+classical algorithms that provide a conservative security floor.
 
 ## Limitations
 

@@ -94,13 +94,16 @@ server via oRPC:
 ```typescript
 const client = createRemoteClient(recipientApiUrl);
 const result = await client.getPublicKey({ address: "alice@acme.com" });
-// result.signingPublicKey = "..." (ML-DSA-65 verification key)
-// result.encapPublicKey = "..."   (ML-KEM-768 encapsulation key)
+// result.ed25519PublicKey = "..."   (Ed25519 verification key, 32 bytes)
+// result.x25519PublicKey = "..."    (X25519 DH public key, 32 bytes)
+// result.signingPublicKey = "..."   (ML-DSA-65 verification key, 1,952 bytes)
+// result.encapPublicKey = "..."     (ML-KEM-768 encapsulation key, 1,184 bytes)
 ```
 
 The server returns the user's **active** public keys (the most recently rotated
-key pair): an ML-DSA-65 signing public key for signature verification and an
-ML-KEM-768 encapsulation public key for key encapsulation.
+key set): four public keys covering both classical and post-quantum algorithms.
+Ed25519 and ML-DSA-65 are used together for composite signature verification.
+X25519 and ML-KEM-768 are used together for hybrid key encapsulation.
 
 ## Message delivery
 
@@ -171,7 +174,7 @@ Each message stored on the server contains:
 | `isRead`           | Whether the recipient has viewed this message |
 
 Both public keys are stored so the recipient knows which keys to use for
-ML-KEM decapsulation, even after key rotation.
+hybrid decryption (X25519 DH and ML-KEM decapsulation), even after key rotation.
 
 ### Message size limit
 
@@ -187,7 +190,7 @@ API is mounted at `/api` and provides the following public procedures:
 | Procedure         | Description                                                       |
 | ----------------- | ----------------------------------------------------------------- |
 | `serverInfo`      | Returns domain info                                               |
-| `getPublicKey`    | Returns active signing and encapsulation public keys for an address |
+| `getPublicKey`    | Returns four active public keys (Ed25519, X25519, ML-DSA-65, ML-KEM-768) for an address |
 | `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
 | `notifyMessage`   | Notifies server of a new incoming message                         |
 | `pullMessage`     | Serves a pending message delivery (idempotent, token-based)       |

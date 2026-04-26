@@ -60,8 +60,10 @@ settings page.
 ## Authenticated challenges
 
 Challenge requests for messaging are **authenticated**: the sender must sign the
-request with their ML-DSA-65 signing key. The recipient's server verifies the
-signature by looking up the sender's signing public key via federation.
+request with a **composite Ed25519 + ML-DSA-65 signature** (3,374 bytes). The
+recipient's server verifies both signatures by looking up the sender's Ed25519
+and ML-DSA-65 public keys via federation. Both signatures must be valid for
+the challenge request to be accepted.
 
 Both sender and recipient addresses are signed into the challenge payload by the
 server's HMAC-SHA-256. This prevents:

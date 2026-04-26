@@ -35,7 +35,8 @@ encryption key and login key, then it is discarded. It is never stored.
 
 The encryption key is derived from the password key with a different salt and
 another 300,000 rounds of PBKDF2-HMAC-SHA-256. It is used to encrypt and
-decrypt ML-DSA signing keys and ML-KEM decapsulation keys using AES-256-GCM.
+decrypt all four private keys — Ed25519 signing key, X25519 private key,
+ML-DSA signing key, and ML-KEM decapsulation key — using AES-256-GCM.
 
 The encryption key **never leaves the client**. It is not sent to the server.
 It is cached on the client after the user enters their password (on account
@@ -73,7 +74,7 @@ independently.
 
 **NIST-approved primitives.** All primitives are NIST-approved: SHA-256
 (FIPS 180-4), HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM
-(SP 800-38D), ML-DSA-65 (FIPS 204), and ML-KEM-768 (FIPS 203). The server-side tier alone performs
+(SP 800-38D), Ed25519, X25519, ML-DSA-65 (FIPS 204), and ML-KEM-768 (FIPS 203). The server-side tier alone performs
 600,000 rounds of PBKDF2-HMAC-SHA-256, matching the OWASP Password Storage
 Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256. The full
 password-to-hash chain exceeds 1,200,000 rounds.
@@ -87,9 +88,10 @@ key, then discarded. The password key is used to derive the encryption key and
 login key, then discarded. Only the encryption key is cached.
 
 **If client storage is compromised:** The attacker gets the encryption key and
-can decrypt ML-DSA signing keys and ML-KEM decapsulation keys on that device. But they CANNOT derive the login key
-(it's a sibling, not a child) and cannot impersonate the user on the server.
-They also cannot recover the user's password.
+can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM) on that
+device. But they CANNOT derive the login key (it's a sibling, not a child)
+and cannot impersonate the user on the server. They also cannot recover the
+user's password.
 
 **Graceful fallback.** If client storage is cleared, the user simply re-enters
 their password. No data is lost — the same password derives the same keys.
@@ -126,11 +128,11 @@ re-encrypted:
 
 ## Key rotation
 
-When rotating keys, new ML-DSA-65 and ML-KEM-768 key pairs are generated. The
-signing key and decapsulation key are encrypted with the cached encryption key
-and stored in the `user_keys` table alongside the public keys. The most recent
-keys are the active keys. The new key's
-`loginKeyHash` is set to match the user's current password hash.
+When rotating keys, four new key pairs are generated: Ed25519, X25519,
+ML-DSA-65, and ML-KEM-768. All four private keys are encrypted with the cached
+encryption key and stored in the `user_keys` table alongside the public keys.
+The most recent keys are the active keys. The new key's `loginKeyHash` is set
+to match the user's current password hash.
 
 If the cached encryption key is missing (cleared client storage, new device),
 the user is prompted for their password. The password key is derived, the
@@ -145,8 +147,10 @@ discarded.
 | MAC             | HMAC-SHA-256                             | `@webbuf/sha256`             |
 | KDF             | PBKDF2-HMAC-SHA-256 (RFC 8018)           | Web Crypto (`crypto.subtle`) |
 | Encryption      | AES-256-GCM (AEAD)                       | `@webbuf/aesgcm`             |
-| Signing keys    | ML-DSA-65 (NIST, FIPS 204)               | `@webbuf/mldsa`              |
-| Encryption keys | ML-KEM-768 (NIST, FIPS 203)              | `@webbuf/mlkem`              |
+| Classical signing  | Ed25519                                  | `@webbuf/ed25519`            |
+| Classical DH       | X25519                                   | `@webbuf/x25519`             |
+| PQ signing         | ML-DSA-65 (NIST, FIPS 204)               | `@webbuf/mldsa`              |
+| PQ encryption      | ML-KEM-768 (NIST, FIPS 203)              | `@webbuf/mlkem`              |
 | Rounds per tier | 300,000 client-side, 600,000 server-side |                              |
 
 ## Implementation

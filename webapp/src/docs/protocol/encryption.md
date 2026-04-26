@@ -3,43 +3,60 @@ AES-GCM is an authenticated encryption mode (AEAD) that produces ciphertext
 and an authentication tag in a single pass — no separate MAC is required. Two
 encryption modes are used.
 
-## Message encryption (ML-KEM-768)
+## Message encryption (hybrid X25519 + ML-KEM-768)
 
-When Alice sends a message to Bob, she encapsulates a shared secret to Bob's
-ML-KEM-768 encapsulation key:
+When Alice sends a message to Bob, she performs both a classical X25519
+Diffie-Hellman exchange and a post-quantum ML-KEM-768 encapsulation:
 
 ```
-(ciphertext_bob, shared_secret) = ML-KEM-768.Encaps(bob_encap_public_key)
+x25519_shared_secret = X25519(alice_x25519_private, bob_x25519_public)
+(mlkem_ciphertext_bob, mlkem_shared_secret) = ML-KEM-768.Encaps(bob_encap_public_key)
 ```
 
-The AES-256-GCM encryption key is derived from the shared secret via
-HKDF-SHA-256 with a context binding the sender and recipient addresses.
+The AES-256-GCM encryption key is derived by concatenating both shared secrets
+and running them through HKDF-SHA-256 with a context binding the sender and
+recipient addresses:
 
-Alice also encrypts a second copy of the message to her own ML-KEM key, so she
+```
+combined = x25519_shared_secret || mlkem_shared_secret
+message_key = HKDF-SHA-256(combined, context)
+```
+
+An attacker must break **both** X25519 and ML-KEM-768 to recover the message
+key. This hybrid construction ensures that a breakthrough against lattice-based
+cryptography alone does not compromise confidentiality, and a breakthrough
+against elliptic curves alone does not either.
+
+Alice also encrypts a second copy of the message to her own keys, so she
 can decrypt her sent-message history:
 
 ```
-(ciphertext_alice, shared_secret_alice) = ML-KEM-768.Encaps(alice_encap_public_key)
+x25519_shared_secret_alice = X25519(alice_x25519_private, alice_x25519_public)
+(mlkem_ciphertext_alice, mlkem_shared_secret_alice) = ML-KEM-768.Encaps(alice_encap_public_key)
 ```
 
 After encryption, Alice signs a canonical length-prefixed envelope containing
-both ciphertexts and metadata with her ML-DSA-65 signing key. The signature
-covers the sender address, recipient address, and all ciphertext — preventing
-tampering and proving sender identity.
+both ciphertexts and metadata with a **composite Ed25519 + ML-DSA-65
+signature** (3,374 bytes). Both signing algorithms sign the same envelope
+independently, and the two signatures are concatenated. The signature covers
+the sender address, recipient address, and all ciphertext — preventing
+tampering and proving sender identity. Verification requires both signatures
+to be valid.
 
 Additional Authenticated Data (AAD) binds the sender and recipient addresses
 into the AES-GCM authentication tag. This ensures ciphertext cannot be
 re-targeted to a different conversation without detection.
 
-The recipient decapsulates the shared secret using their ML-KEM decapsulation
-key:
+The recipient performs the inverse hybrid decryption:
 
 ```
-shared_secret = ML-KEM-768.Decaps(bob_decap_key, ciphertext_bob)
+x25519_shared_secret = X25519(bob_x25519_private, alice_x25519_public)
+mlkem_shared_secret = ML-KEM-768.Decaps(bob_decap_key, mlkem_ciphertext_bob)
+combined = x25519_shared_secret || mlkem_shared_secret
+message_key = HKDF-SHA-256(combined, context)
 ```
 
-The recipient derives the same AES key via HKDF-SHA-256 with the same context
-and decrypts the message.
+The recipient derives the same AES key and decrypts the message.
 
 ## Vault encryption
 
@@ -85,4 +102,4 @@ Each message stored on the server contains:
 | `recipientPubKey`  | Recipient's public key at time of sending |
 
 Both public keys are stored so the recipient knows which keys to use for
-ML-KEM decapsulation, even after key rotation.
+hybrid decryption (X25519 DH and ML-KEM decapsulation), even after key rotation.
