@@ -53,3 +53,83 @@ state. No need to refetch — just filter the state.
 
 1. Add server functions for single and bulk delete.
 2. Add the three-dot menu to each message in the channel page.
+
+## Experiment 1: Message deletion
+
+### Goal
+
+Add "Delete" and "Delete earlier" functionality to channel messages. Server
+functions for both operations, three-dot dropdown menu on each message bubble.
+
+### Server functions (`message.server.ts`)
+
+```typescript
+export async function deleteMessageById(
+  messageId: string,
+  userId: string,
+): Promise<boolean>
+```
+
+Delete a single message where `messages.id = messageId` AND the message's
+channel belongs to the user (`channels.ownerId = userId`). Join messages →
+channels to verify ownership. Return true if deleted, false if not found.
+
+```typescript
+export async function deleteEarlierMessages(
+  messageId: string,
+  userId: string,
+): Promise<number>
+```
+
+Find the message's `channelId` and verify the channel belongs to the user.
+Then delete all messages in that channel where `messages.id < messageId`.
+UUIDv7 IDs are time-ordered, so `<` comparison gives chronological ordering.
+Return the count of deleted rows.
+
+### Server function wrappers (`message.functions.ts`)
+
+```typescript
+export const deleteChannelMessage = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .inputValidator(z.object({ messageId: z.string() }))
+  .handler(...)
+
+export const deleteEarlierChannelMessages = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .inputValidator(z.object({ messageId: z.string() }))
+  .handler(...)
+```
+
+Both use `authMiddleware` to get `userId` from session. Both take only
+`messageId` — the server derives `channelId` from the message row.
+
+### UI (`channel.$address.tsx`)
+
+Add a `DropdownMenu` (shadcn, already used in vault.$id.tsx) to each message
+bubble. The menu trigger is an `EllipsisVertical` icon (already imported).
+
+Position: on the outer edge of the message bubble — right side for sent
+messages, left side for received messages. Small, subtle, appears on
+hover/focus.
+
+Menu items:
+1. "Delete" — calls `deleteChannelMessage`, removes from `messageList` state
+2. "Delete earlier" — shows a confirm dialog, then calls
+   `deleteEarlierChannelMessages`, filters `messageList` state
+
+For "Delete earlier" confirmation, use a simple `window.confirm()` — no need
+for a custom modal for this.
+
+After deletion, update `messageList` state locally:
+- Single delete: `setMessageList(prev => prev.filter(m => m.id !== msgId))`
+- Delete earlier: `setMessageList(prev => prev.filter(m => m.id >= msgId))`
+
+### Files to modify
+
+1. `webapp/src/server/message.server.ts` — add `deleteMessageById`,
+   `deleteEarlierMessages`
+2. `webapp/src/server/message.functions.ts` — add server function wrappers
+3. `webapp/src/routes/_app/_saved/channel.$address.tsx` — add dropdown menu
+   to each message bubble
+
+### Result: Pending
