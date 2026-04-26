@@ -101,9 +101,9 @@ Each message stored on the server contains:
 | `senderEncryptedContent` | Hybrid-encrypted message (sender's copy for sent history)|
 | `senderEd25519PubKey`    | Sender's Ed25519 public key (for composite sig verify)   |
 | `senderX25519PubKey`     | Sender's X25519 public key (for hybrid DH)               |
-| `senderPubKey`           | Sender's ML-DSA-65 verifying key (for composite sig)     |
+| `senderMldsaPubKey`      | Sender's ML-DSA-65 verifying key (for composite sig)     |
 | `recipientX25519PubKey`  | Recipient's X25519 public key (for hybrid DH)            |
-| `recipientPubKey`        | Recipient's ML-KEM-768 encapsulation key                 |
+| `recipientMlkemPubKey`   | Recipient's ML-KEM-768 encapsulation key                 |
 | `senderSignature`        | Composite Ed25519 + ML-DSA-65 signature (3,374 bytes)    |
 
 All public keys are stored so the recipient can verify the composite signature

@@ -98,12 +98,19 @@ const result = await client.getPublicKey({ address: "alice@acme.com" });
 // result.x25519PublicKey = "..."    (X25519 DH public key, 32 bytes)
 // result.signingPublicKey = "..."   (ML-DSA-65 verification key, 1,952 bytes)
 // result.encapPublicKey = "..."     (ML-KEM-768 encapsulation key, 1,184 bytes)
+// result.keyNumber = 3              (sequence number of this key set)
 ```
 
 The server returns the user's **active** public keys (the most recently rotated
-key set): four public keys covering both classical and post-quantum algorithms.
-Ed25519 and ML-DSA-65 are used together for composite signature verification.
-X25519 and ML-KEM-768 are used together for hybrid key encapsulation.
+key set): four public keys covering both classical and post-quantum algorithms,
+plus a `keyNumber` identifying which key set this is. Ed25519 and ML-DSA-65 are
+used together for composite signature verification. X25519 and ML-KEM-768 are
+used together for hybrid key encapsulation.
+
+The sender includes `recipientKeyNumber` in the message so the recipient can
+validate it against any retained key set, not just the currently-active one.
+This avoids a race when the recipient rotates keys between key lookup and
+message delivery.
 
 ## Message delivery
 
@@ -172,9 +179,9 @@ Each message stored on the server contains:
 | `senderEncryptedContent` | Hybrid-encrypted message (sender's copy)                 |
 | `senderEd25519PubKey`    | Sender's Ed25519 public key                              |
 | `senderX25519PubKey`     | Sender's X25519 public key                               |
-| `senderPubKey`           | Sender's ML-DSA-65 verifying key                         |
+| `senderMldsaPubKey`      | Sender's ML-DSA-65 verifying key                         |
 | `recipientX25519PubKey`  | Recipient's X25519 public key                            |
-| `recipientPubKey`        | Recipient's ML-KEM-768 encapsulation key                 |
+| `recipientMlkemPubKey`   | Recipient's ML-KEM-768 encapsulation key                 |
 | `senderSignature`        | Composite Ed25519 + ML-DSA-65 signature (3,374 bytes)    |
 | `isRead`                 | Whether the recipient has viewed this message             |
 
@@ -195,7 +202,7 @@ API is mounted at `/api` and provides the following public procedures:
 | Procedure         | Description                                                       |
 | ----------------- | ----------------------------------------------------------------- |
 | `serverInfo`      | Returns domain info                                               |
-| `getPublicKey`    | Returns four active public keys (Ed25519, X25519, ML-DSA-65, ML-KEM-768) for an address |
+| `getPublicKey`    | Returns four active public keys (Ed25519, X25519, ML-DSA-65, ML-KEM-768) and `keyNumber` for an address |
 | `getPowChallenge` | Issues an authenticated PoW challenge (requires sender signature) |
 | `notifyMessage`   | Notifies server of a new incoming message                         |
 | `pullMessage`     | Serves a pending message delivery (idempotent, token-based)       |
