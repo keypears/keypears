@@ -195,6 +195,113 @@ export function encryptSecretMessage(
   };
 }
 
+// --- Outbound message helpers ---
+// These convert WebBuf crypto results to the hex wire format expected by
+// sendMessage, so route components don't need to thread 14 positional args.
+
+export interface SenderKeys {
+  ed25519Key: FixedBuf<32>;
+  ed25519PubKey: WebBuf;
+  signingKey: FixedBuf<4032>;
+  signingPubKey: WebBuf;
+  x25519Key: FixedBuf<32>;
+  x25519PubKey: WebBuf;
+  encapPubKey: FixedBuf<1184>;
+}
+
+export interface RecipientKeys {
+  x25519PubKey: WebBuf;
+  encapKey: FixedBuf<1184>;
+  encapPubKey: WebBuf;
+  keyNumber: number;
+}
+
+export interface OutboundMessage {
+  recipientAddress: string;
+  encryptedContent: string;
+  senderEncryptedContent: string;
+  senderEd25519PubKey: string;
+  senderX25519PubKey: string;
+  senderMldsaPubKey: string;
+  recipientX25519PubKey: string;
+  recipientMlkemPubKey: string;
+  senderSignature: string;
+  recipientKeyNumber: number;
+}
+
+export function prepareOutboundMessage(
+  text: string,
+  senderAddress: string,
+  recipientAddress: string,
+  sender: SenderKeys,
+  recipient: RecipientKeys,
+): OutboundMessage {
+  const { recipientCiphertext, senderCiphertext, signature } = encryptMessage(
+    text,
+    senderAddress,
+    recipientAddress,
+    sender.ed25519Key,
+    sender.ed25519PubKey,
+    sender.signingKey,
+    sender.signingPubKey,
+    sender.x25519Key,
+    sender.x25519PubKey,
+    sender.encapPubKey,
+    recipient.x25519PubKey,
+    recipient.encapKey,
+    recipient.encapPubKey,
+  );
+  return {
+    recipientAddress,
+    encryptedContent: recipientCiphertext.toHex(),
+    senderEncryptedContent: senderCiphertext.toHex(),
+    senderEd25519PubKey: sender.ed25519PubKey.toHex(),
+    senderX25519PubKey: sender.x25519PubKey.toHex(),
+    senderMldsaPubKey: sender.signingPubKey.toHex(),
+    recipientX25519PubKey: recipient.x25519PubKey.toHex(),
+    recipientMlkemPubKey: recipient.encapPubKey.toHex(),
+    senderSignature: signature.toHex(),
+    recipientKeyNumber: recipient.keyNumber,
+  };
+}
+
+export function prepareOutboundSecretMessage(
+  secret: SecretPayload,
+  senderAddress: string,
+  recipientAddress: string,
+  sender: SenderKeys,
+  recipient: RecipientKeys,
+): OutboundMessage {
+  const { recipientCiphertext, senderCiphertext, signature } =
+    encryptSecretMessage(
+      secret,
+      senderAddress,
+      recipientAddress,
+      sender.ed25519Key,
+      sender.ed25519PubKey,
+      sender.signingKey,
+      sender.signingPubKey,
+      sender.x25519Key,
+      sender.x25519PubKey,
+      sender.encapPubKey,
+      recipient.x25519PubKey,
+      recipient.encapKey,
+      recipient.encapPubKey,
+    );
+  return {
+    recipientAddress,
+    encryptedContent: recipientCiphertext.toHex(),
+    senderEncryptedContent: senderCiphertext.toHex(),
+    senderEd25519PubKey: sender.ed25519PubKey.toHex(),
+    senderX25519PubKey: sender.x25519PubKey.toHex(),
+    senderMldsaPubKey: sender.signingPubKey.toHex(),
+    recipientX25519PubKey: recipient.x25519PubKey.toHex(),
+    recipientMlkemPubKey: recipient.encapPubKey.toHex(),
+    senderSignature: signature.toHex(),
+    recipientKeyNumber: recipient.keyNumber,
+  };
+}
+
 // --- Verify ---
 
 export function verifyMessageSignature(

@@ -109,18 +109,20 @@ export async function fetchRemotePublicKey(
   x25519PublicKey: string;
   signingPublicKey: string;
   encapPublicKey: string;
+  keyNumber: number;
 } | null> {
   const parsed = parseAddress(address);
   if (!parsed) return null;
 
   const client = await getRemoteClient(parsed.domain);
   const result = await client.getPublicKey({ address });
-  if (!result.signingPublicKey || !result.encapPublicKey || !result.ed25519PublicKey || !result.x25519PublicKey) return null;
+  if (!result.signingPublicKey || !result.encapPublicKey || !result.ed25519PublicKey || !result.x25519PublicKey || result.keyNumber == null) return null;
   return {
     ed25519PublicKey: result.ed25519PublicKey,
     x25519PublicKey: result.x25519PublicKey,
     signingPublicKey: result.signingPublicKey,
     encapPublicKey: result.encapPublicKey,
+    keyNumber: result.keyNumber,
   };
 }
 
@@ -128,7 +130,7 @@ export async function fetchRemotePowChallenge(input: {
   recipientAddress: string;
   senderAddress: string;
   senderEd25519PubKey: string;
-  senderPubKey: string;
+  senderMldsaPubKey: string;
   signature: string;
   timestamp: number;
 }) {
@@ -145,10 +147,11 @@ export async function deliverRemoteMessage(
   senderEncryptedContent: WebBuf,
   senderEd25519PubKey: WebBuf,
   senderX25519PubKey: WebBuf,
-  senderPubKey: WebBuf,
+  senderMldsaPubKey: WebBuf,
   recipientX25519PubKey: WebBuf,
-  recipientPubKey: WebBuf,
+  recipientMlkemPubKey: WebBuf,
   senderSignature: WebBuf,
+  recipientKeyNumber: number,
   pow: {
     solvedHeader: string;
     target: string;
@@ -173,24 +176,21 @@ export async function deliverRemoteMessage(
     senderEncryptedContent,
     senderEd25519PubKey,
     senderX25519PubKey,
-    senderPubKey,
+    senderMldsaPubKey,
     recipientX25519PubKey,
-    recipientPubKey,
+    recipientMlkemPubKey,
     senderSignature,
+    recipientKeyNumber,
     expiresAt,
   });
 
-  // 2. Notify recipient's server, passing client-mined PoW if provided
-  // Convert WebBuf to hex for oRPC wire format
+  // 2. Notify recipient's server with minimal fields
   const client = await getRemoteClient(parsed.domain);
   try {
     await client.notifyMessage({
       senderAddress,
       recipientAddress,
       pullToken: token,
-      senderEd25519PubKey: senderEd25519PubKey.toHex(),
-      senderEncryptedContent: senderEncryptedContent.toHex(),
-      senderSignature: senderSignature.toHex(),
       pow,
     });
   } catch (err) {

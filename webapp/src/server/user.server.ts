@@ -285,6 +285,15 @@ export async function getActiveKey(userId: string) {
   return row ?? null;
 }
 
+export async function getKeyByNumber(userId: string, keyNumber: number) {
+  const [row] = await db
+    .select()
+    .from(keys)
+    .where(and(eq(keys.userId, userId), eq(keys.keyNumber, keyNumber)))
+    .limit(1);
+  return row ?? null;
+}
+
 const MAX_KEYS_PER_USER = 100;
 
 export async function insertKey(

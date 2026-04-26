@@ -32,7 +32,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { encryptSecretMessage } from "~/lib/message";
+import { prepareOutboundSecretMessage } from "~/lib/message";
+import type { OutboundMessage } from "~/lib/message";
 import {
   sendMessage,
   getPublicKeyForAddress,
@@ -398,17 +399,7 @@ function EntryDetail({
   const [shareAddress, setShareAddress] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [powChallenge, setPowChallenge] = useState<PowChallenge | null>(null);
-  const pendingShareRef = useRef<{
-    recipientAddress: string;
-    encryptedContent: string;
-    senderEncryptedContent: string;
-    senderSignature: string;
-    senderPubKey: string;
-    recipientPubKey: string;
-    senderEd25519PubKey: string;
-    senderX25519PubKey: string;
-    recipientX25519PubKey: string;
-  } | null>(null);
+  const pendingShareRef = useRef<OutboundMessage | null>(null);
 
   // Edit state
   const [editName, setEditName] = useState(entry.name);
@@ -447,7 +438,7 @@ function EntryDetail({
     let cancelled = false;
     (async () => {
       const result = await tryDecryptVaultEntry(
-        WebBuf.fromHex(entry.encryptedData as string),
+        WebBuf.fromHex(entry.encryptedData),
         encryptionKey,
       );
       if (cancelled) return;
@@ -459,7 +450,7 @@ function EntryDetail({
       for (const ver of olderVersions) {
         if (!keyMap.has(ver.keyId)) continue;
         const verResult = await tryDecryptVaultEntry(
-          WebBuf.fromHex(ver.encryptedData as string),
+          WebBuf.fromHex(ver.encryptedData),
           encryptionKey,
         );
         if (cancelled) return;
@@ -566,15 +557,15 @@ function EntryDetail({
       const encKey = getCachedEncryptionKey();
       if (!encKey) throw new Error("Encryption key not found");
       const myEd25519Key = await decryptEd25519Key(
-        WebBuf.fromHex(myActiveKey.encryptedEd25519Key as string),
+        WebBuf.fromHex(myActiveKey.encryptedEd25519Key),
         encKey,
       );
       const myX25519Key = await decryptX25519Key(
-        WebBuf.fromHex(myActiveKey.encryptedX25519Key as string),
+        WebBuf.fromHex(myActiveKey.encryptedX25519Key),
         encKey,
       );
       const mySigningKey = await decryptSigningKey(
-        WebBuf.fromHex(myActiveKey.encryptedSigningKey as string),
+        WebBuf.fromHex(myActiveKey.encryptedSigningKey),
         encKey,
       );
 
@@ -582,35 +573,26 @@ function EntryDetail({
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
 
-      const senderEncapPubKey = FixedBuf.fromHex(1184, myActiveKey.encapPublicKey as string);
-      const recipientEncapPubKey = FixedBuf.fromHex(1184, recipientKey.encapPublicKey as string);
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptSecretMessage(
+      pendingShareRef.current = prepareOutboundSecretMessage(
         secret,
         senderAddress,
         shareAddress,
-        myEd25519Key,
-        WebBuf.fromHex(myActiveKey.ed25519PublicKey as string),
-        mySigningKey,
-        WebBuf.fromHex(myActiveKey.signingPublicKey as string),
-        myX25519Key,
-        WebBuf.fromHex(myActiveKey.x25519PublicKey as string),
-        senderEncapPubKey,
-        WebBuf.fromHex(recipientKey.x25519PublicKey as string),
-        recipientEncapPubKey,
-        WebBuf.fromHex(recipientKey.encapPublicKey as string),
+        {
+          ed25519Key: myEd25519Key,
+          ed25519PubKey: WebBuf.fromHex(myActiveKey.ed25519PublicKey),
+          signingKey: mySigningKey,
+          signingPubKey: WebBuf.fromHex(myActiveKey.signingPublicKey),
+          x25519Key: myX25519Key,
+          x25519PubKey: WebBuf.fromHex(myActiveKey.x25519PublicKey),
+          encapPubKey: FixedBuf.fromHex(1184, myActiveKey.encapPublicKey),
+        },
+        {
+          x25519PubKey: WebBuf.fromHex(recipientKey.x25519PublicKey),
+          encapKey: FixedBuf.fromHex(1184, recipientKey.encapPublicKey),
+          encapPubKey: WebBuf.fromHex(recipientKey.encapPublicKey),
+          keyNumber: recipientKey.keyNumber,
+        },
       );
-
-      pendingShareRef.current = {
-        recipientAddress: shareAddress,
-        encryptedContent: recipientCiphertext.toHex(),
-        senderEncryptedContent: senderCiphertext.toHex(),
-        senderSignature: msgSignature.toHex(),
-        senderPubKey: myActiveKey.signingPublicKey as string,
-        recipientPubKey: recipientKey.encapPublicKey as string,
-        senderEd25519PubKey: myActiveKey.ed25519PublicKey as string,
-        senderX25519PubKey: myActiveKey.x25519PublicKey as string,
-        recipientX25519PubKey: recipientKey.x25519PublicKey as string,
-      };
 
       // Get PoW challenge
       setShareStatus("Requesting proof of work...");
@@ -624,8 +606,8 @@ function EntryDetail({
         data: {
           recipientAddress: shareAddress,
           senderAddress,
-          senderEd25519PubKey: myActiveKey.ed25519PublicKey as string,
-          senderPubKey: myActiveKey.signingPublicKey as string,
+          senderEd25519PubKey: myActiveKey.ed25519PublicKey,
+          senderMldsaPubKey: myActiveKey.signingPublicKey,
           signature,
           timestamp,
         },

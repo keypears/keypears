@@ -71,19 +71,19 @@ function PasswordPage() {
       for (const key of encryptedKeys) {
         try {
           const ed25519KeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedEd25519Key as string),
+            WebBuf.fromHex(key.encryptedEd25519Key),
             oldEncryptionKey,
           );
           const x25519KeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedX25519Key as string),
+            WebBuf.fromHex(key.encryptedX25519Key),
             oldEncryptionKey,
           );
           const signingKeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedSigningKey as string),
+            WebBuf.fromHex(key.encryptedSigningKey),
             oldEncryptionKey,
           );
           const decapKeyBuf = await aesgcmDecryptNative(
-            WebBuf.fromHex(key.encryptedDecapKey as string),
+            WebBuf.fromHex(key.encryptedDecapKey),
             oldEncryptionKey,
           );
           const reEncEd25519Key = await aesgcmEncryptNative(

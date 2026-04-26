@@ -101,11 +101,11 @@ function SignPage() {
         if (k.loginKeyHash === keyData.passwordHash) {
           try {
             const ed25519 = await decryptEd25519Key(
-              WebBuf.fromHex(k.encryptedEd25519Key as string),
+              WebBuf.fromHex(k.encryptedEd25519Key),
               encryptionKey,
             );
             const mldsa = await decryptSigningKey(
-              WebBuf.fromHex(k.encryptedSigningKey as string),
+              WebBuf.fromHex(k.encryptedSigningKey),
               encryptionKey,
             );
             if (!cancelled) {

@@ -10,6 +10,7 @@ import { pendingDeliveries } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
 import {
   getActiveKey,
+  getKeyByNumber,
   getUserByNameAndDomain,
   getDomainByName,
   getUserPowSettings,
@@ -38,18 +39,20 @@ const serverInfo = os.serverInfo.handler(async () => {
 
 const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
   const parsed = parseAddress(input.address);
-  if (!parsed) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
+  const nullResult = { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null, keyNumber: null };
+  if (!parsed) return nullResult;
   const domain = await getDomainByName(parsed.domain);
-  if (!domain) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
+  if (!domain) return nullResult;
   const user = await getUserByNameAndDomain(parsed.name, domain.id);
-  if (!user || !user.passwordHash) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
+  if (!user || !user.passwordHash) return nullResult;
   const key = await getActiveKey(user.id);
-  if (!key) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
+  if (!key) return nullResult;
   return {
     ed25519PublicKey: key.ed25519PublicKey.toHex(),
     x25519PublicKey: key.x25519PublicKey.toHex(),
     signingPublicKey: key.signingPublicKey.toHex(),
     encapPublicKey: key.encapPublicKey.toHex(),
+    keyNumber: key.keyNumber,
   };
 });
 
@@ -71,7 +74,7 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     if (!senderKeyResult.signingPublicKey) throw new Error("Sender not found");
 
     // Verify the provided public key matches the federation lookup
-    if (senderKeyResult.signingPublicKey !== input.senderPubKey) {
+    if (senderKeyResult.signingPublicKey !== input.senderMldsaPubKey) {
       throw new Error("Public key mismatch");
     }
     if (senderKeyResult.ed25519PublicKey !== input.senderEd25519PubKey) {
@@ -80,7 +83,7 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
 
     // Verify the composite Ed25519 + ML-DSA-65 signature
     const ed25519Pub = FixedBuf.fromHex(32, input.senderEd25519PubKey);
-    const verifyingKey = FixedBuf.fromHex(1952, input.senderPubKey);
+    const verifyingKey = FixedBuf.fromHex(1952, input.senderMldsaPubKey);
     const message = WebBuf.fromUtf8(`${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`);
     const sig = FixedBuf.fromHex(3374, input.signature);
     const ok = sigEd25519MldsaVerify(ed25519Pub, verifyingKey, message, sig);
@@ -181,9 +184,9 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     );
     const senderEd25519PubKeyBuf = WebBuf.fromHex(messageData.senderEd25519PubKey);
     const senderX25519PubKeyBuf = WebBuf.fromHex(messageData.senderX25519PubKey);
-    const senderPubKeyBuf = WebBuf.fromHex(messageData.senderPubKey);
+    const senderMldsaPubKeyBuf = WebBuf.fromHex(messageData.senderMldsaPubKey);
     const recipientX25519PubKeyBuf = WebBuf.fromHex(messageData.recipientX25519PubKey);
-    const recipientPubKeyBuf = WebBuf.fromHex(messageData.recipientPubKey);
+    const recipientMlkemPubKeyBuf = WebBuf.fromHex(messageData.recipientMlkemPubKey);
     const senderSignatureBuf = WebBuf.fromHex(messageData.senderSignature);
 
     // Verify sender signature over the message envelope
@@ -191,10 +194,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       messageData.senderAddress,
       messageData.recipientAddress,
       senderEd25519PubKeyBuf,
-      senderPubKeyBuf,
+      senderMldsaPubKeyBuf,
       senderX25519PubKeyBuf,
       recipientX25519PubKeyBuf,
-      recipientPubKeyBuf,
+      recipientMlkemPubKeyBuf,
       encryptedContentBuf,
       senderEncryptedContentBuf,
       senderSignatureBuf,
@@ -203,11 +206,11 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       throw new Error("Invalid sender signature");
     }
 
-    // Verify senderPubKey matches the sender's federated signing key
+    // Verify senderMldsaPubKey matches the sender's federated signing key
     const senderKeys = await fetchRemotePublicKey(messageData.senderAddress);
     if (!senderKeys) throw new Error("Sender not found via federation");
-    if (senderKeys.signingPublicKey !== messageData.senderPubKey) {
-      throw new Error("senderPubKey does not match federated signing key");
+    if (senderKeys.signingPublicKey !== messageData.senderMldsaPubKey) {
+      throw new Error("senderMldsaPubKey does not match federated signing key");
     }
     if (senderKeys.ed25519PublicKey !== messageData.senderEd25519PubKey) {
       throw new Error("senderEd25519PubKey does not match federated ed25519 key");
@@ -216,13 +219,13 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       throw new Error("senderX25519PubKey does not match federated x25519 key");
     }
 
-    // Verify recipientPubKey matches the local recipient's active encap key
-    const recipientActiveKey = await getActiveKey(recipientUser.id);
-    if (!recipientActiveKey) throw new Error("Recipient has no active key");
-    if (recipientActiveKey.encapPublicKey.toHex() !== messageData.recipientPubKey) {
-      throw new Error("recipientPubKey does not match recipient's encap key");
+    // Verify recipient keys match a retained key set (by keyNumber)
+    const recipientKey = await getKeyByNumber(recipientUser.id, messageData.recipientKeyNumber);
+    if (!recipientKey) throw new Error("Recipient key not found for keyNumber");
+    if (recipientKey.encapPublicKey.toHex() !== messageData.recipientMlkemPubKey) {
+      throw new Error("recipientMlkemPubKey does not match recipient's encap key");
     }
-    if (recipientActiveKey.x25519PublicKey.toHex() !== messageData.recipientX25519PubKey) {
+    if (recipientKey.x25519PublicKey.toHex() !== messageData.recipientX25519PubKey) {
       throw new Error("recipientX25519PubKey does not match recipient's x25519 key");
     }
 
@@ -234,8 +237,8 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
 
     const duplicate = await messageExists(
       channelId,
-      senderPubKeyBuf,
-      recipientPubKeyBuf,
+      senderMldsaPubKeyBuf,
+      recipientMlkemPubKeyBuf,
       encryptedContentBuf,
     );
 
@@ -247,9 +250,9 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
         senderEncryptedContentBuf,
         senderEd25519PubKeyBuf,
         senderX25519PubKeyBuf,
-        senderPubKeyBuf,
+        senderMldsaPubKeyBuf,
         recipientX25519PubKeyBuf,
-        recipientPubKeyBuf,
+        recipientMlkemPubKeyBuf,
         senderSignatureBuf,
         false,
       );
@@ -287,10 +290,11 @@ const pullMessageHandler = os.pullMessage.handler(async ({ input }) => {
     senderEncryptedContent: delivery.senderEncryptedContent.toHex(),
     senderEd25519PubKey: delivery.senderEd25519PubKey.toHex(),
     senderX25519PubKey: delivery.senderX25519PubKey.toHex(),
-    senderPubKey: delivery.senderPubKey.toHex(),
+    senderMldsaPubKey: delivery.senderMldsaPubKey.toHex(),
     recipientX25519PubKey: delivery.recipientX25519PubKey.toHex(),
-    recipientPubKey: delivery.recipientPubKey.toHex(),
+    recipientMlkemPubKey: delivery.recipientMlkemPubKey.toHex(),
     senderSignature: delivery.senderSignature.toHex(),
+    recipientKeyNumber: delivery.recipientKeyNumber,
   };
 });
 

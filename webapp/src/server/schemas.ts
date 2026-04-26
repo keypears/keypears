@@ -1,12 +1,25 @@
 import { z } from "zod";
 
+const HEX_RE = /^[0-9a-f]*$/i;
+
+/** Hex-encoded byte string of exactly N bytes (2*N hex chars). */
+export const hexBytes = (n: number) => z.string().regex(HEX_RE).length(n * 2);
+
+/** Hex-encoded byte string of at most N bytes. */
+export const hexMaxBytes = (n: number) => z.string().regex(HEX_RE).max(n * 2);
+
+/** KeyPears address: name@domain */
+export const addressSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9]*@[a-z0-9.-]+$/);
+
 export const PowSolutionSchema = z.object({
-  solvedHeader: z.string(),
-  target: z.string(),
+  solvedHeader: hexBytes(32),
+  target: hexBytes(32),
   expiresAt: z.number(),
   signature: z.string(),
-  senderAddress: z.string().optional(),
-  recipientAddress: z.string().optional(),
+  senderAddress: addressSchema.optional(),
+  recipientAddress: addressSchema.optional(),
 });
 
 export const nameSchema = z

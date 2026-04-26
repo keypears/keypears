@@ -21,11 +21,11 @@ import {
   signPowRequest,
 } from "~/lib/auth";
 import {
-  encryptMessage,
+  prepareOutboundMessage,
   decryptMessageContent,
   verifyMessageSignature,
 } from "~/lib/message";
-import type { MessageContent } from "~/lib/message";
+import type { MessageContent, OutboundMessage } from "~/lib/message";
 import { encryptVaultEntry } from "~/lib/vault";
 import type { VaultEntryData } from "~/lib/vault";
 import { createEntry } from "~/server/vault.functions";
@@ -123,14 +123,14 @@ function ChannelPage() {
   useEffect(() => {
     getMyActiveEncryptedKey().then((d) =>
       setMyKeyData({
-        ed25519PublicKey: d.ed25519PublicKey as string,
-        encryptedEd25519Key: d.encryptedEd25519Key as string,
-        x25519PublicKey: d.x25519PublicKey as string,
-        encryptedX25519Key: d.encryptedX25519Key as string,
-        signingPublicKey: d.signingPublicKey as string,
-        encapPublicKey: d.encapPublicKey as string,
-        encryptedSigningKey: d.encryptedSigningKey as string,
-        encryptedDecapKey: d.encryptedDecapKey as string,
+        ed25519PublicKey: d.ed25519PublicKey,
+        encryptedEd25519Key: d.encryptedEd25519Key,
+        x25519PublicKey: d.x25519PublicKey,
+        encryptedX25519Key: d.encryptedX25519Key,
+        signingPublicKey: d.signingPublicKey,
+        encapPublicKey: d.encapPublicKey,
+        encryptedSigningKey: d.encryptedSigningKey,
+        encryptedDecapKey: d.encryptedDecapKey,
       }),
     );
     getMyKeys().then((data) => {
@@ -139,14 +139,14 @@ function ChannelPage() {
         { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null }
       >();
       for (const k of data.keys) {
-        map.set(k.ed25519PublicKey as string, {
-          encryptedEd25519Key: k.encryptedEd25519Key as string,
-          encryptedX25519Key: k.encryptedX25519Key as string,
-          encryptedSigningKey: k.encryptedSigningKey as string,
-          encryptedDecapKey: k.encryptedDecapKey as string,
-          ed25519PublicKey: k.ed25519PublicKey as string,
-          x25519PublicKey: k.x25519PublicKey as string,
-          encapPublicKey: k.encapPublicKey as string,
+        map.set(k.ed25519PublicKey, {
+          encryptedEd25519Key: k.encryptedEd25519Key,
+          encryptedX25519Key: k.encryptedX25519Key,
+          encryptedSigningKey: k.encryptedSigningKey,
+          encryptedDecapKey: k.encryptedDecapKey,
+          ed25519PublicKey: k.ed25519PublicKey,
+          x25519PublicKey: k.x25519PublicKey,
+          encapPublicKey: k.encapPublicKey,
           loginKeyHash: k.loginKeyHash,
         });
       }
@@ -276,8 +276,8 @@ function ChannelPage() {
     senderAddress: string;
     encryptedContent: string;
     senderEncryptedContent: string;
-    senderPubKey: string;
-    recipientPubKey: string;
+    senderMldsaPubKey: string;
+    recipientMlkemPubKey: string;
     senderSignature: string;
     senderEd25519PubKey?: string;
     senderX25519PubKey?: string;
@@ -292,13 +292,13 @@ function ChannelPage() {
 
     // Look up the matching key entry. The keyMap is keyed by ed25519PublicKey.
     // If we're the sender, look up by senderEd25519PubKey.
-    // If we're the recipient, recipientPubKey is an encap key — search by value.
+    // If we're the recipient, recipientMlkemPubKey is an encap key — search by value.
     let matchingKey: { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null } | undefined;
     if (isSender) {
       matchingKey = keyMap.get(msg.senderEd25519PubKey ?? "");
     } else {
       for (const entry of keyMap.values()) {
-        if (entry.encapPublicKey === msg.recipientPubKey) {
+        if (entry.encapPublicKey === msg.recipientMlkemPubKey) {
           matchingKey = entry;
           break;
         }
@@ -316,10 +316,10 @@ function ChannelPage() {
         msg.senderAddress,
         isSender ? address : myAddress,
         WebBuf.fromHex(msg.senderEd25519PubKey ?? ""),
-        WebBuf.fromHex(msg.senderPubKey),
+        WebBuf.fromHex(msg.senderMldsaPubKey),
         WebBuf.fromHex(msg.senderX25519PubKey ?? ""),
         WebBuf.fromHex(msg.recipientX25519PubKey ?? ""),
-        WebBuf.fromHex(msg.recipientPubKey),
+        WebBuf.fromHex(msg.recipientMlkemPubKey),
         WebBuf.fromHex(msg.encryptedContent),
         WebBuf.fromHex(msg.senderEncryptedContent),
         WebBuf.fromHex(msg.senderSignature),
@@ -441,17 +441,7 @@ function ChannelPage() {
     });
   }
 
-  const pendingSendRef = useRef<{
-    recipientAddress: string;
-    encryptedContent: string;
-    senderEncryptedContent: string;
-    senderSignature: string;
-    senderPubKey: string;
-    recipientPubKey: string;
-    senderEd25519PubKey: string;
-    senderX25519PubKey: string;
-    recipientX25519PubKey: string;
-  } | null>(null);
+  const pendingSendRef = useRef<OutboundMessage | null>(null);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -463,7 +453,6 @@ function ChannelPage() {
       // Look up recipient's public keys from existing messages or fetch them
       const recipientKeyResult = await getPublicKeyForAddress({ data: address });
       if (!recipientKeyResult) throw new Error("Cannot determine recipient key");
-      const recipientEncapPubKeyHex = recipientKeyResult.encapPublicKey as string;
 
       const myEd25519Key = await decryptEd25519Key(
         WebBuf.fromHex(myKeyData.encryptedEd25519Key),
@@ -477,36 +466,28 @@ function ChannelPage() {
         WebBuf.fromHex(myKeyData.encryptedSigningKey),
         encryptionKey,
       );
-      const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey);
-      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientEncapPubKeyHex);
       const senderAddress = myAddress!;
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptMessage(
+
+      pendingSendRef.current = prepareOutboundMessage(
         text,
         senderAddress,
         address,
-        myEd25519Key,
-        WebBuf.fromHex(myKeyData.ed25519PublicKey),
-        mySigningKey,
-        WebBuf.fromHex(myKeyData.signingPublicKey),
-        myX25519Key,
-        WebBuf.fromHex(myKeyData.x25519PublicKey),
-        myEncapPubKey,
-        WebBuf.fromHex(recipientKeyResult.x25519PublicKey as string),
-        theirEncapPubKey,
-        WebBuf.fromHex(recipientEncapPubKeyHex),
+        {
+          ed25519Key: myEd25519Key,
+          ed25519PubKey: WebBuf.fromHex(myKeyData.ed25519PublicKey),
+          signingKey: mySigningKey,
+          signingPubKey: WebBuf.fromHex(myKeyData.signingPublicKey),
+          x25519Key: myX25519Key,
+          x25519PubKey: WebBuf.fromHex(myKeyData.x25519PublicKey),
+          encapPubKey: FixedBuf.fromHex(1184, myKeyData.encapPublicKey),
+        },
+        {
+          x25519PubKey: WebBuf.fromHex(recipientKeyResult.x25519PublicKey),
+          encapKey: FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey),
+          encapPubKey: WebBuf.fromHex(recipientKeyResult.encapPublicKey),
+          keyNumber: recipientKeyResult.keyNumber,
+        },
       );
-
-      pendingSendRef.current = {
-        recipientAddress: address,
-        encryptedContent: recipientCiphertext.toHex(),
-        senderEncryptedContent: senderCiphertext.toHex(),
-        senderSignature: msgSignature.toHex(),
-        senderPubKey: myKeyData.signingPublicKey,
-        recipientPubKey: recipientEncapPubKeyHex,
-        senderEd25519PubKey: myKeyData.ed25519PublicKey,
-        senderX25519PubKey: myKeyData.x25519PublicKey,
-        recipientX25519PubKey: recipientKeyResult.x25519PublicKey as string,
-      };
 
       // Sign the challenge request
       const { signature: reqSig, timestamp } = signPowRequest(
@@ -521,7 +502,7 @@ function ChannelPage() {
           recipientAddress: address,
           senderAddress,
           senderEd25519PubKey: myKeyData.ed25519PublicKey,
-          senderPubKey: myKeyData.signingPublicKey,
+          senderMldsaPubKey: myKeyData.signingPublicKey,
           signature: reqSig,
           timestamp,
         },
@@ -671,7 +652,7 @@ function ChannelPage() {
               </div>
             )}
             {messageList.map((msg) => {
-              const isMine = keyMap.has(msg.senderPubKey);
+              const isMine = keyMap.has(msg.senderEd25519PubKey);
               const result: DecryptResult = decryptedMap.get(msg.id) ?? {
                 ok: false,
                 reason: "loading",

@@ -200,9 +200,9 @@ export const messages = mysqlTable(
     senderEncryptedContent: mediumBlob("sender_encrypted_content").notNull(),
     senderEd25519PubKey: blob("sender_ed25519_pub_key").notNull(),
     senderX25519PubKey: blob("sender_x25519_pub_key").notNull(),
-    senderPubKey: blob("sender_pub_key").notNull(),
+    senderMldsaPubKey: blob("sender_mldsa_pub_key").notNull(),
     recipientX25519PubKey: blob("recipient_x25519_pub_key").notNull(),
-    recipientPubKey: blob("recipient_pub_key").notNull(),
+    recipientMlkemPubKey: blob("recipient_mlkem_pub_key").notNull(),
     senderSignature: blob("sender_signature").notNull(),
     isRead: boolean("is_read").notNull().default(false),
     createdAt: datetime("created_at")
@@ -226,10 +226,11 @@ export const pendingDeliveries = mysqlTable(
     senderEncryptedContent: mediumBlob("sender_encrypted_content").notNull(),
     senderEd25519PubKey: blob("sender_ed25519_pub_key").notNull(),
     senderX25519PubKey: blob("sender_x25519_pub_key").notNull(),
-    senderPubKey: blob("sender_pub_key").notNull(),
+    senderMldsaPubKey: blob("sender_mldsa_pub_key").notNull(),
     recipientX25519PubKey: blob("recipient_x25519_pub_key").notNull(),
-    recipientPubKey: blob("recipient_pub_key").notNull(),
+    recipientMlkemPubKey: blob("recipient_mlkem_pub_key").notNull(),
     senderSignature: blob("sender_signature").notNull(),
+    recipientKeyNumber: int("recipient_key_number").notNull(),
     expiresAt: datetime("expires_at").notNull(),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)

@@ -15,7 +15,8 @@ import {
   decryptX25519Key,
   signPowRequest,
 } from "~/lib/auth";
-import { encryptMessage } from "~/lib/message";
+import { prepareOutboundMessage } from "~/lib/message";
+import type { OutboundMessage } from "~/lib/message";
 import { parseAddress } from "~/lib/config";
 import { PowModal } from "~/components/PowModal";
 import type { PowChallenge, PowSolution } from "~/lib/use-pow-miner";
@@ -91,17 +92,7 @@ function SendPage() {
   }, []);
 
   // Store encrypted data while PoW is mining
-  const pendingSendRef = useRef<{
-    recipientAddress: string;
-    encryptedContent: string;
-    senderEncryptedContent: string;
-    senderSignature: string;
-    senderPubKey: string;
-    recipientPubKey: string;
-    senderEd25519PubKey: string;
-    senderX25519PubKey: string;
-    recipientX25519PubKey: string;
-  } | null>(null);
+  const pendingSendRef = useRef<OutboundMessage | null>(null);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -122,52 +113,44 @@ function SendPage() {
       if (!encryptionKey) throw new Error("Please log in again");
 
       const myEd25519Key = await decryptEd25519Key(
-        WebBuf.fromHex(myKeyData.encryptedEd25519Key as string),
+        WebBuf.fromHex(myKeyData.encryptedEd25519Key),
         encryptionKey,
       );
       const myX25519Key = await decryptX25519Key(
-        WebBuf.fromHex(myKeyData.encryptedX25519Key as string),
+        WebBuf.fromHex(myKeyData.encryptedX25519Key),
         encryptionKey,
       );
       const mySigningKey = await decryptSigningKey(
-        WebBuf.fromHex(myKeyData.encryptedSigningKey as string),
+        WebBuf.fromHex(myKeyData.encryptedSigningKey),
         encryptionKey,
       );
-      const myEncapPubKey = FixedBuf.fromHex(1184, myKeyData.encapPublicKey as string);
-      const theirEncapPubKey = FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey as string);
       // Build sender address
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
 
-      const { recipientCiphertext, senderCiphertext, signature: msgSignature } = encryptMessage(
+      const msg = prepareOutboundMessage(
         text,
         senderAddress,
         recipient,
-        myEd25519Key,
-        WebBuf.fromHex(myKeyData.ed25519PublicKey as string),
-        mySigningKey,
-        WebBuf.fromHex(myKeyData.signingPublicKey as string),
-        myX25519Key,
-        WebBuf.fromHex(myKeyData.x25519PublicKey as string),
-        myEncapPubKey,
-        WebBuf.fromHex(recipientKeyResult.x25519PublicKey as string),
-        theirEncapPubKey,
-        WebBuf.fromHex(recipientKeyResult.encapPublicKey as string),
+        {
+          ed25519Key: myEd25519Key,
+          ed25519PubKey: WebBuf.fromHex(myKeyData.ed25519PublicKey),
+          signingKey: mySigningKey,
+          signingPubKey: WebBuf.fromHex(myKeyData.signingPublicKey),
+          x25519Key: myX25519Key,
+          x25519PubKey: WebBuf.fromHex(myKeyData.x25519PublicKey),
+          encapPubKey: FixedBuf.fromHex(1184, myKeyData.encapPublicKey),
+        },
+        {
+          x25519PubKey: WebBuf.fromHex(recipientKeyResult.x25519PublicKey),
+          encapKey: FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey),
+          encapPubKey: WebBuf.fromHex(recipientKeyResult.encapPublicKey),
+          keyNumber: recipientKeyResult.keyNumber,
+        },
       );
 
-      // Store the prepared message and fetch PoW challenge
-      pendingSendRef.current = {
-        recipientAddress: recipient,
-        encryptedContent: recipientCiphertext.toHex(),
-        senderEncryptedContent: senderCiphertext.toHex(),
-        senderSignature: msgSignature.toHex(),
-        senderPubKey: myKeyData.signingPublicKey as string,
-        recipientPubKey: recipientKeyResult.encapPublicKey as string,
-        senderEd25519PubKey: myKeyData.ed25519PublicKey as string,
-        senderX25519PubKey: myKeyData.x25519PublicKey as string,
-        recipientX25519PubKey: recipientKeyResult.x25519PublicKey as string,
-      };
+      pendingSendRef.current = msg;
       setStatus("");
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
@@ -180,8 +163,8 @@ function SendPage() {
         data: {
           recipientAddress: recipient,
           senderAddress,
-          senderEd25519PubKey: myKeyData.ed25519PublicKey as string,
-          senderPubKey: myKeyData.signingPublicKey as string,
+          senderEd25519PubKey: myKeyData.ed25519PublicKey,
+          senderMldsaPubKey: myKeyData.signingPublicKey,
           signature: reqSig,
           timestamp,
         },

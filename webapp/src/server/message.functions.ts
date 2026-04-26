@@ -15,13 +15,19 @@ import {
   getUserById,
   getUserByNameAndDomain,
   getActiveKey,
+  getKeyByNumber,
   isLocalDomain,
   getDomainByName,
   getDomainById,
   insertPowLog,
 } from "./user.server";
 import { verifyAndConsumePow } from "./pow.consume";
-import { PowSolutionSchema } from "./schemas";
+import {
+  PowSolutionSchema,
+  hexBytes,
+  hexMaxBytes,
+  addressSchema,
+} from "./schemas";
 import { getSessionUserId } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
@@ -53,6 +59,7 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
         x25519PublicKey: key.x25519PublicKey.toHex(),
         signingPublicKey: key.signingPublicKey.toHex(),
         encapPublicKey: key.encapPublicKey.toHex(),
+        keyNumber: key.keyNumber,
       };
     }
     // Remote user — proxy the request (already returns hex from oRPC)
@@ -60,25 +67,20 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
     return remoteKeys;
   });
 
-const MAX_CIPHERTEXT_LENGTH = 50_000; // hex chars (~25KB plaintext)
-
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .inputValidator(
     z.object({
-      recipientAddress: z.string(),
-      encryptedContent: z
-        .string()
-        .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
-      senderEncryptedContent: z
-        .string()
-        .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
-      senderEd25519PubKey: z.string(),
-      senderX25519PubKey: z.string(),
-      senderPubKey: z.string(),
-      recipientX25519PubKey: z.string(),
-      recipientPubKey: z.string(),
-      senderSignature: z.string(),
+      recipientAddress: addressSchema,
+      encryptedContent: hexMaxBytes(50_000),
+      senderEncryptedContent: hexMaxBytes(50_000),
+      senderEd25519PubKey: hexBytes(32),
+      senderX25519PubKey: hexBytes(32),
+      senderMldsaPubKey: hexBytes(1952),
+      recipientX25519PubKey: hexBytes(32),
+      recipientMlkemPubKey: hexBytes(1184),
+      senderSignature: hexMaxBytes(3375),
+      recipientKeyNumber: z.number(),
       pow: PowSolutionSchema,
     }),
   )
@@ -93,11 +95,11 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (!senderDomain) throw new Error("Domain not found");
     const senderAddress = makeAddress(senderUser.name, senderDomain.domain);
 
-    // Validate senderPubKey matches the authenticated user's active signing key
+    // Validate senderMldsaPubKey matches the authenticated user's active signing key
     const senderActiveKey = await getActiveKey(senderId);
     if (!senderActiveKey) throw new Error("No active key");
-    if (input.senderPubKey !== senderActiveKey.signingPublicKey.toHex()) {
-      throw new Error("senderPubKey does not match your active signing key");
+    if (input.senderMldsaPubKey !== senderActiveKey.signingPublicKey.toHex()) {
+      throw new Error("senderMldsaPubKey does not match your active signing key");
     }
     // Validate senderEd25519PubKey matches the authenticated user's active ed25519 key
     if (input.senderEd25519PubKey !== senderActiveKey.ed25519PublicKey.toHex()) {
@@ -115,9 +117,9 @@ export const sendMessage = createServerFn({ method: "POST" })
     );
     const senderEd25519PubKeyBuf = WebBuf.fromHex(input.senderEd25519PubKey);
     const senderX25519PubKeyBuf = WebBuf.fromHex(input.senderX25519PubKey);
-    const senderPubKeyBuf = WebBuf.fromHex(input.senderPubKey);
+    const senderMldsaPubKeyBuf = WebBuf.fromHex(input.senderMldsaPubKey);
     const recipientX25519PubKeyBuf = WebBuf.fromHex(input.recipientX25519PubKey);
-    const recipientPubKeyBuf = WebBuf.fromHex(input.recipientPubKey);
+    const recipientMlkemPubKeyBuf = WebBuf.fromHex(input.recipientMlkemPubKey);
     const senderSignatureBuf = WebBuf.fromHex(input.senderSignature);
 
     // Validate PoW binding: sender/recipient in PoW must match actual addresses
@@ -133,10 +135,10 @@ export const sendMessage = createServerFn({ method: "POST" })
       senderAddress,
       input.recipientAddress,
       senderEd25519PubKeyBuf,
-      senderPubKeyBuf,
+      senderMldsaPubKeyBuf,
       senderX25519PubKeyBuf,
       recipientX25519PubKeyBuf,
-      recipientPubKeyBuf,
+      recipientMlkemPubKeyBuf,
       encryptedContentBuf,
       senderEncryptedContentBuf,
       senderSignatureBuf,
@@ -161,17 +163,17 @@ export const sendMessage = createServerFn({ method: "POST" })
         throw new Error("Cannot message yourself");
       if (!recipientUser.passwordHash) throw new Error("Recipient not found");
 
-      // Validate recipientPubKey matches the recipient's active encap key
-      const recipientActiveKey = await getActiveKey(recipientUser.id);
-      if (!recipientActiveKey) throw new Error("Recipient has no active key");
-      if (input.recipientPubKey !== recipientActiveKey.encapPublicKey.toHex()) {
+      // Validate recipient keys match the specified key set (by keyNumber)
+      const recipientKey = await getKeyByNumber(recipientUser.id, input.recipientKeyNumber);
+      if (!recipientKey) throw new Error("Recipient key not found for keyNumber");
+      if (input.recipientMlkemPubKey !== recipientKey.encapPublicKey.toHex()) {
         throw new Error(
-          "recipientPubKey does not match recipient's active encap key",
+          "recipientMlkemPubKey does not match recipient's encap key",
         );
       }
-      if (input.recipientX25519PubKey !== recipientActiveKey.x25519PublicKey.toHex()) {
+      if (input.recipientX25519PubKey !== recipientKey.x25519PublicKey.toHex()) {
         throw new Error(
-          "recipientX25519PubKey does not match recipient's active x25519 key",
+          "recipientX25519PubKey does not match recipient's x25519 key",
         );
       }
 
@@ -202,9 +204,9 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderEncryptedContentBuf,
         senderEd25519PubKeyBuf,
         senderX25519PubKeyBuf,
-        senderPubKeyBuf,
+        senderMldsaPubKeyBuf,
         recipientX25519PubKeyBuf,
-        recipientPubKeyBuf,
+        recipientMlkemPubKeyBuf,
         senderSignatureBuf,
         true,
       );
@@ -215,20 +217,20 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderEncryptedContentBuf,
         senderEd25519PubKeyBuf,
         senderX25519PubKeyBuf,
-        senderPubKeyBuf,
+        senderMldsaPubKeyBuf,
         recipientX25519PubKeyBuf,
-        recipientPubKeyBuf,
+        recipientMlkemPubKeyBuf,
         senderSignatureBuf,
         false,
       );
     } else {
       // --- Remote delivery ---
-      // Validate recipientPubKey against federation lookup
+      // Validate recipientMlkemPubKey against federation lookup
       const remoteKeys = await fetchRemotePublicKey(input.recipientAddress);
       if (!remoteKeys) throw new Error("Recipient not found via federation");
-      if (remoteKeys.encapPublicKey !== input.recipientPubKey) {
+      if (remoteKeys.encapPublicKey !== input.recipientMlkemPubKey) {
         throw new Error(
-          "recipientPubKey does not match recipient's federated encap key",
+          "recipientMlkemPubKey does not match recipient's federated encap key",
         );
       }
       if (remoteKeys.x25519PublicKey !== input.recipientX25519PubKey) {
@@ -248,9 +250,9 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderEncryptedContentBuf,
         senderEd25519PubKeyBuf,
         senderX25519PubKeyBuf,
-        senderPubKeyBuf,
+        senderMldsaPubKeyBuf,
         recipientX25519PubKeyBuf,
-        recipientPubKeyBuf,
+        recipientMlkemPubKeyBuf,
         senderSignatureBuf,
         true,
       );
@@ -262,10 +264,11 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderEncryptedContentBuf,
         senderEd25519PubKeyBuf,
         senderX25519PubKeyBuf,
-        senderPubKeyBuf,
+        senderMldsaPubKeyBuf,
         recipientX25519PubKeyBuf,
-        recipientPubKeyBuf,
+        recipientMlkemPubKeyBuf,
         senderSignatureBuf,
+        input.recipientKeyNumber,
         input.pow,
       );
     }
@@ -312,9 +315,9 @@ function messagesToHex<
     senderEncryptedContent: WebBuf;
     senderEd25519PubKey: WebBuf;
     senderX25519PubKey: WebBuf;
-    senderPubKey: WebBuf;
+    senderMldsaPubKey: WebBuf;
     recipientX25519PubKey: WebBuf;
-    recipientPubKey: WebBuf;
+    recipientMlkemPubKey: WebBuf;
     senderSignature: WebBuf;
   },
 >(rows: T[]) {
@@ -324,9 +327,9 @@ function messagesToHex<
     senderEncryptedContent: m.senderEncryptedContent.toHex(),
     senderEd25519PubKey: m.senderEd25519PubKey.toHex(),
     senderX25519PubKey: m.senderX25519PubKey.toHex(),
-    senderPubKey: m.senderPubKey.toHex(),
+    senderMldsaPubKey: m.senderMldsaPubKey.toHex(),
     recipientX25519PubKey: m.recipientX25519PubKey.toHex(),
-    recipientPubKey: m.recipientPubKey.toHex(),
+    recipientMlkemPubKey: m.recipientMlkemPubKey.toHex(),
     senderSignature: m.senderSignature.toHex(),
   }));
 }
@@ -412,11 +415,11 @@ export const getMyActiveEncryptedKey = createServerFn({
 export const getRemotePowChallenge = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      recipientAddress: z.string(),
-      senderAddress: z.string(),
-      senderEd25519PubKey: z.string(),
-      senderPubKey: z.string(),
-      signature: z.string(),
+      recipientAddress: addressSchema,
+      senderAddress: addressSchema,
+      senderEd25519PubKey: hexBytes(32),
+      senderMldsaPubKey: hexBytes(1952),
+      signature: hexBytes(3374),
       timestamp: z.number(),
     }),
   )

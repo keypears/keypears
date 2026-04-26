@@ -61,8 +61,8 @@ export async function channelExists(
 
 export async function messageExists(
   channelId: string,
-  senderPubKey: WebBuf,
-  recipientPubKey: WebBuf,
+  senderMldsaPubKey: WebBuf,
+  recipientMlkemPubKey: WebBuf,
   encryptedContent: WebBuf,
 ): Promise<boolean> {
   const [row] = await db
@@ -71,8 +71,8 @@ export async function messageExists(
     .where(
       and(
         eq(messages.channelId, channelId),
-        eq(messages.senderPubKey, senderPubKey),
-        eq(messages.recipientPubKey, recipientPubKey),
+        eq(messages.senderMldsaPubKey, senderMldsaPubKey),
+        eq(messages.recipientMlkemPubKey, recipientMlkemPubKey),
         eq(messages.encryptedContent, encryptedContent),
       ),
     )
@@ -87,9 +87,9 @@ export async function insertMessage(
   senderEncryptedContent: WebBuf,
   senderEd25519PubKey: WebBuf,
   senderX25519PubKey: WebBuf,
-  senderPubKey: WebBuf,
+  senderMldsaPubKey: WebBuf,
   recipientX25519PubKey: WebBuf,
-  recipientPubKey: WebBuf,
+  recipientMlkemPubKey: WebBuf,
   senderSignature: WebBuf,
   isRead: boolean,
 ) {
@@ -102,9 +102,9 @@ export async function insertMessage(
     senderEncryptedContent,
     senderEd25519PubKey,
     senderX25519PubKey,
-    senderPubKey,
+    senderMldsaPubKey,
     recipientX25519PubKey,
-    recipientPubKey,
+    recipientMlkemPubKey,
     senderSignature,
     isRead,
   });
@@ -173,9 +173,9 @@ export async function getChannelMessages(
       senderEncryptedContent: messages.senderEncryptedContent,
       senderEd25519PubKey: messages.senderEd25519PubKey,
       senderX25519PubKey: messages.senderX25519PubKey,
-      senderPubKey: messages.senderPubKey,
+      senderMldsaPubKey: messages.senderMldsaPubKey,
       recipientX25519PubKey: messages.recipientX25519PubKey,
-      recipientPubKey: messages.recipientPubKey,
+      recipientMlkemPubKey: messages.recipientMlkemPubKey,
       senderSignature: messages.senderSignature,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
@@ -207,9 +207,9 @@ export async function getNewMessages(
       senderEncryptedContent: messages.senderEncryptedContent,
       senderEd25519PubKey: messages.senderEd25519PubKey,
       senderX25519PubKey: messages.senderX25519PubKey,
-      senderPubKey: messages.senderPubKey,
+      senderMldsaPubKey: messages.senderMldsaPubKey,
       recipientX25519PubKey: messages.recipientX25519PubKey,
-      recipientPubKey: messages.recipientPubKey,
+      recipientMlkemPubKey: messages.recipientMlkemPubKey,
       senderSignature: messages.senderSignature,
       isRead: messages.isRead,
       createdAt: messages.createdAt,
