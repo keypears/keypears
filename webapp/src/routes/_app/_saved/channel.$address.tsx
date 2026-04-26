@@ -288,14 +288,14 @@ function ChannelPage() {
     if (!encryptionKey || keyMap.size === 0 || !myAddress)
       return { ok: false, reason: "loading" };
 
-    const isSender = keyMap.has(msg.senderPubKey);
+    const isSender = keyMap.has(msg.senderEd25519PubKey ?? "");
 
     // Look up the matching key entry. The keyMap is keyed by ed25519PublicKey.
-    // If we're the sender, look up by senderPubKey (our ed25519 key).
+    // If we're the sender, look up by senderEd25519PubKey.
     // If we're the recipient, recipientPubKey is an encap key — search by value.
     let matchingKey: { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null } | undefined;
     if (isSender) {
-      matchingKey = keyMap.get(msg.senderPubKey);
+      matchingKey = keyMap.get(msg.senderEd25519PubKey ?? "");
     } else {
       for (const entry of keyMap.values()) {
         if (entry.encapPublicKey === msg.recipientPubKey) {
@@ -501,7 +501,7 @@ function ChannelPage() {
         encryptedContent: recipientCiphertext.toHex(),
         senderEncryptedContent: senderCiphertext.toHex(),
         senderSignature: msgSignature.toHex(),
-        senderPubKey: myKeyData.ed25519PublicKey,
+        senderPubKey: myKeyData.signingPublicKey,
         recipientPubKey: recipientEncapPubKeyHex,
         senderEd25519PubKey: myKeyData.ed25519PublicKey,
         senderX25519PubKey: myKeyData.x25519PublicKey,

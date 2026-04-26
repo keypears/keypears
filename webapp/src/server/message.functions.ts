@@ -103,6 +103,10 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (input.senderEd25519PubKey !== senderActiveKey.ed25519PublicKey.toHex()) {
       throw new Error("senderEd25519PubKey does not match your active ed25519 key");
     }
+    // Validate senderX25519PubKey matches the authenticated user's active x25519 key
+    if (input.senderX25519PubKey !== senderActiveKey.x25519PublicKey.toHex()) {
+      throw new Error("senderX25519PubKey does not match your active x25519 key");
+    }
 
     // Convert hex inputs to WebBuf for DB and crypto operations
     const encryptedContentBuf = WebBuf.fromHex(input.encryptedContent);
@@ -165,6 +169,11 @@ export const sendMessage = createServerFn({ method: "POST" })
           "recipientPubKey does not match recipient's active encap key",
         );
       }
+      if (input.recipientX25519PubKey !== recipientActiveKey.x25519PublicKey.toHex()) {
+        throw new Error(
+          "recipientX25519PubKey does not match recipient's active x25519 key",
+        );
+      }
 
       // Verify PoW locally (addresses bound in challenge signature)
       const powResult = await verifyAndConsumePow(
@@ -220,6 +229,11 @@ export const sendMessage = createServerFn({ method: "POST" })
       if (remoteKeys.encapPublicKey !== input.recipientPubKey) {
         throw new Error(
           "recipientPubKey does not match recipient's federated encap key",
+        );
+      }
+      if (remoteKeys.x25519PublicKey !== input.recipientX25519PubKey) {
+        throw new Error(
+          "recipientX25519PubKey does not match recipient's federated x25519 key",
         );
       }
       // PoW is verified by recipient's server in notifyMessage.

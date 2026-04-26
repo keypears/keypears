@@ -165,7 +165,7 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     if (messageData.senderEncryptedContent.length > 100_000) {
       throw new Error("Sender encrypted content too large");
     }
-    if (messageData.senderSignature.length > 6700) {
+    if (messageData.senderSignature.length > 6750) {
       throw new Error("Sender signature too large");
     }
     // Verify the message matches the notification
@@ -212,12 +212,18 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     if (senderKeys.ed25519PublicKey !== messageData.senderEd25519PubKey) {
       throw new Error("senderEd25519PubKey does not match federated ed25519 key");
     }
+    if (senderKeys.x25519PublicKey !== messageData.senderX25519PubKey) {
+      throw new Error("senderX25519PubKey does not match federated x25519 key");
+    }
 
     // Verify recipientPubKey matches the local recipient's active encap key
     const recipientActiveKey = await getActiveKey(recipientUser.id);
     if (!recipientActiveKey) throw new Error("Recipient has no active key");
     if (recipientActiveKey.encapPublicKey.toHex() !== messageData.recipientPubKey) {
       throw new Error("recipientPubKey does not match recipient's encap key");
+    }
+    if (recipientActiveKey.x25519PublicKey.toHex() !== messageData.recipientX25519PubKey) {
+      throw new Error("recipientX25519PubKey does not match recipient's x25519 key");
     }
 
     // Store in recipient's channel (idempotent: skip if duplicate)

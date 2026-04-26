@@ -605,7 +605,7 @@ function EntryDetail({
         encryptedContent: recipientCiphertext.toHex(),
         senderEncryptedContent: senderCiphertext.toHex(),
         senderSignature: msgSignature.toHex(),
-        senderPubKey: myActiveKey.ed25519PublicKey as string,
+        senderPubKey: myActiveKey.signingPublicKey as string,
         recipientPubKey: recipientKey.encapPublicKey as string,
         senderEd25519PubKey: myActiveKey.ed25519PublicKey as string,
         senderX25519PubKey: myActiveKey.x25519PublicKey as string,
