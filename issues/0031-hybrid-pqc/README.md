@@ -286,8 +286,136 @@ better than pure PQ, which is what we have now.
 
 ### Result: Pass
 
-The industry consensus is clear: hybrid with Curve25519 or P-256 as the
-classical component. P-256 is a valid standardized pairing (LAMPS defines it).
-We have the hybrid encryption package ready. Composite signatures need
-building. The key model adds one key pair (P-256 signing). Next experiment
-should implement the switch.
+The industry consensus is clear: hybrid with Curve25519 as the primary
+classical component. WebBuf issue 0007 built all four needed packages:
+`@webbuf/x25519`, `@webbuf/ed25519`, `@webbuf/aesgcm-x25519dh-mlkem`,
+`@webbuf/sig-ed25519-mldsa`. KeyPears can go straight to the Curve25519-first
+standard pairing with no throwaway migration.
+
+## Experiment 2: Switch KeyPears to hybrid Curve25519 + PQ
+
+### Goal
+
+Replace all pure-PQ cryptography with hybrid Curve25519 + PQ:
+- Encryption: `@webbuf/aesgcm-mlkem` → `@webbuf/aesgcm-x25519dh-mlkem`
+- Signatures: `mlDsa65Sign`/`mlDsa65Verify` → `sigEd25519MldsaSign`/`sigEd25519MldsaVerify`
+- Key model: add Ed25519 signing key pair (three key pairs per user)
+
+Zero users, DB will be deleted. No backwards compatibility.
+
+### Key model change
+
+Currently two key pairs:
+- ML-DSA-65 (signing key 4,032 bytes, verifying key 1,952 bytes)
+- ML-KEM-768 (decap key 2,400 bytes, encap key 1,184 bytes)
+
+New: three key pairs:
+- Ed25519 (private key 32 bytes, public key 32 bytes) — classical signing
+- ML-DSA-65 (signing key 4,032 bytes, verifying key 1,952 bytes) — PQ signing
+- ML-KEM-768 (decap key 2,400 bytes, encap key 1,184 bytes) — PQ encryption
+
+The composite signature package `@webbuf/sig-ed25519-mldsa` takes BOTH signing
+keys and produces a composite signature (3,374 bytes = 1 version byte + 64
+Ed25519 + 3,309 ML-DSA). Verification takes both verifying keys. The caller
+doesn't manage the two signatures separately.
+
+For encryption, `@webbuf/aesgcm-x25519dh-mlkem` uses EPHEMERAL X25519 — the
+sender generates a fresh X25519 key per message internally. The persistent key
+is only the ML-KEM encap key. No persistent X25519 key needed.
+
+### DB schema changes
+
+**`user_keys` table — add Ed25519 columns:**
+- `ed25519PublicKey` blob — 32 bytes
+- `encryptedEd25519Key` blob — 32 bytes + AES-GCM overhead (~80 bytes)
+
+Keep existing ML-DSA and ML-KEM columns unchanged.
+
+### Dependencies
+
+**Add to `webapp/package.json`:**
+- `@webbuf/aesgcm-x25519dh-mlkem`
+- `@webbuf/sig-ed25519-mldsa`
+- `@webbuf/ed25519`
+
+**Remove:**
+- `@webbuf/aesgcm-mlkem` (replaced by hybrid)
+
+**Keep:**
+- `@webbuf/mldsa` (still needed — composite package depends on it internally,
+  and it's used for standalone ML-DSA operations in the signing key model)
+- `@webbuf/mlkem` (still needed for ML-KEM key pairs)
+
+**Update `packages/client/package.json`:**
+- Replace `@webbuf/mldsa` with `@webbuf/sig-ed25519-mldsa` for auth
+  verification
+
+### Code changes
+
+**`webapp/src/lib/auth.ts`:**
+- `generateAndEncryptKeyPairFromEncryptionKey`: add Ed25519 key pair
+  generation via `ed25519PublicKeyCreate` / `FixedBuf.fromRandom(32)`.
+  Encrypt Ed25519 private key with AES-GCM. Return 6 fields instead of 4.
+- Add `decryptEd25519Key(encrypted: WebBuf, encryptionKey: FixedBuf<32>)`
+  → `FixedBuf<32>`
+- `signPowRequest`: switch from `mlDsa65Sign` to `sigEd25519MldsaSign`.
+  Takes both `ed25519Key: FixedBuf<32>` and `mldsaKey: FixedBuf<4032>`.
+  Returns composite signature hex.
+
+**`webapp/src/lib/message.ts`:**
+- Replace `aesgcmMlkemEncrypt`/`aesgcmMlkemDecrypt` with
+  `aesgcmX25519dhMlkemEncrypt`/`aesgcmX25519dhMlkemDecrypt`. API is the same
+  (takes ML-KEM encap key + plaintext + AAD). The X25519 ephemeral is handled
+  internally.
+- Replace `mlDsa65Sign`/`mlDsa65Verify` with
+  `sigEd25519MldsaSign`/`sigEd25519MldsaVerify`. Composite sign takes both
+  private keys. Composite verify takes both public keys.
+- `encryptMessage`/`encryptSecretMessage`: add `ed25519Key` parameter
+- `verifyMessageSignature`: add `ed25519PubKey` parameter
+- `buildSignedEnvelope`: include Ed25519 public key in the envelope
+
+**`webapp/src/server/api.router.ts`:**
+- `getPublicKey`: return `ed25519PublicKey` alongside existing keys
+- `getPowChallengeEndpoint`: verify composite signature instead of ML-DSA only
+
+**`webapp/src/server/user.server.ts`:**
+- `insertKey`: accept 6 key fields instead of 4
+- `saveUser`, `createUserForDomain`, `resetUserPassword`: same
+- `changePassword`, `reEncryptKey`: handle 3 encrypted keys per key pair
+
+**`webapp/src/server/user.functions.ts`:**
+- Update all validators to include Ed25519 fields
+- `getMyKeys`, `getMyEncryptedKeys`: return Ed25519 fields
+- `getProfile`: return `ed25519PublicKey`
+
+**`webapp/src/server/message.functions.ts`:**
+- `getPublicKeyForAddress`: return `ed25519PublicKey`
+- `sendMessage`: validate sender's Ed25519 key matches active key
+
+**`webapp/src/routes/_app/_saved/sign.tsx`:**
+- Decrypt both Ed25519 and ML-DSA keys for composite signing
+- `signPayload`: use `sigEd25519MldsaSign` with both keys
+
+**`packages/client/src/contract.ts`:**
+- `getPublicKey` output: add `ed25519PublicKey`
+
+**`packages/client/src/auth.ts`:**
+- `verifyCallback`: use `sigEd25519MldsaVerify` with both public keys
+
+**All route files (welcome, keys, password, domains, send, channel, vault):**
+- Same pattern as issue 0027: destructure 6 key fields instead of 4,
+  pass Ed25519 keys where signing happens
+
+### Verification
+
+- `bun run db:clear && bun run db:push` — schema creates
+- `bun run typecheck` — zero errors
+- `bun run lint` — zero errors
+- `bun run test` — passes
+- Manual: create account, send message, vault entry, auth sign-in
+- `grep -r "aesgcm-mlkem\b" webapp/src/ packages/client/src/` — zero matches
+  (only `aesgcm-x25519dh-mlkem`)
+- `grep -r "mlDsa65Sign\|mlDsa65Verify" webapp/src/ packages/client/src/` —
+  zero direct ML-DSA sign/verify (only composite)
+
+### Result: Pending
