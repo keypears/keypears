@@ -158,7 +158,10 @@ KeyPears does not protect against:
   enforce a minimum.
 - **DNS-level attacks** — BGP hijacking could redirect domain resolution.
   Mitigated by DNSSEC where deployed.
-- **Forward secrecy** — the protocol does not provide forward secrecy in the
-  Signal sense. All communication is transported over HTTPS/TLS, so passive
-  recording of ciphertext in transit requires compromising TLS. Messages persist
-  on the server for later retrieval, so the client must retain decryption keys.
+- **Forward secrecy** — the protocol does not provide message-level forward
+  secrecy. TLS provides forward secrecy for transport sessions, but stored
+  application ciphertext is decryptable if long-term keys are later compromised.
+  Defending against this would require ratchet state, prekey management, and
+  multi-device synchronization — complexity that KeyPears trades away in favor
+  of durable retrieval, federation simplicity, and independent implementability.
+  Key rotation and message deletion provide temporal compartmentalization.
