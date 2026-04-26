@@ -542,17 +542,17 @@ data.
 
 A federated protocol must balance security properties against implementation
 complexity. Every mechanism added to the specification must be implemented
-correctly by every independent server and client in the federation---a burden
-that grows combinatorially with protocol surface area. TLS already provides
-forward secrecy for the transport layer, which is the layer where passive
-recording by unknown third parties is a realistic threat. Adding a ratchet on
-top of TLS would defend against a narrower threat (endpoint compromise of stored
-ciphertext) at the cost of substantial protocol complexity that discourages
-independent implementations and invites subtle interoperability bugs. KeyPears
-accepts this trade-off explicitly: the protocol stays simple enough that a
-competent developer can implement a fully interoperable server or client from
-the specification alone, without needing to replicate the intricate state
-machines that ratchet protocols demand.
+correctly by independent servers and clients across the federation, increasing
+the amount of state that must be synchronized, tested, and made interoperable.
+TLS already provides forward secrecy for transport sessions, protecting against
+later compromise of TLS server keys after passive network recording. A
+message-level ratchet would address a different threat: later compromise of
+stored application ciphertext and the long-term keys needed to decrypt it. That
+is a real threat, but defending against it requires prekey management, ratchet
+state, skipped-message-key handling, multi-device synchronization, and recovery
+semantics. KeyPears accepts this trade-off explicitly: it prioritizes durable
+retrieval, federation simplicity, and independent implementability over
+Signal-style forward secrecy and post-compromise security.
 
 == Limitations
 
