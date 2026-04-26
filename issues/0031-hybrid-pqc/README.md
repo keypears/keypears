@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-26"
+closed = "2026-04-26"
 +++
 
 # Switch to hybrid post-quantum cryptography
@@ -309,32 +310,42 @@ Currently two key pairs:
 - ML-DSA-65 (signing key 4,032 bytes, verifying key 1,952 bytes)
 - ML-KEM-768 (decap key 2,400 bytes, encap key 1,184 bytes)
 
-New: three key pairs:
+New: four key pairs:
 - Ed25519 (private key 32 bytes, public key 32 bytes) — classical signing
 - ML-DSA-65 (signing key 4,032 bytes, verifying key 1,952 bytes) — PQ signing
+- X25519 (private key 32 bytes, public key 32 bytes) — classical DH
 - ML-KEM-768 (decap key 2,400 bytes, encap key 1,184 bytes) — PQ encryption
 
 The composite signature package `@webbuf/sig-ed25519-mldsa` takes BOTH signing
-keys and produces a composite signature (3,374 bytes = 1 version byte + 64
-Ed25519 + 3,309 ML-DSA). Verification takes both verifying keys. The caller
-doesn't manage the two signatures separately.
+keys (Ed25519 + ML-DSA) and produces a composite signature (3,374 bytes).
 
-For encryption, `@webbuf/aesgcm-x25519dh-mlkem` uses EPHEMERAL X25519 — the
-sender generates a fresh X25519 key per message internally. The persistent key
-is only the ML-KEM encap key. No persistent X25519 key needed.
+For encryption, `@webbuf/aesgcm-x25519dh-mlkem` uses PERSISTENT static-static
+X25519 DH. Both sender and recipient need persistent X25519 key pairs. The
+sender uses their X25519 private key + recipient's X25519 public key, combined
+with ML-KEM-768 encapsulation via HKDF-SHA-256.
 
 ### DB schema changes
 
-**`user_keys` table — add Ed25519 columns:**
-- `ed25519PublicKey` blob — 32 bytes
-- `encryptedEd25519Key` blob — 32 bytes + AES-GCM overhead (~80 bytes)
+**`user_keys` table — 8 key columns:**
+- `ed25519PublicKey` blob, `encryptedEd25519Key` blob (32 bytes each)
+- `x25519PublicKey` blob, `encryptedX25519Key` blob (32 bytes each)
+- `signingPublicKey` blob, `encryptedSigningKey` blob (ML-DSA-65)
+- `encapPublicKey` blob, `encryptedDecapKey` blob (ML-KEM-768)
 
-**`messages` table — add Ed25519 sender public key:**
-- `senderEd25519PubKey` blob — 32 bytes (needed for composite signature
-  verification — verifier needs both the Ed25519 and ML-DSA public keys)
+**`messages` and `pending_deliveries` — additional columns:**
+- `senderEd25519PubKey` blob — for composite signature verification
+- `senderX25519PubKey` blob — for hybrid decryption (sender's DH key)
+- `recipientX25519PubKey` blob — for hybrid decryption (recipient's DH key)
 
-**`pending_deliveries` table — same addition:**
-- `senderEd25519PubKey` blob — 32 bytes
+### Server validation requirements
+
+All key types validated against active/federated keys at every path:
+- Sender: `signingPublicKey`, `ed25519PublicKey`, `x25519PublicKey`
+- Local recipient: `encapPublicKey`, `x25519PublicKey`
+- Remote recipient: `encapPublicKey`, `x25519PublicKey` via federation
+- Inbound remote: sender's `signingPublicKey`, `ed25519PublicKey`,
+  `x25519PublicKey` via federation; recipient's `encapPublicKey`,
+  `x25519PublicKey` from local DB
 
 Keep existing ML-DSA and ML-KEM columns unchanged.
 
@@ -473,4 +484,26 @@ Composite signatures are 3,374 bytes (not 3,309). Update all hardcoded sizes:
 - `grep -r "mlDsa65Sign\|mlDsa65Verify" webapp/src/ packages/client/src/` —
   zero direct ML-DSA sign/verify (only composite)
 
-### Result: Pending
+### Result: Pass
+
+Hybrid Curve25519 + PQ implemented across 22 files. Four key pairs per user
+(Ed25519, X25519, ML-DSA-65, ML-KEM-768). Composite signatures via
+`@webbuf/sig-ed25519-mldsa`. Hybrid encryption via
+`@webbuf/aesgcm-x25519dh-mlkem`. All four key types validated against
+active/federated keys at every server path. Codex review confirmed no remaining
+code-level security regressions.
+
+## Conclusion
+
+KeyPears now uses hybrid post-quantum cryptography matching the emerging
+industry standard (OpenPGP MUST pairing, Signal direction, Chrome TLS):
+
+- **Encryption**: X25519 ECDH + ML-KEM-768, combined via HKDF-SHA-256
+- **Signatures**: Ed25519 + ML-DSA-65 composite (3,374-byte wire format)
+- **Four key pairs per user**: Ed25519 (32B), X25519 (32B), ML-DSA-65 (4,032B),
+  ML-KEM-768 (2,400B)
+
+An attacker must break BOTH classical and post-quantum algorithms to compromise
+any operation. If lattice crypto (ML-KEM/ML-DSA) has a structural flaw,
+X25519/Ed25519 still protects. If a quantum computer arrives, ML-KEM/ML-DSA
+still protects.
