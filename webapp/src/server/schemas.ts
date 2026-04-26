@@ -4,7 +4,7 @@ import { hexBytes, addressSchema } from "@keypears/client";
 export { hexBytes, hexMaxBytes, addressSchema } from "@keypears/client";
 
 export const PowSolutionSchema = z.object({
-  solvedHeader: hexBytes(32),
+  solvedHeader: hexBytes(64),
   target: hexBytes(32),
   expiresAt: z.number(),
   signature: hexBytes(32),

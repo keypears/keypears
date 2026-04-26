@@ -31,7 +31,7 @@ const getPowChallenge = oc
   )
   .output(
     z.object({
-      header: hexBytes(32),
+      header: hexBytes(64),
       target: hexBytes(32),
       expiresAt: z.number(),
       difficulty: z.number(),
@@ -48,7 +48,7 @@ const notifyMessage = oc
       recipientAddress: addressSchema,
       pullToken: z.string().min(1),
       pow: z.object({
-        solvedHeader: hexBytes(32),
+        solvedHeader: hexBytes(64),
         target: hexBytes(32),
         expiresAt: z.number(),
         signature: hexBytes(32),
