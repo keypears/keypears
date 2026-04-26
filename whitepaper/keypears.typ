@@ -540,6 +540,20 @@ while old keys are retained for decryption. User-initiated message deletion can
 reduce retained ciphertext, subject to normal limits around backups and copied
 data.
 
+A federated protocol must balance security properties against implementation
+complexity. Every mechanism added to the specification must be implemented
+correctly by every independent server and client in the federation---a burden
+that grows combinatorially with protocol surface area. TLS already provides
+forward secrecy for the transport layer, which is the layer where passive
+recording by unknown third parties is a realistic threat. Adding a ratchet on
+top of TLS would defend against a narrower threat (endpoint compromise of stored
+ciphertext) at the cost of substantial protocol complexity that discourages
+independent implementations and invites subtle interoperability bugs. KeyPears
+accepts this trade-off explicitly: the protocol stays simple enough that a
+competent developer can implement a fully interoperable server or client from
+the specification alone, without needing to replicate the intricate state
+machines that ratchet protocols demand.
+
 == Limitations
 
 KeyPears does not protect against compromised endpoints, weak passwords, or
