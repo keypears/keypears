@@ -212,6 +212,10 @@ export const saveMyUser = createServerFn({ method: "POST" })
       name: nameSchema,
       domain: z.string(),
       loginKey: z.string(),
+      ed25519PublicKey: z.string(),
+      encryptedEd25519Key: z.string(),
+      x25519PublicKey: z.string(),
+      encryptedX25519Key: z.string(),
       signingPublicKey: z.string(),
       encapPublicKey: z.string(),
       encryptedSigningKey: z.string(),
@@ -229,6 +233,10 @@ export const saveMyUser = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
+      WebBuf.fromHex(input.ed25519PublicKey),
+      WebBuf.fromHex(input.encryptedEd25519Key),
+      WebBuf.fromHex(input.x25519PublicKey),
+      WebBuf.fromHex(input.encryptedX25519Key),
       WebBuf.fromHex(input.signingPublicKey),
       WebBuf.fromHex(input.encapPublicKey),
       WebBuf.fromHex(input.encryptedSigningKey),
@@ -290,6 +298,10 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
 export const rotateKey = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
+      ed25519PublicKey: z.string(),
+      encryptedEd25519Key: z.string(),
+      x25519PublicKey: z.string(),
+      encryptedX25519Key: z.string(),
       signingPublicKey: z.string(),
       encapPublicKey: z.string(),
       encryptedSigningKey: z.string(),
@@ -303,6 +315,10 @@ export const rotateKey = createServerFn({ method: "POST" })
     if (!row.passwordHash) throw new Error("Account not saved");
     const result = await insertKey(
       row.id,
+      WebBuf.fromHex(input.ed25519PublicKey),
+      WebBuf.fromHex(input.encryptedEd25519Key),
+      WebBuf.fromHex(input.x25519PublicKey),
+      WebBuf.fromHex(input.encryptedX25519Key),
       WebBuf.fromHex(input.signingPublicKey),
       WebBuf.fromHex(input.encapPublicKey),
       WebBuf.fromHex(input.encryptedSigningKey),
@@ -321,6 +337,10 @@ export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
   return {
     keys: keyList.map((k) => ({
       ...k,
+      ed25519PublicKey: k.ed25519PublicKey.toHex(),
+      encryptedEd25519Key: k.encryptedEd25519Key.toHex(),
+      x25519PublicKey: k.x25519PublicKey.toHex(),
+      encryptedX25519Key: k.encryptedX25519Key.toHex(),
       signingPublicKey: k.signingPublicKey.toHex(),
       encapPublicKey: k.encapPublicKey.toHex(),
       encryptedSigningKey: k.encryptedSigningKey.toHex(),
@@ -345,6 +365,8 @@ export const getProfile = createServerFn({ method: "GET" })
     ]);
     return {
       name: row.name,
+      ed25519PublicKey: activeKey?.ed25519PublicKey.toHex() ?? null,
+      x25519PublicKey: activeKey?.x25519PublicKey.toHex() ?? null,
       signingPublicKey: activeKey?.signingPublicKey.toHex() ?? null,
       powTotal: powTotal.toString(),
       createdAt: row.createdAt,
@@ -379,6 +401,8 @@ export const getMyEncryptedKeys = createServerFn({ method: "GET" })
     const rows = await getAllEncryptedKeys(userId);
     return rows.map((k) => ({
       ...k,
+      encryptedEd25519Key: k.encryptedEd25519Key.toHex(),
+      encryptedX25519Key: k.encryptedX25519Key.toHex(),
       encryptedSigningKey: k.encryptedSigningKey.toHex(),
       encryptedDecapKey: k.encryptedDecapKey.toHex(),
     }));
@@ -391,6 +415,8 @@ export const changeMyPassword = createServerFn({ method: "POST" })
       reEncryptedKeys: z.array(
         z.object({
           id: z.string(),
+          encryptedEd25519Key: z.string(),
+          encryptedX25519Key: z.string(),
           encryptedSigningKey: z.string(),
           encryptedDecapKey: z.string(),
         }),
@@ -407,6 +433,8 @@ export const changeMyPassword = createServerFn({ method: "POST" })
       input.newLoginKey,
       input.reEncryptedKeys.map((k) => ({
         id: k.id,
+        encryptedEd25519Key: WebBuf.fromHex(k.encryptedEd25519Key),
+        encryptedX25519Key: WebBuf.fromHex(k.encryptedX25519Key),
         encryptedSigningKey: WebBuf.fromHex(k.encryptedSigningKey),
         encryptedDecapKey: WebBuf.fromHex(k.encryptedDecapKey),
       })),
@@ -423,6 +451,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       keyId: z.string(),
+      encryptedEd25519Key: z.string(),
+      encryptedX25519Key: z.string(),
       encryptedSigningKey: z.string(),
       encryptedDecapKey: z.string(),
       loginKey: z.string(),
@@ -433,6 +463,8 @@ export const reEncryptMyKey = createServerFn({ method: "POST" })
     await reEncryptKey(
       userId,
       input.keyId,
+      WebBuf.fromHex(input.encryptedEd25519Key),
+      WebBuf.fromHex(input.encryptedX25519Key),
       WebBuf.fromHex(input.encryptedSigningKey),
       WebBuf.fromHex(input.encryptedDecapKey),
       input.loginKey,
@@ -492,6 +524,10 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       domain: z.string(),
       name: nameSchema,
       loginKey: z.string(),
+      ed25519PublicKey: z.string(),
+      encryptedEd25519Key: z.string(),
+      x25519PublicKey: z.string(),
+      encryptedX25519Key: z.string(),
       signingPublicKey: z.string(),
       encapPublicKey: z.string(),
       encryptedSigningKey: z.string(),
@@ -509,6 +545,10 @@ export const createDomainUserFn = createServerFn({ method: "POST" })
       input.name,
       domain.id,
       input.loginKey,
+      WebBuf.fromHex(input.ed25519PublicKey),
+      WebBuf.fromHex(input.encryptedEd25519Key),
+      WebBuf.fromHex(input.x25519PublicKey),
+      WebBuf.fromHex(input.encryptedX25519Key),
       WebBuf.fromHex(input.signingPublicKey),
       WebBuf.fromHex(input.encapPublicKey),
       WebBuf.fromHex(input.encryptedSigningKey),
@@ -522,6 +562,10 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
       domain: z.string(),
       userId: z.string(),
       newLoginKey: z.string(),
+      ed25519PublicKey: z.string(),
+      encryptedEd25519Key: z.string(),
+      x25519PublicKey: z.string(),
+      encryptedX25519Key: z.string(),
       signingPublicKey: z.string(),
       encapPublicKey: z.string(),
       encryptedSigningKey: z.string(),
@@ -536,6 +580,10 @@ export const resetDomainUserPasswordFn = createServerFn({ method: "POST" })
     await resetUserPassword(
       input.userId,
       input.newLoginKey,
+      WebBuf.fromHex(input.ed25519PublicKey),
+      WebBuf.fromHex(input.encryptedEd25519Key),
+      WebBuf.fromHex(input.x25519PublicKey),
+      WebBuf.fromHex(input.encryptedX25519Key),
       WebBuf.fromHex(input.signingPublicKey),
       WebBuf.fromHex(input.encapPublicKey),
       WebBuf.fromHex(input.encryptedSigningKey),

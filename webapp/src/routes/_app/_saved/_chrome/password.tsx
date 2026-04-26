@@ -67,9 +67,17 @@ function PasswordPage() {
         await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
       const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
-      const reEncryptedKeys: { id: string; encryptedSigningKey: string; encryptedDecapKey: string }[] = [];
+      const reEncryptedKeys: { id: string; encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string }[] = [];
       for (const key of encryptedKeys) {
         try {
+          const ed25519KeyBuf = await aesgcmDecryptNative(
+            WebBuf.fromHex(key.encryptedEd25519Key as string),
+            oldEncryptionKey,
+          );
+          const x25519KeyBuf = await aesgcmDecryptNative(
+            WebBuf.fromHex(key.encryptedX25519Key as string),
+            oldEncryptionKey,
+          );
           const signingKeyBuf = await aesgcmDecryptNative(
             WebBuf.fromHex(key.encryptedSigningKey as string),
             oldEncryptionKey,
@@ -77,6 +85,14 @@ function PasswordPage() {
           const decapKeyBuf = await aesgcmDecryptNative(
             WebBuf.fromHex(key.encryptedDecapKey as string),
             oldEncryptionKey,
+          );
+          const reEncEd25519Key = await aesgcmEncryptNative(
+            ed25519KeyBuf,
+            newEncryptionKey,
+          );
+          const reEncX25519Key = await aesgcmEncryptNative(
+            x25519KeyBuf,
+            newEncryptionKey,
           );
           const reEncSigningKey = await aesgcmEncryptNative(
             signingKeyBuf,
@@ -88,6 +104,8 @@ function PasswordPage() {
           );
           reEncryptedKeys.push({
             id: key.id,
+            encryptedEd25519Key: reEncEd25519Key.toHex(),
+            encryptedX25519Key: reEncX25519Key.toHex(),
             encryptedSigningKey: reEncSigningKey.toHex(),
             encryptedDecapKey: reEncDecapKey.toHex(),
           });

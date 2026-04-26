@@ -8,7 +8,7 @@
     "@orpc/client": "^1.13.14",
     "@orpc/contract": "^1.13.14",
     "@webbuf/fixedbuf": "^3.5.0",
-    "@webbuf/mldsa": "^3.6.0",
+    "@webbuf/sig-ed25519-mldsa": "^3.7.0",
     "@webbuf/webbuf": "^3.5.0",
     "zod": "^4.3.6"
   }

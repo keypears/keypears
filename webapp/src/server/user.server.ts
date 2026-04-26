@@ -117,6 +117,10 @@ export async function createUserForDomain(
   name: string,
   domainId: string,
   loginKeyHex: string,
+  ed25519PublicKey: WebBuf,
+  encryptedEd25519Key: WebBuf,
+  x25519PublicKey: WebBuf,
+  encryptedX25519Key: WebBuf,
   signingPublicKey: WebBuf,
   encapPublicKey: WebBuf,
   encryptedSigningKey: WebBuf,
@@ -137,6 +141,10 @@ export async function createUserForDomain(
   });
   await insertKey(
     id,
+    ed25519PublicKey,
+    encryptedEd25519Key,
+    x25519PublicKey,
+    encryptedX25519Key,
     signingPublicKey,
     encapPublicKey,
     encryptedSigningKey,
@@ -149,6 +157,10 @@ export async function createUserForDomain(
 export async function resetUserPassword(
   userId: string,
   newLoginKeyHex: string,
+  ed25519PublicKey: WebBuf,
+  encryptedEd25519Key: WebBuf,
+  x25519PublicKey: WebBuf,
+  encryptedX25519Key: WebBuf,
   signingPublicKey: WebBuf,
   encapPublicKey: WebBuf,
   encryptedSigningKey: WebBuf,
@@ -161,6 +173,10 @@ export async function resetUserPassword(
     .where(eq(users.id, userId));
   await insertKey(
     userId,
+    ed25519PublicKey,
+    encryptedEd25519Key,
+    x25519PublicKey,
+    encryptedX25519Key,
     signingPublicKey,
     encapPublicKey,
     encryptedSigningKey,
@@ -273,6 +289,10 @@ const MAX_KEYS_PER_USER = 100;
 
 export async function insertKey(
   userId: string,
+  ed25519PublicKey: WebBuf,
+  encryptedEd25519Key: WebBuf,
+  x25519PublicKey: WebBuf,
+  encryptedX25519Key: WebBuf,
   signingPublicKey: WebBuf,
   encapPublicKey: WebBuf,
   encryptedSigningKey: WebBuf,
@@ -300,6 +320,10 @@ export async function insertKey(
       id,
       userId,
       keyNumber,
+      ed25519PublicKey,
+      encryptedEd25519Key,
+      x25519PublicKey,
+      encryptedX25519Key,
       signingPublicKey,
       encapPublicKey,
       encryptedSigningKey,
@@ -316,6 +340,10 @@ export async function saveUser(
   name: string,
   domainId: string,
   loginKeyHex: string,
+  ed25519PublicKey: WebBuf,
+  encryptedEd25519Key: WebBuf,
+  x25519PublicKey: WebBuf,
+  encryptedX25519Key: WebBuf,
   signingPublicKey: WebBuf,
   encapPublicKey: WebBuf,
   encryptedSigningKey: WebBuf,
@@ -340,6 +368,10 @@ export async function saveUser(
     .where(eq(users.id, id));
   await insertKey(
     id,
+    ed25519PublicKey,
+    encryptedEd25519Key,
+    x25519PublicKey,
+    encryptedX25519Key,
     signingPublicKey,
     encapPublicKey,
     encryptedSigningKey,
@@ -353,6 +385,10 @@ export async function getRecentKeys(userId: string, limit = 10) {
     .select({
       id: keys.id,
       keyNumber: keys.keyNumber,
+      ed25519PublicKey: keys.ed25519PublicKey,
+      encryptedEd25519Key: keys.encryptedEd25519Key,
+      x25519PublicKey: keys.x25519PublicKey,
+      encryptedX25519Key: keys.encryptedX25519Key,
       signingPublicKey: keys.signingPublicKey,
       encapPublicKey: keys.encapPublicKey,
       encryptedSigningKey: keys.encryptedSigningKey,
@@ -371,6 +407,8 @@ export async function getAllEncryptedKeys(userId: string) {
     .select({
       id: keys.id,
       keyNumber: keys.keyNumber,
+      encryptedEd25519Key: keys.encryptedEd25519Key,
+      encryptedX25519Key: keys.encryptedX25519Key,
       encryptedSigningKey: keys.encryptedSigningKey,
       encryptedDecapKey: keys.encryptedDecapKey,
     })
@@ -384,6 +422,8 @@ export async function changePassword(
   newLoginKeyHex: string,
   reEncryptedKeys: {
     id: string;
+    encryptedEd25519Key: WebBuf;
+    encryptedX25519Key: WebBuf;
     encryptedSigningKey: WebBuf;
     encryptedDecapKey: WebBuf;
   }[],
@@ -399,6 +439,8 @@ export async function changePassword(
       await tx
         .update(keys)
         .set({
+          encryptedEd25519Key: key.encryptedEd25519Key,
+          encryptedX25519Key: key.encryptedX25519Key,
           encryptedSigningKey: key.encryptedSigningKey,
           encryptedDecapKey: key.encryptedDecapKey,
           loginKeyHash: newPasswordHash,
@@ -411,6 +453,8 @@ export async function changePassword(
 export async function reEncryptKey(
   userId: string,
   keyId: string,
+  encryptedEd25519Key: WebBuf,
+  encryptedX25519Key: WebBuf,
   encryptedSigningKey: WebBuf,
   encryptedDecapKey: WebBuf,
   loginKeyHex: string,
@@ -418,7 +462,13 @@ export async function reEncryptKey(
   const loginKeyHash = await hashLoginKey(loginKeyHex, userId);
   const result = await db
     .update(keys)
-    .set({ encryptedSigningKey, encryptedDecapKey, loginKeyHash })
+    .set({
+      encryptedEd25519Key,
+      encryptedX25519Key,
+      encryptedSigningKey,
+      encryptedDecapKey,
+      loginKeyHash,
+    })
     .where(and(eq(keys.id, keyId), eq(keys.userId, userId)));
   if (result[0].affectedRows === 0) {
     throw new Error("Key not found");

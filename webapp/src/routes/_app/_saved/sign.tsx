@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { z } from "zod/v4";
 import { getMyUser, getMyKeys } from "~/server/user.functions";
 import { authMiddleware } from "~/server/auth-middleware";
-import { getCachedEncryptionKey, decryptSigningKey } from "~/lib/auth";
-import { mlDsa65Sign } from "@webbuf/mldsa";
+import { getCachedEncryptionKey, decryptSigningKey, decryptEd25519Key } from "~/lib/auth";
+import { sigEd25519MldsaSign } from "@webbuf/sig-ed25519-mldsa";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { buildCanonicalPayload } from "@keypears/client";
@@ -62,10 +62,11 @@ function validateSearchParams(search: SignSearch): string | null {
 
 function signPayload(
   payload: string,
-  signingKey: FixedBuf<4032>,
+  ed25519Key: FixedBuf<32>,
+  mldsaKey: FixedBuf<4032>,
 ): string {
   const message = WebBuf.fromUtf8(payload);
-  const sig = mlDsa65Sign(signingKey, message);
+  const sig = sigEd25519MldsaSign(ed25519Key, mldsaKey, message);
   const bytes = new Uint8Array(sig.buf);
   const base64 = btoa(String.fromCharCode(...bytes));
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -85,11 +86,12 @@ function SignPage() {
   const search = Route.useSearch();
   const { user, keyData } = Route.useLoaderData();
 
-  const [privateKey, setPrivateKey] = useState<FixedBuf<4032> | null>(null);
+  const [ed25519Key, setEd25519Key] = useState<FixedBuf<32> | null>(null);
+  const [mldsaKey, setMldsaKey] = useState<FixedBuf<4032> | null>(null);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState("");
 
-  // Decrypt the active private key
+  // Decrypt the active private keys (Ed25519 + ML-DSA)
   useEffect(() => {
     const encryptionKey = getCachedEncryptionKey();
     if (!encryptionKey || !keyData.keys.length) return;
@@ -98,11 +100,18 @@ function SignPage() {
       for (const k of keyData.keys) {
         if (k.loginKeyHash === keyData.passwordHash) {
           try {
-            const priv = await decryptSigningKey(
+            const ed25519 = await decryptEd25519Key(
+              WebBuf.fromHex(k.encryptedEd25519Key as string),
+              encryptionKey,
+            );
+            const mldsa = await decryptSigningKey(
               WebBuf.fromHex(k.encryptedSigningKey as string),
               encryptionKey,
             );
-            if (!cancelled) setPrivateKey(priv);
+            if (!cancelled) {
+              setEd25519Key(ed25519);
+              setMldsaKey(mldsa);
+            }
             return;
           } catch {
             // locked key, try next
@@ -120,7 +129,7 @@ function SignPage() {
     user?.name && user?.domain ? `${user.name}@${user.domain}` : null;
 
   async function handleApprove() {
-    if (!privateKey || !myAddress) return;
+    if (!ed25519Key || !mldsaKey || !myAddress) return;
     setSigning(true);
     setError("");
     try {
@@ -134,7 +143,7 @@ function SignPage() {
         expires,
         data: search.data,
       });
-      const signature = signPayload(payload, privateKey);
+      const signature = signPayload(payload, ed25519Key, mldsaKey);
 
       const form = document.createElement("form");
       form.method = "POST";
@@ -240,7 +249,7 @@ function SignPage() {
         <div className="mt-8 flex gap-3">
           <button
             onClick={handleApprove}
-            disabled={signing || !privateKey}
+            disabled={signing || !ed25519Key || !mldsaKey}
             className="bg-accent text-accent-foreground hover:bg-accent/90 flex flex-1 items-center justify-center gap-2 rounded px-4 py-2.5 text-sm font-medium transition-all disabled:opacity-50"
           >
             <LogIn className="h-4 w-4" />
@@ -257,9 +266,9 @@ function SignPage() {
         </div>
 
         {/* Private key loading state */}
-        {!privateKey && keyData.keys.length > 0 && (
+        {(!ed25519Key || !mldsaKey) && keyData.keys.length > 0 && (
           <p className="text-muted-foreground mt-4 text-center text-xs">
-            Decrypting signing key...
+            Decrypting signing keys...
           </p>
         )}
       </div>

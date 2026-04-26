@@ -2,7 +2,7 @@ import { implement } from "@orpc/server";
 import { contract, createKeypearsClientFromUrl } from "@keypears/client";
 import { verifyMessageSignature } from "~/lib/message";
 import { fetchRemotePublicKey } from "./federation.server";
-import { mlDsa65Verify } from "@webbuf/mldsa";
+import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { db } from "~/db";
@@ -38,14 +38,19 @@ const serverInfo = os.serverInfo.handler(async () => {
 
 const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
   const parsed = parseAddress(input.address);
-  if (!parsed) return { signingPublicKey: null, encapPublicKey: null };
+  if (!parsed) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
   const domain = await getDomainByName(parsed.domain);
-  if (!domain) return { signingPublicKey: null, encapPublicKey: null };
+  if (!domain) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
   const user = await getUserByNameAndDomain(parsed.name, domain.id);
-  if (!user || !user.passwordHash) return { signingPublicKey: null, encapPublicKey: null };
+  if (!user || !user.passwordHash) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
   const key = await getActiveKey(user.id);
-  if (!key) return { signingPublicKey: null, encapPublicKey: null };
-  return { signingPublicKey: key.signingPublicKey.toHex(), encapPublicKey: key.encapPublicKey.toHex() };
+  if (!key) return { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null };
+  return {
+    ed25519PublicKey: key.ed25519PublicKey.toHex(),
+    x25519PublicKey: key.x25519PublicKey.toHex(),
+    signingPublicKey: key.signingPublicKey.toHex(),
+    encapPublicKey: key.encapPublicKey.toHex(),
+  };
 });
 
 const getPowChallengeEndpoint = os.getPowChallenge.handler(
@@ -69,12 +74,16 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     if (senderKeyResult.signingPublicKey !== input.senderPubKey) {
       throw new Error("Public key mismatch");
     }
+    if (senderKeyResult.ed25519PublicKey !== input.senderEd25519PubKey) {
+      throw new Error("Ed25519 public key mismatch");
+    }
 
-    // Verify the ML-DSA-65 signature
+    // Verify the composite Ed25519 + ML-DSA-65 signature
+    const ed25519Pub = FixedBuf.fromHex(32, input.senderEd25519PubKey);
     const verifyingKey = FixedBuf.fromHex(1952, input.senderPubKey);
     const message = WebBuf.fromUtf8(`${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`);
-    const sig = FixedBuf.fromHex(3309, input.signature);
-    const ok = mlDsa65Verify(verifyingKey, message, sig);
+    const sig = FixedBuf.fromHex(3374, input.signature);
+    const ok = sigEd25519MldsaVerify(ed25519Pub, verifyingKey, message, sig);
     if (!ok) {
       throw new Error("Invalid signature");
     }
@@ -170,7 +179,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     const senderEncryptedContentBuf = WebBuf.fromHex(
       messageData.senderEncryptedContent,
     );
+    const senderEd25519PubKeyBuf = WebBuf.fromHex(messageData.senderEd25519PubKey);
+    const senderX25519PubKeyBuf = WebBuf.fromHex(messageData.senderX25519PubKey);
     const senderPubKeyBuf = WebBuf.fromHex(messageData.senderPubKey);
+    const recipientX25519PubKeyBuf = WebBuf.fromHex(messageData.recipientX25519PubKey);
     const recipientPubKeyBuf = WebBuf.fromHex(messageData.recipientPubKey);
     const senderSignatureBuf = WebBuf.fromHex(messageData.senderSignature);
 
@@ -178,7 +190,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     const sigValid = verifyMessageSignature(
       messageData.senderAddress,
       messageData.recipientAddress,
+      senderEd25519PubKeyBuf,
       senderPubKeyBuf,
+      senderX25519PubKeyBuf,
+      recipientX25519PubKeyBuf,
       recipientPubKeyBuf,
       encryptedContentBuf,
       senderEncryptedContentBuf,
@@ -193,6 +208,9 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     if (!senderKeys) throw new Error("Sender not found via federation");
     if (senderKeys.signingPublicKey !== messageData.senderPubKey) {
       throw new Error("senderPubKey does not match federated signing key");
+    }
+    if (senderKeys.ed25519PublicKey !== messageData.senderEd25519PubKey) {
+      throw new Error("senderEd25519PubKey does not match federated ed25519 key");
     }
 
     // Verify recipientPubKey matches the local recipient's active encap key
@@ -221,7 +239,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
         messageData.senderAddress,
         encryptedContentBuf,
         senderEncryptedContentBuf,
+        senderEd25519PubKeyBuf,
+        senderX25519PubKeyBuf,
         senderPubKeyBuf,
+        recipientX25519PubKeyBuf,
         recipientPubKeyBuf,
         senderSignatureBuf,
         false,
@@ -258,7 +279,10 @@ const pullMessageHandler = os.pullMessage.handler(async ({ input }) => {
     recipientAddress: delivery.recipientAddress,
     encryptedContent: delivery.encryptedContent.toHex(),
     senderEncryptedContent: delivery.senderEncryptedContent.toHex(),
+    senderEd25519PubKey: delivery.senderEd25519PubKey.toHex(),
+    senderX25519PubKey: delivery.senderX25519PubKey.toHex(),
     senderPubKey: delivery.senderPubKey.toHex(),
+    recipientX25519PubKey: delivery.recipientX25519PubKey.toHex(),
     recipientPubKey: delivery.recipientPubKey.toHex(),
     senderSignature: delivery.senderSignature.toHex(),
   };

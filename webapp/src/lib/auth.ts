@@ -1,8 +1,11 @@
 import { sha256Hash, sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { mlDsa65KeyPair, mlDsa65Sign } from "@webbuf/mldsa";
+import { mlDsa65KeyPair } from "@webbuf/mldsa";
 import { mlKem768KeyPair } from "@webbuf/mlkem";
+import { ed25519PublicKeyCreate } from "@webbuf/ed25519";
+import { x25519PublicKeyCreate } from "@webbuf/x25519";
+import { sigEd25519MldsaSign } from "@webbuf/sig-ed25519-mldsa";
 import { aesgcmEncryptNative, aesgcmDecryptNative } from "./aesgcm";
 
 const CLIENT_KDF_ROUNDS = 300_000;
@@ -143,13 +146,34 @@ export async function deriveEncryptionKeyFromPasswordKey(
 export async function generateAndEncryptKeyPairFromEncryptionKey(
   encryptionKey: FixedBuf<32>,
 ): Promise<{
+  ed25519PublicKey: WebBuf;
+  encryptedEd25519Key: WebBuf;
+  x25519PublicKey: WebBuf;
+  encryptedX25519Key: WebBuf;
   signingPublicKey: WebBuf;
   encapPublicKey: WebBuf;
   encryptedSigningKey: WebBuf;
   encryptedDecapKey: WebBuf;
 }> {
+  // Ed25519 key pair
+  const ed25519Key = FixedBuf.fromRandom(32);
+  const ed25519Pub = ed25519PublicKeyCreate(ed25519Key);
+  // X25519 key pair
+  const x25519Key = FixedBuf.fromRandom(32);
+  const x25519Pub = x25519PublicKeyCreate(x25519Key);
+  // ML-DSA-65 key pair
   const { verifyingKey, signingKey } = mlDsa65KeyPair();
+  // ML-KEM-768 key pair
   const { encapsulationKey, decapsulationKey } = mlKem768KeyPair();
+
+  const encryptedEd25519Key = await aesgcmEncryptNative(
+    ed25519Key.buf,
+    encryptionKey,
+  );
+  const encryptedX25519Key = await aesgcmEncryptNative(
+    x25519Key.buf,
+    encryptionKey,
+  );
   const encryptedSigningKey = await aesgcmEncryptNative(
     signingKey.buf,
     encryptionKey,
@@ -159,6 +183,10 @@ export async function generateAndEncryptKeyPairFromEncryptionKey(
     encryptionKey,
   );
   return {
+    ed25519PublicKey: ed25519Pub.buf,
+    encryptedEd25519Key,
+    x25519PublicKey: x25519Pub.buf,
+    encryptedX25519Key,
     signingPublicKey: verifyingKey.buf,
     encapPublicKey: encapsulationKey.buf,
     encryptedSigningKey,
@@ -180,6 +208,22 @@ export async function decryptDecapKey(
 ): Promise<FixedBuf<2400>> {
   const decrypted = await aesgcmDecryptNative(encrypted, encryptionKey);
   return FixedBuf.fromBuf(2400, decrypted);
+}
+
+export async function decryptEd25519Key(
+  encrypted: WebBuf,
+  encryptionKey: FixedBuf<32>,
+): Promise<FixedBuf<32>> {
+  const decrypted = await aesgcmDecryptNative(encrypted, encryptionKey);
+  return FixedBuf.fromBuf(32, decrypted);
+}
+
+export async function decryptX25519Key(
+  encrypted: WebBuf,
+  encryptionKey: FixedBuf<32>,
+): Promise<FixedBuf<32>> {
+  const decrypted = await aesgcmDecryptNative(encrypted, encryptionKey);
+  return FixedBuf.fromBuf(32, decrypted);
 }
 
 // --- Encryption key caching (localStorage) ---
@@ -204,20 +248,21 @@ export function clearCachedEncryptionKey(): void {
 
 /**
  * Sign a PoW challenge request to prove sender identity.
- * Returns the signature hex and timestamp used.
+ * Returns the composite signature hex and timestamp used.
  *
- * Uses ML-DSA-65 via @webbuf/mldsa (synchronous WASM).
+ * Uses hybrid Ed25519 + ML-DSA-65 composite signature.
  */
 export function signPowRequest(
   senderAddress: string,
   recipientAddress: string,
+  ed25519Key: FixedBuf<32>,
   signingKey: FixedBuf<4032>,
 ): { signature: string; timestamp: number } {
   const timestamp = Date.now();
   const message = WebBuf.fromUtf8(
     `${senderAddress}:${recipientAddress}:${timestamp}`,
   );
-  const sig = mlDsa65Sign(signingKey, message);
+  const sig = sigEd25519MldsaSign(ed25519Key, signingKey, message);
   return {
     signature: sig.buf.toHex(),
     timestamp,

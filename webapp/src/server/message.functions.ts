@@ -48,7 +48,12 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
       if (!user || !user.passwordHash) return null;
       const key = await getActiveKey(user.id);
       if (!key) return null;
-      return { signingPublicKey: key.signingPublicKey.toHex(), encapPublicKey: key.encapPublicKey.toHex() };
+      return {
+        ed25519PublicKey: key.ed25519PublicKey.toHex(),
+        x25519PublicKey: key.x25519PublicKey.toHex(),
+        signingPublicKey: key.signingPublicKey.toHex(),
+        encapPublicKey: key.encapPublicKey.toHex(),
+      };
     }
     // Remote user — proxy the request (already returns hex from oRPC)
     const remoteKeys = await fetchRemotePublicKey(address);
@@ -68,7 +73,10 @@ export const sendMessage = createServerFn({ method: "POST" })
       senderEncryptedContent: z
         .string()
         .max(MAX_CIPHERTEXT_LENGTH, "Message too large"),
+      senderEd25519PubKey: z.string(),
+      senderX25519PubKey: z.string(),
       senderPubKey: z.string(),
+      recipientX25519PubKey: z.string(),
       recipientPubKey: z.string(),
       senderSignature: z.string(),
       pow: PowSolutionSchema,
@@ -91,13 +99,20 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (input.senderPubKey !== senderActiveKey.signingPublicKey.toHex()) {
       throw new Error("senderPubKey does not match your active signing key");
     }
+    // Validate senderEd25519PubKey matches the authenticated user's active ed25519 key
+    if (input.senderEd25519PubKey !== senderActiveKey.ed25519PublicKey.toHex()) {
+      throw new Error("senderEd25519PubKey does not match your active ed25519 key");
+    }
 
     // Convert hex inputs to WebBuf for DB and crypto operations
     const encryptedContentBuf = WebBuf.fromHex(input.encryptedContent);
     const senderEncryptedContentBuf = WebBuf.fromHex(
       input.senderEncryptedContent,
     );
+    const senderEd25519PubKeyBuf = WebBuf.fromHex(input.senderEd25519PubKey);
+    const senderX25519PubKeyBuf = WebBuf.fromHex(input.senderX25519PubKey);
     const senderPubKeyBuf = WebBuf.fromHex(input.senderPubKey);
+    const recipientX25519PubKeyBuf = WebBuf.fromHex(input.recipientX25519PubKey);
     const recipientPubKeyBuf = WebBuf.fromHex(input.recipientPubKey);
     const senderSignatureBuf = WebBuf.fromHex(input.senderSignature);
 
@@ -113,7 +128,10 @@ export const sendMessage = createServerFn({ method: "POST" })
     const sigValid = verifyMessageSignature(
       senderAddress,
       input.recipientAddress,
+      senderEd25519PubKeyBuf,
       senderPubKeyBuf,
+      senderX25519PubKeyBuf,
+      recipientX25519PubKeyBuf,
       recipientPubKeyBuf,
       encryptedContentBuf,
       senderEncryptedContentBuf,
@@ -173,7 +191,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderAddress,
         encryptedContentBuf,
         senderEncryptedContentBuf,
+        senderEd25519PubKeyBuf,
+        senderX25519PubKeyBuf,
         senderPubKeyBuf,
+        recipientX25519PubKeyBuf,
         recipientPubKeyBuf,
         senderSignatureBuf,
         true,
@@ -183,7 +204,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderAddress,
         encryptedContentBuf,
         senderEncryptedContentBuf,
+        senderEd25519PubKeyBuf,
+        senderX25519PubKeyBuf,
         senderPubKeyBuf,
+        recipientX25519PubKeyBuf,
         recipientPubKeyBuf,
         senderSignatureBuf,
         false,
@@ -208,7 +232,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         senderAddress,
         encryptedContentBuf,
         senderEncryptedContentBuf,
+        senderEd25519PubKeyBuf,
+        senderX25519PubKeyBuf,
         senderPubKeyBuf,
+        recipientX25519PubKeyBuf,
         recipientPubKeyBuf,
         senderSignatureBuf,
         true,
@@ -219,7 +246,10 @@ export const sendMessage = createServerFn({ method: "POST" })
         input.recipientAddress,
         encryptedContentBuf,
         senderEncryptedContentBuf,
+        senderEd25519PubKeyBuf,
+        senderX25519PubKeyBuf,
         senderPubKeyBuf,
+        recipientX25519PubKeyBuf,
         recipientPubKeyBuf,
         senderSignatureBuf,
         input.pow,
@@ -266,7 +296,10 @@ function messagesToHex<
   T extends {
     encryptedContent: WebBuf;
     senderEncryptedContent: WebBuf;
+    senderEd25519PubKey: WebBuf;
+    senderX25519PubKey: WebBuf;
     senderPubKey: WebBuf;
+    recipientX25519PubKey: WebBuf;
     recipientPubKey: WebBuf;
     senderSignature: WebBuf;
   },
@@ -275,7 +308,10 @@ function messagesToHex<
     ...m,
     encryptedContent: m.encryptedContent.toHex(),
     senderEncryptedContent: m.senderEncryptedContent.toHex(),
+    senderEd25519PubKey: m.senderEd25519PubKey.toHex(),
+    senderX25519PubKey: m.senderX25519PubKey.toHex(),
     senderPubKey: m.senderPubKey.toHex(),
+    recipientX25519PubKey: m.recipientX25519PubKey.toHex(),
     recipientPubKey: m.recipientPubKey.toHex(),
     senderSignature: m.senderSignature.toHex(),
   }));
@@ -348,6 +384,10 @@ export const getMyActiveEncryptedKey = createServerFn({
     const key = await getActiveKey(userId);
     if (!key) throw new Error("No key found");
     return {
+      ed25519PublicKey: key.ed25519PublicKey.toHex(),
+      encryptedEd25519Key: key.encryptedEd25519Key.toHex(),
+      x25519PublicKey: key.x25519PublicKey.toHex(),
+      encryptedX25519Key: key.encryptedX25519Key.toHex(),
       signingPublicKey: key.signingPublicKey.toHex(),
       encapPublicKey: key.encapPublicKey.toHex(),
       encryptedSigningKey: key.encryptedSigningKey.toHex(),
@@ -360,6 +400,7 @@ export const getRemotePowChallenge = createServerFn({ method: "POST" })
     z.object({
       recipientAddress: z.string(),
       senderAddress: z.string(),
+      senderEd25519PubKey: z.string(),
       senderPubKey: z.string(),
       signature: z.string(),
       timestamp: z.number(),

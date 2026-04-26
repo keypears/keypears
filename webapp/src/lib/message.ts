@@ -1,10 +1,13 @@
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import {
-  aesgcmMlkemEncrypt,
-  aesgcmMlkemDecrypt,
-} from "@webbuf/aesgcm-mlkem";
-import { mlDsa65Sign, mlDsa65Verify } from "@webbuf/mldsa";
+  aesgcmX25519dhMlkemEncrypt,
+  aesgcmX25519dhMlkemDecrypt,
+} from "@webbuf/aesgcm-x25519dh-mlkem";
+import {
+  sigEd25519MldsaSign,
+  sigEd25519MldsaVerify,
+} from "@webbuf/sig-ed25519-mldsa";
 import { z } from "zod";
 
 // --- Message schemas ---
@@ -60,7 +63,10 @@ function lengthPrefix(field: WebBuf): WebBuf {
 function buildSignedEnvelope(
   senderAddress: string,
   recipientAddress: string,
+  senderEd25519PubKey: WebBuf,
   senderSigningPubKey: WebBuf,
+  senderX25519PubKey: WebBuf,
+  recipientX25519PubKey: WebBuf,
   recipientEncapPubKey: WebBuf,
   recipientCiphertext: WebBuf,
   senderCiphertext: WebBuf,
@@ -69,7 +75,10 @@ function buildSignedEnvelope(
     lengthPrefix(ENVELOPE_DOMAIN),
     lengthPrefix(WebBuf.fromUtf8(senderAddress)),
     lengthPrefix(WebBuf.fromUtf8(recipientAddress)),
+    lengthPrefix(senderEd25519PubKey),
     lengthPrefix(senderSigningPubKey),
+    lengthPrefix(senderX25519PubKey),
+    lengthPrefix(recipientX25519PubKey),
     lengthPrefix(recipientEncapPubKey),
     lengthPrefix(recipientCiphertext),
     lengthPrefix(senderCiphertext),
@@ -88,26 +97,46 @@ export function encryptMessage(
   text: string,
   senderAddress: string,
   recipientAddress: string,
+  senderEd25519Key: FixedBuf<32>,
+  senderEd25519PubKey: WebBuf,
   senderSigningKey: FixedBuf<4032>,
   senderSigningPubKey: WebBuf,
+  senderX25519Key: FixedBuf<32>,
+  senderX25519PubKey: WebBuf,
   senderEncapKey: FixedBuf<1184>,
+  recipientX25519PubKey: WebBuf,
   recipientEncapKey: FixedBuf<1184>,
   recipientEncapPubKey: WebBuf,
 ): EncryptedMessage {
   const content = JSON.stringify({ version: 1, type: "text", text });
   const plaintext = WebBuf.fromUtf8(content);
   const aad = buildMessageAad(senderAddress, recipientAddress);
-  const recipientCt = aesgcmMlkemEncrypt(recipientEncapKey, plaintext, aad);
-  const senderCt = aesgcmMlkemEncrypt(senderEncapKey, plaintext, aad);
+  const recipientCt = aesgcmX25519dhMlkemEncrypt(
+    senderX25519Key,
+    FixedBuf.fromBuf(32, recipientX25519PubKey),
+    recipientEncapKey,
+    plaintext,
+    aad,
+  );
+  const senderCt = aesgcmX25519dhMlkemEncrypt(
+    senderX25519Key,
+    FixedBuf.fromBuf(32, senderX25519PubKey),
+    senderEncapKey,
+    plaintext,
+    aad,
+  );
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
+    senderEd25519PubKey,
     senderSigningPubKey,
+    senderX25519PubKey,
+    recipientX25519PubKey,
     recipientEncapPubKey,
     recipientCt,
     senderCt,
   );
-  const sig = mlDsa65Sign(senderSigningKey, envelope);
+  const sig = sigEd25519MldsaSign(senderEd25519Key, senderSigningKey, envelope);
   return {
     recipientCiphertext: recipientCt,
     senderCiphertext: senderCt,
@@ -119,26 +148,46 @@ export function encryptSecretMessage(
   secret: SecretPayload,
   senderAddress: string,
   recipientAddress: string,
+  senderEd25519Key: FixedBuf<32>,
+  senderEd25519PubKey: WebBuf,
   senderSigningKey: FixedBuf<4032>,
   senderSigningPubKey: WebBuf,
+  senderX25519Key: FixedBuf<32>,
+  senderX25519PubKey: WebBuf,
   senderEncapKey: FixedBuf<1184>,
+  recipientX25519PubKey: WebBuf,
   recipientEncapKey: FixedBuf<1184>,
   recipientEncapPubKey: WebBuf,
 ): EncryptedMessage {
   const content = JSON.stringify({ version: 1, type: "secret", secret });
   const plaintext = WebBuf.fromUtf8(content);
   const aad = buildMessageAad(senderAddress, recipientAddress);
-  const recipientCt = aesgcmMlkemEncrypt(recipientEncapKey, plaintext, aad);
-  const senderCt = aesgcmMlkemEncrypt(senderEncapKey, plaintext, aad);
+  const recipientCt = aesgcmX25519dhMlkemEncrypt(
+    senderX25519Key,
+    FixedBuf.fromBuf(32, recipientX25519PubKey),
+    recipientEncapKey,
+    plaintext,
+    aad,
+  );
+  const senderCt = aesgcmX25519dhMlkemEncrypt(
+    senderX25519Key,
+    FixedBuf.fromBuf(32, senderX25519PubKey),
+    senderEncapKey,
+    plaintext,
+    aad,
+  );
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
+    senderEd25519PubKey,
     senderSigningPubKey,
+    senderX25519PubKey,
+    recipientX25519PubKey,
     recipientEncapPubKey,
     recipientCt,
     senderCt,
   );
-  const sig = mlDsa65Sign(senderSigningKey, envelope);
+  const sig = sigEd25519MldsaSign(senderEd25519Key, senderSigningKey, envelope);
   return {
     recipientCiphertext: recipientCt,
     senderCiphertext: senderCt,
@@ -151,7 +200,10 @@ export function encryptSecretMessage(
 export function verifyMessageSignature(
   senderAddress: string,
   recipientAddress: string,
+  senderEd25519PubKey: WebBuf,
   senderSigningPubKey: WebBuf,
+  senderX25519PubKey: WebBuf,
+  recipientX25519PubKey: WebBuf,
   recipientEncapPubKey: WebBuf,
   recipientCiphertext: WebBuf,
   senderCiphertext: WebBuf,
@@ -160,26 +212,38 @@ export function verifyMessageSignature(
   const envelope = buildSignedEnvelope(
     senderAddress,
     recipientAddress,
+    senderEd25519PubKey,
     senderSigningPubKey,
+    senderX25519PubKey,
+    recipientX25519PubKey,
     recipientEncapPubKey,
     recipientCiphertext,
     senderCiphertext,
   );
+  const ed25519Pub = FixedBuf.fromBuf(32, senderEd25519PubKey);
   const verifyingKey = FixedBuf.fromBuf(1952, senderSigningPubKey);
-  const sig = FixedBuf.fromBuf(3309, signature);
-  return mlDsa65Verify(verifyingKey, envelope, sig);
+  const sig = FixedBuf.fromBuf(3374, signature);
+  return sigEd25519MldsaVerify(ed25519Pub, verifyingKey, envelope, sig);
 }
 
 // --- Decrypt ---
 
 export function decryptMessageContent(
   encrypted: WebBuf,
+  myX25519Key: FixedBuf<32>,
+  senderX25519PubKey: WebBuf,
   decapKey: FixedBuf<2400>,
   senderAddress: string,
   recipientAddress: string,
 ): MessageContent {
   const aad = buildMessageAad(senderAddress, recipientAddress);
-  const decrypted = aesgcmMlkemDecrypt(decapKey, encrypted, aad);
+  const decrypted = aesgcmX25519dhMlkemDecrypt(
+    myX25519Key,
+    FixedBuf.fromBuf(32, senderX25519PubKey),
+    decapKey,
+    encrypted,
+    aad,
+  );
   const parsed = JSON.parse(decrypted.toUtf8());
   const envelope = MessageEnvelope.parse(parsed);
 

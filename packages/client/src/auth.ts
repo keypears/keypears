@@ -1,6 +1,6 @@
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import { mlDsa65Verify } from "@webbuf/mldsa";
+import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";
 import { discoverApiDomain } from "./discover";
 import { createKeypearsClient } from "./client";
 import { buildCanonicalPayload } from "./canonical";
@@ -134,15 +134,16 @@ export async function verifyCallback(options: {
   const apiDomain = await discoverApiDomain(parsed.domain);
   const client = createKeypearsClient(apiDomain);
   const result = await client.getPublicKey({ address });
-  if (!result.signingPublicKey) {
+  if (!result.signingPublicKey || !result.ed25519PublicKey) {
     throw new Error(`Public key not found for ${address}`);
   }
 
-  // Verify the ML-DSA-65 signature
+  // Verify the composite Ed25519 + ML-DSA-65 signature
+  const ed25519Pub = FixedBuf.fromHex(32, result.ed25519PublicKey);
   const verifyingKey = FixedBuf.fromHex(1952, result.signingPublicKey);
-  const sig = FixedBuf.fromBuf(3309, WebBuf.fromUint8Array(base64urlDecode(signature)));
+  const sig = FixedBuf.fromBuf(3374, WebBuf.fromUint8Array(base64urlDecode(signature)));
   const payloadBytes = WebBuf.fromUtf8(payload);
-  const valid = mlDsa65Verify(verifyingKey, payloadBytes, sig);
+  const valid = sigEd25519MldsaVerify(ed25519Pub, verifyingKey, payloadBytes, sig);
 
   if (!valid) {
     throw new Error("Invalid signature — authentication failed");

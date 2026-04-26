@@ -104,19 +104,30 @@ export async function verifyDomainAdmin(
 
 export async function fetchRemotePublicKey(
   address: string,
-): Promise<{ signingPublicKey: string; encapPublicKey: string } | null> {
+): Promise<{
+  ed25519PublicKey: string;
+  x25519PublicKey: string;
+  signingPublicKey: string;
+  encapPublicKey: string;
+} | null> {
   const parsed = parseAddress(address);
   if (!parsed) return null;
 
   const client = await getRemoteClient(parsed.domain);
   const result = await client.getPublicKey({ address });
-  if (!result.signingPublicKey || !result.encapPublicKey) return null;
-  return { signingPublicKey: result.signingPublicKey, encapPublicKey: result.encapPublicKey };
+  if (!result.signingPublicKey || !result.encapPublicKey || !result.ed25519PublicKey || !result.x25519PublicKey) return null;
+  return {
+    ed25519PublicKey: result.ed25519PublicKey,
+    x25519PublicKey: result.x25519PublicKey,
+    signingPublicKey: result.signingPublicKey,
+    encapPublicKey: result.encapPublicKey,
+  };
 }
 
 export async function fetchRemotePowChallenge(input: {
   recipientAddress: string;
   senderAddress: string;
+  senderEd25519PubKey: string;
   senderPubKey: string;
   signature: string;
   timestamp: number;
@@ -132,7 +143,10 @@ export async function deliverRemoteMessage(
   recipientAddress: string,
   encryptedContent: WebBuf,
   senderEncryptedContent: WebBuf,
+  senderEd25519PubKey: WebBuf,
+  senderX25519PubKey: WebBuf,
   senderPubKey: WebBuf,
+  recipientX25519PubKey: WebBuf,
   recipientPubKey: WebBuf,
   senderSignature: WebBuf,
   pow: {
@@ -157,7 +171,10 @@ export async function deliverRemoteMessage(
     recipientAddress,
     encryptedContent,
     senderEncryptedContent,
+    senderEd25519PubKey,
+    senderX25519PubKey,
     senderPubKey,
+    recipientX25519PubKey,
     recipientPubKey,
     senderSignature,
     expiresAt,
@@ -171,6 +188,7 @@ export async function deliverRemoteMessage(
       senderAddress,
       recipientAddress,
       pullToken: token,
+      senderEd25519PubKey: senderEd25519PubKey.toHex(),
       senderEncryptedContent: senderEncryptedContent.toHex(),
       senderSignature: senderSignature.toHex(),
       pow,

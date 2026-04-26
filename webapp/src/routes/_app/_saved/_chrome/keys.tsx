@@ -10,6 +10,8 @@ import {
   cacheEncryptionKey,
   decryptSigningKey,
   decryptDecapKey,
+  decryptEd25519Key,
+  decryptX25519Key,
 } from "~/lib/auth";
 import { aesgcmEncryptNative } from "~/lib/aesgcm";
 import { WebBuf } from "@webbuf/webbuf";
@@ -65,6 +67,10 @@ function KeysPage() {
         await generateAndEncryptKeyPairFromEncryptionKey(encryptionKey);
       await rotateKey({
         data: {
+          ed25519PublicKey: keyPair.ed25519PublicKey.toHex(),
+          encryptedEd25519Key: keyPair.encryptedEd25519Key.toHex(),
+          x25519PublicKey: keyPair.x25519PublicKey.toHex(),
+          encryptedX25519Key: keyPair.encryptedX25519Key.toHex(),
           signingPublicKey: keyPair.signingPublicKey.toHex(),
           encapPublicKey: keyPair.encapPublicKey.toHex(),
           encryptedSigningKey: keyPair.encryptedSigningKey.toHex(),
@@ -102,6 +108,14 @@ function KeysPage() {
       if (!key) throw new Error("Key not found");
 
       setKeyStatus("Decrypting...");
+      const ed25519Key = await decryptEd25519Key(
+        WebBuf.fromHex(key.encryptedEd25519Key),
+        oldEncryptionKey,
+      );
+      const x25519Key = await decryptX25519Key(
+        WebBuf.fromHex(key.encryptedX25519Key),
+        oldEncryptionKey,
+      );
       const signingKey = await decryptSigningKey(
         WebBuf.fromHex(key.encryptedSigningKey),
         oldEncryptionKey,
@@ -112,6 +126,14 @@ function KeysPage() {
       );
 
       setKeyStatus("Re-encrypting...");
+      const reEncEd25519Key = await aesgcmEncryptNative(
+        ed25519Key.buf,
+        newEncryptionKey,
+      );
+      const reEncX25519Key = await aesgcmEncryptNative(
+        x25519Key.buf,
+        newEncryptionKey,
+      );
       const reEncSigningKey = await aesgcmEncryptNative(
         signingKey.buf,
         newEncryptionKey,
@@ -125,6 +147,8 @@ function KeysPage() {
       await reEncryptMyKey({
         data: {
           keyId: changingKeyId,
+          encryptedEd25519Key: reEncEd25519Key.toHex(),
+          encryptedX25519Key: reEncX25519Key.toHex(),
           encryptedSigningKey: reEncSigningKey.toHex(),
           encryptedDecapKey: reEncDecapKey.toHex(),
           loginKey: newLoginKey,

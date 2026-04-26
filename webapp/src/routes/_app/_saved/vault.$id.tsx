@@ -12,6 +12,8 @@ import { getMyKeys } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
   decryptSigningKey,
+  decryptEd25519Key,
+  decryptX25519Key,
   calculatePasswordEntropy,
   entropyTier,
   entropyLabel,
@@ -403,6 +405,9 @@ function EntryDetail({
     senderSignature: string;
     senderPubKey: string;
     recipientPubKey: string;
+    senderEd25519PubKey: string;
+    senderX25519PubKey: string;
+    recipientX25519PubKey: string;
   } | null>(null);
 
   // Edit state
@@ -560,6 +565,14 @@ function EntryDetail({
       const myActiveKey = await getMyActiveEncryptedKey();
       const encKey = getCachedEncryptionKey();
       if (!encKey) throw new Error("Encryption key not found");
+      const myEd25519Key = await decryptEd25519Key(
+        WebBuf.fromHex(myActiveKey.encryptedEd25519Key as string),
+        encKey,
+      );
+      const myX25519Key = await decryptX25519Key(
+        WebBuf.fromHex(myActiveKey.encryptedX25519Key as string),
+        encKey,
+      );
       const mySigningKey = await decryptSigningKey(
         WebBuf.fromHex(myActiveKey.encryptedSigningKey as string),
         encKey,
@@ -575,9 +588,14 @@ function EntryDetail({
         secret,
         senderAddress,
         shareAddress,
+        myEd25519Key,
+        WebBuf.fromHex(myActiveKey.ed25519PublicKey as string),
         mySigningKey,
         WebBuf.fromHex(myActiveKey.signingPublicKey as string),
+        myX25519Key,
+        WebBuf.fromHex(myActiveKey.x25519PublicKey as string),
         senderEncapPubKey,
+        WebBuf.fromHex(recipientKey.x25519PublicKey as string),
         recipientEncapPubKey,
         WebBuf.fromHex(recipientKey.encapPublicKey as string),
       );
@@ -587,8 +605,11 @@ function EntryDetail({
         encryptedContent: recipientCiphertext.toHex(),
         senderEncryptedContent: senderCiphertext.toHex(),
         senderSignature: msgSignature.toHex(),
-        senderPubKey: myActiveKey.signingPublicKey as string,
+        senderPubKey: myActiveKey.ed25519PublicKey as string,
         recipientPubKey: recipientKey.encapPublicKey as string,
+        senderEd25519PubKey: myActiveKey.ed25519PublicKey as string,
+        senderX25519PubKey: myActiveKey.x25519PublicKey as string,
+        recipientX25519PubKey: recipientKey.x25519PublicKey as string,
       };
 
       // Get PoW challenge
@@ -596,12 +617,14 @@ function EntryDetail({
       const { signature, timestamp } = signPowRequest(
         senderAddress,
         shareAddress,
+        myEd25519Key,
         mySigningKey,
       );
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: shareAddress,
           senderAddress,
+          senderEd25519PubKey: myActiveKey.ed25519PublicKey as string,
           senderPubKey: myActiveKey.signingPublicKey as string,
           signature,
           timestamp,

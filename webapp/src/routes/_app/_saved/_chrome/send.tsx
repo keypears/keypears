@@ -11,6 +11,8 @@ import { getMyUser } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
   decryptSigningKey,
+  decryptEd25519Key,
+  decryptX25519Key,
   signPowRequest,
 } from "~/lib/auth";
 import { encryptMessage } from "~/lib/message";
@@ -96,6 +98,9 @@ function SendPage() {
     senderSignature: string;
     senderPubKey: string;
     recipientPubKey: string;
+    senderEd25519PubKey: string;
+    senderX25519PubKey: string;
+    recipientX25519PubKey: string;
   } | null>(null);
 
   async function handleSend(e: React.FormEvent) {
@@ -116,6 +121,14 @@ function SendPage() {
       const encryptionKey = getCachedEncryptionKey();
       if (!encryptionKey) throw new Error("Please log in again");
 
+      const myEd25519Key = await decryptEd25519Key(
+        WebBuf.fromHex(myKeyData.encryptedEd25519Key as string),
+        encryptionKey,
+      );
+      const myX25519Key = await decryptX25519Key(
+        WebBuf.fromHex(myKeyData.encryptedX25519Key as string),
+        encryptionKey,
+      );
       const mySigningKey = await decryptSigningKey(
         WebBuf.fromHex(myKeyData.encryptedSigningKey as string),
         encryptionKey,
@@ -131,9 +144,14 @@ function SendPage() {
         text,
         senderAddress,
         recipient,
+        myEd25519Key,
+        WebBuf.fromHex(myKeyData.ed25519PublicKey as string),
         mySigningKey,
         WebBuf.fromHex(myKeyData.signingPublicKey as string),
+        myX25519Key,
+        WebBuf.fromHex(myKeyData.x25519PublicKey as string),
         myEncapPubKey,
+        WebBuf.fromHex(recipientKeyResult.x25519PublicKey as string),
         theirEncapPubKey,
         WebBuf.fromHex(recipientKeyResult.encapPublicKey as string),
       );
@@ -146,11 +164,15 @@ function SendPage() {
         senderSignature: msgSignature.toHex(),
         senderPubKey: myKeyData.signingPublicKey as string,
         recipientPubKey: recipientKeyResult.encapPublicKey as string,
+        senderEd25519PubKey: myKeyData.ed25519PublicKey as string,
+        senderX25519PubKey: myKeyData.x25519PublicKey as string,
+        recipientX25519PubKey: recipientKeyResult.x25519PublicKey as string,
       };
       setStatus("");
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         recipient,
+        myEd25519Key,
         mySigningKey,
       );
 
@@ -158,6 +180,7 @@ function SendPage() {
         data: {
           recipientAddress: recipient,
           senderAddress,
+          senderEd25519PubKey: myKeyData.ed25519PublicKey as string,
           senderPubKey: myKeyData.signingPublicKey as string,
           signature: reqSig,
           timestamp,
