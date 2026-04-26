@@ -1,7 +1,7 @@
 #import "@preview/cetz:0.3.4"
 
 #set document(
-  title: "KeyPears: Hybrid Post-Quantum Federated Secret Exchange",
+  title: "KeyPears: A Federated, Hybrid Post-Quantum End-to-End Encrypted Messaging Protocol",
   author: "Ryan X. Charles",
 )
 
@@ -23,7 +23,8 @@
 
 #align(center)[
   #text(size: 16pt, weight: "bold")[
-    KeyPears: Hybrid Post-Quantum Federated Secret Exchange
+    KeyPears: A Federated, Hybrid Post-Quantum \
+    End-to-End Encrypted Messaging Protocol
   ]
 
   #v(0.5em)

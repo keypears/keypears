@@ -91,7 +91,7 @@ function LandingPage() {
             <h1 className="text-foreground text-4xl font-bold">KeyPears</h1>
           </div>
           <p className="text-muted-foreground mb-8">
-            Federated Secret Exchange
+            Federated, Hybrid Post-Quantum Encrypted Messaging
           </p>
 
           {pagePhase === "idle" && registrationOpen && (
