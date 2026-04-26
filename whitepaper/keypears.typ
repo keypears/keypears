@@ -113,9 +113,11 @@ We propose a protocol that keeps what email got right---federated `name@domain`
 addressing and DNS-based server discovery---while adding hybrid post-quantum
 key exchange for end-to-end encryption, composite signatures for
 authentication, and proof of work for spam mitigation. All asymmetric
-cryptography combines classical Curve25519 primitives (X25519~#cite(<fips203>),
-Ed25519) with NIST-standardized post-quantum algorithms
-(ML-KEM-768~#cite(<fips203>), ML-DSA-65~#cite(<fips204>)).
+cryptography combines classical Curve25519 primitives (X25519, Ed25519) with
+NIST-standardized post-quantum algorithms (ML-KEM-768~#cite(<fips203>),
+ML-DSA-65~#cite(<fips204>)), matching the hybrid direction adopted by
+Signal~#cite(<signal-pqxdh>), Chrome TLS, and the IETF OpenPGP PQC
+draft~#cite(<openpgp-pqc>).
 
 = Design Principles
 
