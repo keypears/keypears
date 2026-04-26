@@ -383,7 +383,16 @@ Keep existing ML-DSA and ML-KEM columns unchanged.
 
 **`webapp/src/server/api.router.ts`:**
 - `getPublicKey`: return `ed25519PublicKey` alongside existing keys
-- `getPowChallengeEndpoint`: verify composite signature instead of ML-DSA only
+- `getPowChallengeEndpoint`: verify composite signature using
+  `sigEd25519MldsaVerify`. Validate BOTH submitted public keys against
+  federation: `senderKeyResult.signingPublicKey === input.senderPubKey` AND
+  `senderKeyResult.ed25519PublicKey === input.senderEd25519PubKey`. Reject if
+  either mismatches.
+- `notifyMessageHandler`: after pulling remote message, validate BOTH sender
+  keys against federation: `senderKeys.signingPublicKey` matches
+  `messageData.senderPubKey` AND `senderKeys.ed25519PublicKey` matches
+  `messageData.senderEd25519PubKey`. Reject if either mismatches. Then verify
+  composite signature with both keys.
 
 **`webapp/src/server/user.server.ts`:**
 - `insertKey`: accept 6 key fields instead of 4
