@@ -9,6 +9,13 @@ import {
   sigEd25519MldsaVerify,
 } from "@webbuf/sig-ed25519-mldsa";
 import { z } from "zod";
+import {
+  decryptEd25519Key,
+  decryptX25519Key,
+  decryptSigningKey,
+  getCachedEncryptionKey,
+} from "./auth";
+import { getMyActiveEncryptedKey } from "~/server/message.functions";
 
 // --- Message schemas ---
 
@@ -227,6 +234,32 @@ export interface OutboundMessage {
   recipientMlkemPubKey: string;
   senderSignature: string;
   recipientKeyNumber: number;
+}
+
+/**
+ * Fetch the user's active encrypted key set, decrypt the private keys with
+ * the cached encryption key, and return a SenderKeys bundle suitable for
+ * prepareOutboundMessage. Throws if the user has no cached encryption key
+ * (login required).
+ */
+export async function loadActiveSenderKeys(): Promise<SenderKeys> {
+  const encryptionKey = getCachedEncryptionKey();
+  if (!encryptionKey) throw new Error("Please log in again");
+  const k = await getMyActiveEncryptedKey();
+  const [ed25519Key, x25519Key, signingKey] = await Promise.all([
+    decryptEd25519Key(WebBuf.fromHex(k.encryptedEd25519Key), encryptionKey),
+    decryptX25519Key(WebBuf.fromHex(k.encryptedX25519Key), encryptionKey),
+    decryptSigningKey(WebBuf.fromHex(k.encryptedSigningKey), encryptionKey),
+  ]);
+  return {
+    ed25519Key,
+    ed25519PubKey: WebBuf.fromHex(k.ed25519PublicKey),
+    signingKey,
+    signingPubKey: WebBuf.fromHex(k.signingPublicKey),
+    x25519Key,
+    x25519PubKey: WebBuf.fromHex(k.x25519PublicKey),
+    encapPubKey: FixedBuf.fromHex(1184, k.encapPublicKey),
+  };
 }
 
 export function prepareOutboundMessage(

@@ -11,9 +11,6 @@ import {
 import { getMyKeys } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
-  decryptSigningKey,
-  decryptEd25519Key,
-  decryptX25519Key,
   calculatePasswordEntropy,
   entropyTier,
   entropyLabel,
@@ -32,13 +29,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { prepareOutboundSecretMessage } from "~/lib/message";
+import {
+  prepareOutboundSecretMessage,
+  loadActiveSenderKeys,
+} from "~/lib/message";
 import type { OutboundMessage } from "~/lib/message";
 import {
   sendMessage,
   getPublicKeyForAddress,
   getRemotePowChallenge,
-  getMyActiveEncryptedKey,
 } from "~/server/message.functions";
 import { getMyUser } from "~/server/user.functions";
 import { signPowRequest } from "~/lib/auth";
@@ -552,23 +551,7 @@ function EntryDetail({
               )
             : { text: decrypted.data.text },
       };
-      // Get my active key for encryption
-      const myActiveKey = await getMyActiveEncryptedKey();
-      const encKey = getCachedEncryptionKey();
-      if (!encKey) throw new Error("Encryption key not found");
-      const myEd25519Key = await decryptEd25519Key(
-        WebBuf.fromHex(myActiveKey.encryptedEd25519Key),
-        encKey,
-      );
-      const myX25519Key = await decryptX25519Key(
-        WebBuf.fromHex(myActiveKey.encryptedX25519Key),
-        encKey,
-      );
-      const mySigningKey = await decryptSigningKey(
-        WebBuf.fromHex(myActiveKey.encryptedSigningKey),
-        encKey,
-      );
-
+      const sender = await loadActiveSenderKeys();
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
@@ -577,15 +560,7 @@ function EntryDetail({
         secret,
         senderAddress,
         shareAddress,
-        {
-          ed25519Key: myEd25519Key,
-          ed25519PubKey: WebBuf.fromHex(myActiveKey.ed25519PublicKey),
-          signingKey: mySigningKey,
-          signingPubKey: WebBuf.fromHex(myActiveKey.signingPublicKey),
-          x25519Key: myX25519Key,
-          x25519PubKey: WebBuf.fromHex(myActiveKey.x25519PublicKey),
-          encapPubKey: FixedBuf.fromHex(1184, myActiveKey.encapPublicKey),
-        },
+        sender,
         {
           x25519PubKey: WebBuf.fromHex(recipientKey.x25519PublicKey),
           encapKey: FixedBuf.fromHex(1184, recipientKey.encapPublicKey),
@@ -599,15 +574,15 @@ function EntryDetail({
       const { signature, timestamp } = signPowRequest(
         senderAddress,
         shareAddress,
-        myEd25519Key,
-        mySigningKey,
+        sender.ed25519Key,
+        sender.signingKey,
       );
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: shareAddress,
           senderAddress,
-          senderEd25519PubKey: myActiveKey.ed25519PublicKey,
-          senderMldsaPubKey: myActiveKey.signingPublicKey,
+          senderEd25519PubKey: sender.ed25519PubKey.toHex(),
+          senderMldsaPubKey: sender.signingPubKey.toHex(),
           signature,
           timestamp,
         },

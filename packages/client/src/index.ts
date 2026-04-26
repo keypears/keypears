@@ -11,3 +11,4 @@ export {
 } from "./discover";
 export { buildCanonicalPayload } from "./canonical";
 export { buildSignUrl, verifyCallback, generateState } from "./auth";
+export { hexBytes, hexMaxBytes, addressSchema } from "./schemas";

@@ -14,14 +14,13 @@ import {
 import { getMyKeys, getMyUser } from "~/server/user.functions";
 import {
   getCachedEncryptionKey,
-  decryptSigningKey,
   decryptDecapKey,
-  decryptEd25519Key,
   decryptX25519Key,
   signPowRequest,
 } from "~/lib/auth";
 import {
   prepareOutboundMessage,
+  loadActiveSenderKeys,
   decryptMessageContent,
   verifyMessageSignature,
 } from "~/lib/message";
@@ -454,33 +453,14 @@ function ChannelPage() {
       const recipientKeyResult = await getPublicKeyForAddress({ data: address });
       if (!recipientKeyResult) throw new Error("Cannot determine recipient key");
 
-      const myEd25519Key = await decryptEd25519Key(
-        WebBuf.fromHex(myKeyData.encryptedEd25519Key),
-        encryptionKey,
-      );
-      const myX25519Key = await decryptX25519Key(
-        WebBuf.fromHex(myKeyData.encryptedX25519Key),
-        encryptionKey,
-      );
-      const mySigningKey = await decryptSigningKey(
-        WebBuf.fromHex(myKeyData.encryptedSigningKey),
-        encryptionKey,
-      );
+      const sender = await loadActiveSenderKeys();
       const senderAddress = myAddress!;
 
       pendingSendRef.current = prepareOutboundMessage(
         text,
         senderAddress,
         address,
-        {
-          ed25519Key: myEd25519Key,
-          ed25519PubKey: WebBuf.fromHex(myKeyData.ed25519PublicKey),
-          signingKey: mySigningKey,
-          signingPubKey: WebBuf.fromHex(myKeyData.signingPublicKey),
-          x25519Key: myX25519Key,
-          x25519PubKey: WebBuf.fromHex(myKeyData.x25519PublicKey),
-          encapPubKey: FixedBuf.fromHex(1184, myKeyData.encapPublicKey),
-        },
+        sender,
         {
           x25519PubKey: WebBuf.fromHex(recipientKeyResult.x25519PublicKey),
           encapKey: FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey),
@@ -493,16 +473,16 @@ function ChannelPage() {
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         address,
-        myEd25519Key,
-        mySigningKey,
+        sender.ed25519Key,
+        sender.signingKey,
       );
 
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: address,
           senderAddress,
-          senderEd25519PubKey: myKeyData.ed25519PublicKey,
-          senderMldsaPubKey: myKeyData.signingPublicKey,
+          senderEd25519PubKey: sender.ed25519PubKey.toHex(),
+          senderMldsaPubKey: sender.signingPubKey.toHex(),
           signature: reqSig,
           timestamp,
         },

@@ -79,7 +79,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       senderMldsaPubKey: hexBytes(1952),
       recipientX25519PubKey: hexBytes(32),
       recipientMlkemPubKey: hexBytes(1184),
-      senderSignature: hexMaxBytes(3375),
+      senderSignature: hexBytes(3374),
       recipientKeyNumber: z.number(),
       pow: PowSolutionSchema,
     }),
@@ -225,19 +225,10 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // Validate recipientMlkemPubKey against federation lookup
-      const remoteKeys = await fetchRemotePublicKey(input.recipientAddress);
-      if (!remoteKeys) throw new Error("Recipient not found via federation");
-      if (remoteKeys.encapPublicKey !== input.recipientMlkemPubKey) {
-        throw new Error(
-          "recipientMlkemPubKey does not match recipient's federated encap key",
-        );
-      }
-      if (remoteKeys.x25519PublicKey !== input.recipientX25519PubKey) {
-        throw new Error(
-          "recipientX25519PubKey does not match recipient's federated x25519 key",
-        );
-      }
+      // Recipient key validation happens on the recipient's server (which is
+      // the authority on its own retained key sets, including non-active
+      // ones identified by recipientKeyNumber). A sender-side active-key
+      // check would race with key rotation.
       // PoW is verified by recipient's server in notifyMessage.
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,

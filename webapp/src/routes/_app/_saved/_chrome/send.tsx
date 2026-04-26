@@ -4,18 +4,11 @@ import { z } from "zod";
 import {
   sendMessage,
   getPublicKeyForAddress,
-  getMyActiveEncryptedKey,
   getRemotePowChallenge,
 } from "~/server/message.functions";
 import { getMyUser } from "~/server/user.functions";
-import {
-  getCachedEncryptionKey,
-  decryptSigningKey,
-  decryptEd25519Key,
-  decryptX25519Key,
-  signPowRequest,
-} from "~/lib/auth";
-import { prepareOutboundMessage } from "~/lib/message";
+import { signPowRequest } from "~/lib/auth";
+import { prepareOutboundMessage, loadActiveSenderKeys } from "~/lib/message";
 import type { OutboundMessage } from "~/lib/message";
 import { parseAddress } from "~/lib/config";
 import { PowModal } from "~/components/PowModal";
@@ -108,23 +101,7 @@ function SendPage() {
         throw new Error("Recipient not found or has no key");
 
       setStatus("Preparing encryption...");
-      const myKeyData = await getMyActiveEncryptedKey();
-      const encryptionKey = getCachedEncryptionKey();
-      if (!encryptionKey) throw new Error("Please log in again");
-
-      const myEd25519Key = await decryptEd25519Key(
-        WebBuf.fromHex(myKeyData.encryptedEd25519Key),
-        encryptionKey,
-      );
-      const myX25519Key = await decryptX25519Key(
-        WebBuf.fromHex(myKeyData.encryptedX25519Key),
-        encryptionKey,
-      );
-      const mySigningKey = await decryptSigningKey(
-        WebBuf.fromHex(myKeyData.encryptedSigningKey),
-        encryptionKey,
-      );
-      // Build sender address
+      const sender = await loadActiveSenderKeys();
       const me = await getMyUser();
       if (!me?.name || !me.domain) throw new Error("Account not saved");
       const senderAddress = `${me.name}@${me.domain}`;
@@ -133,15 +110,7 @@ function SendPage() {
         text,
         senderAddress,
         recipient,
-        {
-          ed25519Key: myEd25519Key,
-          ed25519PubKey: WebBuf.fromHex(myKeyData.ed25519PublicKey),
-          signingKey: mySigningKey,
-          signingPubKey: WebBuf.fromHex(myKeyData.signingPublicKey),
-          x25519Key: myX25519Key,
-          x25519PubKey: WebBuf.fromHex(myKeyData.x25519PublicKey),
-          encapPubKey: FixedBuf.fromHex(1184, myKeyData.encapPublicKey),
-        },
+        sender,
         {
           x25519PubKey: WebBuf.fromHex(recipientKeyResult.x25519PublicKey),
           encapKey: FixedBuf.fromHex(1184, recipientKeyResult.encapPublicKey),
@@ -155,16 +124,16 @@ function SendPage() {
       const { signature: reqSig, timestamp } = signPowRequest(
         senderAddress,
         recipient,
-        myEd25519Key,
-        mySigningKey,
+        sender.ed25519Key,
+        sender.signingKey,
       );
 
       const challenge = await getRemotePowChallenge({
         data: {
           recipientAddress: recipient,
           senderAddress,
-          senderEd25519PubKey: myKeyData.ed25519PublicKey,
-          senderMldsaPubKey: myKeyData.signingPublicKey,
+          senderEd25519PubKey: sender.ed25519PubKey.toHex(),
+          senderMldsaPubKey: sender.signingPubKey.toHex(),
           signature: reqSig,
           timestamp,
         },

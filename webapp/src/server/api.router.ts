@@ -161,16 +161,8 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     const messageData = await remoteClient.pullMessage({
       token: input.pullToken,
     });
-    // Verify message sizes
-    if (messageData.encryptedContent.length > 100_000) {
-      throw new Error("Message too large");
-    }
-    if (messageData.senderEncryptedContent.length > 100_000) {
-      throw new Error("Sender encrypted content too large");
-    }
-    if (messageData.senderSignature.length > 6750) {
-      throw new Error("Sender signature too large");
-    }
+    // Wire-format size checks are enforced by the pullMessage Zod schema
+    // (encryptedContent ≤ 50KB hex, senderSignature exactly 3,374 bytes).
     // Verify the message matches the notification
     if (messageData.senderAddress !== input.senderAddress)
       throw new Error("Sender address mismatch");

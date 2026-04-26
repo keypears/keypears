@@ -291,3 +291,91 @@ functions that return key data (`getMyKeys`, `getMyActiveKey`, etc.).
 - Manual: rotate keys on recipient, send message encrypted to old key set,
   verify it's accepted (keyNumber match)
 - Manual: create and share a vault entry
+
+### Result: Pass
+
+All six findings addressed. Verification:
+
+- `bun run typecheck` — clean
+- `bun run lint` — 0 errors (4 pre-existing `no-map-spread` warnings unchanged)
+- `bun run test` — 13/13 pass
+- Bonus fix: pre-existing `isMine` bug where `keyMap.has(msg.senderMldsaPubKey)`
+  was checking the wrong key type (should be `senderEd25519PubKey`)
+
+A second audit pass surfaced four follow-up items (one medium, three low).
+Design Experiment 2.
+
+## Experiment 2 — Audit follow-ups
+
+### Design
+
+#### A. Fix sender-side rotation race (medium)
+
+`sendMessage` for remote delivery calls `fetchRemotePublicKey` and rejects if
+the recipient's currently-active federated keys don't match the message
+(`message.functions.ts:228`). This breaks even when the message correctly
+carries the recipient's `recipientKeyNumber` for a retained-but-not-active
+key set.
+
+**Fix:** Drop the sender-side remote active-key check entirely. The recipient
+server is the authority on its own keys and validates against any retained
+key set via `getKeyByNumber`. Sender-side validation here is defense-in-depth
+that creates the race without adding security — the recipient rejects bad
+keys anyway, and the sender doesn't have a reliable view of "valid recipient
+keys."
+
+Keep the local active-key validation in `sendMessage` removed too — replace
+with `getKeyByNumber` lookup like the federation handler does. This makes
+local and remote paths symmetric.
+
+#### B. Tighten exact-size signature schemas (low)
+
+| Field | Current | Correct |
+|---|---|---|
+| `senderSignature` (contract + sendMessage) | `hexMaxBytes(3375)` | `hexBytes(3374)` |
+| `signature` (PoW solution) | `z.string()` | `hexBytes(32)` (HMAC-SHA-256) |
+| `getPowChallenge` output `signature` | `z.string()` | `hexBytes(32)` |
+
+`3375` is a leftover from the earlier `6750` hex-char limit — composite
+signatures are exactly 3,374 bytes. Tightening to exact sizes catches
+malformed input at the schema boundary instead of at crypto verification.
+
+#### C. Eliminate schema duplication (low)
+
+`hexBytes`, `hexMaxBytes`, and `addressSchema` are defined twice — once in
+`packages/client/src/contract.ts` and once in `webapp/src/server/schemas.ts`.
+They currently agree, but for a federated protocol this is a drift point.
+
+**Fix:** Export the schema helpers from `@keypears/client` (e.g.
+`packages/client/src/schemas.ts` re-exported from index). Import them in
+`webapp/src/server/schemas.ts`. Single source of truth for the protocol.
+
+#### D. Extract loadActiveSenderKeys helper (low)
+
+The decrypt-active-sender-keys block repeats in three routes:
+
+- `webapp/src/routes/_app/_saved/_chrome/send.tsx:115`
+- `webapp/src/routes/_app/_saved/channel.$address.tsx:457`
+- `webapp/src/routes/_app/_saved/vault.$id.tsx:560`
+
+Each block: fetches `getMyActiveEncryptedKey()`, gets `getCachedEncryptionKey()`,
+runs three `decrypt*Key` calls, builds the `SenderKeys` object for
+`prepareOutboundMessage`.
+
+**Fix:** Add `loadActiveSenderKeys(): Promise<SenderKeys>` to `webapp/src/lib/auth.ts`
+(or alongside `prepareOutboundMessage` in `webapp/src/lib/message.ts` if it
+fits better there). Routes call it directly:
+
+```typescript
+const sender = await loadActiveSenderKeys();
+const msg = prepareOutboundMessage(text, senderAddress, recipient, sender, recipient);
+```
+
+### Verification
+
+- `bun run typecheck` — zero errors
+- `bun run lint` — zero errors
+- `bun run test` — passes
+- Manual: rotate recipient keys, send message that targets the old key —
+  should succeed (rotation race no longer fires)
+- Manual: send malformed signature — should be rejected by schema, not crypto
