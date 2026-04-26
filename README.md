@@ -1,12 +1,12 @@
 # KeyPears
 
-**A Federated, Hybrid Post-Quantum End-to-End Encrypted Messaging Protocol**
+**A Federated Hybrid Post-Quantum End-to-End Encrypted Messaging Protocol**
 
 KeyPears is an end-to-end encrypted messaging system with email-style federated
 addressing. Your identity is a KeyPears address (e.g. `alice@keypears.com`)
 backed by four key pairs: Ed25519 + ML-DSA-65 for composite signatures and
-X25519 + ML-KEM-768 for hybrid encryption. An attacker must break both
-classical and post-quantum algorithms to compromise any operation.
+X25519 + ML-KEM-768 for hybrid encryption. An attacker must break both classical
+and post-quantum algorithms to compromise any operation.
 
 ## How it works
 
