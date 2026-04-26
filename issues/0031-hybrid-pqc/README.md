@@ -329,6 +329,13 @@ is only the ML-KEM encap key. No persistent X25519 key needed.
 - `ed25519PublicKey` blob — 32 bytes
 - `encryptedEd25519Key` blob — 32 bytes + AES-GCM overhead (~80 bytes)
 
+**`messages` table — add Ed25519 sender public key:**
+- `senderEd25519PubKey` blob — 32 bytes (needed for composite signature
+  verification — verifier needs both the Ed25519 and ML-DSA public keys)
+
+**`pending_deliveries` table — same addition:**
+- `senderEd25519PubKey` blob — 32 bytes
+
 Keep existing ML-DSA and ML-KEM columns unchanged.
 
 ### Dependencies
@@ -390,7 +397,13 @@ Keep existing ML-DSA and ML-KEM columns unchanged.
 
 **`webapp/src/server/message.functions.ts`:**
 - `getPublicKeyForAddress`: return `ed25519PublicKey`
-- `sendMessage`: validate sender's Ed25519 key matches active key
+- `sendMessage`: add `senderEd25519PubKey` to input validator. Validate it
+  matches the authenticated user's active Ed25519 key. Pass to `insertMessage`
+  and `deliverRemoteMessage`.
+- `getMyActiveEncryptedKey`: return `ed25519PublicKey` and `encryptedEd25519Key`
+
+**`webapp/src/server/message.server.ts`:**
+- `insertMessage`: add `senderEd25519PubKey` parameter
 
 **`webapp/src/routes/_app/_saved/sign.tsx`:**
 - Decrypt both Ed25519 and ML-DSA keys for composite signing
@@ -398,13 +411,33 @@ Keep existing ML-DSA and ML-KEM columns unchanged.
 
 **`packages/client/src/contract.ts`:**
 - `getPublicKey` output: add `ed25519PublicKey`
+- `getPowChallenge` input: add `senderEd25519PubKey` field (needed for
+  composite signature verification on the challenge request)
+- `notifyMessage` input: add `senderEd25519PubKey`
+- `pullMessage` output: add `senderEd25519PubKey`
 
 **`packages/client/src/auth.ts`:**
 - `verifyCallback`: use `sigEd25519MldsaVerify` with both public keys
 
+**`webapp/src/server/federation.server.ts`:**
+- `fetchRemotePublicKey`: return `ed25519PublicKey` alongside existing keys
+- `deliverRemoteMessage`: accept and store `senderEd25519PubKey`
+
 **All route files (welcome, keys, password, domains, send, channel, vault):**
 - Same pattern as issue 0027: destructure 6 key fields instead of 4,
   pass Ed25519 keys where signing happens
+
+### Size constant updates
+
+Composite signatures are 3,374 bytes (not 3,309). Update all hardcoded sizes:
+- `api.router.ts`: signature size check changes from 6,700 to 6,750 hex chars
+- `message.ts`: `FixedBuf.fromBuf(3309, ...)` → remove direct ML-DSA size
+  references — the composite package handles this internally
+- `auth.ts`: `FixedBuf<4032>` for ML-DSA signing key stays (composite takes
+  both keys separately)
+- Any `FixedBuf.fromHex(1952, ...)` or `FixedBuf.fromHex(3309, ...)` that
+  referenced standalone ML-DSA sizes needs review — if going through the
+  composite package, these are handled internally
 
 ### Verification
 
