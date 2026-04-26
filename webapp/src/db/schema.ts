@@ -56,7 +56,6 @@ const mediumBlob = (name: string) =>
     },
   })(name);
 
-
 // --- Tables ---
 
 export const domains = mysqlTable(
@@ -93,6 +92,12 @@ export const users = mysqlTable(
   },
   (table) => [
     uniqueIndex("name_domain_idx").on(table.name, table.domainId),
+    index("users_domain_name_idx").on(table.domainId, table.name),
+    index("users_unsaved_expiry_idx").on(
+      table.passwordHash,
+      table.expiresAt,
+      table.createdAt,
+    ),
     index("domain_id_idx").on(table.domainId),
     index("users_expires_idx").on(table.expiresAt),
   ],
@@ -117,7 +122,11 @@ export const keys = mysqlTable(
       .default(sql`NOW()`)
       .notNull(),
   },
-  (table) => [index("user_id_idx").on(table.userId)],
+  (table) => [
+    index("user_id_idx").on(table.userId),
+    uniqueIndex("user_key_number_idx").on(table.userId, table.keyNumber),
+    index("user_key_created_idx").on(table.userId, table.createdAt),
+  ],
 );
 
 export const channels = mysqlTable(
@@ -169,6 +178,10 @@ export const secrets = mysqlTable(
       table.id,
     ),
     index("secret_source_message_idx").on(table.sourceMessageId),
+    index("secret_source_message_user_idx").on(
+      table.sourceMessageId,
+      table.userId,
+    ),
   ],
 );
 
@@ -204,6 +217,9 @@ export const messages = mysqlTable(
     recipientX25519PubKey: blob("recipient_x25519_pub_key").notNull(),
     recipientMlkemPubKey: blob("recipient_mlkem_pub_key").notNull(),
     senderSignature: blob("sender_signature").notNull(),
+    messageFingerprint: varchar("message_fingerprint", {
+      length: 64,
+    }).notNull(),
     isRead: boolean("is_read").notNull().default(false),
     createdAt: datetime("created_at")
       .default(sql`NOW()`)
@@ -212,6 +228,10 @@ export const messages = mysqlTable(
   (table) => [
     index("channel_id_idx").on(table.channelId, table.id),
     index("channel_read_idx").on(table.channelId, table.isRead),
+    uniqueIndex("message_channel_fingerprint_idx").on(
+      table.channelId,
+      table.messageFingerprint,
+    ),
   ],
 );
 
@@ -237,7 +257,7 @@ export const pendingDeliveries = mysqlTable(
       .notNull(),
   },
   (table) => [
-    index("token_hash_idx").on(table.tokenHash),
+    uniqueIndex("token_hash_idx").on(table.tokenHash),
     index("delivery_expires_idx").on(table.expiresAt),
   ],
 );
@@ -288,5 +308,8 @@ export const powLog = mysqlTable(
       .default(sql`NOW()`)
       .notNull(),
   },
-  (table) => [index("pow_user_id_idx").on(table.userId)],
+  (table) => [
+    index("pow_user_id_idx").on(table.userId),
+    index("pow_user_id_id_idx").on(table.userId, table.id),
+  ],
 );

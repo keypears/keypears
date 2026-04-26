@@ -1,8 +1,34 @@
 import { db } from "~/db";
 import { channels, messages, secrets } from "~/db/schema";
 import { eq, desc, and, gt, lt, count } from "drizzle-orm";
-import type { WebBuf } from "@webbuf/webbuf";
+import { sha256Hash } from "@webbuf/sha256";
+import { WebBuf } from "@webbuf/webbuf";
 import { newId } from "./utils";
+
+const MESSAGE_FINGERPRINT_DOMAIN = WebBuf.fromUtf8(
+  "KeypearsMessageFingerprintV1",
+);
+
+function fingerprintField(field: WebBuf): WebBuf {
+  const lenBuf = WebBuf.alloc(4);
+  new DataView(lenBuf.buffer, lenBuf.byteOffset, 4).setUint32(0, field.length);
+  return WebBuf.concat([lenBuf, field]);
+}
+
+function buildMessageFingerprint(
+  senderMldsaPubKey: WebBuf,
+  recipientMlkemPubKey: WebBuf,
+  encryptedContent: WebBuf,
+): string {
+  return sha256Hash(
+    WebBuf.concat([
+      fingerprintField(MESSAGE_FINGERPRINT_DOMAIN),
+      fingerprintField(senderMldsaPubKey),
+      fingerprintField(recipientMlkemPubKey),
+      fingerprintField(encryptedContent),
+    ]),
+  ).buf.toHex();
+}
 
 export async function getOrCreateChannel(
   ownerId: string,
@@ -65,15 +91,18 @@ export async function messageExists(
   recipientMlkemPubKey: WebBuf,
   encryptedContent: WebBuf,
 ): Promise<boolean> {
+  const messageFingerprint = buildMessageFingerprint(
+    senderMldsaPubKey,
+    recipientMlkemPubKey,
+    encryptedContent,
+  );
   const [row] = await db
     .select({ id: messages.id })
     .from(messages)
     .where(
       and(
         eq(messages.channelId, channelId),
-        eq(messages.senderMldsaPubKey, senderMldsaPubKey),
-        eq(messages.recipientMlkemPubKey, recipientMlkemPubKey),
-        eq(messages.encryptedContent, encryptedContent),
+        eq(messages.messageFingerprint, messageFingerprint),
       ),
     )
     .limit(1);
@@ -94,6 +123,11 @@ export async function insertMessage(
   isRead: boolean,
 ) {
   const id = newId();
+  const messageFingerprint = buildMessageFingerprint(
+    senderMldsaPubKey,
+    recipientMlkemPubKey,
+    encryptedContent,
+  );
   await db.insert(messages).values({
     id,
     channelId,
@@ -106,6 +140,7 @@ export async function insertMessage(
     recipientX25519PubKey,
     recipientMlkemPubKey,
     senderSignature,
+    messageFingerprint,
     isRead,
   });
   await db
@@ -221,7 +256,7 @@ export async function getNewMessages(
       and(eq(secrets.sourceMessageId, messages.id), eq(secrets.userId, userId)),
     )
     .where(and(eq(messages.channelId, channelId), gt(messages.id, afterId)))
-    .orderBy(messages.createdAt);
+    .orderBy(messages.id);
 }
 
 export async function getChannelById(channelId: string) {
