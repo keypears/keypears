@@ -60,8 +60,9 @@ function base64urlDecode(str: string): Uint8Array {
 /**
  * Verify a callback from the /sign page.
  *
- * Validates state, data, and expiry. Fetches the user's public key via
- * federation. Verifies the ML-DSA-65 signature over the canonical payload.
+ * Validates state, data, and expiry. Fetches the user's public key from the
+ * address domain's authoritative server via federation, then verifies the
+ * composite signature over the canonical payload.
  *
  * Returns the authenticated address on success. Throws on any failure.
  */
@@ -127,7 +128,7 @@ export async function verifyCallback(options: {
     data: options.data,
   });
 
-  // Discover the user's API domain and fetch their public key
+  // Discover the user's authoritative API domain and fetch their current key.
   const parsed = parseAddress(address);
   if (!parsed) throw new Error("Invalid address format in callback");
 

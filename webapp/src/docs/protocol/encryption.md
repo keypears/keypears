@@ -27,6 +27,11 @@ key. This hybrid construction ensures that a breakthrough against lattice-based
 cryptography alone does not compromise confidentiality, and a breakthrough
 against elliptic curves alone does not either.
 
+This assumes Alice received Bob's real public keys from Bob's authoritative
+server. KeyPears does not try to hide future messages from an active server
+that lies about current public keys for the addresses it hosts. The trust exit
+for that case is to self-host the domain.
+
 Alice also encrypts a second copy of the message to her own keys, so she
 can decrypt her sent-message history:
 

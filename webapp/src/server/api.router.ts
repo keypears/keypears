@@ -63,7 +63,8 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
       throw new Error("Request expired");
     }
 
-    // Look up sender's public key from their domain via federation
+    // Look up the sender's current public key from their authoritative domain
+    // server. KeyPears intentionally trusts hosted servers for current keys.
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
     const senderApiUrl = await resolveApiUrl(senderParsed.domain);
@@ -73,7 +74,7 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     });
     if (!senderKeyResult.signingPublicKey) throw new Error("Sender not found");
 
-    // Verify the provided public key matches the federation lookup
+    // Verify the provided public key matches the authoritative federation lookup.
     if (senderKeyResult.signingPublicKey !== input.senderMldsaPubKey) {
       throw new Error("Public key mismatch");
     }
@@ -198,7 +199,7 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       throw new Error("Invalid sender signature");
     }
 
-    // Verify senderMldsaPubKey matches the sender's federated signing key
+    // Verify sender keys match the sender domain's authoritative current keys.
     const senderKeys = await fetchRemotePublicKey(messageData.senderAddress);
     if (!senderKeys) throw new Error("Sender not found via federation");
     if (senderKeys.signingPublicKey !== messageData.senderMldsaPubKey) {

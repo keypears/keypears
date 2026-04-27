@@ -62,13 +62,13 @@ work the client contributed.
 
 An attacker who steals the database cannot brute-force the login key directly
 — it is a uniformly random 256-bit value with a search space of 2^256. The
-only realistic attack is a dictionary attack against the user's password: for
-each candidate password, the attacker computes the full chain (password →
-password key → login key → stored hash), requiring 1,200,000 rounds of
-PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1, 300,000 for Tier 2b, and
-600,000 for the server tier). The per-user salt prevents parallelising a
-dictionary attack across multiple users — each user's hash must be cracked
-independently.
+only realistic attack is a dictionary attack against the user's password. For
+each candidate password, the attacker computes password → password key → login
+key, then the stored hash. The first two client-side tiers use deterministic
+protocol salts, so that work can be reused for the same candidate password
+across users. The final 600,000-round server tier uses a per-user salt derived
+from the user ID, so the server-side hashing work must be performed separately
+for each target user.
 
 ## Security properties
 
@@ -88,18 +88,21 @@ key, then discarded. The password key is used to derive the encryption key and
 login key, then discarded. Only the encryption key is cached.
 
 **If client storage is compromised:** The attacker gets the encryption key and
-can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM) on that
-device. But they CANNOT derive the login key (it's a sibling, not a child)
-and cannot impersonate the user on the server. They also cannot recover the
-user's password.
+can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM) if they
+also obtain the encrypted key blobs. But they CANNOT derive the login key (it's
+a sibling, not a child), and they also cannot recover the user's password.
+Active origin compromise is stronger than storage-only theft: malicious script
+or malware running as the user can combine session access with the cached
+encryption key, fetch encrypted private-key blobs, and sign messages until the
+session is revoked or keys are rotated.
 
 **Graceful fallback.** If client storage is cleared, the user simply re-enters
 their password. No data is lost — the same password derives the same keys.
 
 **Login key never stored raw.** The server hashes the login key with 600,000
 additional PBKDF2-HMAC-SHA-256 rounds, using a per-user salt, before storing.
-A database breach reveals only hashes, not login keys, and an attacker cannot
-crack them all in parallel.
+A database breach reveals only hashes, not login keys, and the server-side
+hashing work is target-specific because of the per-user salt.
 
 ## Per-key password tracking
 

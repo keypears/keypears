@@ -30,6 +30,11 @@ changes in hosting provider: if `acme.com` migrates from one KeyPears server to
 another, Alice's address and identity remain valid. Only the `keypears.json`
 configuration file is updated.
 
+The server currently hosting a domain is trusted to publish the current public
+keys for addresses on that domain. KeyPears keeps this authority model simple
+on purpose so the protocol can be embedded in many applications. If you do not
+trust a hosted server to publish honest keys, host the domain yourself.
+
 This contrasts with centralized systems where your address is controlled by the
 service provider (Signal's phone numbers, Keybase's usernames). With KeyPears,
 if you own your domain, you own your identity.

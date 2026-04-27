@@ -101,6 +101,9 @@ export async function verifyDomainAdmin(
 }
 
 // --- Federation functions ---
+// A remote domain's server is the authoritative source for current public keys
+// of addresses it hosts. This is the protocol trust boundary, not a
+// transparency-backed key directory.
 
 export async function fetchRemotePublicKey(
   address: string,

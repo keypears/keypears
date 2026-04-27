@@ -3,6 +3,12 @@ users across different domains can communicate seamlessly. The model is
 analogous to email: your address is `name@domain`, and the domain determines
 where your data lives.
 
+Federation is intentionally simple. Each domain's server is the authority for
+the current public keys of the addresses it hosts, just as an email domain is
+the authority for routing mail to its users. KeyPears does not add a global key
+transparency system or a no-trust hosted-server layer. If you do not trust a
+hosted server to publish honest keys, run the server for your own domain.
+
 ## Discovery: keypears.json
 
 When a server needs to interact with a user on another domain, it fetches the
@@ -107,6 +113,12 @@ plus a `keyNumber` identifying which key set this is. Ed25519 and ML-DSA-65 are
 used together for composite signature verification. X25519 and ML-KEM-768 are
 used together for hybrid key encapsulation.
 
+This is an authoritative server response, not a transparency-backed identity
+proof. A server that is active and malicious for a domain can lie about future
+public keys for users on that domain. KeyPears accepts that trust boundary to
+keep the protocol simple enough for broad implementation; the mitigation is
+self-hosting or choosing a server you trust.
+
 The sender includes `recipientKeyNumber` in the message so the recipient can
 validate it against any retained key set, not just the currently-active one.
 This avoids a race when the recipient rotates keys between key lookup and
@@ -164,6 +176,9 @@ The pull model provides **domain verification without signing keys**:
 - No server signing keys, no key exchange, no certificate management.
 - Authentication comes from HTTPS/TLS — the same trust model the web uses.
 
+The pull model verifies which domain is speaking. It does not remove trust from
+that domain's server as the authority for hosted users' current keys.
+
 Because the pull happens synchronously during the send, the sender receives
 immediate confirmation of delivery or an immediate error. There is no outbox
 queue, no silent retry, and no delayed bounce notification.
@@ -219,3 +234,6 @@ between hosting arrangements is straightforward:
 
 This works for any migration path: hosted → self-hosted, self-hosted → hosted,
 or self-hosted → different self-hosted.
+
+Migration is also the trust exit. If a hosted server's authority over current
+keys is unacceptable, move the address domain to infrastructure you control.

@@ -62,7 +62,8 @@ export const getPublicKeyForAddress = createServerFn({ method: "GET" })
         keyNumber: key.keyNumber,
       };
     }
-    // Remote user — proxy the request (already returns hex from oRPC)
+    // Remote user: proxy to the domain server that is authoritative for the
+    // address's current public keys.
     const remoteKeys = await fetchRemotePublicKey(address);
     return remoteKeys;
   });
@@ -225,10 +226,9 @@ export const sendMessage = createServerFn({ method: "POST" })
       );
     } else {
       // --- Remote delivery ---
-      // Recipient key validation happens on the recipient's server (which is
-      // the authority on its own retained key sets, including non-active
-      // ones identified by recipientKeyNumber). A sender-side active-key
-      // check would race with key rotation.
+      // Recipient key validation happens on the recipient's authoritative
+      // server, including retained key sets identified by recipientKeyNumber.
+      // A sender-side active-key check would race with key rotation.
       // PoW is verified by recipient's server in notifyMessage.
       const senderChannelId = await getOrCreateChannel(
         senderUser.id,

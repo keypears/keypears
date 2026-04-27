@@ -1,6 +1,12 @@
 Any domain can run a KeyPears server. This guide covers the requirements,
 configuration, and setup.
 
+Self-hosting is the KeyPears trust exit. The protocol deliberately keeps the
+federation model simple: the server for a domain is trusted to publish honest
+current public keys and serve honest client code for that domain. If you do not
+want to trust someone else's hosted server in that role, run your own server for
+your own domain.
+
 ## Requirements
 
 - **Runtime**: Bun
@@ -130,4 +136,3 @@ the env var to an address you already control.
 Changing admin later is symmetric: update the env var, redeploy, and
 the new admin address can claim. The old admin remains the recorded
 admin in the database until the new claim completes.
-

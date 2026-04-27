@@ -65,6 +65,10 @@ recipient's server verifies both signatures by looking up the sender's Ed25519
 and ML-DSA-65 public keys via federation. Both signatures must be valid for
 the challenge request to be accepted.
 
+Federation public-key lookup is an authoritative response from the sender's
+domain server. This keeps the protocol simple and email-like; KeyPears does not
+add global key transparency to remove all trust from hosted servers.
+
 Both sender and recipient addresses are signed into the challenge payload by the
 server's HMAC-SHA-256. This prevents:
 

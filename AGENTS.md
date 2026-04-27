@@ -1,8 +1,16 @@
 # KeyPears
 
-An end-to-end encrypted secret sharing system built on federated hybrid
-Curve25519 + post-quantum key exchange. User identities are KeyPears addresses
-(e.g. `alice@keypears.com`).
+A simple federated encrypted messaging and secret sharing system built on
+hybrid Curve25519 + post-quantum key exchange. User identities are KeyPears
+addresses (e.g. `alice@keypears.com`).
+
+KeyPears prioritizes protocol simplicity so many kinds of apps can embed it.
+Servers are trusted authorities for the current public keys of their hosted
+addresses; the trust exit is self-hosting your own domain, not adding global
+key transparency or a no-trust hosted-server layer. Do not describe KeyPears as
+protecting future messages from an active server that lies about public keys.
+It protects stored ciphertext from database/passive server compromise unless
+the attacker also obtains client-side keys, passwords, or active client access.
 
 ## Project structure
 
@@ -268,8 +276,9 @@ Password (never stored)
 
 - All KDF uses PBKDF2-HMAC-SHA-256 (RFC 8018), 300k rounds per client tier, 600k on server.
 - Only the encryption key is cached. Password key is ephemeral.
-- If localStorage is compromised: attacker can decrypt all four private keys but cannot
-  impersonate the user (login key is a sibling, not derivable from encryption key).
+- If localStorage alone is compromised: attacker can decrypt all four private keys if
+  they also obtain the encrypted key blobs, but cannot derive the login key from the
+  encryption key. Active origin/session compromise is stronger and can sign as the user.
 - Server hashes the login key with 600k additional rounds using a per-user salt (derived from userId) before storing. Total: 1.2M rounds from password to stored hash; server path alone meets the OWASP Password Storage Cheat Sheet recommendation of 600k rounds for PBKDF2-HMAC-SHA-256.
 
 ### Sessions
@@ -289,8 +298,10 @@ Password (never stored)
   - Server-enforced minimums: 7M for both.
   - Users configure via sliders on the Settings page.
 - Challenge requests are authenticated: sender signs with composite
-  Ed25519 + ML-DSA-65, recipient verifies via federation public key
-  lookup. This prevents probing channel existence (social graph privacy).
+  Ed25519 + ML-DSA-65, recipient verifies via the sender's authoritative
+  federation public key lookup. This prevents probing channel existence
+  (social graph privacy) while preserving the protocol's simple server-trust
+  model.
 - Both sender and recipient addresses are signed into the challenge
   payload, preventing reuse across conversations.
 - Challenges are signed with HMAC-SHA256 — stateless until verified.

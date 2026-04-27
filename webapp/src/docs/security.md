@@ -1,8 +1,27 @@
-KeyPears is designed to protect user data even if the server is fully
-compromised. This page describes what the system protects against, and what it
-does not.
+KeyPears is designed to protect stored message bodies and vault contents from
+database theft and passive server compromise. This page describes what the
+system protects against, where the server is still trusted, and what remains
+outside the protocol's goals.
 
-## Server compromise
+## Server trust boundary
+
+KeyPears deliberately keeps the federation model simple and email-like. A
+domain's server is trusted to publish the correct current public keys for its
+hosted addresses and to serve honest client code. If you do not trust a hosted
+server in that role, the protocol answer is to host your own domain.
+
+KeyPears does not try to protect future messages from an active server that
+lies about public keys. Such a server can substitute attacker-controlled
+X25519 and ML-KEM public keys for future sends and perform a man-in-the-middle
+attack on those future messages. This is an intentional trust boundary, not a
+missing key-transparency layer.
+
+The improvement over email is the blast radius. A compromised email server can
+read stored mail. A compromised KeyPears server cannot decrypt already-stored
+application ciphertext unless it also obtains client-side keys, passwords, or
+active client/session access.
+
+## Database and passive server compromise
 
 The server stores only ciphertext (messages, vault entries, encrypted private
 keys) and hashed credentials (login key hashed with 600,000 additional rounds
@@ -22,9 +41,11 @@ requiring 1,200,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1,
 The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
 every login key, matching the OWASP Password Storage Cheat Sheet
 recommendation for PBKDF2-HMAC-SHA-256. An offline attack against the stored
-hash requires 1,200,000 rounds per password guess through the full chain. Per-user salts (derived deterministically from
-the user ID) prevent an attacker from parallelising dictionary attacks across
-the entire database.
+hash requires the full password-to-hash chain. The first two client-side tiers
+use deterministic protocol salts, so an attacker can reuse that work for the
+same password candidate across users. The final 600,000-round server tier uses
+a per-user salt derived from the user ID, so the server-side hashing work must
+still be performed separately for each target user.
 
 For an 8-character password drawn from lowercase letters and digits (36^8 ≈ 2.8
 × 10^12 candidates), exhaustive search is computationally infeasible on any
@@ -66,6 +87,10 @@ the API endpoint.
 A malicious server cannot forge another domain's identity because TLS guarantees
 the response came from the real domain.
 
+Domain spoofing protection is not the same as no-trust key transparency. Once a
+domain is resolved, that domain's KeyPears server remains the authority for its
+users' current public keys.
+
 ## Client storage theft
 
 An attacker who compromises a user's client storage obtains the encryption key,
@@ -74,9 +99,12 @@ and ML-KEM). However, the login key is a cryptographic sibling of the
 encryption key (derived from the same parent with a different salt), not a
 child.
 
-The attacker cannot derive the login key, cannot impersonate the user on the
-server, and cannot access the server-side session. The attack surface is limited
-to decrypting data already present on the compromised device.
+The attacker cannot derive the login key from the encryption key alone. A
+storage-only theft also does not include the server-side session by itself.
+Active origin compromise is different: malicious script or malware running as
+the user can combine session access with the cached encryption key, fetch
+encrypted private-key blobs, and sign messages until the session is revoked or
+keys are rotated.
 
 ## Browser security headers
 
@@ -154,6 +182,9 @@ KeyPears does not protect against:
 
 - **Compromised endpoints** — an attacker with access to the running client can
   read decrypted content.
+- **Active hosted-server key substitution** — servers are trusted authorities
+  for current public keys on the domains they host. A malicious server can lie
+  about future keys for its users. Self-hosting is the trust exit.
 - **Weak passwords** — an entropy meter guides users but the protocol does not
   enforce a minimum.
 - **DNS-level attacks** — BGP hijacking could redirect domain resolution.

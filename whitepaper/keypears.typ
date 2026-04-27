@@ -1,7 +1,7 @@
 #import "@preview/cetz:0.3.4"
 
 #set document(
-  title: "KeyPears: A Federated Hybrid Post-Quantum End-to-End Encrypted Messaging Protocol",
+  title: "KeyPears: Simple Federated Encrypted Messaging System",
   author: "Ryan X. Charles",
 )
 
@@ -23,8 +23,8 @@
 
 #align(center)[
   #text(size: 16pt, weight: "bold")[
-    KeyPears: A Federated Hybrid Post-Quantum \
-    End-to-End Encrypted Messaging Protocol
+    KeyPears: Simple Federated \
+    Encrypted Messaging System
   ]
 
   #v(0.5em)
@@ -43,24 +43,27 @@
 // --- Abstract ---
 
 #par(first-line-indent: 0pt)[
-  *Abstract.* KeyPears is a federated protocol for end-to-end encrypted
+  *Abstract.* KeyPears is a simple federated encrypted messaging system for
   communication and secret management. User identities are email-style
   addresses (`name@domain`) backed by hybrid post-quantum key pairs: Ed25519 +
   ML-DSA-65 (FIPS~204) for composite signatures and X25519 + ML-KEM-768
-  (FIPS~203) for hybrid key encapsulation. An attacker must break both classical
-  and post-quantum algorithms to compromise any operation. Any domain can host a
-  KeyPears server, and servers discover each other through DNS and a well-known
+  (FIPS~203) for hybrid key encapsulation. Any domain can host a KeyPears
+  server, and servers discover each other through DNS and a well-known
   configuration file. Private-key operations, encryption, and decryption use
   NIST-approved primitives and execute client-side; proof-of-work mining also
   executes client-side. Servers store encrypted message bodies and secret
-  payloads but never possess the keys needed to decrypt them; metadata such as
-  addresses and vault labels remain plaintext to support routing and search. A
-  proof-of-work mechanism provides Sybil resistance for account creation,
-  account login, and messaging without CAPTCHAs or third-party services. A
-  redirect-based authentication protocol allows third-party applications to
-  verify user identity without passwords, API keys, or client registration. This
-  paper describes the protocol design, cryptographic construction, federation
-  model, and security analysis.
+  payloads but never possess the keys needed to decrypt already-stored
+  ciphertext; metadata such as addresses and vault labels remain plaintext to
+  support routing and search. Domains remain trusted authorities for their
+  users' current public keys and hosted client code. This email-like trust
+  boundary keeps the protocol small enough for broad implementation: if a user
+  does not trust a hosted server in that role, the trust exit is to host their
+  own domain. A proof-of-work mechanism provides Sybil resistance for account
+  creation, account login, and messaging without CAPTCHAs or third-party
+  services. A redirect-based authentication protocol allows third-party
+  applications to verify user identity without passwords, API keys, or client
+  registration. This paper describes the protocol design, cryptographic
+  construction, federation model, and security analysis.
 ]
 
 #v(1em)
@@ -111,19 +114,28 @@ flaw is discovered in lattice cryptography, classical algorithms still protect;
 if a quantum computer arrives, post-quantum algorithms still protect.
 
 We propose a protocol that keeps what email got right---federated `name@domain`
-addressing and DNS-based server discovery---while adding hybrid post-quantum
-key exchange for end-to-end encryption, composite signatures for
-authentication, and proof of work for spam mitigation. All asymmetric
-cryptography combines classical Curve25519 primitives (X25519, Ed25519) with
-NIST-standardized post-quantum algorithms (ML-KEM-768~#cite(<fips203>),
-ML-DSA-65~#cite(<fips204>)), matching the hybrid direction adopted by
-Signal~#cite(<signal-pqxdh>), Chrome TLS, and the IETF OpenPGP PQC
-draft~#cite(<openpgp-pqc>).
+addressing, DNS-based server discovery, and simple deployment---while adding
+hybrid post-quantum key exchange for encrypted message bodies, composite
+signatures for authentication, and proof of work for spam mitigation. The
+design intentionally keeps domain servers as the authorities for their users'
+current public keys. This does not remove all trust from hosted servers; it
+makes the trust boundary portable. A user who does not trust a hosted server can
+host the domain themselves.
+
+All asymmetric cryptography combines classical Curve25519 primitives (X25519,
+Ed25519) with NIST-standardized post-quantum algorithms
+(ML-KEM-768~#cite(<fips203>), ML-DSA-65~#cite(<fips204>)), matching the hybrid
+direction adopted by Signal~#cite(<signal-pqxdh>), Chrome TLS, and the IETF
+OpenPGP PQC draft~#cite(<openpgp-pqc>).
 
 = Design Principles
 
-KeyPears is guided by five principles:
+KeyPears is guided by six principles:
 
++ *Simple.* The protocol is small enough for many kinds of applications to
+  embed. Simplicity is an adoption and security property: a protocol that many
+  apps implement correctly is preferable to a more ambitious protocol that few
+  implement at all.
 + *Federated.* Any domain can run a KeyPears server. Servers discover each
   other via DNS. No registration authority controls participation.
 + *End-to-end encrypted.* Message bodies and secret payloads are encrypted
@@ -132,7 +144,9 @@ KeyPears is guided by five principles:
 + *Client-side proof of work.* Every account creation, login, and message
   requires proof of work computed by the client.
 + *DNS-based identity.* Addresses are `name@domain`. Identity is bound to DNS
-  domain ownership, not to a phone number or a central registry.
+  domain ownership, not to a phone number or a central registry. The server for
+  a domain is trusted to publish honest current public keys for that domain's
+  users; self-hosting is the trust exit.
 + *Hybrid post-quantum by default.* Classical (Ed25519, X25519) and
   post-quantum (ML-DSA-65, ML-KEM-768) algorithms are combined in every
   cryptographic operation. Both must be broken to compromise the system.
@@ -208,7 +222,8 @@ communicated before.
 
 + Alice's client asks her server for Bob's public keys. Her server fetches
   all four of Bob's public keys (Ed25519, X25519, ML-DSA-65, ML-KEM-768) from
-  Bob's server via the federation API.
+  Bob's server via the federation API. Bob's server is the authority for the
+  current keys of addresses hosted on Bob's domain.
 + Alice's client requests a proof-of-work challenge from Bob's server. The
   request is signed with Alice's composite Ed25519 + ML-DSA-65 key.
 + Alice's client mines the challenge on the GPU.
@@ -228,6 +243,12 @@ communicated before.
 
 At no point does any server possess the plaintext or the keys needed to derive
 it.
+
+This statement describes stored ciphertext and honest key discovery. An active
+server that is authoritative for a domain can lie about future public keys for
+addresses on that domain. KeyPears accepts this email-like trust boundary to
+keep federation simple and implementable; users who do not trust a hosted
+server should host their own domain.
 
 = Identity and Addressing
 
@@ -258,6 +279,10 @@ Old keys are retained so that messages encrypted under previous keys can still
 be decrypted. All private keys are encrypted client-side with AES-256-GCM
 under the user's encryption key (Section~5) and stored on the server as
 ciphertext.
+
+The currently hosting server publishes the active public key set for each
+address on its domain. This is an authoritative server response rather than a
+global transparency-backed identity proof.
 
 = Key Derivation
 
@@ -424,6 +449,12 @@ issues a pull token. It notifies the recipient's server, which independently
 resolves the sender's domain via DNS and TLS. The recipient pulls the
 ciphertext, verifies the composite signature, and stores the message.
 
+The pull model verifies which domain is speaking; it does not remove trust from
+that domain's server. Each server remains the authority for the current public
+keys of the users it hosts. This is the same simplicity tradeoff that made
+email deployable, but with encrypted stored content and a self-hosting exit for
+users who want to control their own key authority.
+
 = Third-Party Authentication
 
 KeyPears provides a redirect-based authentication protocol that allows any
@@ -474,6 +505,20 @@ PBKDF2-HMAC-SHA-256). An attacker who captures the database cannot decrypt
 message content or secret payloads. Metadata (addresses, vault labels, channel
 counterparties) is stored in plaintext.
 
+This protection applies to database compromise and passive server compromise.
+An active server remains trusted to publish honest current public keys for the
+addresses it hosts and to serve honest client code. If that server lies about
+future public keys, it can cause future messages to be encrypted to attacker
+keys. KeyPears does not attempt to prevent that class of hosted-server
+man-in-the-middle attack. Instead, it reduces the blast radius compared with
+email: a compromised email server can read stored mail, while a compromised
+KeyPears server cannot decrypt already-stored application ciphertext unless it
+also obtains client-side keys, passwords, or active client/session access.
+
+This is a deliberate design choice. Adding global key transparency, contact
+pinning, or a no-trust hosted-server layer would make the protocol harder to
+embed and implement. The protocol's trust exit is self-hosting the domain.
+
 == Quantum Resistance
 
 KeyPears uses a hybrid construction combining classical (Ed25519, X25519) and
@@ -500,13 +545,20 @@ infrastructure. The recipient's server independently resolves the sender's
 domain via DNS and TLS. A malicious server cannot forge another domain's
 identity because TLS guarantees the response came from the real domain.
 
+Domain spoofing protection should not be confused with key transparency. Once a
+domain has been resolved, the server for that domain is still trusted as the
+current-key authority for hosted addresses.
+
 == Client Storage Theft
 
 An attacker who compromises client storage obtains the encryption key, which
 can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM). However,
 the login key is a cryptographic sibling (derived from the same parent with a
-different salt), not a child. The attacker cannot impersonate the user on the
-server.
+different salt), not a child. The encryption key alone does not reveal the
+login key. Active origin compromise is stronger than storage-only theft:
+malicious script or malware running as the user can combine session access with
+the cached encryption key, fetch encrypted private-key blobs, and sign messages
+until the session is revoked or keys are rotated.
 
 == Forward Secrecy
 
@@ -597,10 +649,10 @@ hybrid post-quantum cryptography for both key exchange and signatures.
 = Future Work
 
 Several extensions are planned. *Group messaging* with multi-party key
-agreement would extend the protocol beyond pairwise communication. *Public-key
-transparency logs* would provide auditability for key rotations. A *native
-mobile client* with hardware-backed key storage would improve security for
-the encryption key.
+agreement would extend the protocol beyond pairwise communication. A *native
+mobile client* with hardware-backed key storage would improve security for the
+encryption key. Future extensions should preserve the core design goal: a
+simple federated protocol that many applications can embed correctly.
 
 = Conclusion
 
@@ -608,13 +660,16 @@ Email demonstrated that federated, human-readable addressing can achieve
 universal reach. But email's design assumed trusted networks, and four decades
 of effort have failed to retrofit encryption and spam resistance. Centralized
 alternatives solved these problems by abandoning federation. KeyPears takes a
-different path: a clean-sheet protocol that preserves `name@domain` addressing
-and DNS-based federation while making hybrid post-quantum key exchange,
-composite signing, and proof of work mandatory from the start. The result is a
-system where encryption is the only mode, spam is computationally expensive,
-identity authentication requires no passwords or API keys, and no single entity
-controls identity---built on cryptography designed to withstand both today's
-threats and tomorrow's.
+different path: a simple protocol that preserves `name@domain` addressing and
+DNS-based federation while making hybrid post-quantum key exchange, composite
+signing, and proof of work mandatory from the start.
+
+The result is a system where encryption is the only mode, spam is
+computationally expensive, identity authentication requires no passwords or API
+keys, and domains remain portable. KeyPears does not pretend hosted servers
+require no trust; it makes that trust explicit and moveable. If a user does not
+trust a hosted server to publish honest keys, they can host their own domain.
+That simplicity is what allows the protocol to be embedded broadly.
 
 // --- References ---
 
