@@ -4,12 +4,197 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Mon, 20 Apr 2026 12:16:43 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 26 Apr 2026 22:49:29 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <copyright>Copyright 2026 Identellica LLC</copyright>
         <atom:link href="https://keypears.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[KeyPears Is Now Hybrid Post-Quantum]]></title>
+            <link>https://keypears.com/blog/2026-04-26-keypears-is-hybrid-post-quantum</link>
+            <guid isPermaLink="false">https://keypears.com/blog/2026-04-26-keypears-is-hybrid-post-quantum</guid>
+            <pubDate>Sun, 26 Apr 2026 19:30:00 GMT</pubDate>
+            <description><![CDATA[<p>KeyPears is now hybrid post-quantum.</p>
+<p>That sentence is easy to write and easy to misunderstand. It does not mean
+"quantum-proof." It does not mean cryptography is solved forever. It does not
+...]]></description>
+            <content:encoded><![CDATA[<p>KeyPears is now hybrid post-quantum.</p>
+<p>That sentence is easy to write and easy to misunderstand. It does not mean
+"quantum-proof." It does not mean cryptography is solved forever. It does not
+mean a future standards committee, implementation bug, side-channel attack, or
+protocol flaw can be ignored.</p>
+<p>It means something narrower and more important: KeyPears no longer depends on
+classical public-key cryptography alone. Messages now use both classical and
+post-quantum key agreement. Signatures now use both classical and post-quantum
+signing. The server still stores only ciphertext. The protocol still uses
+federated <code>name@domain</code> addressing. But the cryptographic spine has changed.</p>
+<p>The new design is:</p>
+<p>| Purpose          | Classical algorithm | Post-quantum algorithm | Construction             |
+| ---------------- | ------------------- | ---------------------- | ------------------------ |
+| Signatures       | Ed25519             | ML-DSA-65              | Both signatures required |
+| Message secrecy  | X25519              | ML-KEM-768             | Shared secrets combined  |
+| Symmetric crypto | AES-256-GCM         | -                      | Authenticated encryption |
+| Hash/KDF         | SHA-256             | -                      | HMAC, HKDF, PBKDF2       |</p>
+<p>The short version: an attacker must defeat both halves of the hybrid
+construction to forge a message or recover message plaintext.</p>
+<h2>Why hybrid?</h2>
+<p>Public-key cryptography is where quantum computers matter most.</p>
+<p>The symmetric pieces of KeyPears - AES-256-GCM, SHA-256, HMAC-SHA-256, and
+PBKDF2-HMAC-SHA-256 - are not the urgent problem. Grover's algorithm changes
+the security margin of symmetric primitives, but doubling key sizes is the
+basic answer, and AES-256 already has that margin.</p>
+<p>The classical public-key pieces are different. A large enough fault-tolerant
+quantum computer would break the discrete-log assumptions behind elliptic-curve
+cryptography. That includes the old P-256 design and the modern curves KeyPears
+uses now, Ed25519 and X25519.</p>
+<p>Post-quantum algorithms exist to address that. NIST standardized ML-KEM for
+key encapsulation and ML-DSA for signatures. KeyPears now uses ML-KEM-768 and
+ML-DSA-65.</p>
+<p>So why not use only the post-quantum algorithms?</p>
+<p>Because new cryptography is new. ML-KEM and ML-DSA have been through years of
+analysis and standardization, but they do not have the same multi-decade
+deployment history as elliptic-curve cryptography. Hybrid designs avoid a
+false choice. We do not have to bet everything on the old algorithms, and we do
+not have to bet everything on the new ones.</p>
+<p>Hybrid gives the conservative answer:</p>
+<ul>
+<li>If elliptic curves fall to quantum computers, the post-quantum half still
+protects the protocol.</li>
+<li>If a serious weakness is found in the post-quantum half, the classical half
+still protects the protocol.</li>
+<li>If both remain sound, the construction is stronger than either alone.</li>
+</ul>
+<p>That is the kind of tradeoff KeyPears should make. The goal is not novelty. The
+goal is defensibility.</p>
+<h2>How message encryption works now</h2>
+<p>When Alice sends a message to Bob, KeyPears derives the message encryption key
+from two independent shared secrets.</p>
+<p>First, Alice performs a classical X25519 Diffie-Hellman exchange with Bob's
+X25519 public key:</p>
+<pre><code class="language-text">x25519_shared_secret = X25519(alice_private, bob_public)
+</code></pre>
+<p>Then Alice performs an ML-KEM-768 encapsulation to Bob's ML-KEM public key:</p>
+<pre><code class="language-text">(mlkem_ciphertext, mlkem_shared_secret) = ML-KEM-768.Encaps(bob_encap_public_key)
+</code></pre>
+<p>Those two shared secrets are concatenated and passed through HKDF-SHA-256:</p>
+<pre><code class="language-text">combined = x25519_shared_secret || mlkem_shared_secret
+message_key = HKDF-SHA-256(combined, context)
+</code></pre>
+<p>The result is used with AES-256-GCM to encrypt the message.</p>
+<p>This matters because the final AES key is not "the X25519 key" and it is not
+"the ML-KEM key." It is derived from both. Breaking only X25519 is not enough.
+Breaking only ML-KEM is not enough. An attacker needs both shared secrets to
+recover the message key.</p>
+<p>The context also binds the sender and recipient addresses. The ciphertext is
+not a free-floating blob that can be silently moved into another conversation.</p>
+<p>KeyPears also encrypts a sender copy of the same message so the sender can read
+their own sent-message history. That copy uses the same hybrid construction,
+but targets the sender's own retained key set.</p>
+<h2>How signatures work now</h2>
+<p>Every message is signed with a composite Ed25519 + ML-DSA-65 signature.</p>
+<p>The signed object is not just the text. It is a canonical, length-prefixed
+envelope covering:</p>
+<ul>
+<li>Sender address</li>
+<li>Recipient address</li>
+<li>Sender Ed25519 public key</li>
+<li>Sender ML-DSA public key</li>
+<li>Sender X25519 public key</li>
+<li>Recipient X25519 public key</li>
+<li>Recipient ML-KEM public key</li>
+<li>Recipient ciphertext</li>
+<li>Sender ciphertext</li>
+</ul>
+<p>Both algorithms sign the same envelope independently. Verification requires
+both signatures to be valid.</p>
+<p>That gives the same hybrid shape as encryption. A classical-only forgery is not
+enough. A post-quantum-only forgery is not enough. The recipient accepts the
+message only if the Ed25519 signature and the ML-DSA-65 signature both verify
+over the exact same bytes.</p>
+<p>This also protects the key material inside the message envelope. An attacker
+cannot swap in a different X25519 key, ML-KEM key, ciphertext, or recipient
+address without invalidating the signature.</p>
+<h2>What changed for users?</h2>
+<p>Mostly nothing visible.</p>
+<p>You still have a KeyPears address like <code>alice@example.com</code>. You still log in
+with your password. You still send messages and store secrets in the vault. If
+you claim a domain, federation still works through <code>/.well-known/keypears.json</code>
+and the KeyPears API.</p>
+<p>Under the hood, each account now has four private keys instead of one or two:</p>
+<ul>
+<li>Ed25519 signing key</li>
+<li>X25519 private key</li>
+<li>ML-DSA-65 signing key</li>
+<li>ML-KEM-768 decapsulation key</li>
+</ul>
+<p>All four private keys are encrypted client-side with AES-256-GCM under the
+user's encryption key. The encryption key is derived from the user's password
+and never leaves the client. The server stores encrypted private keys, public
+keys, ciphertext, and metadata required for routing and search. It does not get
+the keys needed to decrypt message or vault contents.</p>
+<p>The tradeoff is size. ML-DSA and ML-KEM keys and signatures are much larger
+than elliptic-curve keys and signatures. That means larger messages, more bytes
+in the database, and more bandwidth during federation.</p>
+<p>For KeyPears, that is a good trade. We are not streaming video. We are sending
+messages, credentials, and notes. A few extra kilobytes per message is worth
+the security margin and the migration path.</p>
+<h2>What this does not solve</h2>
+<p>Hybrid post-quantum cryptography is not a force field.</p>
+<p>It does not protect you if your device is compromised while you are logged in.
+An attacker with access to the decrypted private keys or cached encryption key
+can read what that device can read.</p>
+<p>It does not add forward secrecy to stored KeyPears messages. KeyPears stores
+messages so users can recover history across devices and key rotations. If a
+retained private key is compromised later, messages encrypted to that key may
+be decryptable. TLS provides forward secrecy for transport, but KeyPears does
+not currently run a Signal-style ratchet for stored application-layer
+ciphertext. That is a deliberate simplicity tradeoff, not something this change
+pretends to erase.</p>
+<p>It does not eliminate metadata. Servers still need enough information to route
+messages, enforce proof of work, manage accounts, and support federation.</p>
+<p>It does not make implementation bugs impossible. A hybrid protocol is only as
+good as the code that generates keys, signs envelopes, verifies signatures,
+derives message keys, checks ciphertext authentication tags, and handles
+rotation. That is why the protocol keeps the construction small and the
+documentation explicit.</p>
+<h2>Why this is the right direction</h2>
+<p>KeyPears is trying to build an email-shaped protocol for encrypted messaging
+and secret storage. Email survived because addresses were human-readable,
+domains were federated, and anyone could implement the protocol. It failed at
+confidentiality because encryption and key exchange were optional add-ons.</p>
+<p>KeyPears makes encryption mandatory. Now it makes post-quantum readiness part
+of that baseline.</p>
+<p>The important phrase is "part of the baseline." This is not an enterprise add-on,
+not a compatibility mode, not a flag for cautious users. Every new KeyPears
+message uses the hybrid construction. Every message signature is composite.
+Every account key set includes both classical and post-quantum keys.</p>
+<p>That is how protocol security should work. The safest path should be the normal
+path.</p>
+<h2>Where we land</h2>
+<p>The previous KeyPears alpha launch post described a P-256-based system. That
+was the right place to start: simple, NIST-standard, widely deployed, easy to
+review. But the protocol has moved forward.</p>
+<p>KeyPears now uses:</p>
+<ul>
+<li>Ed25519 + ML-DSA-65 for composite signatures</li>
+<li>X25519 + ML-KEM-768 for hybrid message encryption</li>
+<li>AES-256-GCM for authenticated encryption</li>
+<li>SHA-256, HMAC-SHA-256, HKDF-SHA-256, and PBKDF2-HMAC-SHA-256 for hashing and
+derivation</li>
+<li>Proof of work for spam resistance</li>
+<li>TLS for transport security between federated servers</li>
+</ul>
+<p>This is a better design than the one we launched with. It is more future-aware
+without becoming exotic. It adopts the post-quantum algorithms that standards
+bodies and cryptographic reviewers expect, while keeping classical algorithms
+in the loop until the new ones have earned the same deployment history.</p>
+<p>The result is not perfect security. Perfect security does not exist. The result
+is a protocol that is easier to defend, easier to explain, and better aligned
+with where public-key cryptography is going.</p>
+<p>That is the bar KeyPears should be trying to clear.</p>]]></content:encoded>
+            <author>Ryan X. Charles</author>
+        </item>
         <item>
             <title><![CDATA[Sign In With Your Address: Why KeyPears is Building a New Auth System]]></title>
             <link>https://keypears.com/blog/2026-04-20-sign-in-with-your-address</link>
@@ -37,8 +222,8 @@ email infrastructure or pay for a service. It works. It's also a hack — we're
 using a forty-year-old messaging system as an authentication side channel
 because we never built anything better.</p>
 <h2>What if you already had the answer?</h2>
-<p>Here's the thing: if you have a KeyPears account, you already have everything
-you need to prove your identity to any application on the internet.</p>
+<p>If you have a KeyPears account, you already have everything you need to prove
+your identity to any application on the internet.</p>
 <p>You have an address: <code>alice@example.com</code>.</p>
 <p>You have a P-256 key pair. Your private key lives in your browser, encrypted.
 Your public key is discoverable by anyone who knows your address.</p>
@@ -114,15 +299,17 @@ prior relationship between the app and the server.</p>
 app fetches <code>https://example.com/.well-known/keypears.json</code>, finds the user's
 API domain (e.g. <code>keypears.example.com</code>), and knows where to send the user.</p>
 <p><strong>2. Redirect and sign.</strong> The app redirects the user to their KeyPears server —
-<code>https://keypears.example.com/auth/sign</code> — with a challenge payload. The user
-is already logged in (or logs in now). The server presents the challenge —
-"rssanyway.com wants to verify your identity" — and the user approves. Their
-browser signs the challenge with their P-256 private key.</p>
-<p>The challenge isn't a raw string from the app — that would invite
-vulnerabilities. Instead, the KeyPears server computes an HMAC over the app's
-challenge using a server-side key, and the user signs that derived value. The
-signed payload is meaningless outside this specific flow, unpredictable to the
-app, and bound to the original challenge.</p>
+<code>https://keypears.example.com/sign</code> — with a structured signing request. The
+user is already logged in (or logs in now). The KeyPears server renders a
+consent screen from the request — "rssanyway.com wants to verify your
+identity" — showing the requesting domain, the user's address, and the
+expiration. The user approves, and their browser signs the structured payload
+with their P-256 private key.</p>
+<p>The user never signs a raw string or an opaque blob. Every signing request is a
+typed, structured JSON payload (<code>type: "sign-in"</code>) validated against a known
+template. The template determines both the schema and the consent screen. A
+sign-in payload cannot be confused with a message, a transaction, or any other
+action — the structure itself is the protection.</p>
 <p><strong>3. Verify.</strong> The user is redirected back to the app with the signature. The
 app fetches the user's public key via the KeyPears federation API and verifies
 the signature. If it checks out, the user is <code>alice@example.com</code>. Session

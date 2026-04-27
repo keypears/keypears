@@ -180,7 +180,7 @@ function SendPage() {
     <div className="mx-auto max-w-2xl p-8 font-sans">
       <h1 className="text-foreground text-2xl font-bold">Send Message</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        Messages are end-to-end encrypted using Diffie-Hellman key exchange.
+        Messages are end-to-end encrypted.
       </p>
 
       <form onSubmit={handleSend} className="mt-6 flex flex-col gap-4">
