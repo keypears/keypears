@@ -31,20 +31,21 @@ attacker who captures the database cannot read any user content.
 To impersonate a user, the attacker must recover a valid login key. Brute
 forcing the login key directly is infeasible — it is a uniformly random 256-bit
 value, and the search space is 2^256. The only realistic attack is a dictionary
-attack against the user's password: for each candidate password, the attacker
-computes the full chain (password → password key → login key → stored hash),
-requiring 1,200,000 rounds of PBKDF2-HMAC-SHA-256 per guess (300,000 for Tier 1,
-300,000 for Tier 2b, and 600,000 for the server tier).
+attack against the user's password. The conservative baseline is the
+600,000-round server-side PBKDF2-HMAC-SHA-256 hash with a per-user salt. Before
+that server check, the client also computes two deterministic 300,000-round
+tiers to derive the login key from the password.
 
 ## Password brute-force
 
 The server-side tier alone performs 600,000 rounds of PBKDF2-HMAC-SHA-256 on
 every login key, matching the OWASP Password Storage Cheat Sheet
-recommendation for PBKDF2-HMAC-SHA-256. An offline attack against the stored
-hash requires the full password-to-hash chain. The first two client-side tiers
+recommendation for PBKDF2-HMAC-SHA-256. For one target user, an offline
+password guess must pass through the two client-side tiers and that user's
+server-side tier. For attacks across many users, the first two client-side tiers
 use deterministic protocol salts, so an attacker can reuse that work for the
 same password candidate across users. The final 600,000-round server tier uses
-a per-user salt derived from the user ID, so the server-side hashing work must
+a per-user salt derived from the user ID, so that server-side hashing work must
 still be performed separately for each target user.
 
 For an 8-character password drawn from lowercase letters and digits (36^8 ≈ 2.8

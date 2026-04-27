@@ -266,3 +266,71 @@ messaging system. The text explicitly distinguishes database/passive server
 compromise from active hosted-server key substitution, describes hosted servers
 as authoritative current-key publishers for their domains, and frames
 self-hosting as the trust exit. Historical blog posts were not modified.
+
+## Experiment 3
+
+Update password KDF documentation to be conservative and precise about PBKDF2
+work factors.
+
+Problem:
+
+The current design performs 600,000 PBKDF2-HMAC-SHA-256 rounds on the server
+with a per-user salt, plus two deterministic 300,000-round client-side tiers
+before the login key is sent to the server. The server-side 600,000-round tier
+is the conservative baseline and matches the intended password-storage
+recommendation. The extra client-side rounds add work for password guesses, but
+because their salts are deterministic protocol salts, that client-side work can
+be reused for the same password candidate across users.
+
+The documentation should not market the system as simply "1.2M rounds" in a way
+that implies the full chain is independently target-specific for every user. It
+should instead say:
+
+- The server stores only a 600,000-round PBKDF2-HMAC-SHA-256 hash of the login
+  key using a per-user salt.
+- This server-side tier is the conservative password-storage baseline.
+- The client also computes two 300,000-round deterministic tiers before sending
+  the login key.
+- For a single target user, a password guess must pass through the client-side
+  tiers and that user's server-side tier.
+- For attacks across many users, the deterministic client-side tiers can be
+  reused per password candidate, while the 600,000-round server tier remains
+  per-user because of the per-user salt.
+- Therefore docs should describe the security baseline as "600k server-side
+  rounds, with additional client-side stretching" rather than relying on a
+  headline "1.2M rounds" claim.
+
+Scope:
+
+- `webapp/src/docs/protocol/key-derivation.md`
+- `webapp/src/docs/security.md`
+- `whitepaper/keypears.typ`
+- `AGENTS.md`
+- Any nearby README or comment that summarizes the KDF work factor
+
+Explicitly out of scope:
+
+- Changing KDF algorithms, salts, or wire/account formats
+- Adding user-specific client salts
+- Changing password compatibility
+- Historical blog posts
+
+Acceptance criteria:
+
+- No current documentation implies that all 1.2M rounds are independently
+  per-user for bulk offline attacks.
+- The conservative headline is 600k server-side rounds with per-user salt.
+- Client-side tiers are still documented accurately as additional deterministic
+  stretching.
+- The docs explain the single-user and multi-user attack economics plainly.
+- The KDF implementation remains unchanged.
+
+### Result
+
+Pass. The current KDF docs, security docs, whitepaper, and AGENTS guidance now
+use the 600k per-user server-side PBKDF2 tier as the conservative headline, and
+describe the two 300k deterministic client-side tiers as additional stretching.
+They explain that a single-user guess traverses both client tiers and that
+user's server tier, while bulk attacks can reuse the deterministic client-tier
+work per password candidate and must still perform the per-user server tier for
+each target. No KDF implementation or compatibility behavior changed.

@@ -288,9 +288,12 @@ global transparency-backed identity proof.
 
 Password-based key derivation uses a three-tier PBKDF2-HMAC-SHA-256 scheme
 (RFC 8018). The server-side tier alone performs 600,000 rounds, matching the
-OWASP Password Storage Cheat Sheet recommendation; with the two client-side
-tiers of 300,000 rounds each, the full password-to-hash chain runs 1,200,000
-rounds.
+OWASP Password Storage Cheat Sheet recommendation. The client also performs two
+deterministic 300,000-round tiers before sending the login key to the server.
+For a single target user, a password guess must pass through those client-side
+tiers and that user's server-side tier. Across many users, the deterministic
+client-side work can be reused per password candidate, while the 600,000-round
+server tier remains per-user because it uses a per-user salt.
 
 #figure(
   cetz.canvas(length: 1cm, {
@@ -360,7 +363,9 @@ is cached on the client and used to encrypt and decrypt all four private keys
 *Tier 2b: Password Key #sym.arrow Login Key.* A parallel derivation produces
 the login key. This key is sent to the server exactly once, then discarded.
 The server hashes it with an additional 600,000 rounds using a per-user salt
-before storage.
+before storage. This 600,000-round per-user server tier is the conservative
+password-storage baseline; the client-side tiers provide additional
+deterministic stretching.
 
 *Vault key.* A separate key for encrypting stored secrets is derived as
 $K_"vault" = "HMAC-SHA-256"(K_"encryption",$ `"vault-key-v2"`$)$. Each vault
@@ -501,8 +506,9 @@ probing.
 
 The server stores encrypted message bodies and secret payloads alongside hashed
 credentials (login key hashed with 600,000 additional rounds of
-PBKDF2-HMAC-SHA-256). An attacker who captures the database cannot decrypt
-message content or secret payloads. Metadata (addresses, vault labels, channel
+PBKDF2-HMAC-SHA-256 using a per-user salt, after deterministic client-side
+stretching). An attacker who captures the database cannot decrypt message
+content or secret payloads. Metadata (addresses, vault labels, channel
 counterparties) is stored in plaintext.
 
 This protection applies to database compromise and passive server compromise.

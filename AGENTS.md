@@ -274,12 +274,16 @@ Password (never stored)
     -> Login Key (sent to server once, then discarded)
 ```
 
-- All KDF uses PBKDF2-HMAC-SHA-256 (RFC 8018), 300k rounds per client tier, 600k on server.
+- All KDF uses PBKDF2-HMAC-SHA-256 (RFC 8018): two deterministic 300k-round
+  client tiers, plus a 600k-round server tier with a per-user salt.
 - Only the encryption key is cached. Password key is ephemeral.
 - If localStorage alone is compromised: attacker can decrypt all four private keys if
   they also obtain the encrypted key blobs, but cannot derive the login key from the
   encryption key. Active origin/session compromise is stronger and can sign as the user.
-- Server hashes the login key with 600k additional rounds using a per-user salt (derived from userId) before storing. Total: 1.2M rounds from password to stored hash; server path alone meets the OWASP Password Storage Cheat Sheet recommendation of 600k rounds for PBKDF2-HMAC-SHA-256.
+- Server hashes the login key with 600k additional rounds using a per-user salt
+  (derived from userId) before storing. Treat the 600k per-user server tier as
+  the conservative password-storage baseline; the deterministic client tiers add
+  stretching but can be reused per password candidate across users.
 
 ### Sessions
 

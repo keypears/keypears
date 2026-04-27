@@ -57,18 +57,19 @@ The server hashes the login key with an additional 600,000 rounds of
 PBKDF2-HMAC-SHA-256 using a **per-user salt** (derived deterministically from
 the user's ID) before storing it in the database. The server path alone meets
 the OWASP Password Storage Cheat Sheet recommendation of 600,000 rounds for
-PBKDF2-HMAC-SHA-256, so the stretching is sufficient regardless of how much
-work the client contributed.
+PBKDF2-HMAC-SHA-256. Treat this 600,000-round per-user server tier as the
+conservative password-storage baseline; the client-side tiers add deterministic
+stretching before the login key reaches the server.
 
 An attacker who steals the database cannot brute-force the login key directly
 — it is a uniformly random 256-bit value with a search space of 2^256. The
 only realistic attack is a dictionary attack against the user's password. For
-each candidate password, the attacker computes password → password key → login
-key, then the stored hash. The first two client-side tiers use deterministic
-protocol salts, so that work can be reused for the same candidate password
-across users. The final 600,000-round server tier uses a per-user salt derived
-from the user ID, so the server-side hashing work must be performed separately
-for each target user.
+one target user, each candidate password must pass through the two client-side
+tiers and that user's server-side tier. For attacks across many users, the first
+two client-side tiers use deterministic protocol salts, so that work can be
+reused for the same candidate password across users. The final 600,000-round
+server tier uses a per-user salt derived from the user ID, so the server-side
+hashing work must be performed separately for each target user.
 
 ## Security properties
 
@@ -76,8 +77,9 @@ for each target user.
 (FIPS 180-4), HMAC-SHA-256 (FIPS 198-1), PBKDF2 (SP 800-132), AES-256-GCM
 (SP 800-38D), Ed25519, X25519, ML-DSA-65 (FIPS 204), and ML-KEM-768 (FIPS 203). The server-side tier alone performs
 600,000 rounds of PBKDF2-HMAC-SHA-256, matching the OWASP Password Storage
-Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256. The full
-password-to-hash chain exceeds 1,200,000 rounds.
+Cheat Sheet recommendation for PBKDF2-HMAC-SHA-256. The client also performs
+two deterministic 300,000-round tiers before sending the login key to the
+server.
 
 **Separation of concerns.** Knowing the encryption key does not reveal the
 login key, and vice versa. They are derived from the same password key but
