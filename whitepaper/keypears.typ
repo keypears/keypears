@@ -44,7 +44,7 @@
 
 #par(first-line-indent: 0pt)[
   *Abstract.* KeyPears is a simple federated encrypted messaging system for
-  communication and secret management. User identities are email-style
+  communication and authentication. User identities are email-style
   addresses (`name@domain`) backed by hybrid post-quantum key pairs: Ed25519 +
   ML-DSA-65 (FIPS~204) for composite signatures and X25519 + ML-KEM-768
   (FIPS~203) for hybrid key encapsulation. Any domain can host a KeyPears
@@ -119,8 +119,8 @@ hybrid post-quantum key exchange for encrypted message bodies, composite
 signatures for authentication, and proof of work for spam mitigation. The
 design intentionally keeps domain servers as the authorities for their users'
 current public keys. This does not remove all trust from hosted servers; it
-makes the trust boundary portable. A user who does not trust a hosted server can
-host the domain themselves.
+makes the trust boundary portable. A user who does not trust a hosted server
+can switch service providers, or host the domain themselves.
 
 All asymmetric cryptography combines classical Curve25519 primitives (X25519,
 Ed25519) with NIST-standardized post-quantum algorithms
