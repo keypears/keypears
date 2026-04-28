@@ -50,6 +50,9 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 if [[ "$NO_BUILD" == "false" ]]; then
+  echo "==> copying current whitepaper"
+  cp whitepaper/keypears.pdf webapp/public/keypears.pdf
+
   echo "==> building image (linux/arm64)"
   docker build --platform linux/arm64 -f webapp/Dockerfile -t "${REPO_NAME}:latest" .
 

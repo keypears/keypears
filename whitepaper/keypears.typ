@@ -44,26 +44,23 @@
 
 #par(first-line-indent: 0pt)[
   *Abstract.* KeyPears is a simple federated encrypted messaging system for
-  communication and authentication. User identities are email-style
-  addresses (`name@domain`) backed by hybrid post-quantum key pairs: Ed25519 +
-  ML-DSA-65 (FIPS~204) for composite signatures and X25519 + ML-KEM-768
-  (FIPS~203) for hybrid key encapsulation. Any domain can host a KeyPears
-  server, and servers discover each other through DNS and a well-known
-  configuration file. Private-key operations, encryption, and decryption use
-  NIST-approved primitives and execute client-side; proof-of-work mining also
-  executes client-side. Servers store encrypted message bodies and secret
-  payloads but never possess the keys needed to decrypt already-stored
-  ciphertext; metadata such as addresses and vault labels remain plaintext to
-  support routing and search. Domains remain trusted authorities for their
-  users' current public keys and hosted client code. This email-like trust
-  boundary keeps the protocol small enough for broad implementation: if a user
-  does not trust a hosted server in that role, the trust exit is to host their
-  own domain. A proof-of-work mechanism provides Sybil resistance for account
-  creation, account login, and messaging without CAPTCHAs or third-party
-  services. A redirect-based authentication protocol allows third-party
-  applications to verify user identity without passwords, API keys, or client
-  registration. This paper describes the protocol design, cryptographic
-  construction, federation model, and security analysis.
+  communication and authentication. It keeps email's useful properties:
+  human-readable `name@domain` addresses, DNS-based federation, and the ability
+  for any domain to run its own server. It adds encrypted message bodies,
+  automatic public-key lookup, proof of work for abuse resistance, and
+  redirect-based third-party authentication.
+]
+
+#par(first-line-indent: 0pt)[
+  Private-key operations, encryption, signing, and proof-of-work mining happen
+  client-side. Servers store encrypted message bodies and secret payloads, but
+  do not possess the keys needed to decrypt already-stored ciphertext. Domains
+  remain trusted authorities for their users' current public keys and hosted
+  client code. This email-like trust boundary keeps the protocol small enough
+  for broad implementation: if a user does not trust a hosted server in that
+  role, the trust exit is to switch providers or host their own domain. The
+  cryptography combines Ed25519 and X25519 with ML-DSA-65 (FIPS~204) and
+  ML-KEM-768 (FIPS~203) for hybrid post-quantum defense-in-depth.
 ]
 
 #v(1em)
@@ -102,17 +99,6 @@ Signal~#cite(<moxie2016>) provides automatic key management and end-to-end
 encryption, but identity is bound to phone numbers and a single organization
 runs every server.
 
-Meanwhile, quantum computers threaten the elliptic-curve cryptography that
-underpins most modern systems. Babbush et al.~#cite(<babbush2026>)
-demonstrated in April 2026 that breaking 256-bit elliptic-curve discrete
-logarithms requires only ~1,200 logical qubits---executable in approximately
-9 minutes on a superconducting architecture with fewer than half a million
-physical qubits. The industry consensus~#cite(<signal-pqxdh>)#cite(<openpgp-pqc>)
-is that hybrid constructions---combining classical and post-quantum
-algorithms---provide defense-in-depth during the transition: if a structural
-flaw is discovered in lattice cryptography, classical algorithms still protect;
-if a quantum computer arrives, post-quantum algorithms still protect.
-
 We propose a protocol that keeps what email got right---federated `name@domain`
 addressing, DNS-based server discovery, and simple deployment---while adding
 hybrid post-quantum key exchange for encrypted message bodies, composite
@@ -122,11 +108,12 @@ current public keys. This does not remove all trust from hosted servers; it
 makes the trust boundary portable. A user who does not trust a hosted server
 can switch service providers, or host the domain themselves.
 
-All asymmetric cryptography combines classical Curve25519 primitives (X25519,
-Ed25519) with NIST-standardized post-quantum algorithms
-(ML-KEM-768~#cite(<fips203>), ML-DSA-65~#cite(<fips204>)), matching the hybrid
-direction adopted by Signal~#cite(<signal-pqxdh>), Chrome TLS, and the IETF
-OpenPGP PQC draft~#cite(<openpgp-pqc>).
+Because elliptic-curve systems face long-term quantum risk, KeyPears uses
+hybrid classical + post-quantum cryptography. All asymmetric operations combine
+Curve25519 primitives (X25519, Ed25519) with NIST-standardized post-quantum
+algorithms (ML-KEM-768~#cite(<fips203>), ML-DSA-65~#cite(<fips204>)), matching
+the hybrid direction adopted by Signal~#cite(<signal-pqxdh>), Chrome TLS, and
+the IETF OpenPGP PQC draft~#cite(<openpgp-pqc>).
 
 = Design Principles
 
@@ -151,11 +138,46 @@ KeyPears is guided by six principles:
   post-quantum (ML-DSA-65, ML-KEM-768) algorithms are combined in every
   cryptographic operation. Both must be broken to compromise the system.
 
+= Identity and Addressing
+
+A KeyPears address has the form `name@domain`---intentionally identical to an
+email address. The domain is a standard DNS domain. An organization with
+existing email addresses can use the same addresses for KeyPears.
+
+Each user has signing keys and encryption keys. Signing keys prove who sent a
+message or approved an authentication request. Encryption keys protect message
+bodies and stored secrets. Each role uses one classical key pair and one
+post-quantum key pair:
+
+- *Ed25519 key pair*: a 32-byte public key and 32-byte private key. Used as the
+  classical signing key.
+- *ML-DSA-65 signing key pair* (FIPS~204): a 1,952-byte verifying key and a
+  4,032-byte signing key. Used as the post-quantum signing key.
+- *X25519 key pair*: a 32-byte public key and 32-byte private key. Used for
+  classical Diffie-Hellman key exchange.
+- *ML-KEM-768 encapsulation key pair* (FIPS~203): a 1,184-byte encapsulation
+  key and a 2,400-byte decapsulation key. Used to encrypt a fresh shared
+  secret to the recipient.
+
+Users may rotate all four key pairs atomically, up to 100 sets per account.
+Old keys are retained so that messages encrypted under previous keys can still
+be decrypted. All private keys are encrypted client-side with AES-256-GCM
+under the user's encryption key (Section~5) and stored on the server as
+ciphertext.
+
+The currently hosting server publishes the active public key set for each
+address on its domain. This is an authoritative server response rather than a
+global transparency-backed identity proof.
+
 = Overview
 
 A typical interaction proceeds as follows. Alice (`alice@a.com`) wants to send
 an encrypted message to Bob (`bob@b.com`). Neither Alice nor Bob has
 communicated before.
+
+The flow uses three basic operations. Signing proves Alice sent the message.
+Encryption protects the message body. Proof of work pays the delivery cost Bob
+requires for incoming mail.
 
 #figure(
   cetz.canvas(length: 1cm, {
@@ -241,48 +263,10 @@ communicated before.
 + Bob's client retrieves the ciphertext, re-derives the X25519 DH shared
   secret and decapsulates ML-KEM-768, and decrypts.
 
-At no point does any server possess the plaintext or the keys needed to derive
-it.
-
-This statement describes stored ciphertext and honest key discovery. An active
-server that is authoritative for a domain can lie about future public keys for
-addresses on that domain. KeyPears accepts this email-like trust boundary to
-keep federation simple and implementable; users who do not trust a hosted
-server should host their own domain.
-
-= Identity and Addressing
-
-A KeyPears address has the form `name@domain`---intentionally identical to an
-email address. The domain is a standard DNS domain. An organization with
-existing email addresses can use the same addresses for KeyPears.
-
-Each user holds four types of key pairs:
-
-- *Ed25519 key pair*: a 32-byte public key and 32-byte private key. Used as the
-  classical component of composite signatures.
-- *ML-DSA-65 signing key pair* (FIPS~204): a 1,952-byte verifying key and a
-  4,032-byte signing key. Used as the post-quantum component of composite
-  signatures.
-- *X25519 key pair*: a 32-byte public key and 32-byte private key. Used as the
-  classical component of hybrid key exchange.
-- *ML-KEM-768 encapsulation key pair* (FIPS~203): a 1,184-byte encapsulation
-  key and a 2,400-byte decapsulation key. Used as the post-quantum component
-  of hybrid key exchange.
-
-Four key pairs are necessary because each algorithm serves a distinct role.
-Ed25519 and ML-DSA-65 are independent signature schemes combined into a
-composite. X25519 and ML-KEM-768 are independent key exchange/encapsulation
-mechanisms combined in the hybrid encryption layer.
-
-Users may rotate all four key pairs atomically, up to 100 sets per account.
-Old keys are retained so that messages encrypted under previous keys can still
-be decrypted. All private keys are encrypted client-side with AES-256-GCM
-under the user's encryption key (Section~5) and stored on the server as
-ciphertext.
-
-The currently hosting server publishes the active public key set for each
-address on its domain. This is an authoritative server response rather than a
-global transparency-backed identity proof.
+Under honest key discovery, no server possesses the plaintext or the keys
+needed to derive it. A domain server is still trusted to publish honest current
+public keys for its users; this trust boundary is discussed in the security
+analysis.
 
 = Key Derivation
 
@@ -538,6 +522,12 @@ arrives, the post-quantum algorithms still protect. Grover's algorithm provides
 only a quadratic speedup against symmetric primitives, reducing their effective
 security to 128 bits---still well within safe margins.
 
+Babbush et al.~#cite(<babbush2026>) demonstrated in April 2026 that breaking
+256-bit elliptic-curve discrete logarithms requires only ~1,200 logical
+qubits---executable in approximately 9 minutes on a superconducting
+architecture with fewer than half a million physical qubits. KeyPears therefore
+does not rely on elliptic curves alone.
+
 == Spam and Sybil Attacks
 
 Every account creation, login, and message requires proof of work, and the
@@ -569,50 +559,27 @@ the compromised client is cleaned.
 
 == Forward Secrecy
 
-KeyPears provides end-to-end encryption, hybrid post-quantum defense-in-depth,
-authenticated messages, and key rotation, but not forward secrecy or
-post-compromise security in the Signal sense. This is a deliberate design
-choice, not an omission.
+KeyPears provides encrypted stored messages, authenticated messages, hybrid
+post-quantum defense-in-depth, and key rotation. It does not provide
+message-level forward secrecy or post-compromise security in the Signal sense.
+This is a deliberate design choice.
 
-Forward secrecy protects against an attacker who passively records encrypted
-traffic and later compromises a long-term key. TLS 1.3 provides this property
-for the transport layer via ephemeral Diffie-Hellman: an attacker who later
-compromises a TLS server key cannot decrypt previously recorded network
-sessions. KeyPears benefits from that property while messages are in transit.
+TLS 1.3 gives KeyPears forward secrecy for transport sessions: later compromise
+of a TLS server key does not decrypt previously recorded network traffic.
+Stored message ciphertext is different. Messages are intentionally stored for
+later retrieval, and users need retained key material to read their inbox across
+sessions and devices. If a user's long-term X25519 private key and ML-KEM
+decapsulation key are later extracted, old messages encrypted to those keys are
+decryptable.
 
-KeyPears does _not_ provide message-level forward secrecy. Application
-ciphertexts are intentionally stored on servers for later retrieval, and those
-ciphertexts can be copied from databases, logs, backups, or compromised
-endpoints independently of TLS. If a user's long-term X25519 private key and
-ML-KEM decapsulation key are later extracted from client storage, previously
-stored message ciphertexts encrypted to those keys are decryptable.
-
-Signal addresses this class of endpoint-compromise risk with the Double Ratchet
-protocol, which derives a fresh key for every message and deletes old message
-keys. However, this requires prekey bundles, chain-key state,
+A Signal-style ratchet would reduce that exposure by deriving and deleting a
+fresh key for every message, but it would add prekey bundles, chain-key state,
 skipped-message-key handling, multi-device synchronization, and recovery
-mechanisms---substantial protocol complexity that is difficult to federate.
-KeyPears messages are also intentionally persistent: users retrieve messages
-across sessions and devices, so the client must retain enough key material to
-read its own inbox. Key rotation (up to 100 key sets per account) limits
-exposure for future messages, but it does not make old messages forward-secret
-while old keys are retained for decryption. User-initiated message deletion can
-reduce retained ciphertext, subject to normal limits around backups and copied
+semantics. KeyPears accepts the simpler tradeoff: durable retrieval, federation
+simplicity, and independent implementability over Signal-style forward secrecy
+and post-compromise security. Key rotation limits exposure for future messages;
+message deletion can reduce retained ciphertext, subject to backups and copied
 data.
-
-A federated protocol must balance security properties against implementation
-complexity. Every mechanism added to the specification must be implemented
-correctly by independent servers and clients across the federation, increasing
-the amount of state that must be synchronized, tested, and made interoperable.
-TLS already provides forward secrecy for transport sessions, protecting against
-later compromise of TLS server keys after passive network recording. A
-message-level ratchet would address a different threat: later compromise of
-stored application ciphertext and the long-term keys needed to decrypt it. That
-is a real threat, but defending against it requires prekey management, ratchet
-state, skipped-message-key handling, multi-device synchronization, and recovery
-semantics. KeyPears accepts this trade-off explicitly: it prioritizes durable
-retrieval, federation simplicity, and independent implementability over
-Signal-style forward secrecy and post-compromise security.
 
 == Limitations
 

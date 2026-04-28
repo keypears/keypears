@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-27"
+closed = "2026-04-28"
 +++
 
 # Protocol design audit
@@ -414,3 +415,141 @@ decrypt private keys, and that active origin/session compromise can sign
 messages or third-party auth assertions as the user until sessions are revoked,
 keys are rotated, or the client is cleaned. No protocol, storage, or session
 behavior changed.
+
+## Experiment 5
+
+Improve whitepaper flow and ease of understanding for a technical audience.
+
+Problem:
+
+The whitepaper has the right technical content, but the reading path asks the
+reader to hold too many concepts at once. The abstract is dense, the detailed
+quantum-computing motivation interrupts the email/simple-protocol narrative,
+the message-flow diagram appears before the key vocabulary is introduced, and
+the forward-secrecy section repeats the same tradeoff several ways.
+
+Scope:
+
+- `whitepaper/keypears.typ`
+- regenerated `whitepaper/keypears.pdf`
+
+Explicitly out of scope:
+
+- Changing protocol behavior or claims
+- Editing historical blog posts
+- Rewriting citations or changing bibliography structure
+
+Planned changes:
+
+- Split the abstract into two shorter paragraphs.
+- Keep the introduction focused on email's strengths, email's two protocol
+  gaps, and KeyPears' simple federated answer.
+- Move detailed quantum resource numbers from the introduction into the
+  `Quantum Resistance` section.
+- Move `Identity and Addressing` before the message-flow overview so readers
+  meet the key roles before seeing the full flow.
+- Add a short plain-language bridge before the message flow: signing proves
+  sender identity, encryption protects content, proof of work pays delivery
+  cost.
+- Replace abrupt trust-boundary wording after the flow with a gentler pointer
+  to the security analysis.
+- Shorten the forward-secrecy section while preserving the durable retrieval
+  versus ratchet complexity tradeoff.
+
+Acceptance criteria:
+
+- The paper still says the same thing technically.
+- The first two sections are easier to read and less acronym-heavy.
+- The message-flow section can be understood without already knowing every key
+  type.
+- Security limitations remain explicit.
+- The whitepaper compiles successfully.
+
+### Result
+
+Pass. The abstract is now split into two shorter paragraphs, the introduction
+keeps its focus on email's strengths and gaps, and the detailed quantum resource
+numbers moved to `Quantum Resistance`. `Identity and Addressing` now comes
+before the message-flow overview, with a short plain-language bridge explaining
+signing, encryption, and proof of work before the diagram. The trust-boundary
+caveat after the flow now points to the security analysis instead of reading as
+a contradiction. The forward-secrecy section was shortened while preserving the
+durable retrieval versus ratchet complexity tradeoff. The whitepaper compiled
+successfully.
+
+## Experiment 6
+
+Close the remaining audit findings by deciding whether they require protocol or
+documentation changes.
+
+Problem:
+
+Two findings remained after the documentation experiments:
+
+- Sender key verification is tied to the sender's current active key, so a
+  message can fail if the sender rotates keys while delivery is in flight.
+- PoW challenge signing and HMAC input use fixed-width fields plus optional
+  address concatenation instead of the message envelope's full
+  length-prefixed format.
+
+Decision:
+
+Leave both behaviors unchanged.
+
+For sender keys, the rotation race is an accepted reliability edge case, not a
+protocol issue worth adding complexity for. If a user rotates keys during a
+send and the message fails, the user can send the message again under the new
+active key. The protocol keeps sender verification simple by checking the
+currently authoritative key published by the sender's domain.
+
+For PoW challenges, the current encoding is not worth changing. The fixed-width
+fields reduce ambiguity, and the optional addresses are already scoped to the
+challenge purpose. Reusing the full message-envelope pattern here would add
+format complexity without enough practical benefit.
+
+Explicitly out of scope:
+
+- Adding `senderKeyNumber`
+- Adding retained sender-key federation lookup
+- Changing message retry semantics
+- Re-encoding PoW challenges
+- Changing PoW request signatures
+
+### Result
+
+Pass. No protocol, implementation, or documentation changes are required for
+these two findings. The issue can close with the current simplicity tradeoffs:
+rare key-rotation send failures are acceptable and recoverable by resending,
+and the existing PoW challenge encoding remains unchanged.
+
+## Conclusion
+
+The protocol design audit is closed.
+
+The main outcome is a clearer and more intentional trust model. KeyPears is now
+documented as a simple federated encrypted messaging system that improves on
+email by encrypting stored application data and making self-hosting practical,
+without trying to remove all trust from the active server that is authoritative
+for a user's current public keys. Hosted servers are trusted to publish honest
+current keys and serve honest client code; users who do not want that trust
+boundary should host their own domain.
+
+The documentation now distinguishes database compromise, passive server
+compromise, active hosted-server key substitution, localStorage-only theft,
+encrypted private-key blob theft, authenticated session theft, and active
+browser-origin compromise. It also states the password KDF economics more
+conservatively: the server-side 600k PBKDF2-HMAC-SHA-256 tier with per-user salt
+is the baseline, with two deterministic 300k client-side tiers adding further
+stretching.
+
+The whitepaper was simplified for flow: the abstract is shorter, the
+introduction focuses on email's strengths and gaps, identity/key vocabulary now
+precedes the message-flow overview, detailed quantum resource numbers moved to
+the quantum-resistance section, and the forward-secrecy tradeoff is shorter and
+more direct.
+
+Two audit findings were intentionally left unchanged. Sender-key verification
+against the current active key can cause a rare send failure if key rotation
+overlaps message delivery; that is accepted, and the user can resend. PoW
+challenge encoding also remains as-is because changing it would add complexity
+without enough benefit for this protocol.
