@@ -557,14 +557,15 @@ current-key authority for hosted addresses.
 
 == Client Storage Theft
 
-An attacker who compromises client storage obtains the encryption key, which
-can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM). However,
-the login key is a cryptographic sibling (derived from the same parent with a
-different salt), not a child. The encryption key alone does not reveal the
-login key. Active origin compromise is stronger than storage-only theft:
-malicious script or malware running as the user can combine session access with
-the cached encryption key, fetch encrypted private-key blobs, and sign messages
-until the session is revoked or keys are rotated.
+A localStorage-only theft exposes the cached encryption key, but it does not
+derive the login key, recover the user's password, or create a server session.
+If the attacker also obtains encrypted private-key blobs, the cached encryption
+key can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM).
+Active origin compromise is stronger: malicious script or malware running as
+the KeyPears origin can combine session access, server functions, the cached
+encryption key, and client-side crypto helpers to sign messages or third-party
+auth assertions as the user until the session is revoked, keys are rotated, or
+the compromised client is cleaned.
 
 == Forward Secrecy
 
@@ -616,11 +617,13 @@ Signal-style forward secrecy and post-compromise security.
 == Limitations
 
 KeyPears does not protect against compromised endpoints, weak passwords, or
-DNS-level attacks. SLH-DSA (FIPS~205), a hash-based signature scheme, exists
-as a fallback against a structural break in lattice cryptography but is not
-currently used due to its substantially larger signatures (8--50~KB). The Rust
-PQC libraries used by this implementation (RustCrypto `ml-kem` and `ml-dsa`)
-have not received an independent third-party audit as of this writing.
+DNS-level attacks. A compromised active client can read plaintext and sign as
+the user while the session and keys remain usable. SLH-DSA (FIPS~205), a
+hash-based signature scheme, exists as a fallback against a structural break in
+lattice cryptography but is not currently used due to its substantially larger
+signatures (8--50~KB). The Rust PQC libraries used by this implementation
+(RustCrypto `ml-kem` and `ml-dsa`) have not received an independent third-party
+audit as of this writing.
 
 = Related Work
 

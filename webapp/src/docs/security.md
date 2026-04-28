@@ -94,18 +94,24 @@ users' current public keys.
 
 ## Client storage theft
 
-An attacker who compromises a user's client storage obtains the encryption key,
-which can decrypt all four of the user's private keys (Ed25519, X25519, ML-DSA,
-and ML-KEM). However, the login key is a cryptographic sibling of the
-encryption key (derived from the same parent with a different salt), not a
-child.
+KeyPears caches the encryption key in localStorage. A theft of localStorage
+alone gives the attacker that cached encryption key, but it does not derive the
+login key and does not by itself create a server session. The login key is a
+cryptographic sibling of the encryption key (derived from the same parent with a
+different salt), not a child.
 
-The attacker cannot derive the login key from the encryption key alone. A
-storage-only theft also does not include the server-side session by itself.
-Active origin compromise is different: malicious script or malware running as
-the user can combine session access with the cached encryption key, fetch
-encrypted private-key blobs, and sign messages until the session is revoked or
-keys are rotated.
+If the attacker also obtains encrypted private-key blobs, the cached encryption
+key can decrypt the user's Ed25519, X25519, ML-DSA, and ML-KEM private keys. If
+the attacker also obtains an authenticated session, they may be able to fetch
+those encrypted blobs from the server.
+
+Active origin compromise is stronger than storage-only theft. Malicious script
+or malware running as the KeyPears origin can combine session access, server
+functions, the cached encryption key, and client-side crypto helpers to decrypt
+signing keys and sign messages or third-party auth assertions as the user until
+the session is revoked, keys are rotated, or the compromised client is cleaned.
+This is a standard web-app endpoint compromise boundary, not a protocol
+redesign trigger.
 
 ## Browser security headers
 
@@ -182,7 +188,8 @@ classical algorithms that provide a conservative security floor.
 KeyPears does not protect against:
 
 - **Compromised endpoints** — an attacker with access to the running client can
-  read decrypted content.
+  read decrypted content and can sign as the user while the session and keys are
+  usable.
 - **Active hosted-server key substitution** — servers are trusted authorities
   for current public keys on the domains they host. A malicious server can lie
   about future keys for its users. Self-hosting is the trust exit.

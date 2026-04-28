@@ -334,3 +334,83 @@ They explain that a single-user guess traverses both client tiers and that
 user's server tier, while bulk attacks can reuse the deterministic client-tier
 work per password candidate and must still perform the per-user server tier for
 each target. No KDF implementation or compatibility behavior changed.
+
+## Experiment 4
+
+Update client-compromise documentation to distinguish localStorage-only theft
+from active browser-origin compromise.
+
+Problem:
+
+KeyPears caches the encryption key in localStorage so users can decrypt keys,
+messages, and vault entries without re-entering their password. The encryption
+key is deliberately separate from the login key: knowing the cached encryption
+key alone does not derive the login key and does not create a server session.
+
+That narrow statement is useful but incomplete. If an attacker can run code in
+the KeyPears origin, they can usually combine:
+
+- the cached encryption key from localStorage,
+- the user's authenticated session/cookies,
+- server functions that return encrypted private-key blobs,
+- and client-side decrypt/sign helpers,
+
+to decrypt Ed25519 and ML-DSA signing keys and sign messages or auth assertions
+as the user until sessions are revoked, keys are rotated, or the compromised
+client is cleared.
+
+The documentation should make this distinction explicit without changing the
+cached-key design.
+
+Scope:
+
+- `webapp/src/docs/security.md`
+- `webapp/src/docs/protocol/key-derivation.md`
+- `whitepaper/keypears.typ`
+- `AGENTS.md`
+- Any nearby README or code comments that summarize cached encryption key risk
+
+Explicitly out of scope:
+
+- Changing localStorage caching behavior
+- Adding hardware-backed key storage
+- Changing session cookies or auth middleware
+- Adding new recovery or revocation flows
+- Historical blog posts
+
+Required stance:
+
+- LocalStorage-only theft of the cached encryption key does not derive the
+  login key and does not by itself create a server session.
+- If the attacker also obtains encrypted private-key blobs, the cached
+  encryption key can decrypt private keys.
+- Active origin compromise is stronger than storage-only theft. Code executing
+  as the KeyPears origin can combine session access, server functions, cached
+  encryption key access, and client-side crypto to act as the user.
+- Active origin compromise can sign messages and third-party auth assertions
+  until the session is revoked, keys are rotated, or the client is cleaned.
+- This is a standard web-app endpoint compromise boundary, not a reason to
+  redesign the protocol.
+
+Acceptance criteria:
+
+- Docs no longer make the unqualified claim that client storage compromise
+  cannot impersonate the user.
+- Security docs clearly separate localStorage-only theft, encrypted key-blob
+  theft, authenticated session theft, and active origin compromise.
+- Key-derivation docs keep the encryption-key/login-key separation claim but
+  attach the correct caveat.
+- Whitepaper limitations mention active origin compromise as able to sign as
+  the user, not only read plaintext.
+- Implementation remains unchanged.
+
+### Result
+
+Pass. The security docs, key-derivation docs, whitepaper, AGENTS guidance, and
+the local auth comment now distinguish localStorage-only theft from active
+origin compromise. They preserve the encryption-key/login-key separation claim
+while making clear that encrypted key blobs plus the cached encryption key can
+decrypt private keys, and that active origin/session compromise can sign
+messages or third-party auth assertions as the user until sessions are revoked,
+keys are rotated, or the client is cleaned. No protocol, storage, or session
+behavior changed.

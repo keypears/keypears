@@ -89,14 +89,15 @@ with different salts, making them cryptographically independent.
 key, then discarded. The password key is used to derive the encryption key and
 login key, then discarded. Only the encryption key is cached.
 
-**If client storage is compromised:** The attacker gets the encryption key and
-can decrypt all four private keys (Ed25519, X25519, ML-DSA, ML-KEM) if they
-also obtain the encrypted key blobs. But they CANNOT derive the login key (it's
-a sibling, not a child), and they also cannot recover the user's password.
-Active origin compromise is stronger than storage-only theft: malicious script
-or malware running as the user can combine session access with the cached
-encryption key, fetch encrypted private-key blobs, and sign messages until the
-session is revoked or keys are rotated.
+**If client storage is compromised:** A localStorage-only theft exposes the
+cached encryption key, but it does not derive the login key, recover the user's
+password, or create a server session. If the attacker also obtains encrypted
+private-key blobs, the cached encryption key can decrypt all four private keys
+(Ed25519, X25519, ML-DSA, ML-KEM). Active origin compromise is stronger:
+malicious script or malware running as the KeyPears origin can combine session
+access, server functions, the cached encryption key, and client-side crypto
+helpers to sign messages or third-party auth assertions as the user until the
+session is revoked, keys are rotated, or the compromised client is cleaned.
 
 **Graceful fallback.** If client storage is cleared, the user simply re-enters
 their password. No data is lost — the same password derives the same keys.

@@ -229,8 +229,9 @@ export async function decryptX25519Key(
 // --- Encryption key caching (localStorage) ---
 // Only the encryption key is cached. The password key and login key
 // are ephemeral — derived from the password, used, then discarded.
-// If localStorage is compromised, the attacker can decrypt private keys
-// but CANNOT derive the login key or impersonate the user.
+// A localStorage-only theft cannot derive the login key or create a session.
+// Active origin compromise is stronger: it can combine session access, fetched
+// encrypted key blobs, and this cached key to sign as the user.
 
 export function cacheEncryptionKey(encryptionKey: FixedBuf<32>): void {
   localStorage.setItem(ENCRYPTION_KEY_STORAGE_KEY, encryptionKey.buf.toHex());
