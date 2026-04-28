@@ -10,7 +10,6 @@ node_modules
 
 # Build outputs regenerated inside the image.
 **/dist
-webapp/public/keypears.pdf
 webapp/public/blog
 
 # Unrelated projects and research checkouts.
