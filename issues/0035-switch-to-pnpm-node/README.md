@@ -251,7 +251,7 @@ keeps `/health`, `/.well-known/keypears.json`, `/api/*`, and SSR behavior.
 
 ## Conclusion
 
-Issue 36 is closed.
+Issue 35 is closed.
 
 KeyPears has moved from Bun-first tooling to pnpm and Node for the workspace,
 webapp, landing pages, benchmark packages, documentation, and Docker runtime.
