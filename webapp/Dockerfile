@@ -22,6 +22,7 @@ RUN corepack enable
 COPY . .
 
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @keypears/client --filter @keypears/pow5 run build
 RUN pnpm --filter @keypears/webapp run build
 
 # ----- runtime stage: slim, prod-only -----
