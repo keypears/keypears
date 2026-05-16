@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-16"
+closed = "2026-05-16"
 +++
 
 # Type-Safe Navigation
@@ -245,3 +246,22 @@ navigation boundary implementations:
 
 The remaining dynamic `to={...}` hits are typed route-literal expressions or
 typed route-path unions, not plain `string` paths.
+
+## Conclusion
+
+Issue 37 made active webapp and landing-page navigation type-safe. Internal
+webapp route links now use typed TanStack Router paths, params, or typed
+route-path unions. Interpolated profile URLs were replaced with `/$profile`
+route params, and navigation arrays no longer widen route paths to plain
+`string`.
+
+Markdown-rendered links now route only whitelisted internal paths through
+TanStack `Link`; external URLs, hash anchors, and the known `/keypears.pdf`
+asset go through explicit external-link boundaries. Raw external anchors in the
+webapp footer and Astro landing pages were moved behind typed `ExternalLink`
+components. Direct browser navigation for logout and third-party signing flows
+now lives in explicit navigation helpers instead of being scattered through UI
+components.
+
+No exception approvals were required. Verification passed for the webapp
+typecheck and both Astro landing-page builds.
