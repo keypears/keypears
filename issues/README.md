@@ -4,6 +4,7 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0038](0038-agents-compliance-fixes/README.md)  | AGENTS Compliance Fixes        | 2026-05-16 |
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
