@@ -11,8 +11,10 @@ export function parseExternalUrl(value: string): ExternalUrl {
 }
 
 export function replaceWithAppRoot(): never {
-  window.location.replace("/");
-  throw new Error("unreachable after location.replace");
+  // Logout intentionally uses a full document navigation to clear all
+  // client-side router state after the server session is revoked.
+  window.location.href = "/";
+  throw new Error("unreachable after location.href");
 }
 
 export function leaveAppForExternalUrl(url: ExternalUrl): never {
