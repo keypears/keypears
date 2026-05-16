@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-16"
+closed = "2026-05-16"
 +++
 
 # Switch from Bun to pnpm and Node
@@ -247,3 +248,26 @@ The first smoke test found that the experiment-1 static-file shim evaluated
 requests to fail with a 500. Removing that shim is the correct outcome for this
 experiment: Nitro should serve built public assets, while the Start handler
 keeps `/health`, `/.well-known/keypears.json`, `/api/*`, and SSR behavior.
+
+## Conclusion
+
+Issue 36 is closed.
+
+KeyPears has moved from Bun-first tooling to pnpm and Node for the workspace,
+webapp, landing pages, benchmark packages, documentation, and Docker runtime.
+The repo now has a committed pnpm workspace and lockfile, current scripts and
+docs use pnpm/Node commands, Bun lockfiles were removed, and the verified build,
+test, lint, typecheck, benchmark, and package build commands pass under pnpm.
+
+The initial Node migration used a small custom `webapp/start-node.js` adapter,
+but that was replaced in Experiment 2 with TanStack's recommended Nitro output.
+Production now starts the webapp with `node .output/server/index.mjs`, Docker
+copies `.output/`, and Nitro owns static asset serving while preserving
+KeyPears security headers through route rules. The generated Nitro server was
+smoke-tested for `/health`, `/.well-known/keypears.json`, SSR, CSS assets, and
+the `/api` oRPC path, and the updated Dockerfile builds successfully.
+
+After deployment, the Nitro-based pnpm/Node runtime worked in production. The
+remaining npm package publishing work is intentionally outside this issue and
+should be handled separately as package output cleanup for JavaScript files and
+`.d.ts` declarations.
