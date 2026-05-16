@@ -65,14 +65,15 @@ receive.
 - Should publish automation live as package-level scripts only, or should there
   be a root release script that verifies all public packages together?
 
-## Experiment 1: build npm-ready packages
+## Experiment 1: build and publish npm packages
 
 ### Hypothesis
 
-`@keypears/client` and `@keypears/pow5` can be prepared for npm publishing
-together by producing ESM JavaScript and `.d.ts` outputs, tightening package
-metadata, and validating the packed tarballs against the same import patterns
-used by KeyPears.
+`@keypears/client` and `@keypears/pow5` can be built, validated, and published
+to npm together by producing ESM JavaScript and `.d.ts` outputs, tightening
+package metadata, validating the packed tarballs against the same import
+patterns used by KeyPears, and then running the real npm publish. This
+experiment is not complete until both packages are live on npm.
 
 ### Decisions
 
@@ -111,7 +112,8 @@ used by KeyPears.
    - version bump command(s);
    - build command(s);
    - pack inspection command(s);
-   - final publish command(s), including public access for scoped packages.
+   - final publish command(s), including public access for scoped packages;
+   - post-publish verification command(s).
 7. Verify both packages directly:
    - typecheck;
    - build;
@@ -121,7 +123,14 @@ used by KeyPears.
    - import the `@keypears/pow5` root exports used by KeyPears;
    - run a small Node ESM script against non-browser exports;
    - run a browser/Vite smoke test if needed for WebGPU/WGSL-facing exports.
-9. Record the resulting package contents and exact release commands.
+9. Publish both packages to npm with the same version.
+10. Verify the live npm packages:
+   - npm registry pages show the published versions;
+   - `npm view` returns the expected metadata;
+   - a clean temporary consumer can install from the registry, not just local
+     tarballs, and import the same root exports KeyPears uses.
+11. Record the resulting package contents, exact release commands, published
+   version, npm package URLs, and post-publish verification.
 
 ### Acceptance Criteria
 
@@ -138,8 +147,14 @@ used by KeyPears.
   local development clutter is included unintentionally.
 - A clean temporary consumer can install the packed tarballs and import the
   same root exports KeyPears uses.
+- Both packages are published to npm under the same version.
+- `npm view @keypears/client@<version>` returns the published metadata.
+- `npm view @keypears/pow5@<version>` returns the published metadata.
+- A clean temporary consumer can install both packages from the npm registry and
+  import the same root exports KeyPears uses.
 - The issue records exact manual commands for future version bumps and npm
   publish runs.
+- The experiment result records the published version and npm package URLs.
 
 ### Result
 
