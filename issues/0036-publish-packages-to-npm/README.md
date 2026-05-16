@@ -64,3 +64,83 @@ receive.
   browser consumers?
 - Should publish automation live as package-level scripts only, or should there
   be a root release script that verifies all public packages together?
+
+## Experiment 1: build npm-ready packages
+
+### Hypothesis
+
+`@keypears/client` and `@keypears/pow5` can be prepared for npm publishing
+together by producing ESM JavaScript and `.d.ts` outputs, tightening package
+metadata, and validating the packed tarballs against the same import patterns
+used by KeyPears.
+
+### Decisions
+
+- Publish both public packages together: `@keypears/client` and `@keypears/pow5`.
+- Keep both public packages on the same version number before publishing.
+- Use the entrypoint shape KeyPears already uses. The webapp imports both
+  packages from their package roots:
+  - `@keypears/client`: `contract`, `createKeypearsClientFromUrl`,
+    `buildCanonicalPayload`, `hexBytes`, `hexMaxBytes`, and `addressSchema`.
+  - `@keypears/pow5`: `Pow5_64b_Wasm`, `hashMeetsTarget`,
+    `difficultyFromTarget`, and browser/client mining exports loaded through
+    the root package import.
+- Publish the files required by those KeyPears import paths and their runtime
+  dependency closure. For `@keypears/pow5`, that includes the built JavaScript,
+  declaration files, inline WASM support files, and WGSL files actually needed
+  by the root exports.
+- Do not add release automation beyond package scripts and documentation. The
+  final process should document the exact pnpm/npm commands to build, bump
+  versions, pack-check, and publish.
+
+### Plan
+
+1. Audit the public exports used by the webapp and benchmark packages.
+2. Add or update TypeScript build configuration for `@keypears/client` so it
+   emits ESM JavaScript and `.d.ts` files into `dist/`.
+3. Update `@keypears/client` package metadata:
+   - `main` points at built JavaScript;
+   - `types` points at built declarations;
+   - `exports` exposes the package root;
+   - `files` limits published contents to runtime artifacts and metadata;
+   - scripts include `clean`, `build`, `typecheck`, and `prepublishOnly`.
+4. Audit `@keypears/pow5` packed output and update metadata as needed so npm
+   consumers receive only the required built files and runtime assets.
+5. Align the two public package versions to the same value.
+6. Add publish documentation to the issue or package docs covering:
+   - version bump command(s);
+   - build command(s);
+   - pack inspection command(s);
+   - final publish command(s), including public access for scoped packages.
+7. Verify both packages directly:
+   - typecheck;
+   - build;
+   - package tarball contents via `pnpm pack` or `npm pack --dry-run`.
+8. Validate from packed tarballs in a clean temporary consumer project:
+   - import the `@keypears/client` root exports used by KeyPears;
+   - import the `@keypears/pow5` root exports used by KeyPears;
+   - run a small Node ESM script against non-browser exports;
+   - run a browser/Vite smoke test if needed for WebGPU/WGSL-facing exports.
+9. Record the resulting package contents and exact release commands.
+
+### Acceptance Criteria
+
+- `@keypears/client` publishes built JavaScript and `.d.ts` files instead of
+  TypeScript source entrypoints.
+- `@keypears/pow5` publishes built JavaScript, `.d.ts` files, and the runtime
+  assets required by KeyPears imports.
+- Both public packages have matching version numbers.
+- Both package manifests have correct `main`, `types`, `exports`, `files`,
+  license, and publish settings.
+- `pnpm --filter @keypears/client run build` succeeds.
+- `pnpm --filter @keypears/pow5 run build` succeeds.
+- Tarball inspection confirms no benchmark, test, source-only, or generated
+  local development clutter is included unintentionally.
+- A clean temporary consumer can install the packed tarballs and import the
+  same root exports KeyPears uses.
+- The issue records exact manual commands for future version bumps and npm
+  publish runs.
+
+### Result
+
+Pending.
