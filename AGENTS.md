@@ -16,7 +16,7 @@ the attacker also obtains client-side keys, passwords, or active client access.
 
 ```
 keypears/
-  package.json          # bun workspace root (orchestrates all projects)
+  package.json          # pnpm workspace root (orchestrates all projects)
   issues/               # issue tracking (see "Issues and experiments")
   kp1/                  # archived kp1 codebase (reference only)
   packages/
@@ -116,8 +116,8 @@ keypears/
 - **Linting**: oxlint (161 rules)
 - **Formatting**: Prettier
 - **Testing**: Vitest
-- **Package manager**: Bun
-- **Runtime**: Bun
+- **Package manager**: pnpm
+- **Runtime**: Node.js
 
 ## Documentation
 
@@ -142,27 +142,27 @@ rots invisibly if not maintained alongside code changes.
 Local HTTPS via Caddy reverse proxy — see [webapp/src/docs/development.md](webapp/src/docs/development.md).
 
 ```bash
-bun install               # from repo root
-bun run dev               # starts all servers (keypears, passapples, lockberries)
+pnpm install              # from repo root
+pnpm run dev              # starts all servers (keypears, passapples, lockberries)
 ```
 
 Or run individual servers from `webapp/`:
 
 ```bash
 cd webapp
-bun run dev:keypears      # keypears.test on port 3500
-bun run dev:passapples    # keypears.passapples.test on port 3512
-bun run build             # blog + vite build
-bun run start             # run built server (dist/server/server.js)
-bun run typecheck         # tsc --noEmit
-bun run db:clear          # drop all tables (both databases)
-bun run db:push           # push schema to MySQL (both databases)
-bun run db:push:prod      # push schema to prod database
-bun run test              # run tests
-bun run lint              # run linter
-bun run format            # format code
-bun run build:icons       # regenerate images from raw-icons/
-bun run deploy            # build, push, and roll ECS (from repo root)
+pnpm run dev:keypears     # keypears.test on port 3500
+pnpm run dev:passapples   # keypears.passapples.test on port 3512
+pnpm run build            # blog + vite build
+pnpm run start            # run built server (dist/server/server.js)
+pnpm run typecheck        # tsc --noEmit
+pnpm run db:clear         # drop all tables (both databases)
+pnpm run db:push          # push schema to MySQL (both databases)
+pnpm run db:push:prod     # push schema to prod database
+pnpm run test             # run tests
+pnpm run lint             # run linter
+pnpm run format           # format code
+pnpm run build:icons      # regenerate images from raw-icons/
+pnpm run deploy           # build, push, and roll ECS (from repo root)
 ```
 
 TanStack Router's route tree (`routeTree.gen.ts`) is generated automatically

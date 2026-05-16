@@ -1,6 +1,7 @@
 {
   "name": "keypears",
   "private": true,
+  "packageManager": "pnpm@10.25.0",
   "workspaces": [
     "webapp",
     "passapples",
@@ -8,13 +9,17 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n kp,pa-land,pa-kp,lb -c blue,green,yellow,magenta \"bun run dev:keypears\" \"bun run dev:passapples\" \"bun run dev:passapples:kp\" \"bun run dev:lockberries\"",
-    "dev:keypears": "cd webapp && bun run dev:keypears",
-    "dev:passapples": "cd passapples && bun run dev",
-    "dev:passapples:kp": "cd webapp && bun run dev:passapples",
-    "dev:lockberries": "cd lockberries && bun run dev",
-    "db:push": "cd webapp && bun run db:push",
-    "db:clear": "cd webapp && bun run db:clear",
+    "dev": "concurrently -n kp,pa-land,pa-kp,lb -c blue,green,yellow,magenta \"pnpm run dev:keypears\" \"pnpm run dev:passapples\" \"pnpm run dev:passapples:kp\" \"pnpm run dev:lockberries\"",
+    "dev:keypears": "pnpm --filter @keypears/webapp run dev:keypears",
+    "dev:passapples": "pnpm --filter @keypears/passapples run dev",
+    "dev:passapples:kp": "pnpm --filter @keypears/webapp run dev:passapples",
+    "dev:lockberries": "pnpm --filter @keypears/lockberries run dev",
+    "build": "pnpm --filter @keypears/webapp run build",
+    "test": "pnpm --filter @keypears/webapp run test",
+    "lint": "pnpm --filter @keypears/webapp run lint",
+    "typecheck": "pnpm --filter @keypears/webapp run typecheck",
+    "db:push": "pnpm --filter @keypears/webapp run db:push",
+    "db:clear": "pnpm --filter @keypears/webapp run db:clear",
     "deploy": "infra/deploy.sh"
   },
   "devDependencies": {

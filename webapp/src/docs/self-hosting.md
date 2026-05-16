@@ -9,7 +9,7 @@ your own domain.
 
 ## Requirements
 
-- **Runtime**: Bun
+- **Runtime**: Node.js
 - **Database**: MySQL
 - **Reverse proxy**: Caddy (recommended) or any HTTPS-capable proxy
 - **DNS**: Control of your domain's DNS records
@@ -36,7 +36,7 @@ cd webapp
 dotenvx run -f .env.production -- drizzle-kit push
 ```
 
-(The repo's `bun run db:push` script is dev-only — it uses `.env.dev` and
+(The repo's `pnpm run db:push` script is dev-only — it uses `.env.dev` and
 `.env.dev.passapples` to push to both local dev databases.)
 
 This creates all required tables. The schema uses UUIDv7 binary primary keys,
@@ -73,9 +73,9 @@ keypears.acme.com {
 ## Running the server
 
 ```bash
-bun install
-bun run build
-bun run start
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run start
 ```
 
 The build step compiles the blog and runs `vite build`. The server listens on

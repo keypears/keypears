@@ -115,7 +115,7 @@ that's where to start.
 KeyPears is MIT licensed. Every line of code is on
 [GitHub](https://github.com/keypears/keypears), including:
 
-- The webapp itself (TanStack Start, Bun, MySQL via Drizzle, React 19)
+- The webapp itself (TanStack Start, Node.js, MySQL via Drizzle, React 19)
 - The proof-of-work algorithm (`pow5-64b`, Rust → WASM with TypeScript bindings)
 - The whitepaper source (Typst)
 - The Terraform stack that runs the production server (VPC, ALB, ECS Fargate,

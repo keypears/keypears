@@ -13,7 +13,7 @@
       "~/*": ["./src/*"]
     },
     "resolveJsonModule": true,
-    "types": ["vite/client", "bun", "@webgpu/types"],
+    "types": ["vite/client", "node", "@webgpu/types"],
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo"
   },

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "bench:blake3": "bun src/bench-blake3.ts",
-    "bench:pow": "bunx vite --open",
-    "calc": "bun src/calc-whitepaper-numbers.ts"
+    "bench:blake3": "tsx src/bench-blake3.ts",
+    "bench:pow": "vite --open",
+    "calc": "tsx src/calc-whitepaper-numbers.ts"
   },
   "dependencies": {
     "@keypears/pow5": "workspace:*",
@@ -15,6 +15,8 @@
     "@webbuf/webbuf": "^3.5.0"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
+    "tsx": "^4.21.0",
     "vite": "^6.3.4",
     "vite-tsconfig-paths": "^4.3.2"
   }

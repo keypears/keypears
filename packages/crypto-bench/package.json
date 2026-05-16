@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "bench:node": "bun src/bench-node.ts",
-    "dev": "bunx vite --open"
+    "bench:node": "tsx src/bench-node.ts",
+    "dev": "vite --open"
   },
   "dependencies": {
     "@webbuf/aesgcm": "^3.5.0",
@@ -16,6 +16,8 @@
     "@webbuf/webbuf": "^3.5.0"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
+    "tsx": "^4.21.0",
     "vite": "^6.3.4"
   }
 }
