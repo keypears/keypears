@@ -12,7 +12,7 @@ import {
   clearCachedEntropyTier,
   getCachedEntropyTier,
 } from "~/lib/auth";
-import { replaceWithAppRoot } from "~/lib/navigation";
+import { finishLogoutWithFullReload } from "~/lib/navigation";
 import {
   CircleUser,
   KeyRound,
@@ -50,7 +50,7 @@ export function UserDropdown({
       // session cookie. Failing closed here would strand the user
       // half-logged-out with no way to recover from the UI.
     }
-    replaceWithAppRoot();
+    finishLogoutWithFullReload();
   }
 
   const profile = domain ? `${userName}@${domain}` : userName;

@@ -10,7 +10,7 @@ export function parseExternalUrl(value: string): ExternalUrl {
   return url.toString() as ExternalUrl;
 }
 
-export function replaceWithAppRoot(): never {
+export function finishLogoutWithFullReload(): never {
   // Logout intentionally uses a full document navigation to clear all
   // client-side router state after the server session is revoked.
   window.location.href = "/";
