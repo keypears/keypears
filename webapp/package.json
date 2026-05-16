@@ -6,7 +6,7 @@
     "dev:passapples": "NODE_TLS_REJECT_UNAUTHORIZED=0 dotenvx run -f .env.dev.passapples -- vite --port 3512",
     "build": "pnpm run build:blog && vite build",
     "build:blog": "tsx build-blog.ts",
-    "start": "node start-node.js",
+    "start": "node .output/server/index.mjs",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
@@ -71,6 +71,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",
+    "@tanstack/nitro-v2-vite-plugin": "1.155.0",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

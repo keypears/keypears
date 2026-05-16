@@ -2,9 +2,6 @@ import {
   createStartHandler,
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
-import { join } from "node:path";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import { RPCHandler } from "@orpc/server/fetch";
 import { apiRouter } from "./server/api.router";
 import { getApiDomain, getAdminAddress } from "./lib/config";
@@ -38,34 +35,6 @@ function addSecurityHeaders(response: Response): Response {
   return response;
 }
 
-const CLIENT_DIR = join(import.meta.dirname, "..", "client");
-const CONTENT_TYPES: Record<string, string> = {
-  ".css": "text/css; charset=utf-8",
-  ".gif": "image/gif",
-  ".html": "text/html; charset=utf-8",
-  ".ico": "image/x-icon",
-  ".jpeg": "image/jpeg",
-  ".jpg": "image/jpeg",
-  ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  ".txt": "text/plain; charset=utf-8",
-  ".wasm": "application/wasm",
-  ".webmanifest": "application/manifest+json",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-};
-
-async function serveFile(filePath: string): Promise<Response | null> {
-  if (!existsSync(filePath)) return null;
-  const file = await readFile(filePath);
-  const extension = filePath.slice(filePath.lastIndexOf("."));
-  return new Response(file, {
-    headers: { "content-type": CONTENT_TYPES[extension] ?? "application/octet-stream" },
-  });
-}
-
 export default {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -97,23 +66,6 @@ export default {
         prefix: "/api",
       });
       if (matched) return addSecurityHeaders(response);
-    }
-
-    // Serve static assets from dist/client
-    if (
-      url.pathname.startsWith("/assets/") ||
-      url.pathname.startsWith("/_build/")
-    ) {
-      const filePath = join(CLIENT_DIR, url.pathname);
-      const response = await serveFile(filePath);
-      if (response) return addSecurityHeaders(response);
-    }
-
-    // Serve public files (favicon, fonts, etc.)
-    const publicPath = join(CLIENT_DIR, url.pathname);
-    if (url.pathname !== "/") {
-      const response = await serveFile(publicPath);
-      if (response) return addSecurityHeaders(response);
     }
 
     // SSR for everything else

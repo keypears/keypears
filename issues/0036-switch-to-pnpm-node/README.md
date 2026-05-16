@@ -204,4 +204,46 @@ our own Node request/response bridge.
 
 ### Result
 
-Pending.
+Pass.
+
+Changes made:
+
+- Added `@tanstack/nitro-v2-vite-plugin` to `@keypears/webapp`.
+- Configured the Nitro Vite plugin with the Node server preset and an explicit
+  compatibility date.
+- Moved the production start command to `node .output/server/index.mjs`.
+- Deleted `webapp/start-node.js`.
+- Updated the webapp Dockerfile to copy `.output/` and run the Nitro entrypoint.
+- Removed the experiment-1 static-file shim from `webapp/src/server.ts`; Nitro
+  now owns static asset serving.
+- Added Nitro route rules so Nitro-served responses receive the same production
+  security headers as SSR/API responses.
+- Ignored generated `.nitro/` and `.output/` directories.
+
+Verification:
+
+- `pnpm --filter @keypears/webapp run build` passes and creates
+  `.output/server/index.mjs`.
+- `PORT=3599 pnpm --filter @keypears/webapp run start` starts the generated
+  Nitro Node server.
+- `curl -fsS http://127.0.0.1:3599/health` returns `ok`.
+- `curl -fsS http://127.0.0.1:3599/.well-known/keypears.json` returns the
+  configured `apiDomain`.
+- `curl -fsSI http://127.0.0.1:3599/` returns HTML with KeyPears security
+  headers.
+- `curl -fsSI http://127.0.0.1:3599/assets/index-D6mpzNZt.css` returns CSS with
+  KeyPears security headers.
+- An oRPC client call to `serverInfo` through
+  `http://127.0.0.1:3599/api` returns `{ "domain": "keypears.test" }`.
+- `pnpm --filter @keypears/webapp run typecheck` passes.
+- `pnpm --filter @keypears/webapp run test` passes: 2 files, 13 tests.
+- `pnpm --filter @keypears/webapp run lint` passes with the existing warning
+  set and no errors.
+- `pnpm install --frozen-lockfile` passes.
+- `docker build -f webapp/Dockerfile .` passes.
+
+The first smoke test found that the experiment-1 static-file shim evaluated
+`import.meta.dirname` in Nitro's bundled virtual entry and caused handler
+requests to fail with a 500. Removing that shim is the correct outcome for this
+experiment: Nitro should serve built public assets, while the Start handler
+keeps `/health`, `/.well-known/keypears.json`, `/api/*`, and SSR behavior.

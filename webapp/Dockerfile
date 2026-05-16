@@ -11,7 +11,7 @@
 #
 #   docker build -f webapp/Dockerfile -t keypears:local .
 
-# ----- builder stage: full toolchain, produces dist/ -----
+# ----- builder stage: full toolchain, produces Nitro output -----
 FROM node:22-slim AS builder
 
 WORKDIR /repo
@@ -32,7 +32,7 @@ RUN corepack enable
 
 # pnpm links workspace dependencies through /repo/node_modules, so we copy that plus
 # just the bits the webapp needs to boot: its package.json, the built
-# dist/, and the encrypted .env.prod that dotenvx will decrypt at runtime.
+# Nitro output, and the encrypted .env.prod that dotenvx will decrypt at runtime.
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/package.json ./package.json
 COPY --from=builder /repo/pnpm-lock.yaml ./pnpm-lock.yaml
@@ -40,8 +40,7 @@ COPY --from=builder /repo/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder /repo/packages ./packages
 COPY --from=builder /repo/webapp/package.json ./webapp/package.json
 COPY --from=builder /repo/webapp/node_modules ./webapp/node_modules
-COPY --from=builder /repo/webapp/dist ./webapp/dist
-COPY --from=builder /repo/webapp/start-node.js ./webapp/start-node.js
+COPY --from=builder /repo/webapp/.output ./webapp/.output
 COPY --from=builder /repo/webapp/.env.prod ./webapp/.env.prod
 
 WORKDIR /repo/webapp
@@ -54,4 +53,4 @@ EXPOSE 4273
 # `keypears-prod` secret. dotenvx reads it and decrypts .env.prod
 # in-memory before the server process starts.
 #
-CMD ["./node_modules/.bin/dotenvx", "run", "-f", ".env.prod", "--", "node", "start-node.js"]
+CMD ["./node_modules/.bin/dotenvx", "run", "-f", ".env.prod", "--", "node", ".output/server/index.mjs"]
