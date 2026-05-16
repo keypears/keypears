@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-16"
+closed = "2026-05-16"
 +++
 
 # Publish Packages to npm
@@ -269,4 +270,73 @@ Official references:
 
 ### Result
 
-Pending.
+Success.
+
+The packages were built, validated, and published to npm on May 16, 2026:
+
+- `@keypears/client@1.0.0`
+- `@keypears/pow5@1.0.0`
+
+Implemented package changes:
+
+- `@keypears/client` now builds to `dist/` with ESM JavaScript and `.d.ts`
+  declarations.
+- `@keypears/client` root exports no longer re-export the oRPC `contract`.
+  The webapp server imports the contract from `@keypears/client/contract`.
+- `@keypears/client` exposes a KeyPears-owned `KeypearsClient` interface so
+  root package consumers do not need the oRPC contract type graph.
+- `@keypears/pow5` now builds to `dist/` with ESM JavaScript, `.d.ts`
+  declarations, WGSL files, generated WGSL string modules, and inline WASM
+  support files.
+- Both public packages are aligned at version `1.0.0`.
+- Both package manifests point `main`, `types`, `exports`, and `files` at the
+  built npm package output.
+- The repo sets `auto-install-peers=false` for pnpm so optional peers like
+  `@opentelemetry/api` are not auto-installed into the lockfile.
+
+Validation completed:
+
+```bash
+pnpm --filter @keypears/client run typecheck
+pnpm --filter @keypears/pow5 run typecheck
+pnpm --filter @keypears/webapp run typecheck
+pnpm --filter @keypears/client pack --pack-destination /private/tmp/keypears-pack3
+pnpm --filter @keypears/pow5 pack --pack-destination /private/tmp/keypears-pack3
+```
+
+A clean temporary consumer installed the packed tarballs, typechecked with
+`skipLibCheck=false`, and ran a Node ESM import smoke test for the root package
+exports.
+
+The publish commands used for this release were:
+
+```bash
+pnpm --filter @keypears/client publish --access public --no-git-checks
+pnpm --filter @keypears/pow5 publish --access public --no-git-checks
+npm view @keypears/client@1.0.0 version
+npm view @keypears/pow5@1.0.0 version
+```
+
+## Conclusion
+
+Issue 36 published the first standard npm releases for the public KeyPears
+packages:
+
+- `@keypears/client@1.0.0`
+- `@keypears/pow5@1.0.0`
+
+Both packages now build with pnpm/Node into npm-ready `dist/` output containing
+ESM JavaScript and `.d.ts` declarations. Package source keeps explicit `.ts`
+relative imports, and TypeScript rewrites those imports to `.js` in emitted
+JavaScript via `rewriteRelativeImportExtensions`.
+
+`@keypears/client` now exposes built root client/auth/schema helpers and a
+server-only contract subpath at `@keypears/client/contract`. `@keypears/pow5`
+publishes the built TypeScript wrapper output plus the WGSL and inline WASM
+runtime files required by consumers. Both packages have npm metadata for
+`main`, `types`, `exports`, `files`, license, repository, public access, and
+matching `1.0.0` versions.
+
+The packages were validated with package typechecks, webapp typecheck, tarball
+inspection, and a clean temporary consumer install/typecheck/import smoke test
+before publishing.

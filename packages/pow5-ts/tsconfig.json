@@ -5,6 +5,8 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["@webgpu/types", "vite/client"],
     "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "esModuleInterop": true,
     "noUncheckedIndexedAccess": true,
     "module": "ESNext",

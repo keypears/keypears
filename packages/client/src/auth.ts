@@ -1,9 +1,9 @@
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";
-import { discoverApiDomain } from "./discover";
-import { createKeypearsClient } from "./client";
-import { buildCanonicalPayload } from "./canonical";
+import { discoverApiDomain } from "./discover.ts";
+import { createKeypearsClient } from "./client.ts";
+import { buildCanonicalPayload } from "./canonical.ts";
 
 /**
  * Generate a cryptographically random 32-byte hex string for the `state`

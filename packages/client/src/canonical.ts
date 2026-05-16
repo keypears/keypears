@@ -26,7 +26,7 @@ export function buildCanonicalPayload(fields: {
     obj.data = fields.data;
   }
   const sorted: Record<string, string> = {};
-  for (const key of Object.keys(obj).toSorted()) {
+  for (const key of Object.keys(obj).sort()) {
     sorted[key] = obj[key]!;
   }
   return JSON.stringify(sorted);

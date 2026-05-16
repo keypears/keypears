@@ -1,5 +1,6 @@
 import { implement } from "@orpc/server";
-import { contract, createKeypearsClientFromUrl } from "@keypears/client";
+import { createKeypearsClientFromUrl } from "@keypears/client";
+import { contract } from "@keypears/client/contract";
 import { verifyMessageSignature } from "~/lib/message";
 import { fetchRemotePublicKey } from "./federation.server";
 import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";

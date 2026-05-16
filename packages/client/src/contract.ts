@@ -1,6 +1,6 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-import { hexBytes, hexMaxBytes, addressSchema } from "./schemas";
+import { hexBytes, hexMaxBytes, addressSchema } from "./schemas.ts";
 
 const serverInfo = oc.output(
   z.object({

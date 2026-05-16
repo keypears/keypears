@@ -1,4 +1,6 @@
-import wgslCode from "./pow5-217a.wgsl?raw";
+/// <reference types="@webgpu/types" />
+
+import wgslCode from "./pow5-217a-wgsl-code.ts";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 
