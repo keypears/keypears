@@ -140,3 +140,68 @@ Notes:
 - Building npm-ready JavaScript and `.d.ts` artifacts for publishable packages
   is intentionally left out of this experiment so the runtime/package-manager
   migration stays separate from package publishing cleanup.
+
+## Experiment 2: replace the custom Node adapter with Nitro
+
+### Hypothesis
+
+TanStack Start's recommended Nitro deployment path can replace
+`webapp/start-node.js` with a generated Node server entrypoint, reducing custom
+runtime code while preserving KeyPears' security headers, API routing,
+well-known endpoint, static assets, and SSR behavior.
+
+### Background
+
+Experiment 1 added `webapp/start-node.js` because the plain Vite build emitted
+`dist/server/server.js`, a universal Fetch handler that does not listen on a
+port when executed with Node. TanStack's hosting guidance for Node.js,
+Railway, and Docker recommends the Nitro deployment path and a start command
+like:
+
+```json
+"start": "node .output/server/index.mjs"
+```
+
+Using Nitro should give us an official Node server output instead of maintaining
+our own Node request/response bridge.
+
+### Plan
+
+1. Add the TanStack-compatible Nitro Vite plugin package.
+2. Configure `webapp/vite.config.ts` to include the Nitro plugin with the
+   Node server preset.
+3. Change `webapp/package.json` `start` to run the generated Nitro output:
+   `node .output/server/index.mjs`.
+4. Remove `webapp/start-node.js`.
+5. Update `webapp/Dockerfile` to copy `.output/` instead of `start-node.js` and
+   `dist/server/`, and to run the Nitro entrypoint.
+6. Rebuild with pnpm and confirm the expected `.output/server/index.mjs`
+   artifact exists.
+7. Smoke-test the generated server on a temporary port:
+   - `/health` returns `ok`;
+   - `/.well-known/keypears.json` still works with env loaded;
+   - one built CSS asset is served with a CSS content type;
+   - one normal SSR route returns HTML.
+8. Re-run the existing migration checks affected by the server output:
+   build, typecheck, tests, lint, and Dockerfile sanity where feasible.
+9. Record whether Nitro fully replaces the custom adapter or whether any
+   KeyPears-specific behavior still requires a thin custom server entry.
+
+### Acceptance criteria
+
+- `webapp/start-node.js` is deleted.
+- `webapp/package.json` starts production with
+  `node .output/server/index.mjs`.
+- `pnpm --filter @keypears/webapp run build` succeeds and creates
+  `.output/server/index.mjs`.
+- `PORT=3599 pnpm --filter @keypears/webapp run start` starts a listening Node
+  server.
+- `curl -fsS http://127.0.0.1:3599/health` returns `ok`.
+- Static assets, SSR pages, `/api/*`, and `/.well-known/keypears.json` are
+  still routed through the same KeyPears server logic.
+- Docker runtime config uses the Nitro output and no longer references the
+  deleted custom adapter.
+
+### Result
+
+Pending.
