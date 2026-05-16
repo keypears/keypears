@@ -158,4 +158,115 @@ experiment is not complete until both packages are live on npm.
 
 ### Result
 
+Won't implement.
+
+The first implementation attempt started to change relative TypeScript imports
+to emitted `.js` specifiers. That approach is no longer the desired direction.
+Modern TypeScript supports writing relative imports with `.ts` extensions in
+source and rewriting those extensions to JavaScript extensions during emit via
+`rewriteRelativeImportExtensions`. The package publishing work should use that
+feature instead of requiring developers to write `.js` paths in TypeScript
+source.
+
+## Experiment 2: publish with TypeScript extension rewriting
+
+### Hypothesis
+
+`@keypears/client` and `@keypears/pow5` can be published to npm while keeping
+source imports honest to source files: relative imports use `.ts` in TypeScript
+source, and TypeScript rewrites those relative import extensions to `.js` in the
+emitted package output.
+
+### Background
+
+TypeScript supports `allowImportingTsExtensions` for source files that import
+other TypeScript files using `.ts`, `.mts`, or `.tsx` extensions. TypeScript 5.7
+added `rewriteRelativeImportExtensions`, which rewrites relative `.ts`, `.tsx`,
+`.mts`, and `.cts` import paths to their JavaScript equivalents in emitted
+files.
+
+Official references:
+
+- https://www.typescriptlang.org/tsconfig/allowImportingTsExtensions.html
+- https://www.typescriptlang.org/tsconfig/#rewriteRelativeImportExtensions
+- https://devblogs.microsoft.com/typescript/announcing-typescript-5-7-beta/#path-rewriting-for-relative-paths
+
+### Decisions
+
+- Use `.ts` extensions in package source relative imports.
+- Use `rewriteRelativeImportExtensions` in package build configs so emitted
+  JavaScript imports point at `.js` files.
+- Use the entrypoint shape KeyPears already uses: package-root imports for both
+  public packages.
+- Publish both public packages together: `@keypears/client` and `@keypears/pow5`.
+- Keep both public packages on the same version number before publishing.
+- Publish the files required by the KeyPears import paths and their runtime
+  dependency closure.
+- Do not add release automation beyond package scripts and documentation. The
+  result should document the exact pnpm/npm commands to build, bump versions,
+  pack-check, publish, and verify.
+
+### Plan
+
+1. Audit relative imports in `packages/client/src` and `packages/pow5-ts/src`.
+2. Update package source imports to use explicit `.ts` extensions where they
+   refer to TypeScript source files.
+3. Add or update package build tsconfigs to enable:
+   - `allowImportingTsExtensions`;
+   - `rewriteRelativeImportExtensions`;
+   - ESM JavaScript emit into `dist/`;
+   - `.d.ts` declaration emit.
+4. Preserve non-TypeScript runtime asset handling for `@keypears/pow5`,
+   including WGSL and inline WASM files required by KeyPears imports.
+5. Update package manifests for npm:
+   - matching versions;
+   - `main`, `types`, and `exports` pointing at built output;
+   - `files` limiting packed contents to package runtime artifacts;
+   - license, repository metadata, and public scoped-package publish settings;
+   - scripts for `clean`, `build`, `typecheck`, and `prepublishOnly`.
+6. Verify the emitted JavaScript uses `.js` relative import specifiers, while
+   source files use `.ts` relative import specifiers.
+7. Build, typecheck, and inspect tarballs for both packages.
+8. Validate local packed tarballs in a clean temporary consumer project:
+   - import the `@keypears/client` root exports used by KeyPears;
+   - import the `@keypears/pow5` root exports used by KeyPears;
+   - run a small Node ESM script against non-browser exports;
+   - run a browser/Vite smoke test if needed for WebGPU/WGSL-facing exports.
+9. Publish both packages to npm with the same version.
+10. Verify the live npm packages:
+   - npm registry pages show the published versions;
+   - `npm view` returns the expected metadata;
+   - a clean temporary consumer can install from the registry and import the
+     same root exports KeyPears uses.
+11. Record the resulting package contents, exact release commands, published
+   version, npm package URLs, and post-publish verification.
+
+### Acceptance Criteria
+
+- Package source relative imports use `.ts` extensions for TypeScript files.
+- Emitted package JavaScript uses `.js` relative import specifiers.
+- `@keypears/client` publishes built JavaScript and `.d.ts` files instead of
+  TypeScript source entrypoints.
+- `@keypears/pow5` publishes built JavaScript, `.d.ts` files, and the runtime
+  assets required by KeyPears imports.
+- Both public packages have matching version numbers.
+- Both package manifests have correct `main`, `types`, `exports`, `files`,
+  license, and publish settings.
+- `pnpm --filter @keypears/client run build` succeeds.
+- `pnpm --filter @keypears/pow5 run build` succeeds.
+- Tarball inspection confirms no benchmark, test, source-only, or generated
+  local development clutter is included unintentionally.
+- A clean temporary consumer can install the packed tarballs and import the
+  same root exports KeyPears uses.
+- Both packages are published to npm under the same version.
+- `npm view @keypears/client@<version>` returns the published metadata.
+- `npm view @keypears/pow5@<version>` returns the published metadata.
+- A clean temporary consumer can install both packages from the npm registry and
+  import the same root exports KeyPears uses.
+- The issue records exact manual commands for future version bumps and npm
+  publish runs.
+- The experiment result records the published version and npm package URLs.
+
+### Result
+
 Pending.
