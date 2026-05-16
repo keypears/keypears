@@ -177,3 +177,26 @@ pass without changing user-facing behavior:
 - The affected webapp typechecks and tests pass.
 - Issue 10 is either amended with explicit approval or the exception is recorded
   in this issue without modifying the closed file.
+
+### Result: Pass
+
+Implemented the code-side AGENTS compliance fixes:
+
+- Updated `AGENTS.md` to explicitly approve the `/sign` third-party auth
+  callback redirect as an intentional `window.location.href` exception.
+- Documented `leaveAppForExternalUrl()` as the external auth callback boundary.
+- Converted `getMyChannels`, `getMyUnreadCount`, `getMyKeys`, and
+  `getMyDomains` to use `authMiddleware` and `context.userId`.
+- Added synchronization for loader-derived domain and settings state.
+- Added synchronization for the send page's typed `to` search param.
+
+Verification passed:
+
+- `pnpm --filter @keypears/webapp typecheck`
+- `pnpm --filter @keypears/webapp test`
+- Targeted `rg` checks confirmed the approved navigation exceptions, auth
+  middleware coverage, and state sync sites.
+
+Ryan explicitly approved amending the closed issue 10 record. Added the missing
+`## Conclusion` to `issues/0010-architecture-cleanup/README.md` and noted that
+the conclusion was added retrospectively with approval.

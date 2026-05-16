@@ -76,6 +76,14 @@ function DomainsPage() {
   const [claiming, setClaiming] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    setApiDomainInput(data.apiDomain);
+  }, [data.apiDomain]);
+
+  useEffect(() => {
+    setAdminInput(myAddress);
+  }, [myAddress]);
+
   const trimmedApiDomain = apiDomainInput.trim();
   const trimmedAdmin = adminInput.trim();
   const trimmedDomain = domainInput.trim();

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { z } from "zod";
 import {
   sendMessage,
@@ -41,15 +41,7 @@ function SendPage() {
   >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Pre-fill recipient from ?to= search param once on mount.
-  // handleRecipientChange is stable (no external deps) but defined after this
-  // hook, so eslint can't verify — safe to suppress.
-  useEffect(() => {
-    if (to) handleRecipientChange(to);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handleRecipientChange(value: string) {
+  const handleRecipientChange = useCallback((value: string) => {
     setRecipient(value);
     setRecipientStatus("idle");
 
@@ -75,7 +67,11 @@ function SendPage() {
         setRecipientStatus("not-found");
       }
     }, 500);
-  }
+  }, []);
+
+  useEffect(() => {
+    handleRecipientChange(to);
+  }, [handleRecipientChange, to]);
 
   // Cleanup debounce on unmount
   useEffect(() => {

@@ -198,3 +198,14 @@ Remove from `lib/auth.ts` and `server/user.server.ts`. Both import from
    federation, domain claiming, key rotation, password change.
 10. Open a channel, switch tabs, check network — no polling requests while
     tab is hidden. Switch back — polling resumes.
+
+## Conclusion
+
+Issue 10 consolidated architecture cleanup work identified by the pre-launch
+audit. The intended outcome was to reduce duplication, move server-only helpers
+to server modules, remove circular-import workarounds, split oversized server
+handlers, pause polling while tabs are hidden, and share the pure KDF helper
+across client and server code.
+
+This conclusion was added retrospectively on 2026-05-16 with explicit approval
+because the issue was already closed without the required conclusion section.

@@ -28,7 +28,6 @@ import {
   hexMaxBytes,
   addressSchema,
 } from "./schemas";
-import { getSessionUserId } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { WebBuf } from "@webbuf/webbuf";
@@ -274,10 +273,9 @@ export const sendMessage = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const getMyChannels = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const userId = await getSessionUserId();
-    if (!userId) return [];
+export const getMyChannels = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
     const [channelList, unreadCounts] = await Promise.all([
       getUserChannels(userId),
       getChannelUnreadCounts(userId),
@@ -291,8 +289,7 @@ export const getMyChannels = createServerFn({ method: "GET" }).handler(
       updatedAt: ch.updatedAt,
       unreadCount: unreadMap.get(ch.id) ?? 0,
     }));
-  },
-);
+  });
 
 async function resolveChannel(userId: string, counterpartyAddress: string) {
   const channel = await getChannelByCounterparty(userId, counterpartyAddress);
@@ -376,13 +373,11 @@ export const markChannelAsRead = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const userId = await getSessionUserId();
-    if (!userId) return 0;
+export const getMyUnreadCount = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context: { userId } }) => {
     return getUnreadCount(userId);
-  },
-);
+  });
 
 export const getMyActiveEncryptedKey = createServerFn({
   method: "GET",

@@ -206,8 +206,10 @@ These are mandatory. Violations break SPA behavior, type safety, or security.
 **Navigation:**
 - ALWAYS use `<Link>` or `useNavigate` for internal links. NEVER use raw
   `<a href="...">` or `window.location.href` without explicit approval.
-- The only approved `window.location.href` is logout (intentional full reload
-  to clear all client state).
+- The approved `window.location.href` cases are:
+  - logout (intentional full reload to clear all client state)
+  - third-party auth callback redirects from `/sign` (intentional external
+    navigation back to the requesting app)
 - Use typed route paths with `params` for dynamic segments:
   `<Link to="/channel/$address" params={{ address }}>` — NEVER string
   interpolation like `` to={`/channel/${address}`} ``.

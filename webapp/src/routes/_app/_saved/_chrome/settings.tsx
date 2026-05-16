@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getMyPowSettings, updateMyPowSettings } from "~/server/user.functions";
 import { PowBadge } from "~/components/PowBadge";
 
@@ -37,6 +37,14 @@ function SettingsPage() {
   const [channelIdx, setChannelIdx] = useState(presetIndex(channelVal));
   const [messageIdx, setMessageIdx] = useState(presetIndex(messageVal));
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    setChannelIdx(presetIndex(channelVal));
+  }, [channelVal]);
+
+  useEffect(() => {
+    setMessageIdx(presetIndex(messageVal));
+  }, [messageVal]);
 
   async function save(channel: number, message: number) {
     setStatus("Saving...");

@@ -18,6 +18,8 @@ export function finishLogoutWithFullReload(): never {
 }
 
 export function leaveAppForExternalUrl(url: ExternalUrl): never {
+  // Third-party auth callbacks intentionally leave KeyPears and return the
+  // browser to the requesting app. TanStack Router only handles internal routes.
   window.location.href = url;
   throw new Error("unreachable after external navigation");
 }
