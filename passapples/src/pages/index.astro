@@ -1,9 +1,11 @@
 ---
+import ExternalLink from "~/components/ExternalLink.astro";
+
 const isProd = import.meta.env.PROD;
 const keypearsDomain = isProd
   ? "keypears.passapples.com"
   : "keypears.passapples.test";
-const keypearsUrl = `https://${keypearsDomain}`;
+const keypearsUrl: `https://${string}` = `https://${keypearsDomain}`;
 ---
 
 <html lang="en">
@@ -44,12 +46,12 @@ const keypearsUrl = `https://${keypearsDomain}`;
         </div>
         <p class="text-muted-foreground mb-8">passapples.com</p>
 
-        <a
+        <ExternalLink
           href={keypearsUrl}
           class="bg-accent text-accent-foreground hover:bg-accent/90 inline-block rounded px-8 py-3 text-lg no-underline transition-all duration-300"
         >
           Go to KeyPears
-        </a>
+        </ExternalLink>
       </div>
     </div>
   </body>

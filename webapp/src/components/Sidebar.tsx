@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import type { FileRouteTypes } from "~/routeTree.gen";
 import { useChannels } from "~/lib/channel-context";
 import { UserDropdown } from "~/components/UserDropdown";
 import { $icon } from "~/lib/icons";
@@ -14,6 +15,8 @@ import {
   Newspaper,
 } from "lucide-react";
 
+type RoutePath = FileRouteTypes["to"];
+
 const navItems = [
   { name: "Home", path: "/home", icon: Home },
   { name: "Inbox", path: "/inbox", icon: Inbox },
@@ -21,7 +24,11 @@ const navItems = [
   { name: "Vault", path: "/vault", icon: Lock },
   { name: "Docs", path: "/docs", icon: BookOpen },
   { name: "Blog", path: "/blog", icon: Newspaper },
-];
+] satisfies ReadonlyArray<{
+  name: string;
+  path: RoutePath;
+  icon: typeof Home;
+}>;
 
 function NavItems({
   onClick,
@@ -96,10 +103,11 @@ function Address({
   userName: string;
   domain: string | null;
 }) {
-  const path = domain ? `/${userName}@${domain}` : `/${userName}`;
+  const profile = domain ? `${userName}@${domain}` : userName;
   return (
     <Link
-      to={path}
+      to="/$profile"
+      params={{ profile }}
       className="text-muted-foreground hover:text-foreground text-sm no-underline transition-colors"
     >
       {domain ? `${userName}@${domain}` : userName}

@@ -12,6 +12,7 @@ import {
   clearCachedEntropyTier,
   getCachedEntropyTier,
 } from "~/lib/auth";
+import { replaceWithAppRoot } from "~/lib/navigation";
 import {
   CircleUser,
   KeyRound,
@@ -49,13 +50,10 @@ export function UserDropdown({
       // session cookie. Failing closed here would strand the user
       // half-logged-out with no way to recover from the UI.
     }
-    // Hard reload to /. `replace` (vs assigning `.href`) skips creating
-    // a new history entry so the back button can't take you back to a
-    // logged-in-looking page after logout.
-    window.location.replace("/");
+    replaceWithAppRoot();
   }
 
-  const profilePath = domain ? `/${userName}@${domain}` : `/${userName}`;
+  const profile = domain ? `${userName}@${domain}` : userName;
 
   return (
     <DropdownMenu>
@@ -68,7 +66,11 @@ export function UserDropdown({
         {hasPassword && (
           <>
             <DropdownMenuItem asChild>
-              <Link to={profilePath} className="cursor-pointer no-underline">
+              <Link
+                to="/$profile"
+                params={{ profile }}
+                className="cursor-pointer no-underline"
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </Link>

@@ -4,12 +4,21 @@ import { useState, useEffect } from "react";
 import { z } from "zod/v4";
 import { getMyUser, getMyKeys } from "~/server/user.functions";
 import { authMiddleware } from "~/server/auth-middleware";
-import { getCachedEncryptionKey, decryptSigningKey, decryptEd25519Key } from "~/lib/auth";
+import {
+  getCachedEncryptionKey,
+  decryptSigningKey,
+  decryptEd25519Key,
+} from "~/lib/auth";
 import { sigEd25519MldsaSign } from "@webbuf/sig-ed25519-mldsa";
 import { WebBuf } from "@webbuf/webbuf";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { buildCanonicalPayload } from "@keypears/client";
 import { Shield, LogIn, X } from "lucide-react";
+import {
+  leaveAppForExternalUrl,
+  parseExternalUrl,
+  submitExternalPost,
+} from "~/lib/navigation";
 
 /** Default signing window: 10 minutes from now. */
 const SIGN_EXPIRY_MS = 10 * 60 * 1000;
@@ -24,8 +33,7 @@ const getSigningChallenge = createServerFn({ method: "GET" })
       timestamp: new Date().toISOString(),
       expires: new Date(Date.now() + SIGN_EXPIRY_MS).toISOString(),
     };
-  },
-);
+  });
 
 const signSearchSchema = z.object({
   type: z.literal("sign-in").catch("sign-in" as const),
@@ -144,10 +152,11 @@ function SignPage() {
         data: search.data,
       });
       const signature = signPayload(payload, ed25519Key, mldsaKey);
+      const redirectUrl = parseExternalUrl(search.redirect_uri);
 
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = search.redirect_uri;
+      form.action = redirectUrl;
       const fields: Record<string, string> = {
         signature,
         address: myAddress,
@@ -165,7 +174,7 @@ function SignPage() {
         form.appendChild(input);
       }
       document.body.appendChild(form);
-      form.submit();
+      submitExternalPost(form);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Signing failed. Try again.",
@@ -178,7 +187,7 @@ function SignPage() {
     const callbackUrl = new URL(search.redirect_uri);
     callbackUrl.searchParams.set("error", "access_denied");
     callbackUrl.searchParams.set("state", search.state);
-    window.location.href = callbackUrl.toString();
+    leaveAppForExternalUrl(parseExternalUrl(callbackUrl.toString()));
   }
 
   // Validation error — do not redirect, show error
@@ -215,9 +224,7 @@ function SignPage() {
         {/* Header */}
         <div className="text-center">
           <Shield className="text-accent mx-auto mb-4 h-12 w-12" />
-          <h1 className="text-foreground text-xl font-bold">
-            {search.domain}
-          </h1>
+          <h1 className="text-foreground text-xl font-bold">{search.domain}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             wants to verify your identity
           </p>
@@ -225,7 +232,7 @@ function SignPage() {
 
         {/* Identity */}
         <div className="mt-8">
-          <label className="text-muted-foreground text-xs uppercase tracking-wider">
+          <label className="text-muted-foreground text-xs tracking-wider uppercase">
             Sign in as
           </label>
           <div className="bg-background-dark border-border mt-2 rounded border px-4 py-3">
@@ -237,9 +244,7 @@ function SignPage() {
 
         {/* Details */}
         <div className="mt-4">
-          <p className="text-muted-foreground text-xs">
-            Type: {search.type}
-          </p>
+          <p className="text-muted-foreground text-xs">Type: {search.type}</p>
         </div>
 
         {/* Error */}

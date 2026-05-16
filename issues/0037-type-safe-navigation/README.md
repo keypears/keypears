@@ -145,8 +145,8 @@ without changing user-facing behavior.
 ### Goal
 
 Make the known unsafe links and navigations type-safe. The experiment is not
-done until the call sites listed in the Initial Audit Findings section are
-fixed or Ryan explicitly approves a specific exception.
+done until the call sites listed in the Initial Audit Findings section are fixed
+or Ryan explicitly approves a specific exception.
 
 ### Scope
 
@@ -167,24 +167,23 @@ build/runtime surface.
 
 ### Plan
 
-1. Replace interpolated profile links with `to="/$profile"` and typed
-   `params`.
+1. Replace interpolated profile links with `to="/$profile"` and typed `params`.
 2. Change navigation arrays so route paths remain typed route literals instead
    of widening to plain `string`.
 3. Fix docs previous/next links so they use typed route objects or typed route
    literals.
-4. Fix markdown rendering so external URLs use a reviewed external-link path
-   and internal markdown links are converted only when they match known typed
+4. Fix markdown rendering so external URLs use a reviewed external-link path and
+   internal markdown links are converted only when they match known typed
    routes.
-5. Replace raw external `<a href>` usage with a reviewed external-link
-   component or helper.
+5. Replace raw external `<a href>` usage with a reviewed external-link component
+   or helper.
 6. Replace direct `window.location` usage with explicit helpers for the exact
    full-page navigation cases:
    - logout reload to `/`;
    - third-party auth denial redirect;
    - third-party auth POST callback form submission.
-7. Re-run a repo-wide navigation search to confirm no unapproved unsafe
-   patterns remain.
+7. Re-run a repo-wide navigation search to confirm no unapproved unsafe patterns
+   remain.
 8. Run typechecks and any touched app builds.
 
 ### Acceptance Criteria
@@ -203,4 +202,46 @@ build/runtime surface.
 
 ### Result
 
-Pending.
+Success.
+
+Experiment 1 converted the known unsafe navigation call sites to typed router
+navigation or explicit navigation boundary components/helpers.
+
+Implemented changes:
+
+- Interpolated profile URLs in `UserDropdown` and `Sidebar` now use
+  `to="/$profile"` with typed `params`.
+- Sidebar and docs navigation arrays now preserve route path literals with
+  `FileRouteTypes["to"]` instead of widening paths to plain `string`.
+- Docs previous/next navigation now uses typed docs route paths.
+- Markdown links now pass only whitelisted internal route paths to TanStack
+  `Link`. External URLs, hash anchors, and the known `/keypears.pdf` asset use
+  the explicit `ExternalLink` boundary instead of arbitrary `Link to={href}`.
+- The footer and Astro landing-page external links now use explicit
+  `ExternalLink` components with typed external URL props.
+- Logout and third-party signing redirects/form submissions now go through
+  explicit helpers in `webapp/src/lib/navigation.ts` instead of direct
+  component-level browser navigation.
+
+No explicit exception approvals were needed.
+
+Verification:
+
+```bash
+pnpm --filter @keypears/webapp run typecheck
+pnpm --filter @keypears/passapples exec astro build
+pnpm --filter @keypears/lockberries exec astro build
+rg -n "<a\\b|window\\.location|location\\.(href|assign|replace)|document\\.location" webapp/src passapples/src lockberries/src -g "*.ts" -g "*.tsx" -g "*.astro"
+rg -n "to=\\{[^}]+\\}" webapp/src -g "*.tsx" -g "*.ts"
+```
+
+The raw anchor/browser-navigation search now reports only the explicit
+navigation boundary implementations:
+
+- `webapp/src/components/ExternalLink.tsx`
+- `webapp/src/lib/navigation.ts`
+- `passapples/src/components/ExternalLink.astro`
+- `lockberries/src/components/ExternalLink.astro`
+
+The remaining dynamic `to={...}` hits are typed route-literal expressions or
+typed route-path unions, not plain `string` paths.
