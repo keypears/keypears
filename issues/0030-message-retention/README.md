@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-04-25"
+closed = "2026-05-16"
 +++
 
 # Channel message management
@@ -132,4 +133,16 @@ After deletion, update `messageList` state locally:
 3. `webapp/src/routes/_app/_saved/channel.$address.tsx` — add dropdown menu
    to each message bubble
 
-### Result: Pending
+### Result
+
+Closed without implementation.
+
+The planned local-only message deletion controls were not implemented. This
+issue is closed so it no longer remains in the active issue queue.
+
+## Conclusion
+
+Issue 30 proposed per-message deletion and "delete earlier" bulk deletion for
+channel conversations, scoped locally to the current user's channel. The work
+was not implemented, and no server functions or UI changes were added under
+this issue. The issue is closed without changes to the product.

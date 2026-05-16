@@ -4,11 +4,11 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
-| [0030](0030-message-retention/README.md)         | Message Retention              | 2026-04-25 |
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
+| [0030](0030-message-retention/README.md)       | Message Retention                          | 2026-04-25 | 2026-05-16 |
 | [0015](0015-vault-versioning/README.md)        | Vault Secret Versioning                    | 2026-04-11 | 2026-04-11 |
 | [0014](0014-url-encoding/README.md)            | URL Param Encoding                         | 2026-04-11 | 2026-04-11 |
 | [0013](0013-tanstack-router/README.md)         | TanStack Router Best Practices             | 2026-04-11 | 2026-04-11 |
