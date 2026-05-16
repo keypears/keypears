@@ -4,6 +4,7 @@
 
 | #                                                | Title                          | Opened     |
 | ------------------------------------------------ | ------------------------------ | ---------- |
+| [0037](0037-type-safe-navigation/README.md)      | Type-Safe Navigation           | 2026-05-16 |
 ## Closed
 
 | #                                              | Title                                      | Opened     | Closed     |
