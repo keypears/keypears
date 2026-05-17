@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-17"
+closed = "2026-05-17"
 +++
 
 # Issue 39: Federation SSRF Hardening
@@ -377,3 +378,24 @@ Verification:
 - `pnpm --filter @keypears/webapp build` (existing CSS/chunk warnings only)
 - `rg -n "nodeEnv|isDevTestAuthority|isBlockedIpAddress|resolveFederationAuthority|dnsLookup|httpsRequest" webapp/src/server webapp/src/lib`
 - `rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src`
+
+## Conclusion
+
+Issue 39 closed with a deliberately simple federation fetch policy. The final
+implementation does not pin DNS answers, inspect private IP ranges, or special
+case `.test` or `NODE_ENV`.
+
+The retained guardrail is authority validation: federation requests must use
+HTTPS and valid DNS hostnames. Full URLs in authority fields, userinfo, paths,
+query strings, fragments, localhost names, IP literals, and non-443 ports are
+rejected before a federation request is made. `KEYPEARS_API_DOMAIN`, discovered
+`apiDomain` values, well-known discovery, domain-claim verification, and remote
+oRPC federation calls all use this validation path.
+
+Remote oRPC clients are now created through a server-side federation client
+factory that injects `safeFederationFetch`, so inbound federation handlers no
+longer bypass the wrapper with plain `createKeypearsClientFromUrl()` calls.
+The wrapper rejects redirects, applies a 5-second timeout, and enforces per-call
+response-size caps.
+
+The security docs and tests were updated to reflect the final simple policy.
