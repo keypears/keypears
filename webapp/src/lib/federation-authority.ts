@@ -53,18 +53,6 @@ export function validateFederationAuthority(
   return hostname as FederationAuthority;
 }
 
-export function federationAuthorityHostname(
-  authority: FederationAuthority,
-): string {
-  return authority;
-}
-
-export function federationAuthorityPort(
-  _authority: FederationAuthority,
-): number {
-  return 443;
-}
-
 export function federationApiUrl(authority: FederationAuthority): string {
   return `https://${authority}/api`;
 }
@@ -73,8 +61,4 @@ export function federationWellKnownUrl(
   authority: FederationAuthority,
 ): string {
   return `https://${authority}/.well-known/keypears.json`;
-}
-
-export function isDevTestAuthority(authority: FederationAuthority): boolean {
-  return federationAuthorityHostname(authority).endsWith(".test");
 }

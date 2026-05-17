@@ -142,25 +142,19 @@ be found.
 
 The server makes outbound HTTPS requests during federation (fetching
 `keypears.json` from remote domains and calling remote KeyPears APIs). These
-requests are mediated by a pinned-resolution federation fetch path:
+requests are mediated by a federation fetch wrapper:
 
 - Federation authorities must be DNS hostnames, not full URLs or IP literals.
   They may only use the default HTTPS port.
-- DNS is resolved once, every A and AAAA answer is checked, and the connection
-  is opened to a vetted IP address. The original hostname is still used for TLS
-  SNI, certificate validation, and the HTTP `Host` header.
-- Private, loopback, link-local, multicast, unspecified, documentation,
-  carrier-grade NAT, benchmarking, reserved, IPv4-mapped IPv6, 6to4, and
-  Teredo addresses are blocked. A hostname is rejected if any usable DNS answer
-  is non-public.
-- Local development keeps working through `.test` domains on loopback when
-  `NODE_ENV !== "production"`. The `.test` allowance is disabled in production.
+- Federation requests must use HTTPS.
+- `localhost`, localhost-like names, IP literals, userinfo, paths, query
+  strings, fragments, and non-443 ports are rejected before any request is
+  made.
 - Redirects are rejected, requests time out after 5 seconds, and each federation
   call uses an explicit response-size limit.
 
 Discovery, domain-claim verification, and remote oRPC federation calls all use
-this same path so DNS rebinding cannot bypass the SSRF checks by resolving once
-for validation and again for the actual request.
+this same wrapper so federation URL validation is applied consistently.
 
 ## Rate limiting
 

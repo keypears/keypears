@@ -275,3 +275,105 @@ Verification:
 - `pnpm --filter @keypears/webapp lint` (existing warnings only)
 - `pnpm --filter @keypears/webapp build` (existing CSS/chunk warnings only)
 - `rg -n "fetch\\(|createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src packages/client/src`
+
+## Experiment 2: Simplify federation fetch policy
+
+### Hypothesis
+
+The current pinned-resolution fetch is more complex than the project needs.
+KeyPears can keep the important protocol guardrails with a much simpler rule:
+server-side federation URLs must use HTTPS and must target a real DNS hostname.
+No IP literals, no `localhost`, no userinfo, no paths inside authority values,
+and no non-443 ports.
+
+There should be no special `.test` handling and no environment check in the
+federation fetch policy. Local `.test` domains work in development if the local
+resolver/Caddy setup resolves them, and they naturally do not work in
+production unless production DNS is explicitly configured to resolve them.
+
+### Plan
+
+1. Keep the `FederationAuthority` validator.
+   - Continue accepting normalized DNS hostnames.
+   - Continue rejecting full URLs, userinfo, paths, queries, fragments,
+     localhost names, IP literals, and non-443 ports.
+   - Keep `KEYPEARS_API_DOMAIN` validation through the same validator.
+
+2. Remove DNS/IP classification from the fetch path.
+   - Delete private/reserved IP blocklists.
+   - Delete A/AAAA answer inspection.
+   - Delete the dev-only `.test` carve-out.
+   - Delete `nodeEnv` plumbing from `SafeFederationFetchOptions`.
+
+3. Simplify `safeFederationFetch()`.
+   - Validate that the request URL is HTTPS.
+   - Validate `url.host` as a `FederationAuthority`.
+   - Use normal `fetch()` with `redirect: "error"` and a timeout.
+   - Preserve the per-call response-size cap by reading the response body and
+     rebuilding a `Response`.
+   - Keep the oRPC custom fetch injection so discovery and remote API calls
+     still share the same federation fetch wrapper.
+
+4. Simplify tests.
+   - Keep tests for authority validation.
+   - Keep tests proving HTTPS-only behavior, redirect rejection, response-size
+     limits, and rejection of localhost/IP literal/non-443 authorities.
+   - Remove tests for private DNS answers, mixed DNS answers, IPv6 transition
+     ranges, and `.test` environment behavior.
+   - Add a test documenting that `.test` receives no special policy decision:
+     `keypears.test` is just a valid DNS hostname.
+
+5. Update documentation.
+   - Revise `webapp/src/docs/security.md` to describe the simpler policy:
+     federation requires HTTPS and valid DNS hostnames, rejects localhost/IP
+     literal authorities, rejects redirects, times out, and caps response
+     bodies.
+   - Remove claims about pinned DNS resolution, private-address blocklists, and
+     environment-specific `.test` behavior.
+
+### Verification
+
+- `pnpm --filter @keypears/webapp typecheck`
+- `pnpm --filter @keypears/webapp test`
+- `pnpm --filter @keypears/webapp build`
+- `rg -n "nodeEnv|isDevTestAuthority|isBlockedIpAddress|resolveFederationAuthority|dnsLookup|httpsRequest" webapp/src/server webapp/src/lib`
+  confirms the removed complexity is gone.
+- `rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src`
+  confirms server-side federation still uses the custom fetch path.
+
+### Success Criteria
+
+- Federation fetch code is small and easy to reason about.
+- There is no environment-specific `.test` branch.
+- Federation still rejects unsafe authority shapes: non-HTTPS URLs, IP
+  literals, localhost, userinfo, paths, query strings, fragments, and non-443
+  ports.
+- Discovery and remote oRPC calls still share the same safe federation fetch
+  wrapper.
+
+### Result
+
+Pass.
+
+Simplified the federation fetch path to match the project policy. The wrapper
+now validates HTTPS and validates the request host as a `FederationAuthority`,
+then uses normal `fetch()` with redirect rejection, a timeout, and a per-call
+response-size cap.
+
+Removed the pinned DNS resolver, private/reserved IP classification,
+environment-specific `.test` handling, and low-level `https.request` connector.
+`.test` now receives no special policy treatment: it is just a valid DNS
+hostname, and it works only if the runtime resolver can resolve it.
+
+Kept the shared oRPC custom fetch path so discovery, domain-claim verification,
+and remote federation API calls still go through the same wrapper. Updated
+tests and security docs to describe the simpler behavior.
+
+Verification:
+
+- `pnpm --filter @keypears/webapp typecheck`
+- `pnpm --filter @keypears/webapp test`
+- `pnpm --filter @keypears/webapp lint` (existing warnings only)
+- `pnpm --filter @keypears/webapp build` (existing CSS/chunk warnings only)
+- `rg -n "nodeEnv|isDevTestAuthority|isBlockedIpAddress|resolveFederationAuthority|dnsLookup|httpsRequest" webapp/src/server webapp/src/lib`
+- `rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src`

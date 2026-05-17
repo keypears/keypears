@@ -1,15 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateFederationAuthority } from "~/lib/federation-authority";
-import {
-  isBlockedIpAddress,
-  resolveFederationAuthority,
-  type SafeFederationFetchOptions,
-} from "./fetch";
-
-const lookup =
-  (addresses: { address: string; family: 4 | 6 }[]) =>
-  async (): ReturnType<NonNullable<SafeFederationFetchOptions["lookup"]>> =>
-    addresses;
+import { safeFederationFetch } from "./fetch";
 
 describe("federation authority validation", () => {
   it("normalizes valid hostnames", () => {
@@ -19,6 +10,7 @@ describe("federation authority validation", () => {
     expect(validateFederationAuthority("api.example.com:443")).toBe(
       "api.example.com",
     );
+    expect(validateFederationAuthority("keypears.test")).toBe("keypears.test");
   });
 
   it("rejects URLs and non-authority input", () => {
@@ -49,69 +41,47 @@ describe("federation authority validation", () => {
   });
 });
 
-describe("federation DNS safety", () => {
-  it("blocks private and reserved IPv4 answers", async () => {
-    const authority = validateFederationAuthority("api.example.com");
-    await expect(
-      resolveFederationAuthority(authority, {
-        lookup: lookup([{ address: "10.0.0.1", family: 4 }]),
-        nodeEnv: "production",
-      }),
-    ).rejects.toThrow("Blocked");
-    expect(isBlockedIpAddress("0.0.0.0")).toBe(true);
-    expect(isBlockedIpAddress("100.64.0.1")).toBe(true);
-    expect(isBlockedIpAddress("198.18.0.1")).toBe(true);
+describe("safeFederationFetch", () => {
+  it("requires HTTPS", async () => {
+    await expect(safeFederationFetch("http://api.example.com/api")).rejects.toThrow(
+      "HTTPS",
+    );
   });
 
-  it("blocks mixed public and private DNS answers", async () => {
-    const authority = validateFederationAuthority("api.example.com");
+  it("rejects invalid authorities before fetching", async () => {
+    let called = false;
     await expect(
-      resolveFederationAuthority(authority, {
-        lookup: lookup([
-          { address: "93.184.216.34", family: 4 },
-          { address: "192.168.0.10", family: 4 },
-        ]),
-        nodeEnv: "production",
+      safeFederationFetch("https://127.0.0.1/api", undefined, {
+        fetch: async () => {
+          called = true;
+          return new Response("{}");
+        },
       }),
-    ).rejects.toThrow("Blocked");
+    ).rejects.toThrow();
+    expect(called).toBe(false);
   });
 
-  it("checks IPv6 private, documentation, and transition ranges", () => {
-    expect(isBlockedIpAddress("::")).toBe(true);
-    expect(isBlockedIpAddress("::1")).toBe(true);
-    expect(isBlockedIpAddress("fc00::1")).toBe(true);
-    expect(isBlockedIpAddress("fe80::1")).toBe(true);
-    expect(isBlockedIpAddress("2001:db8::1")).toBe(true);
-    expect(isBlockedIpAddress("2001::1")).toBe(true);
-    expect(isBlockedIpAddress("2002::1")).toBe(true);
-    expect(isBlockedIpAddress("::ffff:10.0.0.1")).toBe(true);
-    expect(isBlockedIpAddress("::ffff:8.8.8.8")).toBe(true);
+  it("uses redirect error mode and a timeout", async () => {
+    let redirect: RequestRedirect | undefined;
+    let signal: AbortSignal | null | undefined;
+    await safeFederationFetch("https://api.example.com/api", undefined, {
+      fetch: async (_request, init) => {
+        redirect = init?.redirect;
+        signal = init?.signal;
+        return new Response("ok");
+      },
+    });
+
+    expect(redirect).toBe("error");
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("allows private .test DNS only outside production", async () => {
-    const authority = validateFederationAuthority("keypears.test");
+  it("limits response size", async () => {
     await expect(
-      resolveFederationAuthority(authority, {
-        lookup: lookup([{ address: "127.0.0.1", family: 4 }]),
-        nodeEnv: "development",
+      safeFederationFetch("https://api.example.com/api", undefined, {
+        maxResponseBytes: 2,
+        fetch: async () => new Response("too large"),
       }),
-    ).resolves.toEqual([{ address: "127.0.0.1", family: 4 }]);
-
-    await expect(
-      resolveFederationAuthority(authority, {
-        lookup: lookup([{ address: "127.0.0.1", family: 4 }]),
-        nodeEnv: "production",
-      }),
-    ).rejects.toThrow("Blocked");
-  });
-
-  it("blocks non-.test private DNS even outside production", async () => {
-    const authority = validateFederationAuthority("api.example.com");
-    await expect(
-      resolveFederationAuthority(authority, {
-        lookup: lookup([{ address: "127.0.0.1", family: 4 }]),
-        nodeEnv: "development",
-      }),
-    ).rejects.toThrow("Blocked");
+    ).rejects.toThrow("too large");
   });
 });
