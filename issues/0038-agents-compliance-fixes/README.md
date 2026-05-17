@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-16"
+closed = "2026-05-17"
 +++
 
 # Issue 38: AGENTS Compliance Fixes
@@ -200,3 +201,15 @@ Verification passed:
 Ryan explicitly approved amending the closed issue 10 record. Added the missing
 `## Conclusion` to `issues/0010-architecture-cleanup/README.md` and noted that
 the conclusion was added retrospectively with approval.
+
+## Conclusion
+
+Issue 38 is closed as deferred. Experiment 1 fixed the confirmed AGENTS.md
+violations that were acted on at the time: the external auth redirect exception
+was documented, protected server functions were moved to `authMiddleware`,
+copied loader/search state was synchronized, and issue 10 received its approved
+retrospective conclusion.
+
+No further AGENTS compliance audit work will continue under this issue. Any
+future audit findings or policy changes should be opened as a new issue with
+their own experiments.
