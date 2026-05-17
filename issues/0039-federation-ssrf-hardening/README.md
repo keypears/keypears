@@ -141,12 +141,14 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
 3. Preserve local development explicitly, not implicitly.
    - Local federation currently runs through Caddy on loopback for domains like
      `keypears.test` and `keypears.passapples.test`.
-   - Add an env-gated development escape hatch for private DNS answers, e.g.
-     `KEYPEARS_FEDERATION_ALLOW_PRIVATE=1`.
-   - Honor that escape hatch only when `NODE_ENV !== "production"`.
-   - Do not add an automatic `.test` carve-out.
-   - Add a test proving private DNS answers are blocked by default and that the
-     dev escape hatch is unavailable in production.
+   - When `NODE_ENV !== "production"`, allow `.test` federation hostnames to
+     resolve to private or loopback addresses so the existing dev topology keeps
+     working with no env changes.
+   - This `.test` allowance must be disabled when `NODE_ENV === "production"`.
+   - Do not add a broad private-network escape hatch.
+   - Add tests proving `.test` private DNS answers are allowed in dev mode,
+     blocked in production mode, and that non-`.test` private DNS answers remain
+     blocked in dev mode.
 
 4. Add public-address classification for IPv4 and IPv6.
    - Block loopback, private, link-local, multicast, unspecified, documentation,
@@ -209,8 +211,9 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
    - Mixed public/private DNS answers are rejected.
    - `0.0.0.0` is rejected.
    - Redirect responses are rejected.
-   - The dev private-network escape hatch is off by default and disabled in
+   - `.test` private DNS answers are allowed only in dev mode and are blocked in
      production.
+   - Non-`.test` private DNS answers are blocked even in dev mode.
    - Discovery and oRPC calls both use the hardened fetch path.
 
 ### Verification
