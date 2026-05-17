@@ -235,3 +235,43 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
 - DNS rebinding is addressed by pinned connection behavior, not by a best-effort
   preflight check.
 - Existing federation behavior still works for normal public HTTPS domains.
+
+### Result
+
+Pass.
+
+Implemented a server-only pinned-resolution federation fetch path. Federation
+authorities now validate as normalized DNS hostnames, reject full URLs,
+userinfo, IP literals, localhost names, non-443 ports, paths, queries, and
+fragments. The server's own `KEYPEARS_API_DOMAIN` is validated through the same
+authority validator.
+
+Discovery now fetches `keypears.json` through the hardened path with a small
+response limit, validates the returned `apiDomain`, and keys the discovery
+cache by normalized authority. Domain-claim verification remains covered by the
+same discovery function.
+
+Remote oRPC federation clients now use `RPCLink` with the pinned fetch injected
+as the custom fetch implementation. The two inbound federation handlers that
+look up sender keys and pull messages now use the same `getRemoteClient()`
+factory instead of constructing a plain client.
+
+The pinned fetch resolves DNS once, rejects any non-public DNS answer by
+default, connects to the selected vetted IP address, preserves the original
+hostname for TLS SNI/certificate validation and the `Host` header, rejects
+redirects, enforces a 5-second timeout, and accepts per-call response-size
+limits. Dev federation still works without env changes because `.test`
+authorities may resolve to private or loopback addresses only when
+`NODE_ENV !== "production"`.
+
+Added focused tests for authority validation, blocked IPv4 and IPv6 ranges,
+mixed public/private DNS answers, `0.0.0.0`, and the dev-only `.test` allowance.
+Updated `webapp/src/docs/security.md` to describe the new behavior.
+
+Verification:
+
+- `pnpm --filter @keypears/webapp typecheck`
+- `pnpm --filter @keypears/webapp test`
+- `pnpm --filter @keypears/webapp lint` (existing warnings only)
+- `pnpm --filter @keypears/webapp build` (existing CSS/chunk warnings only)
+- `rg -n "fetch\\(|createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src packages/client/src`
