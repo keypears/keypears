@@ -115,26 +115,51 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
    - Reject URLs with userinfo.
    - Reject redirects.
    - Preserve the existing timeout behavior.
-   - Preserve the response-size limit for `keypears.json` fetches.
+   - Accept a per-call response-size cap instead of hard-coding one global cap.
+     `keypears.json` can stay small; oRPC responses should use limits that fit
+     their schema-bound payload sizes.
 
 2. Add strict authority validation.
-   - Accept hostnames plus optional port.
+   - Introduce a validated authority type, e.g. `FederationAuthority`, so raw
+     strings cannot flow into federation URL construction by accident.
+   - Accept DNS hostnames only.
+   - Reject all IP literals by default, even public ones. KeyPears federation is
+     domain-based and depends on DNS + TLS hostnames.
+   - Allow only the default HTTPS port, 443. Do not allow arbitrary ports for
+     production federation.
    - Reject paths, query strings, fragments, and full URL strings anywhere a
      domain or `apiDomain` value is expected.
    - Reject `localhost` and localhost-like names.
-   - Decide in code whether public IP literals are allowed. The conservative
-     default is to reject all IP literals for federation domain fields and allow
-     only DNS hostnames.
+   - Replace or constrain `apiUrlFromDomain()` so it accepts only a validated
+     authority type, or make the raw string helper private to the validator
+     module.
+   - Validate this server's own `KEYPEARS_API_DOMAIN` through the same authority
+     validator at config access/startup so bad self-configuration fails early.
+   - Normalize validated hostnames to lowercase ASCII form and use that
+     normalized form for cache keys.
 
-3. Add public-address classification for IPv4 and IPv6.
+3. Preserve local development explicitly, not implicitly.
+   - Local federation currently runs through Caddy on loopback for domains like
+     `keypears.test` and `keypears.passapples.test`.
+   - Add an env-gated development escape hatch for private DNS answers, e.g.
+     `KEYPEARS_FEDERATION_ALLOW_PRIVATE=1`.
+   - Honor that escape hatch only when `NODE_ENV !== "production"`.
+   - Do not add an automatic `.test` carve-out.
+   - Add a test proving private DNS answers are blocked by default and that the
+     dev escape hatch is unavailable in production.
+
+4. Add public-address classification for IPv4 and IPv6.
    - Block loopback, private, link-local, multicast, unspecified, documentation,
      reserved, carrier-grade NAT, benchmarking, and IPv4-mapped IPv6 addresses
      that resolve to blocked IPv4 ranges.
+   - Also block IPv6 transition/tunnel ranges such as 6to4 (`2002::/16`) and
+     Teredo (`2001::/32`).
    - Check both A and AAAA records.
    - Reject a hostname if any usable DNS answer is non-public, not only if all
      answers are non-public. Mixed public/private answers are unsafe.
+   - Add an explicit test for `0.0.0.0`.
 
-4. Implement pinned-resolution HTTPS fetch.
+5. Implement pinned-resolution HTTPS fetch.
    - Use Node's Undici dispatcher/agent hooks or equivalent low-level HTTPS
      connector.
    - Resolve the original hostname with the hardened resolver.
@@ -146,28 +171,46 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
    - Send the original hostname in the HTTP `Host` header.
    - Do not follow redirects.
 
-5. Wire discovery through the pinned fetch.
+6. Wire discovery and domain-claim verification through the pinned fetch.
    - `fetchKeypearsJson(domain)` validates `domain`.
    - It fetches `https://{domain}/.well-known/keypears.json` through the pinned
      fetch.
    - It validates `apiDomain` with the same authority validator.
+   - `verifyDomainAdmin()` remains covered because it calls `fetchKeypearsJson`;
+     add tests for the domain-claim path so this does not regress.
 
-6. Wire remote oRPC federation calls through the pinned fetch.
-   - Update `createKeypearsClientFromUrl` or add a server-only federation client
-     factory that accepts a custom fetch implementation.
+7. Wire remote oRPC federation calls through the pinned fetch.
+   - First verify the exact `@orpc/client/fetch` `RPCLink` API for custom fetch
+     support.
+   - If `RPCLink` accepts a `fetch` option, create a server-only federation
+     client factory that passes the pinned fetch into `RPCLink`.
+   - Confirm the custom fetch path controls redirects, timeout, headers, and
+     request body behavior as expected.
+   - If `RPCLink` cannot be safely wired to a custom fetch, build a small
+     server-only federation client wrapper that sends the oRPC calls through the
+     pinned fetch directly.
    - Ensure `getRemoteClient(domain)` uses the pinned fetch for all remote API
      calls.
    - Ensure inbound federation handlers in `api.router.ts` that call remote
      sender APIs also go through this path.
 
-7. Add focused tests.
+8. Update documentation.
+   - Update `webapp/src/docs/security.md` so its SSRF/federation section
+     describes pinned-resolution federation fetch, not the old preflight
+     `safeFetch()` behavior.
+
+9. Add focused tests.
    - Hostname validation rejects full URLs, userinfo, paths, query strings,
      fragments, malformed authorities, and localhost names.
    - `apiDomain` rejects private IPv4 literals, IPv6 literals for private
      ranges, and blocked DNS answers.
+   - `apiDomain` rejects non-443 ports.
    - DNS resolution checks A and AAAA records.
    - Mixed public/private DNS answers are rejected.
+   - `0.0.0.0` is rejected.
    - Redirect responses are rejected.
+   - The dev private-network escape hatch is off by default and disabled in
+     production.
    - Discovery and oRPC calls both use the hardened fetch path.
 
 ### Verification
@@ -177,8 +220,9 @@ closes the DNS rebinding gap left by resolving before a normal `fetch()`.
 - Add targeted unit tests for the federation fetch module.
 - Add a targeted integration-style test or mock that proves oRPC federation
   calls use the custom pinned fetch instead of global `fetch`.
-- `rg -n "fetch\\(|createKeypearsClientFromUrl|RPCLink"` confirms no server-side
-  federation call bypasses the hardened path.
+- `rg -n "fetch\\(|createKeypearsClientFromUrl|RPCLink|new RPCLink"` confirms
+  no server-side federation call bypasses the hardened path.
+- Confirm `webapp/src/docs/security.md` was updated.
 
 ### Success Criteria
 
