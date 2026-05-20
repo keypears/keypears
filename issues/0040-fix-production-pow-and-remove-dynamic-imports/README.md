@@ -1251,3 +1251,267 @@ confidence.
 - Do not change the shader representation yet.
 - Do not change PoW difficulty or login behavior.
 - Do not remove the current diagnostics until production login works.
+
+### Result: Implemented, Pending Production Verification
+
+Implemented the diagnostic-only header upload comparison. `headerBuffer` now
+includes `GPUBufferUsage.COPY_SRC` so `debugReadHeader()` can perform a valid
+GPU readback. The existing upload behavior is intentionally unchanged: the code
+still constructs `headerUint32Array` with `new Uint32Array(headerUint8Array)`
+and still writes `headerUint32Array.buffer`.
+
+`Pow5_64b_Wgsl.init()` and `setInput()` now log `[keypears pow] header upload
+init` and `[keypears pow] header upload setInput` with the byte-array shape,
+derived `Uint32Array` shape, first bytes, first words, and all-zero checks.
+
+Production should now show whether the first divergence is in the incoming
+`FixedBuf`, the `Uint32Array` conversion, `queue.writeBuffer`, GPU buffer
+readback, or WGSL storage reads.
+
+## Experiment 9: Port the EBX Chrome WGSL Fix
+
+### Hypothesis
+
+The production-only KeyPears PoW failure is the same class of bug fixed in EBX
+issue 44: newer Chrome/Chromium changed WebGPU behavior enough to expose a
+fragile WGSL pointer/local-array path in the 32-byte BLAKE3 helper.
+
+In EBX, the failure initially looked like a Playwright/Chromium or WebGPU
+readback problem. Detailed probes ruled out JavaScript buffer upload, command
+submission, and result readback. The actual failing code was
+`blake3_hash_32`, specifically this pattern:
+
+```wgsl
+fn blake3_hash_32(
+    input_ptr: ptr<function, array<u32, 32>>,
+) -> array<u32, 32> {
+    ...
+    words_from_little_endian_bytes(&block, &block_words);
+    ...
+}
+```
+
+Newer Chrome could behave as if that pointer-based conversion consumed a zero or
+stale block. EBX fixed it by making `blake3_hash_32` take the 32-byte array by
+value and inline the little-endian word conversion. Callers changed from
+`blake3_hash_32(&value)` to `blake3_hash_32(value)`.
+
+KeyPears has the same WGSL pattern in both:
+
+- `packages/pow5-ts/src/pow5-64b.wgsl`
+- `packages/pow5-ts/src/pow5-217a.wgsl`
+
+The current KeyPears production evidence matches the EBX failure class:
+
+- JavaScript receives the real challenge header.
+- WASM hashes the real challenge header.
+- WGSL returns the known all-zero-header matmul and elementary-iteration test
+  vectors in latest Chrome.
+- Development has been tested with an older Chromium, which can mask this
+  browser/runtime-specific WGSL behavior.
+
+### Rationale
+
+Experiment 8 was designed to prove the JavaScript-to-GPU upload boundary before
+making a fix. The EBX investigation changes the risk calculation. We now have a
+known prior incident in a sibling Pow5 implementation where the same newer
+Chrome/WebGPU generation exposed the same style of silent WGSL wrong-result
+behavior. EBX already did the deeper work of separating test harness issues,
+headless/headed Playwright behavior, JavaScript upload, readback ordering, and
+WGSL execution. The final EBX fix was small and production-code-local: rewrite
+the 32-byte BLAKE3 WGSL helper to avoid pointer-based local array conversion.
+
+Continuing to chase upload diagnostics first is likely to waste time because
+the production symptom can be explained by `blake3_hash_32` returning stale or
+zero-derived data inside the shader. The KeyPears `matmul_work` loop calls
+`blake3_hash_32` repeatedly, and `elementary_iteration` calls it for the final
+hashes. A wrong `blake3_hash_32` is enough to make the whole GPU miner produce
+deterministic but wrong outputs while WASM remains correct.
+
+At the same time, the recent diagnostics are still valuable. The user can test
+the fixed build in both old and new browsers; if the fix works, the logs provide
+confirmation. If the fix does not work, the logs still help identify the
+remaining failure without reintroducing broad diagnostic code.
+
+### Plan
+
+1. Undo non-log diagnostic code that is not strictly necessary for this
+   experiment.
+
+   Remove code changes whose only purpose was active GPU probing/readback rather
+   than logging:
+
+   - `debug_header_prefix` WGSL entry point
+   - `debugHeaderPrefix()` TypeScript method
+   - `debugReadHeader()` TypeScript method
+   - `GPUBufferUsage.COPY_SRC` added only for `debugReadHeader()`
+   - pow5 browser test that only verifies `debugReadHeader()`
+   - `POW5_64B_WGSL_LENGTH` export if it is only used by removed readback/probe
+     diagnostics
+
+   Keep deploy/build SHA plumbing if already useful for production diagnostics.
+
+2. Preserve debug logs that are useful now or later.
+
+   Keep logs that do not change GPU behavior:
+
+   - build fingerprint
+   - browser/origin/WebGPU context
+   - raw challenge shape and field types
+   - WebGPU adapter/device info
+   - `device.lost`
+   - header upload shape logs from Experiment 8
+   - WASM/GPU stage comparisons where they use existing production debug
+     methods
+   - minimum-difficulty smoke test and batch/overrun logs
+
+   Remove references to removed readback/probe methods from the miner logs.
+
+3. Port the EBX WGSL fix into `pow5-64b.wgsl`.
+
+   Change:
+
+   ```wgsl
+   fn blake3_hash_32(
+       input_ptr: ptr<function, array<u32, 32>>,
+   ) -> array<u32, 32>
+   ```
+
+   to:
+
+   ```wgsl
+   fn blake3_hash_32(input: array<u32, 32>) -> array<u32, 32>
+   ```
+
+   Inline the little-endian word conversion for the fixed 32-byte block:
+
+   ```wgsl
+   var block: array<u32, 64>;
+   for (var i: u32 = 0u; i < 32u; i++) {
+       block[i] = input[i];
+   }
+
+   var block_words: array<u32, 16>;
+   for (var i: u32 = 0u; i < 16u; i++) {
+       block_words[i] =
+           block[i * 4u] |
+           (block[i * 4u + 1u] << 8u) |
+           (block[i * 4u + 2u] << 16u) |
+           (block[i * 4u + 3u] << 24u);
+   }
+   ```
+
+   Use `block_len = 32u` and `flags = CHUNK_START | CHUNK_END`, matching the EBX
+   fix.
+
+4. Update every `pow5-64b.wgsl` caller.
+
+   Replace:
+
+   ```wgsl
+   blake3_hash_32(&value)
+   ```
+
+   with:
+
+   ```wgsl
+   blake3_hash_32(value)
+   ```
+
+5. Apply the same fix to `pow5-217a.wgsl`.
+
+   Even though the current KeyPears webapp uses the 64-byte PoW path, the package
+   still ships the 217-byte implementation. Leaving the known Chrome-sensitive
+   pattern in one WGSL file creates a future regression. Apply the same
+   `blake3_hash_32` rewrite and caller updates there for consistency.
+
+6. Verify locally.
+
+   Run:
+
+   ```bash
+   bun run --cwd packages/pow5-ts typecheck
+   bun run --cwd webapp typecheck
+   bun run --cwd webapp test
+   bun run --cwd webapp build
+   ```
+
+   If Playwright Chromium is available locally, also run:
+
+   ```bash
+   bun run --cwd packages/pow5-ts test
+   ```
+
+7. Manual browser verification.
+
+   The user will test development in:
+
+   - the old Chromium version that previously worked
+   - the latest Chrome version that currently fails in production
+
+   If both work in development, deploy and test production.
+
+### Expected Result
+
+The WGSL GPU self-check should match WASM in old Chromium and latest Chrome.
+The production miner should no longer return the all-zero-header matmul and
+elementary-iteration test vectors for non-zero challenge headers.
+
+If this fix works, the production failure is confirmed as the same Chrome/WGSL
+portability issue EBX already fixed. If it does not work, the preserved logs
+should still show whether the failure remains in `blake3_hash_32`, upload
+conversion, GPU buffer state, or another WGSL stage.
+
+### Non-Goals
+
+- Do not rewrite the PoW algorithm.
+- Do not change difficulty, challenge creation, login submission, or server
+  verification.
+- Do not remove all diagnostics yet; keep useful logs until production login is
+  confirmed working.
+- Do not keep active readback/probe code that is not needed for the EBX fix.
+
+### Result: Implemented, Pending Browser Verification
+
+The active Experiment 8 readback/probe code was removed:
+
+- `debug_header_prefix` was removed from `pow5-64b.wgsl`.
+- `debugHeaderPrefix()` and `debugReadHeader()` were removed from the WGSL
+  wrapper.
+- The header buffer no longer has `GPUBufferUsage.COPY_SRC` solely for
+  readback.
+- The readback-only browser test was removed.
+- The temporary `POW5_64B_WGSL_LENGTH` export/import and miner log field were
+  removed.
+
+The passive diagnostics remain:
+
+- build fingerprint, browser context, challenge shape, adapter/device info, and
+  `device.lost`
+- header upload shape logs
+- header input hash log
+- WASM/GPU stage comparison, self-check, minimum-difficulty smoke test, and
+  mining overrun diagnostics
+
+The EBX Chrome/WebGPU fix was ported to both WGSL files. `blake3_hash_32` now
+takes `array<u32, 32>` by value and performs the fixed 32-byte little-endian
+word conversion inline instead of taking a function pointer and routing through
+`words_from_little_endian_bytes`. All `blake3_hash_32(&value)` call sites were
+updated to pass by value.
+
+Verification is local first, then browser/manual:
+
+```bash
+bun run --cwd packages/pow5-ts typecheck
+bun run --cwd webapp typecheck
+bun run --cwd webapp test
+bun run --cwd webapp build
+```
+
+These checks pass. `bun run --cwd packages/pow5-ts test` is still blocked in
+this local environment because Playwright's Chrome for Testing binary is not
+installed at the expected cache path.
+
+The remaining question is browser behavior. The next evidence comes from
+testing the development app in both the old Chromium version and current Chrome,
+then production after deploy if both pass.

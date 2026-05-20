@@ -138,7 +138,6 @@ export function usePowMiner() {
         const {
           Pow5_64b_Wasm,
           Pow5_64b_Wgsl,
-          POW5_64B_WGSL_LENGTH,
           hashMeetsTarget,
           targetFromDifficulty,
         } = await import("@keypears/pow5");
@@ -155,9 +154,6 @@ export function usePowMiner() {
         const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
         await pow5.init(true);
 
-        const gpuHeaderReadback = await pow5.debugReadHeader();
-        const shaderHeaderPrefixWords = await pow5.debugHeaderPrefix();
-        const gpuHeaderReadbackHex = gpuHeaderReadback.buf.toHex();
         const headerSha256 = await crypto.subtle.digest(
           "SHA-256",
           headerBuf.buf,
@@ -167,16 +163,9 @@ export function usePowMiner() {
           headerBufHex: headerHex,
           headerPrefixHex,
           headerIsAllZero: headerBuf.buf.every((b) => b === 0),
-          gpuHeaderReadbackHex,
-          gpuHeaderReadbackIsAllZero: gpuHeaderReadback.buf.every(
-            (b) => b === 0,
-          ),
-          gpuHeaderReadbackMatches: gpuHeaderReadbackHex === headerHex,
-          shaderHeaderPrefixWordsHex: shaderHeaderPrefixWords.hash.buf.toHex(),
           headerSha256: Array.from(new Uint8Array(headerSha256))
             .map((b) => b.toString(16).padStart(2, "0"))
             .join(""),
-          wgslLengthFromBundle: POW5_64B_WGSL_LENGTH,
         });
 
         const gpuHeaderBlake3 = await pow5.debugHashHeader();

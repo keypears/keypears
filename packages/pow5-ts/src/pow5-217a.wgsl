@@ -324,63 +324,31 @@ fn blake3_hash_128(
     return hash_output;
 }
 
-fn blake3_hash_32(
-    input_ptr: ptr<function, array<u32, 32>>,
-) -> array<u32, 32> {
-    let input_len: u32 = 32u;
-
+fn blake3_hash_32(input: array<u32, 32>) -> array<u32, 32> {
     var chaining_value: array<u32, 8>;
     for (var i: u32 = 0u; i < 8u; i++) {
         chaining_value[i] = global_IV[i];
     }
+
     var block: array<u32, 64>;
-    var block_len: u32 = 0u;
-    var blocks_compressed: u32 = 0u;
-
-    var remaining_input_len: u32 = input_len;
-    var remaining_input_ptr: u32 = 0u;
-
-    while remaining_input_len > 0u {
-        var start_flag: u32 = 0u;
-        if blocks_compressed == 0u {
-            start_flag = CHUNK_START;
-        }
-
-        if block_len == 64u {
-            var block_words: array<u32, 16>;
-            words_from_little_endian_bytes(&block, &block_words);
-            chaining_value = first_8_words(compress(
-                &chaining_value,
-                &block_words,
-                64u,
-                start_flag,
-            ));
-            blocks_compressed = blocks_compressed + 1u;
-            block = array<u32,64>();
-            block_len = 0u;
-        }
-
-        let take: u32 = min(64u - block_len, remaining_input_len);
-        for (var i: u32 = 0u; i < take; i++) {
-            block[block_len + i] = (*input_ptr)[remaining_input_ptr + i];
-        }
-        block_len = block_len + take;
-        remaining_input_ptr = remaining_input_ptr + take;
-        remaining_input_len = remaining_input_len - take;
+    for (var i: u32 = 0u; i < 32u; i++) {
+        block[i] = input[i];
     }
 
     var block_words: array<u32, 16>;
-    words_from_little_endian_bytes(&block, &block_words);
-
-    var start_flag: u32 = 0u;
-    if blocks_compressed == 0u {
-        start_flag = CHUNK_START;
+    for (var i: u32 = 0u; i < 16u; i++) {
+        block_words[i] =
+            block[i * 4u] |
+            (block[i * 4u + 1u] << 8u) |
+            (block[i * 4u + 2u] << 16u) |
+            (block[i * 4u + 3u] << 24u);
     }
+
     var output: Output = Output(
         chaining_value,
         block_words,
-        block_len,
-        start_flag | CHUNK_END,
+        32u,
+        CHUNK_START | CHUNK_END,
     );
 
     var hash_output: array<u32, 32>;
@@ -429,7 +397,7 @@ fn debug_double_hash_header(@builtin(global_invocation_id) global_id: vec3<u32>)
         local_header[i] = header[i];
     }
     var hash_result: array<u32, 32> = blake3_hash_217(&local_header);
-    hash_result = blake3_hash_32(&hash_result);
+    hash_result = blake3_hash_32(hash_result);
 
     var compressed_result: array<u32, COMPRESSED_HASH_SIZE>;
     for (var i: u32 = 0; i < COMPRESSED_HASH_SIZE; i++) {
@@ -487,7 +455,7 @@ fn debug_hash_header_32(@builtin(global_invocation_id) global_id: vec3<u32>) {
     for (var i: u32 = 0; i < 32; i++) {
         local_header[i] = header[i];
     }
-    var hash_result: array<u32, 32> = blake3_hash_32(&local_header);
+    var hash_result: array<u32, 32> = blake3_hash_32(local_header);
 
     var compressed_result: array<u32, COMPRESSED_HASH_SIZE>;
     for (var i: u32 = 0; i < COMPRESSED_HASH_SIZE; i++) {
@@ -529,7 +497,7 @@ fn get_work_par(header: array<u32, HEADER_SIZE>) -> array<u32, HASH_SIZE> {
     }
     for (var i: u32 = 0; i < 32; i++) {
         // now, hash the working column to get a new matrix_B_working_column
-        var new_column: array<u32, HASH_SIZE> = blake3_hash_32(&matrix_B_working_column);
+        var new_column: array<u32, HASH_SIZE> = blake3_hash_32(matrix_B_working_column);
         for (var j: u32 = 0; j < 32; j++) {
             matrix_B_working_column[j] = new_column[j];
         }
@@ -604,7 +572,7 @@ fn elementary_iteration(header: array<u32, HEADER_SIZE>) -> array<u32, COMPRESSE
     var hash_1: array<u32, 32> = blake3_hash_217(&working_header);
 
     // now we need to hash it again because the id of the header is the double blake3 hash
-    var hash_2: array<u32, 32> = blake3_hash_32(&hash_1);
+    var hash_2: array<u32, 32> = blake3_hash_32(hash_1);
 
     // now, we need to produce the compressed hash. because wgsl has no notion
     // of a u8, the hash is 32 u32 values that each range from 0 to 255. we can
@@ -710,4 +678,3 @@ fn workgroup_reduce(@builtin(global_invocation_id) global_id: vec3<u32>) {
     //    final_result.hash[i] = hash_target[i];
     //}
 }
-

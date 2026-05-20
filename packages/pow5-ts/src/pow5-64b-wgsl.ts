@@ -8,7 +8,26 @@ const COMPRESSED_HASH_SIZE: number = 32 / 4; // 8
 const WORKGROUP_SIZE = 256;
 const POW_LOG_PREFIX = "[keypears pow]";
 
-export const POW5_64B_WGSL_LENGTH = wgslCode.length;
+function logHeaderUpload(
+  label: "init" | "setInput",
+  headerBytes: Uint8Array,
+  headerWords: Uint32Array,
+): void {
+  console.log(`${POW_LOG_PREFIX} header upload ${label}`, {
+    headerBytesConstructor: headerBytes.constructor.name,
+    headerBytesLength: headerBytes.length,
+    headerBytesByteLength: headerBytes.byteLength,
+    headerBytesByteOffset: headerBytes.byteOffset,
+    headerBufferByteLength: headerBytes.buffer.byteLength,
+    firstHeaderBytes: Array.from(headerBytes.slice(0, 8)),
+    headerWordsConstructor: headerWords.constructor.name,
+    headerWordsLength: headerWords.length,
+    headerWordsByteLength: headerWords.byteLength,
+    firstHeaderWords: Array.from(headerWords.slice(0, 8)),
+    headerBytesAllZero: headerBytes.every((byte) => byte === 0),
+    headerWordsAllZero: headerWords.every((word) => word === 0),
+  });
+}
 
 interface Pow5State {
   device: GPUDevice | null;
@@ -115,7 +134,6 @@ export class Pow5_64b {
     this.state.pipelineLayout = pipelineLayout;
 
     const computePipelineNamesDebug = [
-      "debug_header_prefix",
       "debug_hash_header",
       "debug_double_hash_header",
       "debug_matmul_work",
@@ -166,6 +184,7 @@ export class Pow5_64b {
     });
     this.state.finalResultBuffer = finalResultBuffer;
 
+    logHeaderUpload("init", headerUint8Array, headerUint32Array);
     device.queue.writeBuffer(headerBuffer, 0, headerUint32Array.buffer);
     // now for the target buffer, we need to take the hash 4 bytes at a time,
     // and in *big-endian* order convert them into a Uint32Array and write that
@@ -239,6 +258,7 @@ export class Pow5_64b {
     const headerUint8Array = header.buf;
     const headerUint32Array = new Uint32Array(headerUint8Array);
 
+    logHeaderUpload("setInput", headerUint8Array, headerUint32Array);
     device.queue.writeBuffer(
       this.state.headerBuffer,
       0,
@@ -335,45 +355,6 @@ export class Pow5_64b {
     nonce: number;
   }> {
     return this.runPipelineAndReadResult("debug_hash_header");
-  }
-
-  async debugReadHeader(): Promise<FixedBuf<64>> {
-    if (!this.state.device || !this.state.headerBuffer) {
-      throw new Error("pow5 not initialized");
-    }
-
-    const device = this.state.device;
-    const readBuffer = device.createBuffer({
-      size: HEADER_SIZE * 4,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
-    const copyEncoder = device.createCommandEncoder();
-    copyEncoder.copyBufferToBuffer(
-      this.state.headerBuffer,
-      0,
-      readBuffer,
-      0,
-      HEADER_SIZE * 4,
-    );
-    device.queue.submit([copyEncoder.finish()]);
-
-    await readBuffer.mapAsync(GPUMapMode.READ);
-    const readData = new Uint32Array(readBuffer.getMappedRange().slice());
-    readBuffer.unmap();
-
-    const headerBytes = new Uint8Array(HEADER_SIZE);
-    for (let i = 0; i < HEADER_SIZE; i++) {
-      headerBytes[i] = (readData[i] ?? 0) & 0xff;
-    }
-
-    return FixedBuf.fromBuf(64, WebBuf.fromUint8Array(headerBytes));
-  }
-
-  async debugHeaderPrefix(): Promise<{
-    hash: FixedBuf<32>;
-    nonce: number;
-  }> {
-    return this.runPipelineAndReadResult("debug_header_prefix");
   }
 
   async debugDoubleHashHeader(): Promise<{
