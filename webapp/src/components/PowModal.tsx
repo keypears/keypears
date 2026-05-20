@@ -4,7 +4,7 @@ import {
   type PowChallenge,
   type PowSolution,
 } from "~/lib/use-pow-miner";
-import { Loader2, CheckCircle2, X } from "lucide-react";
+import { AlertCircle, Loader2, CheckCircle2, X } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
 interface PowModalProps {
@@ -28,7 +28,9 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
     if (startedRef.current === challengeKey) return;
     startedRef.current = challengeKey;
 
-    miner.mine(challenge, { showSolved: true }).catch(() => {});
+    miner.mine(challenge, { showSolved: true }).catch((error: unknown) => {
+      console.error("Proof of work failed", error);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
   }, [challenge]);
 
@@ -83,6 +85,24 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
               if (miner.result) onComplete(miner.result);
             }}
           />
+        )}
+
+        {miner.phase === "error" && (
+          <div className="flex flex-col items-center py-2">
+            <AlertCircle className="text-destructive mb-3 h-8 w-8" />
+            <p className="text-foreground mb-2 text-sm font-medium">
+              Proof of work failed
+            </p>
+            <p className="text-muted-foreground mb-5 text-center text-xs">
+              {miner.error ?? "Your browser could not start the miner."}
+            </p>
+            <button
+              onClick={onCancel}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
+            >
+              Close
+            </button>
+          </div>
         )}
 
         {miner.phase === "idle" && (
