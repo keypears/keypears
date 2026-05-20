@@ -135,15 +135,15 @@ from application code.
 
 Production PoW is failing because required dependencies are loaded through
 runtime dynamic imports instead of static imports. Removing application dynamic
-imports will put those dependencies back into TypeScript's static graph and
-make production bundling fail at build time instead of failing at login time.
+imports will put those dependencies back into TypeScript's static graph and make
+production bundling fail at build time instead of failing at login time.
 
 ### Plan
 
 1. Replace browser PoW dynamic imports with static imports.
    - `FixedBuf` must be statically imported from `@webbuf/fixedbuf`.
-   - `Pow5_64b_Wgsl` and `hashMeetsTarget` must be statically imported from
-     the WASM-free `@keypears/pow5/wgsl` entry point.
+   - `Pow5_64b_Wgsl` and `hashMeetsTarget` must be statically imported from the
+     WASM-free `@keypears/pow5/wgsl` entry point.
    - Keep JavaScript nonce insertion so the login miner does not need the WASM
      `Pow5_64b_Wasm` export.
 
@@ -157,8 +157,7 @@ make production bundling fail at build time instead of failing at login time.
      instead of keeping `import(...)`.
 
 3. Add an enforcement check.
-   - Add a script or test that fails when application source contains
-     `import(`.
+   - Add a script or test that fails when application source contains `import(`.
    - Scope it to application code, not generated output or third-party
      dependencies.
    - Document the rule in the issue result so future exceptions require an
@@ -215,3 +214,73 @@ The production `PowModal` asset now contains the PoW implementation and static
 The TypeScript static dependency graph is restored for app code. The production
 `FixedBuf.fromHex` undefined failure should be eliminated because `FixedBuf` is
 now a static binding, not a runtime destructured property.
+
+## Experiment 3: Diagnose Running-but-Not-Solving PoW
+
+### Hypothesis
+
+Production PoW is no longer failing to start. The browser is running GPU work,
+but the miner never accepts a solution. The misleading progress bar reaches 100%
+because progress is currently derived from elapsed time and estimated remaining
+time, not from real proof completion.
+
+The key unknown is whether production `pow5.work()` is returning all-zero
+hashes, non-zero hashes that never satisfy the target, malformed challenge data,
+or solved headers that fail after submission.
+
+### Evidence
+
+- Production no longer shows the `FixedBuf.fromHex` error after dynamic imports
+  were removed.
+- The machine's fans spin up during login, indicating GPU work is likely
+  running.
+- The progress bar stays flat, then reaches 100% and reports "less than a second
+  remaining" even though no solution is accepted.
+- A locally served production build against the dev environment logs in
+  successfully, so the problem is not reproduced by production bundling alone.
+
+### Plan
+
+1. Fix the misleading progress display.
+   - Do not allow the progress bar to reach 100% unless a solution was found.
+   - Prefer an indeterminate progress state, or cap estimated progress below
+     completion (for example 95%) while mining.
+   - Keep hash count and time estimate separate from actual completion state.
+
+2. Add miner diagnostics that are visible when PoW does not make progress.
+   - Track completed batch count and total hash count.
+   - Track consecutive all-zero hash batches.
+   - Track whether any non-zero hash has been observed.
+   - Track the first few returned hash prefixes and nonce values in memory for
+     debugging.
+   - Include challenge difficulty, target prefix, and elapsed time.
+
+3. Fail loudly on impossible-looking WebGPU output.
+   - If many consecutive batches return an all-zero hash, stop mining and show a
+     clear error instead of looping forever.
+   - The threshold should be high enough to avoid false positives, but low
+     enough to make the production failure actionable.
+   - Include the diagnostic summary in the console error.
+
+4. Distinguish "working but unlucky" from "broken".
+   - If non-zero hashes are returned but no solution is found, keep mining and
+     show batch/hash count.
+   - If the hash rate estimate is implausibly high, show the raw batch count so
+     the UI does not imply guaranteed completion.
+
+5. Verify locally and in production.
+   - Run `pnpm --filter @keypears/webapp run typecheck`.
+   - Run `pnpm --filter @keypears/webapp run test`.
+   - Run `pnpm --filter @keypears/webapp run build`.
+   - Test login on the locally served production build.
+   - Deploy and use the diagnostics to determine whether production is seeing
+     all-zero hashes, non-zero misses, malformed challenge data, or a submit
+     failure.
+
+### Expected Result
+
+The UI no longer falsely suggests PoW completion. If production WebGPU output is
+broken, the miner stops with a diagnostic error instead of spinning forever. If
+production is computing valid non-zero batches but not finding solutions, the
+diagnostics will show that and the next experiment can focus on challenge target
+or server verification.
