@@ -284,3 +284,45 @@ broken, the miner stops with a diagnostic error instead of spinning forever. If
 production is computing valid non-zero batches but not finding solutions, the
 diagnostics will show that and the next experiment can focus on challenge target
 or server verification.
+
+### Result: Pass
+
+The miner now exposes the data needed to distinguish a slow search from a
+broken production path.
+
+Changes:
+
+- Progress is capped below completion while mining and reaches 100% only after a
+  solution is found.
+- Once the expected batch count is exceeded, the UI switches from a misleading
+  remaining-time estimate to "searching past estimate."
+- The modal displays completed batch count and hash count while mining.
+- The miner tracks diagnostic state: batch count, total hash count,
+  zero-result batches, non-zero result batches, expected batches, overrun
+  limit, target prefix, difficulty, elapsed time, hash rate, and sample
+  non-zero result hashes.
+- The miner throws a diagnostic error after a large overrun threshold instead
+  of looping forever.
+
+Important implementation note: an all-zero result hash is the current WGSL
+sentinel for "no solution in this batch." It is not automatically evidence of
+broken WebGPU output. The overrun threshold is based on expected batch count
+rather than treating zero batches as immediate failure.
+
+Verification:
+
+- `pnpm --filter @keypears/webapp run typecheck`
+- `pnpm --filter @keypears/webapp run test`
+- `pnpm --filter @keypears/webapp run build`
+- `rg -n "import\\(" webapp/src packages/client/src packages/pow5-ts/src passapples lockberries -S`
+
+The production `PowModal` asset contains the diagnostic strings and overrun
+logic.
+
+### Conclusion
+
+The app still needs production deployment feedback to identify the root cause,
+but it will no longer present false completion progress or hide indefinite PoW
+searches. The next production run should reveal whether the issue is excessive
+zero-result batches, non-zero candidates that fail target comparison, malformed
+challenge data, or a submit/verification path after a solution is found.

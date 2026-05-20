@@ -25,6 +25,24 @@ export interface PowSolution {
 export type MinerPhase = "idle" | "mining" | "solved" | "error";
 
 const HASHES_PER_GPU_BATCH = 256 * 128; // workgroupSize * gridSize = 32,768
+const PROGRESS_CAP_WHILE_MINING = 95;
+const MIN_BATCH_OVERRUN_LIMIT = 1_000;
+const EXPECTED_BATCH_OVERRUN_MULTIPLIER = 20;
+const HASH_SAMPLE_LIMIT = 5;
+
+export interface PowMinerDiagnostics {
+  batchCount: number;
+  hashCount: number;
+  zeroResultBatches: number;
+  nonZeroResultBatches: number;
+  expectedBatches: number;
+  overrunLimit: number;
+  targetPrefix: string;
+  difficulty: number;
+  elapsedSeconds: number;
+  hashRate: number;
+  hashSamples: Array<{ nonce: number; hashPrefix: string }>;
+}
 
 function formatTime(seconds: number): string {
   if (seconds < 1) return "less than a second";
@@ -43,6 +61,13 @@ function insertNonce64b(header: WebBuf, nonce: number): WebBuf {
   return solvedHeader;
 }
 
+function createDiagnosticsError(diagnostics: PowMinerDiagnostics): Error {
+  return new Error(
+    `Proof of work exceeded ${diagnostics.overrunLimit} batches without a solution. ` +
+      `Diagnostics: ${JSON.stringify(diagnostics)}`,
+  );
+}
+
 export function usePowMiner() {
   const [phase, setPhase] = useState<MinerPhase>("idle");
   const [hashCount, setHashCount] = useState(0);
@@ -51,7 +76,11 @@ export function usePowMiner() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<PowSolution | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<PowMinerDiagnostics | null>(
+    null,
+  );
   const startTimeRef = useRef(0);
+  const diagnosticsRef = useRef<PowMinerDiagnostics | null>(null);
 
   const mine = useCallback(
     async (
@@ -73,6 +102,8 @@ export function usePowMiner() {
       setTimeRemaining("");
       setResult(null);
       setError(null);
+      setDiagnostics(null);
+      diagnosticsRef.current = null;
       startTimeRef.current = performance.now();
 
       try {
@@ -80,7 +111,19 @@ export function usePowMiner() {
         const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
         let solvedHeaderHex: string | null = null;
+        let batchCount = 0;
         let totalHashes = 0;
+        let zeroResultBatches = 0;
+        let nonZeroResultBatches = 0;
+        const hashSamples: PowMinerDiagnostics["hashSamples"] = [];
+        const expectedBatches = Math.max(
+          1,
+          Math.ceil(challenge.difficulty / HASHES_PER_GPU_BATCH),
+        );
+        const overrunLimit = Math.max(
+          MIN_BATCH_OVERRUN_LIMIT,
+          expectedBatches * EXPECTED_BATCH_OVERRUN_MULTIPLIER,
+        );
 
         const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
         await pow5.init();
@@ -89,23 +132,60 @@ export function usePowMiner() {
 
         while (!solvedHeaderHex) {
           const workResult = await pow5.work();
+          batchCount += 1;
           totalHashes += HASHES_PER_GPU_BATCH;
 
           const elapsed = (performance.now() - startTimeRef.current) / 1000;
           const hashRate = totalHashes / elapsed;
           const expectedRemaining =
             hashRate > 0 ? challenge.difficulty / hashRate : 0;
+          const estimatedProgress = (batchCount / expectedBatches) * 100;
           setHashCount(totalHashes);
-          setProgress((elapsed / (elapsed + expectedRemaining)) * 100);
-          setTimeRemaining(formatTime(expectedRemaining));
+          setProgress(
+            Math.min(PROGRESS_CAP_WHILE_MINING, estimatedProgress),
+          );
+          setTimeRemaining(
+            batchCount >= expectedBatches
+              ? "searching past estimate"
+              : `${formatTime(expectedRemaining)} remaining`,
+          );
 
           const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+          if (isZeroHash) {
+            zeroResultBatches += 1;
+          } else {
+            nonZeroResultBatches += 1;
+            if (hashSamples.length < HASH_SAMPLE_LIMIT) {
+              hashSamples.push({
+                nonce: workResult.nonce,
+                hashPrefix: workResult.hash.toHex().slice(0, 16),
+              });
+            }
+          }
+
+          const nextDiagnostics: PowMinerDiagnostics = {
+            batchCount,
+            hashCount: totalHashes,
+            zeroResultBatches,
+            nonZeroResultBatches,
+            expectedBatches,
+            overrunLimit,
+            targetPrefix: challenge.target.slice(0, 16),
+            difficulty: challenge.difficulty,
+            elapsedSeconds: Number(elapsed.toFixed(3)),
+            hashRate: Number(hashRate.toFixed(2)),
+            hashSamples,
+          };
+          diagnosticsRef.current = nextDiagnostics;
+          setDiagnostics(nextDiagnostics);
 
           if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
             solvedHeaderHex = FixedBuf.fromBuf(
               64,
               insertNonce64b(currentHeader.buf, workResult.nonce),
             ).toHex();
+          } else if (batchCount >= overrunLimit) {
+            throw createDiagnosticsError(nextDiagnostics);
           } else {
             // Randomize nonce region for next batch
             const newBuf = currentHeader.buf.clone();
@@ -142,6 +222,9 @@ export function usePowMiner() {
             ? cause.message
             : "Proof of work failed to start.";
         setError(message);
+        if (diagnosticsRef.current) {
+          console.error("Proof of work diagnostics", diagnosticsRef.current);
+        }
         setPhase("error");
         throw cause;
       }
@@ -158,5 +241,6 @@ export function usePowMiner() {
     progress,
     result,
     error,
+    diagnostics,
   };
 }
