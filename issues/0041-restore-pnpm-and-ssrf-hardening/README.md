@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-20"
+closed = "2026-05-20"
 +++
 
 # Issue 41: Restore pnpm/Node and SSRF Hardening
@@ -898,3 +899,26 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
 The audit grep returned no active-code matches.
 The smoke tests returned `ok`, `{"apiDomain":"keypears.test"}`, and HTTP
 `200`.
+
+## Conclusion
+
+Issue 41 restored the pnpm/Node workspace and npm-compatible package build
+setup after the production PoW rollback. The active toolchain now uses pnpm
+workspace commands, Node/Nitro for the production webapp runtime, committed
+`pnpm-workspace.yaml` and `pnpm-lock.yaml`, JavaScript plus `.d.ts` package
+build outputs, and Docker build steps that build workspace packages before the
+webapp.
+
+The SSRF hardening track was intentionally closed as a non-issue for the
+current protocol. The active federation code no longer uses pinned DNS,
+private-address DNS blocking, `safeFetch`, `safeFederationFetch`, or a custom
+`https.request` transport. Federation keeps the simpler policy chosen here:
+validate federation authorities as DNS hostnames, reject full URLs, ports,
+paths, query strings, fragments, userinfo, localhost names, IP literals, and
+non-ASCII hostnames outside punycode form, then construct normal HTTPS URLs and
+rely on standard DNS, TLS, SNI, and Host behavior.
+
+Local `.test` federation works again under the normal development DNS setup.
+The retained verification for this issue is the pnpm webapp typecheck, test,
+build, active-code grep for removed safe-fetch machinery, and Nitro endpoint
+smoke tests for `/health`, `/.well-known/keypears.json`, and `/api/serverInfo`.
