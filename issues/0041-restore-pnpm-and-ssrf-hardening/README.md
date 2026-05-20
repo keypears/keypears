@@ -484,6 +484,7 @@ redirect targets.
 
 In scope:
 
+- `webapp/src/lib/federation-authority.ts`
 - `webapp/src/server/fetch.ts`
 - `webapp/src/server/federation.server.ts`
 - `webapp/src/server/api.router.ts`
@@ -500,6 +501,29 @@ Out of scope:
 - changing PoW, auth, message encryption, or package build behavior
 
 ### Plan
+
+0. Restore the known issue 39 implementation as the starting point.
+
+   Issue 39 already implemented and audited the hard parts of this work. Start
+   from the closed issue 39 tree instead of re-deriving pinned fetch logic from
+   scratch:
+
+   ```bash
+   git checkout 03dabb5b -- \
+     webapp/src/lib/federation-authority.ts \
+     webapp/src/server/fetch.ts \
+     webapp/src/server/fetch.test.ts
+   ```
+
+   Then reconcile those files with the current post-issue-40/post-pnpm tree.
+   Apply the known deltas from the issue 39 review history:
+
+   - remove the old `.test`/`NODE_ENV` carveout
+   - ensure no `nodeEnv = undefined` default can make a dev exception active in
+     production
+   - keep the branded `FederationAuthority` validation model
+   - keep the server-only oRPC custom-fetch pattern
+   - keep per-call response-size caps
 
 1. Inventory every third-party federation fetch.
 
@@ -527,9 +551,13 @@ Out of scope:
    The function should:
 
    - require `https:`
+   - allow only the default HTTPS port, rejecting explicit non-443 ports
    - reject userinfo, redirects, and malformed URLs
    - reject `localhost` and localhost-like names
    - reject IP literals as federation authorities
+   - reject non-ASCII hostnames unless they are already in ASCII punycode
+     (`xn--...`) form
+   - normalize authorities to lowercase ASCII before use or caching
    - resolve both A and AAAA records
    - reject the target if any answer is loopback, private, link-local,
      multicast, documentation, unspecified, reserved, IPv4-mapped IPv6, 6to4,
@@ -545,6 +573,10 @@ Out of scope:
    This can be implemented with Node HTTPS/Undici primitives if normal
    `fetch()` cannot pin the resolved address safely.
 
+   Request bodies can be buffered in memory before forwarding to the pinned
+   HTTPS request. Current federation oRPC payloads are small enough for that
+   tradeoff, and response-size caps remain explicit per call.
+
 3. Route remote oRPC through `safeFetch()`.
 
    Add a server-only federation client factory in `webapp/src/server`, rather
@@ -559,6 +591,18 @@ Out of scope:
 4. Validate authority values before interpolation.
 
    Do not let arbitrary strings flow into `https://${domain}/api`.
+
+   Use the issue 39 branded type pattern:
+
+   ```ts
+   type FederationAuthority = string & {
+     readonly __federationAuthority: unique symbol;
+   };
+   ```
+
+   Functions that build federation URLs should accept `FederationAuthority`, not
+   raw `string`, so missing validation becomes a TypeScript error instead of a
+   runtime convention.
 
    - Validate parsed address domains before discovery.
    - Validate discovered `apiDomain` before building the API URL.
@@ -577,6 +621,23 @@ Out of scope:
    exception. The exception needs explicit approval because it changes the
    security model.
 
+   The manual dev flows to check are:
+
+   - claim `keypears.passapples.test` from `keypears.test`
+   - send a message from `alice@keypears.test` to
+     `bob@keypears.passapples.test`
+   - log in as a user on the cross-instance local domain
+
+   If a dev exception is later approved, the only acceptable shape is an
+   explicit opt-in authority allowlist with an empty default, for example:
+
+   ```text
+   KEYPEARS_DEV_LOOPBACK_AUTHORITIES=keypears.test,keypears.passapples.test
+   ```
+
+   Do not use `NODE_ENV`, do not use a blanket `.test` TLD rule, and do not
+   make the allowlist implicit.
+
 6. Add tests.
 
    Cover:
@@ -588,11 +649,14 @@ Out of scope:
    - `safeFetch()` rejects private/link-local/reserved DNS answers
    - mixed public/private DNS answers are rejected
    - DNS is not re-resolved after validation
+   - `.test` resolving to `127.0.0.1` is rejected even outside production
    - response-size caps are enforced
    - `fetchKeypearsJson()` uses the protected path
    - remote oRPC federation calls use the protected path
    - direct server-side `createKeypearsClientFromUrl()` use is gone from
      federation code
+   - the in-memory `keypearsJsonCache` is keyed by normalized authority and
+     does not survive process restart
 
 7. Update docs.
 
@@ -627,8 +691,8 @@ The first grep should show no plain federation client construction. The second
 grep should leave only expected framework/server-function uses or calls that do
 not use third-party-controlled authorities.
 
-If the change touches production server entry behavior, also repeat the Nitro
-smoke tests from Experiment 1:
+If the change touches `webapp/src/server.ts`, `webapp/vite.config.ts`, or
+`webapp/Dockerfile`, also repeat the Nitro smoke tests from Experiment 1:
 
 ```bash
 pnpm --filter @keypears/webapp build
