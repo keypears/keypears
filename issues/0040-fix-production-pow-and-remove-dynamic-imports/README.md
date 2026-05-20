@@ -925,3 +925,146 @@ rerun reached the missing-browser failure.
 Production still needs a redeploy and one login attempt with the browser console
 open. The next experiment should be based on the first concrete production
 diagnostic that differs from development.
+
+Production verification produced a concrete difference:
+
+```text
+[keypears pow] self-check {
+  wasmHash: "529a900ba28e0263973f3cab5b2f121e792bdd3c534b5eaab4fb0051947191bc",
+  gpuHash: "f473678f945d1d5a63f52a89fbd6a4f069f960265844776ca9ff8bf09572dca3",
+  match: false
+}
+```
+
+The `gpuHash` is the known `Pow5_64b_Wgsl.debugElementaryIteration()` test
+vector for an all-zero 64-byte header. Development does not reproduce this
+mismatch. That means the next experiment should focus on production-build
+differences in the WebGPU input path or bundled pow5 asset, not challenge
+creation, target difficulty, login submission, or server verification.
+
+## Experiment 7: Isolate Production Build WebGPU Input
+
+### Hypothesis
+
+The deployed production build is causing the WGSL miner to hash an all-zero
+header even though the JavaScript/WASM path receives the real challenge header.
+Because development does not reproduce the mismatch, the root cause is likely in
+one of these production-build-only surfaces:
+
+- the bundled `@keypears/pow5` asset differs from the source used in dev
+- the bundled WGSL string differs from `packages/pow5-ts/src/pow5-64b.wgsl`
+- the production bundle writes the wrong data into `headerBuffer`
+- the GPU receives the correct buffer but `debug_elementary_iteration` reads a
+  different value after bundling/minification
+- production is loading a stale or unexpected pow5 chunk
+
+### Evidence
+
+- Dev login succeeds.
+- Production login reaches WebGPU initialization.
+- Production adapter is not fallback.
+- Production build timestamp matches the latest deploy attempt, but the git SHA
+  is `unknown` because the Docker build context does not expose git metadata.
+- Production WASM hash is not the all-zero test vector, so the challenge header
+  reaches JavaScript correctly.
+- Production GPU hash is exactly the all-zero-header elementary-iteration test
+  vector, so the deployed WebGPU path is probably hashing zero input.
+
+### Plan
+
+1. Add direct GPU header readback.
+
+   Add a debug compute pipeline that copies the current `header` storage buffer
+   into `final_result` or into a dedicated readback buffer without hashing it.
+   Log:
+
+   - challenge header prefix/full hex
+   - `headerBuf` full hex before `Pow5_64b_Wgsl` construction
+   - GPU-readback header full hex after `init()`
+   - whether the GPU-readback header is all zeros
+   - whether the GPU-readback header equals the JS header
+
+   This determines whether the mismatch happens before hashing.
+
+2. Split the self-check by stage.
+
+   In the miner startup diagnostics, log all of these for the same challenge
+   header:
+
+   - JS/WASM `matmulWork(header)`
+   - WGSL `debugHashHeader()`
+   - WGSL `debugMatmulWork()`
+   - WGSL `debugElementaryIteration()`
+
+   Interpretation:
+
+   - If GPU header readback is zero, fix buffer upload.
+   - If header readback is correct but `debugHashHeader()` matches the zero
+     header hash, fix the WGSL `blake3_hash_64` input path.
+   - If `debugHashHeader()` is correct but `debugMatmulWork()` differs, fix
+     matmul WGSL/bundling.
+   - If `debugMatmulWork()` is correct but elementary differs, fix final
+     double-hash/compression.
+
+3. Make build identity useful in Docker.
+
+   Keep the timestamp, but allow the deploy/build script or Dockerfile to pass a
+   build SHA through an environment variable such as `KEYPEARS_BUILD_SHA`.
+   `vite.config.ts` should prefer that explicit value before falling back to
+   `git rev-parse`.
+
+   This is diagnostic only. It prevents another production run from reporting
+   `sha: "unknown"`.
+
+4. Compare dev and built asset behavior locally.
+
+   Run the same browser console diagnostics in:
+
+   - dev server
+   - local production build served with `bun run --cwd webapp start`
+   - deployed production
+
+   The same challenge does not need to be reused. The invariant being checked is
+   whether GPU readback equals JS header and whether stage hashes agree.
+
+5. Inspect the built pow5 chunk.
+
+   After `bun run --cwd webapp build`, grep the emitted client assets for:
+
+   - `[keypears pow]`
+   - `debug_elementary_iteration`
+   - WGSL source length
+   - header upload code
+
+   Confirm that the production asset contains the current diagnostics and raw
+   WGSL string.
+
+6. Fix only after the failing stage is known.
+
+   Do not rewrite PoW or switch algorithms in this experiment. The allowed fix is
+   the smallest change that makes the production build pass the same GPU/WASM
+   stage checks that dev already passes.
+
+### Expected Result
+
+The next production run identifies the exact production-build-only failure
+point:
+
+- header buffer upload/readback
+- WGSL BLAKE3 header hashing
+- matmul work
+- final elementary hash/compression
+- stale or unexpected built asset
+
+If the header readback is zero in production and correct in dev, the likely fix
+is to change the WebGPU upload path to use an explicit, freshly allocated
+`Uint32Array`/`ArrayBuffer` and read it back in tests, instead of relying on any
+view or iterable behavior that production bundling might alter.
+
+### Non-Goals
+
+- Do not change login, challenge creation, or server verification.
+- Do not change difficulty.
+- Do not remove WebGPU.
+- Do not do another rollback.
+- Do not keep the verbose diagnostics permanently after production login works.
