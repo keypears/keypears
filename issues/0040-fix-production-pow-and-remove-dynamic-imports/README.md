@@ -620,3 +620,181 @@ Local verification passed:
 The build regenerated blog feed timestamps, which were restored back to the
 baseline contents afterward. Production deployment is still required to confirm
 whether reverting to the known working runtime state restores login PoW.
+
+Production verification failed. After redeploying the baseline rollback,
+production login still hangs in the mining modal:
+
+```text
+Computing proof of work...
+
+This short computation protects the network from spam while keeping your
+identity private.
+
+7M
+less than a second remaining
+```
+
+The modal gives no browser-console information, sometimes jumps the progress
+bar, and never solves. Development login still works. The rollback therefore
+did not isolate the regression.
+
+## Experiment 6: Browser Console PoW Diagnostics
+
+### Hypothesis
+
+The production failure is inside the browser PoW mining path, before login
+submission. WebGPU is available and the mining loop is running, but production
+either returns all-zero sentinel results forever, computes a different hash than
+the WASM reference for the same header, or throws an error that the modal
+currently swallows.
+
+Adding explicit browser-console diagnostics at the PoW boundary will reveal the
+first dev/prod difference.
+
+### Evidence
+
+- Development login works.
+- Production login fetches a challenge and enters the mining modal.
+- Production does not show a browser-console error.
+- Current `PowModal` hides miner failures with `.catch(() => {})`.
+- Prior diagnostics showed production exceeding 4,280 batches with 4,280
+  all-zero result batches and no non-zero samples.
+- WebGPU failures can appear as valid execution that returns all-zero buffers,
+  so the app must treat persistent zero results as diagnostic evidence instead
+  of silently continuing forever.
+
+### Plan
+
+1. Stop swallowing miner errors.
+
+   Replace the empty catch in `PowModal` with a console error:
+
+   ```ts
+   miner.mine(challenge, { showSolved: true }).catch((err) => {
+     console.error("[keypears pow] mining failed", err);
+   });
+   ```
+
+2. Add console diagnostics with a stable prefix.
+
+   Every diagnostic log should begin with:
+
+   ```text
+   [keypears pow]
+   ```
+
+   Log the challenge summary when mining starts:
+
+   - difficulty
+   - target prefix
+   - header prefix
+   - whether sender/recipient addresses are present
+
+3. Log WebGPU initialization details.
+
+   During miner startup, log:
+
+   - whether `navigator.gpu` exists
+   - adapter availability
+   - adapter info if available
+   - selected device limits/features if cheap to read
+   - WGSL source length
+   - initialized pipeline names
+
+4. Add a same-header WASM-vs-GPU self-check.
+
+   Initialize the WGSL miner with debug pipelines:
+
+   ```ts
+   await pow5.init(true);
+   ```
+
+   Before entering the batch loop, compute both hashes for the exact challenge
+   header:
+
+   ```ts
+   const wasmHash = Pow5_64b_Wasm.elementaryIteration(headerBuf);
+   const gpuHash = await pow5.debugElementaryIteration();
+   ```
+
+   Log:
+
+   - WASM hash prefix/full hash
+   - GPU hash prefix/full hash
+   - whether they match
+
+   Interpretation:
+
+   - If they differ, production's shader or bundled WGSL path is wrong.
+   - If they match, the basic GPU hash path works and the bug is likely in
+     `workgroup_reduce`, batch search, or solution handling.
+
+5. Track and log batch-level mining state.
+
+   Track:
+
+   - batch count
+   - total hash count
+   - zero-result batch count
+   - non-zero result batch count
+   - elapsed seconds
+   - hash rate
+   - expected batch count
+   - first few non-zero hash samples
+
+   Log the first few batches and then periodic summaries, for example:
+
+   - batches 1-5
+   - every 100th batch after that
+
+6. Fail loudly after an excessive overrun.
+
+   Compute:
+
+   ```ts
+   expectedBatches = Math.ceil(challenge.difficulty / HASHES_PER_GPU_BATCH)
+   overrunLimit = Math.max(1000, expectedBatches * 20)
+   ```
+
+   If no solution is found by `overrunLimit`, throw an error with the diagnostic
+   summary and log it with `console.error`.
+
+7. Fix misleading progress during diagnostics.
+
+   While mining, cap estimated progress below completion, for example 95%.
+   Progress should reach 100% only after a valid solution is found.
+
+8. Verify diagnostics in development first.
+
+   In development, confirm the console shows:
+
+   - challenge summary
+   - WebGPU initialization
+   - WASM/GPU self-check match
+   - batch logs
+   - successful solution
+
+9. Deploy and inspect production console output.
+
+   Production should reveal one of these outcomes:
+
+   - GPU self-check differs from WASM.
+   - GPU self-check matches, but `work()` returns only zero sentinels.
+   - Non-zero hashes appear but never satisfy the target.
+   - A swallowed exception is now visible.
+   - A solution is found but login fails later.
+
+### Expected Result
+
+The browser console exposes the exact production failure mode. The experiment is
+successful if it gives enough evidence to decide whether the next fix belongs
+in WGSL bundling, WebGPU shader execution, batch search logic, challenge/target
+construction, or post-solution submission.
+
+### Non-Goals
+
+- Do not redesign PoW.
+- Do not change difficulty.
+- Do not keep verbose console diagnostics permanently.
+- Do not start another broad rollback until the diagnostics identify a concrete
+  failure point.
