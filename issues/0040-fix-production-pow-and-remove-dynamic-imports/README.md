@@ -1515,3 +1515,151 @@ installed at the expected cache path.
 The remaining question is browser behavior. The next evidence comes from
 testing the development app in both the old Chromium version and current Chrome,
 then production after deploy if both pass.
+
+## Experiment 10: Repair `pow5-64b` for Latest Chromium
+
+### Hypothesis
+
+Latest Chromium changed WebGPU behavior in a way that breaks `pow5-64b.wgsl`
+while older Chromium still accepts the old shader behavior. The EBX
+`blake3_hash_32` fix was necessary but not sufficient for KeyPears because the
+first failing stage is earlier:
+
+```text
+debugHashHeader() != blake3Hash(header)
+```
+
+That means the failure is in the 64-byte header hashing path, before matmul,
+before `blake3_hash_32`, and before the final PoW loop. The most likely
+suspects are `blake3_hash_64`, `words_from_little_endian_bytes`, or copying from
+the storage-buffer `header` into local function arrays.
+
+### Evidence
+
+Updating Playwright to latest Chromium makes the failure reproducible locally:
+
+```bash
+bun run --cwd packages/pow5-ts test
+```
+
+With Playwright Chromium `1.60.0`, the `pow5-64b` browser tests fail in exactly
+the same way as latest Chrome in the app:
+
+- `debug: hash header (WGSL)` fails
+- `debug: double hash header (WGSL)` fails
+- `debug: matmul work (WGSL)` fails
+- `debug: elementary iteration (WGSL)` fails
+
+The `pow5-217a` tests still pass. This is now a narrow `pow5-64b` shader
+portability problem, not a webapp integration problem.
+
+### Goal
+
+Make `pow5-64b.wgsl` produce byte-for-byte identical output to the existing
+reference outputs under latest Chromium, without changing the PoW algorithm,
+difficulty model, challenge format, target comparison, or server verification.
+
+Output equivalence is mandatory. Passing tests by changing expected values is
+not allowed unless the old expected value is proven wrong against the WASM or
+independent BLAKE3 reference. The intended fix is to make the WGSL implementation
+match the existing WASM/reference behavior in newer Chromium.
+
+### Plan
+
+1. Keep Playwright at latest.
+
+   Keep the dependency update to Playwright `1.60.0` and the matching Chromium
+   browser install. This makes the regression local and fast to iterate on.
+
+2. Use the current browser tests as the primary loop.
+
+   Run:
+
+   ```bash
+   bun run --cwd packages/pow5-ts test
+   ```
+
+   Treat the first failing test, `debug: hash header (WGSL)`, as the blocking
+   failure. Do not chase matmul or mining behavior until this passes, because
+   those stages depend on correct header hashing.
+
+3. Add narrowly scoped diagnostic tests only if needed.
+
+   If `debugHashHeader()` is not enough to isolate the problem, add temporary or
+   permanent browser tests around smaller shader stages:
+
+   - a fixed 64-byte local-array BLAKE3 hash
+   - a storage-buffer header to local-array copy
+   - little-endian word conversion for one 64-byte block
+   - `compress()` with a known block
+
+   Any permanent diagnostic entry point must have a real regression-test purpose.
+   Temporary probes should be removed before the experiment is concluded.
+
+4. Rewrite the fragile 64-byte BLAKE3 path.
+
+   Apply the same principle that fixed EBX's `blake3_hash_32`:
+
+   - avoid passing local arrays by pointer where latest Chromium can produce
+     stale or zero-derived data
+   - avoid routing fixed-size block conversion through generic pointer helpers
+     when a direct fixed-size conversion is clearer
+   - inline the single-block 64-byte conversion in `blake3_hash_64`
+   - preserve BLAKE3 flags, block length, IV, output encoding, and byte order
+     exactly
+
+   The preferred shape is a fixed-size `blake3_hash_64(input: array<u32, 64>)`
+   that directly builds the 16 little-endian words and uses:
+
+   ```wgsl
+   block_len = 64u
+   flags = CHUNK_START | CHUNK_END
+   ```
+
+   This should mirror the successful EBX strategy while targeting the earlier
+   64-byte header hash failure that KeyPears now exposes.
+
+5. Preserve exact output parity.
+
+   The existing expected outputs are the contract:
+
+   - `debugHashHeader()` must equal `blake3Hash(header.buf)`
+   - `debugDoubleHashHeader()` must equal `blake3Hash(blake3Hash(header.buf))`
+   - `debugMatmulWork()` must equal the existing expected matmul vectors
+   - `debugElementaryIteration()` must equal the existing expected elementary
+     vectors
+   - `work()` must continue to find hashes that meet the target
+
+   Add additional all-zero, all-ones, and non-uniform header cases if they make
+   the fix harder to fake and easier to trust.
+
+6. Run full verification.
+
+   Required:
+
+   ```bash
+   bun run --cwd packages/pow5-ts test
+   bun run --cwd packages/pow5-ts typecheck
+   bun run --cwd webapp typecheck
+   bun run --cwd webapp test
+   bun run --cwd webapp build
+   ```
+
+   If the package tests pass, run the webapp in development and verify login in
+   latest Chrome. Then verify old Chromium still works.
+
+### Expected Result
+
+Latest Playwright Chromium and latest Chrome should produce the same `pow5-64b`
+outputs as the existing WASM/reference implementation. The webapp's
+`WASM/GPU self-check mismatch` should disappear because the first failing stage,
+`debugHashHeader()`, now matches the reference header hash.
+
+### Non-Goals
+
+- Do not change PoW outputs.
+- Do not update expected vectors to match broken latest-Chromium WGSL output.
+- Do not change challenge generation or verification.
+- Do not change difficulty, target calculation, or target comparison.
+- Do not remove useful browser diagnostics until latest Chrome login is
+  confirmed working.
