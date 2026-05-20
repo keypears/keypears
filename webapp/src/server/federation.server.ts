@@ -15,6 +15,7 @@ import { isLocalDomain } from "./user.server";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { type KeypearsJson, type KeypearsClient } from "@keypears/client";
+import { z } from "zod";
 
 export type { KeypearsJson };
 
@@ -41,7 +42,6 @@ export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const { z } = await import("zod");
   const parsed = z
     .object({ apiDomain: z.string().optional(), admin: z.string().optional() })
     .parse(await response.json());

@@ -27,7 +27,6 @@ const SIGN_EXPIRY_MS = 10 * 60 * 1000;
 const getSigningChallenge = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async () => {
-    const { FixedBuf } = await import("@webbuf/fixedbuf");
     return {
       nonce: FixedBuf.fromRandom(32).buf.toHex(),
       timestamp: new Date().toISOString(),

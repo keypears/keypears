@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback } from "react";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { Pow5_64b_Wgsl, hashMeetsTarget } from "@keypears/pow5/wgsl";
 import type { WebBuf } from "@webbuf/webbuf";
 
 export interface PowChallenge {
@@ -74,11 +76,6 @@ export function usePowMiner() {
       startTimeRef.current = performance.now();
 
       try {
-        const { Pow5_64b_Wgsl, hashMeetsTarget } = await import(
-          "@keypears/pow5/wgsl"
-        );
-        const { FixedBuf } = await import("@webbuf/fixedbuf");
-
         const headerBuf = FixedBuf.fromHex(64, challenge.header);
         const targetBuf = FixedBuf.fromHex(32, challenge.target);
 

@@ -128,3 +128,90 @@ The experiment failed to restore production login, but succeeded in revealing
 the next concrete defect. The current partial mitigation should not be treated
 as complete until production login works and all dynamic imports are removed
 from application code.
+
+## Experiment 2: Restore the Static Type Graph
+
+### Hypothesis
+
+Production PoW is failing because required dependencies are loaded through
+runtime dynamic imports instead of static imports. Removing application dynamic
+imports will put those dependencies back into TypeScript's static graph and
+make production bundling fail at build time instead of failing at login time.
+
+### Plan
+
+1. Replace browser PoW dynamic imports with static imports.
+   - `FixedBuf` must be statically imported from `@webbuf/fixedbuf`.
+   - `Pow5_64b_Wgsl` and `hashMeetsTarget` must be statically imported from
+     the WASM-free `@keypears/pow5/wgsl` entry point.
+   - Keep JavaScript nonce insertion so the login miner does not need the WASM
+     `Pow5_64b_Wasm` export.
+
+2. Remove the remaining application dynamic imports found by audit.
+   - Replace `webapp/src/routes/_app/_saved/sign.tsx` dynamic `FixedBuf` import
+     with its existing static import.
+   - Replace server-function dynamic imports with static imports where they do
+     not create client bundle exposure.
+   - If a server-only import was dynamic only to avoid client exposure, move the
+     code behind a `*.server.ts` boundary or another existing server-only module
+     instead of keeping `import(...)`.
+
+3. Add an enforcement check.
+   - Add a script or test that fails when application source contains
+     `import(`.
+   - Scope it to application code, not generated output or third-party
+     dependencies.
+   - Document the rule in the issue result so future exceptions require an
+     explicit issue decision.
+
+4. Verify TypeScript and production build behavior.
+   - Run `pnpm --filter @keypears/pow5 run build`.
+   - Run `pnpm --filter @keypears/webapp run typecheck`.
+   - Run `pnpm --filter @keypears/webapp run build`.
+   - Inspect the generated production PoW chunk and confirm it no longer
+     contains a dynamic import for `@webbuf/fixedbuf`.
+   - Audit with `rg -n "import\\("` and confirm no application dynamic imports
+     remain.
+
+### Expected Result
+
+Production login PoW starts from statically linked dependencies. The specific
+`Cannot read properties of undefined (reading 'fromHex')` failure becomes
+impossible because `FixedBuf` is no longer obtained by destructuring a runtime
+module object.
+
+### Result: Pass
+
+Application dynamic imports were removed from the audited source paths. Browser
+PoW now imports `FixedBuf`, `Pow5_64b_Wgsl`, and `hashMeetsTarget` statically,
+so the login miner no longer destructures required dependencies from runtime
+module objects.
+
+The remaining dynamic import sites were converted to static imports:
+
+- signing challenge generation
+- blog server functions
+- message PoW logging
+- PoW settings validation
+- federation `keypears.json` validation
+
+A Vitest guard now scans app source for `import(...)` and fails if a dynamic
+import is reintroduced.
+
+Verification:
+
+- `pnpm --filter @keypears/pow5 run build`
+- `pnpm --filter @keypears/webapp run typecheck`
+- `pnpm --filter @keypears/webapp run test`
+- `pnpm --filter @keypears/webapp run build`
+- `rg -n "import\\(" webapp/src packages/client/src packages/pow5-ts/src passapples lockberries -S`
+
+The production `PowModal` asset now contains the PoW implementation and static
+`FixedBuf` usage in the same bundle path; there is no dynamic import for
+`@webbuf/fixedbuf`.
+
+### Conclusion
+
+The TypeScript static dependency graph is restored for app code. The production
+`FixedBuf.fromHex` undefined failure should be eliminated because `FixedBuf` is
+now a static binding, not a runtime destructured property.

@@ -31,6 +31,8 @@ import {
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { WebBuf } from "@webbuf/webbuf";
+import { FixedBuf } from "@webbuf/fixedbuf";
+import { difficultyFromTarget } from "@keypears/pow5";
 import { parseAddress, makeAddress } from "~/lib/config";
 import { verifyMessageSignature } from "~/lib/message";
 import {
@@ -264,8 +266,6 @@ export const sendMessage = createServerFn({ method: "POST" })
     }
 
     // Log PoW against the sender (they did the work)
-    const { difficultyFromTarget } = await import("@keypears/pow5");
-    const { FixedBuf } = await import("@webbuf/fixedbuf");
     const target = FixedBuf.fromHex(32, input.pow.target);
     const difficulty = difficultyFromTarget(target);
     await insertPowLog(senderId, "pow5-64b", difficulty);
