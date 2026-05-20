@@ -714,3 +714,65 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
   report before adding a dev-only exception.
 - Tests prove the dangerous authority and DNS cases are rejected.
 - Security docs match the implementation.
+
+### Result: Pass
+
+Implemented on 2026-05-20.
+
+Federation SSRF hardening is restored in the active pnpm/Node tree:
+
+- added the branded `FederationAuthority` validator back under
+  `webapp/src/lib/federation-authority.ts`
+- replaced the old `safeFetch()` wrapper with pinned-resolution
+  `safeFederationFetch()`
+- removed the old `.test`/`NODE_ENV` private-address carveout
+- rejected non-ASCII authorities unless they are already ASCII/punycode
+- kept the default HTTPS port-only policy
+- routed remote federation oRPC through a server-only client factory that
+  injects `safeFederationFetch()`
+- removed direct server-side `createKeypearsClientFromUrl()` federation usage
+- validated this server's own `KEYPEARS_API_DOMAIN` before emitting
+  `/.well-known/keypears.json`
+- normalized `keypears.json` cache keys through `FederationAuthority`
+- updated `webapp/src/docs/security.md` to describe the actual fetch policy
+
+The implementation intentionally does not add a dev loopback exception. `.test`
+remains a valid DNS hostname, but if it resolves to loopback it is blocked by
+the same private-address rule as any other hostname.
+
+The local shell used for implementation did not have the `.test` DNS topology
+configured (`keypears.test` and `keypears.passapples.test` returned
+`ENOTFOUND`), so cross-instance dev federation was not manually exercised. If a
+developer environment resolves those names to loopback, the new policy will
+block cross-instance federation until an explicit dev allowlist is approved.
+
+Verification passed:
+
+```bash
+pnpm --filter @keypears/webapp typecheck
+pnpm --filter @keypears/webapp test
+pnpm --filter @keypears/webapp build
+rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src/server
+rg -n "fetch\\(" webapp/src/server
+rg -n "nodeEnv|isDevTestAuthority|safeFetch\\b" webapp/src/server webapp/src/lib
+curl -fsS http://localhost:4274/health
+curl -fsS http://localhost:4274/.well-known/keypears.json
+curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
+  -X POST http://localhost:4274/api/serverInfo \
+  -H 'content-type: application/json' \
+  --data '{}'
+```
+
+Audit results:
+
+- `RPCLink` appears only in `webapp/src/server/federation.server.ts`, inside
+  the protected federation client factory.
+- No server-side raw `fetch(` calls remain in `webapp/src/server`.
+- No `nodeEnv`, `isDevTestAuthority`, or old `safeFetch` references remain in
+  `webapp/src/server` or `webapp/src/lib`.
+- Nitro smoke tests passed: `/health` returned `ok`,
+  `/.well-known/keypears.json` returned `{"apiDomain":"keypears.test"}`, and
+  `/api/serverInfo` returned HTTP `200`.
+
+Build still reports the existing Vite/Tailwind CSS warnings and large chunk
+warnings; those are unchanged by this experiment.

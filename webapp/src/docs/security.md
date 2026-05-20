@@ -140,18 +140,25 @@ be found.
 
 ## Server-side request forgery
 
-The server makes outbound HTTPS requests during federation (fetching
-`keypears.json` from remote domains). These requests are mediated by a
-`safeFetch` wrapper that:
+The server makes outbound HTTPS requests during federation for remote
+`keypears.json` discovery and remote oRPC calls. These requests are mediated by
+a server-only `safeFederationFetch` wrapper that:
 
-- Resolves DNS before each request and rejects private IP ranges
-  (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`,
-  `169.254.0.0/16`, `0.0.0.0/8`).
+- Requires HTTPS and valid DNS hostname authorities.
+- Rejects full URLs in authority fields, userinfo, localhost names, IP
+  literals, non-443 ports, and non-ASCII hostnames that are not already written
+  in punycode form.
+- Resolves both A and AAAA records and rejects the request if any answer is
+  loopback, private, link-local, multicast, documentation, unspecified,
+  reserved, IPv4-mapped IPv6, 6to4, Teredo, or otherwise non-public.
+- Connects to the vetted resolved address while preserving the original
+  hostname for TLS SNI and the `Host` header, so the DNS check and the actual
+  connection cannot diverge.
 - Enforces a 5-second timeout.
-- Limits response size to 1 MB.
-- Rejects HTTP redirects entirely (`redirect: "error"`). This prevents an
-  attacker-controlled domain from redirecting federation lookups to internal
-  services such as the AWS instance metadata endpoint.
+- Applies per-call response-size caps.
+- Rejects HTTP redirects entirely. This prevents an attacker-controlled domain
+  from redirecting federation lookups to internal services such as the AWS
+  instance metadata endpoint.
 
 ## Rate limiting
 
