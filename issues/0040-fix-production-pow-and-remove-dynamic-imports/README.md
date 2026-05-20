@@ -1698,3 +1698,106 @@ files, 17 tests. This covers the exact failing shader stages:
 
 The remaining confirmation is manual: login in latest Chrome in development,
 then production after deploy.
+
+## Experiment 11: Remove Temporary PoW Console Noise
+
+### Hypothesis
+
+The production PoW failure is fixed, so the temporary browser diagnostics from
+Experiments 6-10 are now doing more harm than good. They flood the console on
+normal login and make real issues harder to see.
+
+We should remove normal-path logging while preserving concise failure reporting
+for genuine PoW errors.
+
+### Evidence
+
+Latest Chrome production login now works. The browser console still emits many
+temporary diagnostics during a normal successful mine:
+
+- build/browser/challenge logs
+- WebGPU adapter and device init logs
+- header upload logs
+- header input logs
+- stage-check and self-check logs
+- minimum-difficulty smoke test logs
+- per-batch logs
+- visibility and CSP diagnostic listeners
+
+These were useful while isolating the Chrome/WebGPU regression. They should not
+remain as default application behavior.
+
+### Goal
+
+Return the browser console to near-silent behavior during successful PoW mining.
+Keep only logs that represent actionable failures or exceptional WebGPU/device
+events.
+
+### Plan
+
+1. Remove normal-path webapp mining logs.
+
+   In `webapp/src/lib/use-pow-miner.ts`, remove or disable:
+
+   - `logPow("build", ...)`
+   - `logPow("browser", ...)`
+   - `logPow("challenge", ...)`
+   - `logPow("header input", ...)`
+   - `logPow("stage-check", ...)`
+   - `logPow("self-check", ...)`
+   - `logPow("minimum-difficulty smoke test", ...)`
+   - `logPow("batch", ...)`
+   - `logPow("solved", ...)`
+   - visibility-change diagnostic logs
+   - security-policy diagnostic listener unless it is needed elsewhere
+
+2. Keep concise failure details.
+
+   Keep enough data in thrown errors or `console.error` paths to diagnose a real
+   failure without spamming successful runs:
+
+   - self-check mismatch should still include WASM/GPU hashes
+   - smoke-test failure should still include nonce/hash/target result
+   - overrun failure should still include diagnostics
+   - modal-level error display should still show the user-facing failure
+
+   Prefer one error log per failure path, not repeated logs at multiple layers.
+
+3. Remove package-level normal logs.
+
+   In `packages/pow5-ts/src/pow5-64b-wgsl.ts`, remove the temporary
+   `POW_LOG_PREFIX`, header upload logger, WebGPU adapter log, and WebGPU init
+   log. Keep `device.lost` as an error only if it is not noisy during normal
+   operation.
+
+4. Preserve tests and output parity.
+
+   Do not change WGSL, expected vectors, target comparison, mining behavior, or
+   PoW outputs. This experiment is about console hygiene only.
+
+5. Verify.
+
+   Run:
+
+   ```bash
+   bun run --cwd packages/pow5-ts test
+   bun run --cwd packages/pow5-ts typecheck
+   bun run --cwd webapp typecheck
+   bun run --cwd webapp test
+   bun run --cwd webapp build
+   ```
+
+   Then manually verify that successful login in latest Chrome produces no
+   routine PoW diagnostic spam.
+
+### Expected Result
+
+Successful PoW mining should produce no routine `[keypears pow]` console logs.
+Failures should still surface clear, compact error information.
+
+### Non-Goals
+
+- Do not remove the package browser tests.
+- Do not change the WebGPU fix.
+- Do not change PoW behavior or expected outputs.
+- Do not hide actual failures from the user.
