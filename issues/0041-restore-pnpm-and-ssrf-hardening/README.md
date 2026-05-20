@@ -120,3 +120,140 @@ public-domain federation.
 - Do not weaken federation SSRF protection to make implementation easier.
 - Do not introduce unrelated refactors while restoring reverted work.
 - Do not modify closed issues 35, 39, or 40.
+
+## Experiment 1: Restore pnpm/Node Tooling
+
+### Hypothesis
+
+The workspace can be moved back from Bun-first tooling to pnpm/Node without
+changing application behavior and without regressing the latest-Chromium PoW
+fix from issue 40.
+
+This should be done before SSRF restoration because package manager/runtime
+changes affect every verification command and deployment path. Once pnpm is
+authoritative again, the SSRF work can be restored and tested on the final
+toolchain instead of being ported twice.
+
+### Scope
+
+This experiment restores only the pnpm/Node toolchain work. It does not restore
+the federation SSRF hardening yet.
+
+In scope:
+
+- root workspace package manager configuration
+- root and package scripts
+- lockfile ownership
+- docs that tell developers/self-hosters which commands to run
+- package build/publish compatibility
+- Docker/deploy build commands if they still depend on Bun
+- verification commands rewritten to pnpm equivalents
+
+Out of scope:
+
+- SSRF fetch hardening
+- federation behavior changes
+- PoW algorithm or expected output changes
+- package version bumps unrelated to the toolchain
+
+### Plan
+
+1. Re-establish pnpm workspace ownership.
+
+   Add or restore:
+
+   - `pnpm-workspace.yaml`
+   - root `pnpm-lock.yaml`
+   - `packageManager` metadata for pnpm where appropriate
+
+   Remove committed Bun lockfiles after pnpm is authoritative:
+
+   - root `bun.lock`
+   - `webapp/bun.lock` if still present
+
+2. Convert root scripts.
+
+   Replace root `bun run ...` invocations with pnpm equivalents while preserving
+   the existing local topology:
+
+   - `keypears.test`
+   - `keypears.passapples.test`
+   - `passapples.test`
+   - `lockberries.test`
+
+3. Convert package scripts.
+
+   Update `webapp`, landing pages, and publishable packages so scripts run under
+   pnpm/Node. Use `tsx` or plain `node` for TypeScript helper scripts instead of
+   relying on Bun execution.
+
+   Audit and remove `@types/bun` if no source still needs Bun APIs.
+
+4. Preserve package publishing behavior.
+
+   Ensure publishable packages still build npm-compatible artifacts:
+
+   - JavaScript output
+   - `.d.ts` types
+   - copied WGSL/WASM assets where required
+   - correct `exports`, `main`, and `types` fields
+
+5. Update deployment and Docker paths.
+
+   If Docker or deploy scripts still install or run with Bun, switch them to the
+   pnpm/Node flow. The production build must still build workspace packages
+   before the webapp build when needed.
+
+6. Update docs.
+
+   Replace Bun commands and runtime references in contributor/self-hosting docs
+   with pnpm/Node commands. Historical mentions inside issue documents can stay.
+
+7. Verify with pnpm.
+
+   Required checks after migration:
+
+   ```bash
+   pnpm install --frozen-lockfile
+   pnpm --filter @keypears/pow5 test
+   pnpm --filter @keypears/pow5 typecheck
+   pnpm --filter @keypears/webapp typecheck
+   pnpm --filter @keypears/webapp test
+   pnpm --filter @keypears/webapp build
+   ```
+
+   Also run package builds for publishable packages:
+
+   ```bash
+   pnpm --filter @keypears/pow5 build
+   pnpm --filter @keypears/client build
+   ```
+
+8. Audit for remaining Bun surface.
+
+   Run:
+
+   ```bash
+   rg -n "\bbun\b|Bun|bunx|bun\.lock" \
+     package.json pnpm-workspace.yaml README.md infra webapp packages passapples lockberries
+   ```
+
+   Any remaining matches must be either removed or explicitly justified as
+   historical/non-runtime text.
+
+### Expected Result
+
+The repo should be pnpm/Node-first again. Developers should install, test,
+build, and deploy with pnpm commands. Bun lockfiles and Bun runtime assumptions
+should be gone from active tooling.
+
+The app should behave the same as before the experiment, including working
+production login PoW and passing latest-Chromium `pow5-64b` browser tests.
+
+### Non-Goals
+
+- Do not restore SSRF hardening in this experiment.
+- Do not change federation behavior.
+- Do not change PoW outputs or expected vectors.
+- Do not update unrelated dependencies unless required by pnpm resolution.
+- Do not modify closed issue documents.
