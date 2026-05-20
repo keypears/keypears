@@ -54,7 +54,13 @@ if [[ "$NO_BUILD" == "false" ]]; then
   cp whitepaper/keypears.pdf webapp/public/keypears.pdf
 
   echo "==> building image (linux/arm64)"
-  docker build --platform linux/arm64 -f webapp/Dockerfile -t "${REPO_NAME}:latest" .
+  BUILD_SHA=$(git rev-parse --short HEAD)
+  docker build \
+    --platform linux/arm64 \
+    --build-arg "KEYPEARS_BUILD_SHA=${BUILD_SHA}" \
+    -f webapp/Dockerfile \
+    -t "${REPO_NAME}:latest" \
+    .
 
   echo "==> logging in to ECR"
   aws ecr get-login-password --region "$REGION" \

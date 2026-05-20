@@ -387,6 +387,16 @@ fn blake3_hash_32(
     return hash_output;
 }
 
+// debug: copy the first eight header words into the result buffer
+@compute @workgroup_size(1, 1, 1)
+fn debug_header_prefix(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    if global_id.x == 0 {
+        for (var i: u32 = 0; i < COMPRESSED_HASH_SIZE; i++) {
+            final_result.hash[i] = header[i];
+        }
+    }
+}
+
 // debug: hash header with blake3
 @compute @workgroup_size(1, 1, 1)
 fn debug_hash_header(@builtin(global_invocation_id) global_id: vec3<u32>) {

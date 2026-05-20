@@ -138,6 +138,7 @@ export function usePowMiner() {
         const {
           Pow5_64b_Wasm,
           Pow5_64b_Wgsl,
+          POW5_64B_WGSL_LENGTH,
           hashMeetsTarget,
           targetFromDifficulty,
         } = await import("@keypears/pow5");
@@ -145,6 +146,8 @@ export function usePowMiner() {
 
         const headerBuf = FixedBuf.fromHex(64, challenge.header);
         const targetBuf = FixedBuf.fromHex(32, challenge.target);
+        const headerHex = headerBuf.buf.toHex();
+        const headerPrefixHex = headerHex.slice(0, 64);
 
         let solvedHeaderHex: string | null = null;
         let totalHashes = 0;
@@ -152,11 +155,50 @@ export function usePowMiner() {
         const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
         await pow5.init(true);
 
+        const gpuHeaderReadback = await pow5.debugReadHeader();
+        const shaderHeaderPrefixWords = await pow5.debugHeaderPrefix();
+        const gpuHeaderReadbackHex = gpuHeaderReadback.buf.toHex();
+        const headerSha256 = await crypto.subtle.digest(
+          "SHA-256",
+          headerBuf.buf,
+        );
+        logPow("header input", {
+          challengeHeader: challenge.header,
+          headerBufHex: headerHex,
+          headerPrefixHex,
+          headerIsAllZero: headerBuf.buf.every((b) => b === 0),
+          gpuHeaderReadbackHex,
+          gpuHeaderReadbackIsAllZero: gpuHeaderReadback.buf.every(
+            (b) => b === 0,
+          ),
+          gpuHeaderReadbackMatches: gpuHeaderReadbackHex === headerHex,
+          shaderHeaderPrefixWordsHex: shaderHeaderPrefixWords.hash.buf.toHex(),
+          headerSha256: Array.from(new Uint8Array(headerSha256))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(""),
+          wgslLengthFromBundle: POW5_64B_WGSL_LENGTH,
+        });
+
+        const gpuHeaderBlake3 = await pow5.debugHashHeader();
+        const wasmMatmulWork = Pow5_64b_Wasm.matmulWork(headerBuf);
         const wasmHash = Pow5_64b_Wasm.elementaryIteration(headerBuf);
+        const gpuMatmulWork = await pow5.debugMatmulWork();
         const gpuHash = await pow5.debugElementaryIteration();
+        const gpuHeaderBlake3Hex = gpuHeaderBlake3.hash.buf.toHex();
+        const wasmMatmulWorkHex = wasmMatmulWork.buf.toHex();
         const wasmHashHex = wasmHash.buf.toHex();
+        const gpuMatmulWorkHex = gpuMatmulWork.hash.buf.toHex();
         const gpuHashHex = gpuHash.hash.buf.toHex();
         const selfCheckMatches = wasmHashHex === gpuHashHex;
+        logPow("stage-check", {
+          gpuHeaderBlake3: gpuHeaderBlake3Hex,
+          wasmMatmulWork: wasmMatmulWorkHex,
+          gpuMatmulWork: gpuMatmulWorkHex,
+          matmulMatches: wasmMatmulWorkHex === gpuMatmulWorkHex,
+          wasmElementary: wasmHashHex,
+          gpuElementary: gpuHashHex,
+          elementaryMatches: selfCheckMatches,
+        });
         logPow("self-check", {
           wasmHash: wasmHashHex,
           gpuHash: gpuHashHex,

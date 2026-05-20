@@ -15,6 +15,8 @@
 FROM oven/bun:1 AS builder
 
 WORKDIR /repo
+ARG KEYPEARS_BUILD_SHA
+ENV KEYPEARS_BUILD_SHA=${KEYPEARS_BUILD_SHA}
 
 # Copy the whole monorepo. Bun workspaces hoist node_modules to the root,
 # so a partial copy doesn't save us much. .dockerignore keeps this small.

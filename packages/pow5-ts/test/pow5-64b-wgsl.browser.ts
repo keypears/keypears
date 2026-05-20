@@ -62,6 +62,26 @@ describe("Pow5_64b tests", async () => {
     }
   });
 
+  test("debug: read header buffer (WGSL)", async () => {
+    const header = FixedBuf.fromBuf(
+      64,
+      WebBuf.fromHex(
+        "000102030405060708090a0b0c0d0e0f" +
+          "101112131415161718191a1b1c1d1e1f" +
+          "202122232425262728292a2b2c2d2e2f" +
+          "303132333435363738393a3b3c3d3e3f",
+      ),
+    );
+    const targetAllZeroes = FixedBuf.fromBuf(
+      32,
+      WebBuf.fromHex("00".repeat(32)),
+    );
+    const pow5 = new Pow5_64b(header, targetAllZeroes, MAX_GRID_SIZE);
+    await pow5.init(true);
+    const result = await pow5.debugReadHeader();
+    expect(result.toHex()).toBe(header.toHex());
+  });
+
   test("debug: double hash header (WGSL)", async () => {
     {
       const headerAllZeroes = FixedBuf.fromBuf(

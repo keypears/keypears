@@ -1068,3 +1068,40 @@ view or iterable behavior that production bundling might alter.
 - Do not remove WebGPU.
 - Do not do another rollback.
 - Do not keep the verbose diagnostics permanently after production login works.
+
+### Result: Implemented, Pending Production Verification
+
+Implemented production-build isolation diagnostics for the WebGPU input path.
+The miner now logs:
+
+- direct `headerBuffer` readback from the GPU
+- whether GPU-readback header bytes match the JavaScript challenge header
+- a shader-level header-prefix readout
+- WGSL bundle length exported from `@keypears/pow5`
+- staged GPU/WASM comparisons for header hash, matmul work, and elementary
+  iteration
+
+The deploy path now passes `KEYPEARS_BUILD_SHA` into the Docker build, and
+`vite.config.ts` prefers that value before falling back to `git rev-parse`.
+This should stop production diagnostics from reporting `sha: "unknown"` during
+normal deploys.
+
+Added a pow5 browser test for `debugReadHeader()` so future browser test runs
+verify that WebGPU header-buffer readback matches the input header.
+
+Verification:
+
+- `bun run --cwd packages/pow5-ts typecheck`
+- `bun run --cwd webapp typecheck`
+- `bun run --cwd webapp test`
+- `bun run --cwd webapp build`
+- Built client asset contains `header input`, `stage-check`,
+  `debug_header_prefix`, `debugReadHeader`, and `KEYPEARS_BUILD_SHA` plumbing.
+
+`bun run --cwd packages/pow5-ts test` still cannot run in this workspace because
+Playwright cannot find the Chromium binary at
+`~/Library/Caches/ms-playwright/chromium-1217/...`.
+
+The next production run should answer whether the deployed GPU buffer readback
+is zero, differs from the JavaScript header, or matches the header while a later
+WGSL stage diverges.
