@@ -1801,3 +1801,30 @@ Failures should still surface clear, compact error information.
 - Do not change the WebGPU fix.
 - Do not change PoW behavior or expected outputs.
 - Do not hide actual failures from the user.
+
+### Result: Pass, Pending Manual Console Check
+
+The temporary PoW diagnostics were removed from normal successful mining:
+
+- removed build/browser/challenge/header-input logs from `usePowMiner`
+- removed stage-check, self-check, smoke-test, batch, and solved logs
+- removed visibility and CSP diagnostic listeners
+- removed duplicate modal-level mining error logging
+- removed package-level WebGPU adapter/init/header-upload logs
+
+Failure paths still emit a compact `[keypears pow] mining failed` error with
+attached diagnostics for self-check mismatch, smoke-test failure, and overrun
+failure. The package still logs `device.lost` as an exceptional WebGPU event.
+
+Verification passed:
+
+```bash
+bun run --cwd packages/pow5-ts test
+bun run --cwd packages/pow5-ts typecheck
+bun run --cwd webapp typecheck
+bun run --cwd webapp test
+bun run --cwd webapp build
+```
+
+The remaining confirmation is manual: successful login in latest Chrome should
+no longer spam routine PoW diagnostics in the browser console.

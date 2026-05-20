@@ -8,27 +8,6 @@ const COMPRESSED_HASH_SIZE: number = 32 / 4; // 8
 const WORKGROUP_SIZE = 256;
 const POW_LOG_PREFIX = "[keypears pow]";
 
-function logHeaderUpload(
-  label: "init" | "setInput",
-  headerBytes: Uint8Array,
-  headerWords: Uint32Array,
-): void {
-  console.log(`${POW_LOG_PREFIX} header upload ${label}`, {
-    headerBytesConstructor: headerBytes.constructor.name,
-    headerBytesLength: headerBytes.length,
-    headerBytesByteLength: headerBytes.byteLength,
-    headerBytesByteOffset: headerBytes.byteOffset,
-    headerBufferByteLength: headerBytes.buffer.byteLength,
-    firstHeaderBytes: Array.from(headerBytes.slice(0, 8)),
-    headerWordsConstructor: headerWords.constructor.name,
-    headerWordsLength: headerWords.length,
-    headerWordsByteLength: headerWords.byteLength,
-    firstHeaderWords: Array.from(headerWords.slice(0, 8)),
-    headerBytesAllZero: headerBytes.every((byte) => byte === 0),
-    headerWordsAllZero: headerWords.every((word) => word === 0),
-  });
-}
-
 interface Pow5State {
   device: GPUDevice | null;
   module: GPUShaderModule | null;
@@ -72,7 +51,6 @@ export class Pow5_64b {
 
   async init(debug = false): Promise<void> {
     if (this.state.device) {
-      console.log("pow5 already initialized");
       return;
     }
 
@@ -83,12 +61,6 @@ export class Pow5_64b {
     if (!adapter) {
       throw new Error("No adapter found");
     }
-    console.log(`${POW_LOG_PREFIX} webgpu adapter`, {
-      info: adapter.info,
-      isFallbackAdapter: adapter.info?.isFallbackAdapter,
-      features: Array.from(adapter.features ?? []),
-      limits: adapter.limits,
-    });
     const device = await adapter.requestDevice();
     this.state.device = device;
     device.lost.then((info) => {
@@ -147,14 +119,6 @@ export class Pow5_64b {
       ? computePipelineNamesDebug
       : computePipelineNamesProd;
 
-    console.log(`${POW_LOG_PREFIX} webgpu init`, {
-      debug,
-      wgslLength: wgslCode.length,
-      pipelineNames: computePipelineNames,
-      deviceFeatures: Array.from(device.features ?? []),
-      deviceLimits: device.limits,
-    });
-
     for (const name of computePipelineNames) {
       const pipeline = device.createComputePipeline({
         layout: pipelineLayout,
@@ -184,7 +148,6 @@ export class Pow5_64b {
     });
     this.state.finalResultBuffer = finalResultBuffer;
 
-    logHeaderUpload("init", headerUint8Array, headerUint32Array);
     device.queue.writeBuffer(headerBuffer, 0, headerUint32Array.buffer);
     // now for the target buffer, we need to take the hash 4 bytes at a time,
     // and in *big-endian* order convert them into a Uint32Array and write that
@@ -258,7 +221,6 @@ export class Pow5_64b {
     const headerUint8Array = header.buf;
     const headerUint32Array = new Uint32Array(headerUint8Array);
 
-    logHeaderUpload("setInput", headerUint8Array, headerUint32Array);
     device.queue.writeBuffer(
       this.state.headerBuffer,
       0,

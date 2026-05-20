@@ -1,10 +1,5 @@
 import { useState, useRef, useCallback } from "react";
 
-declare const __KEYPEARS_BUILD__: {
-  sha: string;
-  builtAt: string;
-};
-
 export interface PowChallenge {
   header: string;
   target: string;
@@ -60,17 +55,8 @@ function hexPrefix(hex: string): string {
   return `${hex.slice(0, 16)}...`;
 }
 
-function logPow(label: string, data?: unknown): void {
-  if (data === undefined) {
-    console.log(`${POW_LOG_PREFIX} ${label}`);
-    return;
-  }
-  console.log(`${POW_LOG_PREFIX} ${label}`, data);
-}
-
 function powError(message: string, data?: unknown): Error {
-  console.error(`${POW_LOG_PREFIX} ${message}`, data);
-  return new Error(message);
+  return Object.assign(new Error(message), { powDiagnostics: data });
 }
 
 export function usePowMiner() {
@@ -103,38 +89,7 @@ export function usePowMiner() {
       setResult(null);
       startTimeRef.current = performance.now();
 
-      const removeDiagnosticsListeners = installBrowserDiagnostics();
-
       try {
-        logPow("build", __KEYPEARS_BUILD__);
-        logPow("browser", {
-          userAgent: navigator.userAgent,
-          origin: location.origin,
-          isSecureContext,
-          crossOriginIsolated,
-          visibilityState: document.visibilityState,
-          hasWebGpu: "gpu" in navigator,
-        });
-        logPow("challenge", {
-          challenge,
-          types: {
-            header: typeof challenge.header,
-            target: typeof challenge.target,
-            difficulty: typeof challenge.difficulty,
-            expiresAt: typeof challenge.expiresAt,
-            signature: typeof challenge.signature,
-            senderAddress: typeof challenge.senderAddress,
-            recipientAddress: typeof challenge.recipientAddress,
-          },
-          summary: {
-            difficulty: challenge.difficulty,
-            headerPrefix: hexPrefix(challenge.header),
-            targetPrefix: hexPrefix(challenge.target),
-            hasSenderAddress: Boolean(challenge.senderAddress),
-            hasRecipientAddress: Boolean(challenge.recipientAddress),
-          },
-        });
-
         const {
           Pow5_64b_Wasm,
           Pow5_64b_Wgsl,
@@ -145,28 +100,12 @@ export function usePowMiner() {
 
         const headerBuf = FixedBuf.fromHex(64, challenge.header);
         const targetBuf = FixedBuf.fromHex(32, challenge.target);
-        const headerHex = headerBuf.buf.toHex();
-        const headerPrefixHex = headerHex.slice(0, 64);
 
         let solvedHeaderHex: string | null = null;
         let totalHashes = 0;
 
         const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
         await pow5.init(true);
-
-        const headerSha256 = await crypto.subtle.digest(
-          "SHA-256",
-          headerBuf.buf,
-        );
-        logPow("header input", {
-          challengeHeader: challenge.header,
-          headerBufHex: headerHex,
-          headerPrefixHex,
-          headerIsAllZero: headerBuf.buf.every((b) => b === 0),
-          headerSha256: Array.from(new Uint8Array(headerSha256))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(""),
-        });
 
         const gpuHeaderBlake3 = await pow5.debugHashHeader();
         const wasmMatmulWork = Pow5_64b_Wasm.matmulWork(headerBuf);
@@ -179,22 +118,12 @@ export function usePowMiner() {
         const gpuMatmulWorkHex = gpuMatmulWork.hash.buf.toHex();
         const gpuHashHex = gpuHash.hash.buf.toHex();
         const selfCheckMatches = wasmHashHex === gpuHashHex;
-        logPow("stage-check", {
-          gpuHeaderBlake3: gpuHeaderBlake3Hex,
-          wasmMatmulWork: wasmMatmulWorkHex,
-          gpuMatmulWork: gpuMatmulWorkHex,
-          matmulMatches: wasmMatmulWorkHex === gpuMatmulWorkHex,
-          wasmElementary: wasmHashHex,
-          gpuElementary: gpuHashHex,
-          elementaryMatches: selfCheckMatches,
-        });
-        logPow("self-check", {
-          wasmHash: wasmHashHex,
-          gpuHash: gpuHashHex,
-          match: selfCheckMatches,
-        });
         if (!selfCheckMatches) {
           throw powError("WASM/GPU self-check mismatch", {
+            gpuHeaderBlake3: gpuHeaderBlake3Hex,
+            wasmMatmulWork: wasmMatmulWorkHex,
+            gpuMatmulWork: gpuMatmulWorkHex,
+            matmulMatches: wasmMatmulWorkHex === gpuMatmulWorkHex,
             wasmHash: wasmHashHex,
             gpuHash: gpuHashHex,
           });
@@ -208,13 +137,6 @@ export function usePowMiner() {
         const smokeHashHex = smokeResult.hash.buf.toHex();
         const smokeZero = smokeResult.hash.buf.every((b) => b === 0);
         const smokeMeetsTarget = hashMeetsTarget(smokeResult.hash, easyTarget);
-        logPow("minimum-difficulty smoke test", {
-          nonce: smokeResult.nonce,
-          hash: smokeHashHex,
-          zero: smokeZero,
-          meetsTarget: smokeMeetsTarget,
-          batchMs: Number(smokeMs.toFixed(3)),
-        });
         if (smokeZero || !smokeMeetsTarget) {
           throw powError("minimum-difficulty smoke test failed", {
             nonce: smokeResult.nonce,
@@ -292,27 +214,11 @@ export function usePowMiner() {
             hashSamples,
           };
 
-          if (batchCount <= 5 || batchCount % 100 === 0) {
-            logPow("batch", {
-              ...diagnostics,
-              nonce: workResult.nonce,
-              zero: isZeroHash,
-              hashPrefix: hexPrefix(hashHex),
-            });
-          }
-
           if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
             solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
               currentHeader,
               workResult.nonce,
             ).buf.toHex();
-            logPow("solved", {
-              batchCount,
-              hashCount: totalHashes,
-              nonce: workResult.nonce,
-              hash: hashHex,
-              solvedHeaderPrefix: hexPrefix(solvedHeaderHex),
-            });
           } else if (batchCount >= overrunLimit) {
             throw powError(
               `Proof of work exceeded ${overrunLimit} batches without a solution.`,
@@ -350,10 +256,13 @@ export function usePowMiner() {
         return solution;
       } catch (err) {
         setPhase("idle");
-        console.error(`${POW_LOG_PREFIX} mining failed`, err);
+        console.error(`${POW_LOG_PREFIX} mining failed`, err, {
+          diagnostics:
+            err instanceof Error
+              ? (err as Error & { powDiagnostics?: unknown }).powDiagnostics
+              : undefined,
+        });
         throw err;
-      } finally {
-        removeDiagnosticsListeners();
       }
     },
     [],
@@ -367,36 +276,5 @@ export function usePowMiner() {
     timeRemaining,
     progress,
     result,
-  };
-}
-
-function installBrowserDiagnostics(): () => void {
-  const onVisibilityChange = () => {
-    logPow("visibilitychange", {
-      visibilityState: document.visibilityState,
-    });
-  };
-
-  const onSecurityPolicyViolation = (event: SecurityPolicyViolationEvent) => {
-    console.error(`${POW_LOG_PREFIX} security policy violation`, {
-      blockedURI: event.blockedURI,
-      violatedDirective: event.violatedDirective,
-      effectiveDirective: event.effectiveDirective,
-      originalPolicy: event.originalPolicy,
-      sourceFile: event.sourceFile,
-      lineNumber: event.lineNumber,
-      columnNumber: event.columnNumber,
-    });
-  };
-
-  document.addEventListener("visibilitychange", onVisibilityChange);
-  window.addEventListener("securitypolicyviolation", onSecurityPolicyViolation);
-
-  return () => {
-    document.removeEventListener("visibilitychange", onVisibilityChange);
-    window.removeEventListener(
-      "securitypolicyviolation",
-      onSecurityPolicyViolation,
-    );
   };
 }
