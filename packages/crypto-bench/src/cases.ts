@@ -2,7 +2,7 @@
  * Benchmark case definitions.
  *
  * Each case exports a pair of async functions: one that uses @webbuf (WASM)
- * and one that uses crypto.subtle (native, same API in Bun and browsers).
+ * and one that uses crypto.subtle (native, same API in Node and browsers).
  *
  * Every function performs exactly one "operation" — the benchmark harness
  * is responsible for running it in a loop.

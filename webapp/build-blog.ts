@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { Feed } from "feed";
 import matter from "gray-matter";
 import toml from "toml";
@@ -17,8 +18,9 @@ interface BlogPost {
   htmlContent: string;
 }
 
-const BLOG_DIR = path.resolve(import.meta.dir, "src/blog");
-const OUTPUT_DIR = path.resolve(import.meta.dir, "public/blog");
+const WEBAPP_DIR = path.dirname(fileURLToPath(import.meta.url));
+const BLOG_DIR = path.resolve(WEBAPP_DIR, "src/blog");
+const OUTPUT_DIR = path.resolve(WEBAPP_DIR, "public/blog");
 
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });

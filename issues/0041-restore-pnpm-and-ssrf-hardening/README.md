@@ -327,6 +327,20 @@ Out of scope:
    pnpm --filter @keypears/webapp build
    ```
 
+   Also smoke-test the built server entry so missing Nitro route wiring is
+   caught:
+
+   ```bash
+   KEYPEARS_DOMAIN=keypears.test \
+     KEYPEARS_API_DOMAIN=keypears.test \
+     KEYPEARS_SECRET=0000000000000000000000000000000000000000000000000000000000000001 \
+     PORT=4274 \
+     node webapp/.output/server/index.mjs
+
+   curl -fsS http://localhost:4274/health
+   curl -fsS http://localhost:4274/.well-known/keypears.json
+   ```
+
    Also build the Docker image locally if Docker is available. Confirm the image
    uses pnpm/Node/Nitro and not Bun.
 
@@ -385,3 +399,60 @@ production login PoW and passing latest-Chromium `pow5-64b` browser tests.
 - Do not change PoW outputs or expected vectors.
 - Do not update unrelated dependencies unless required by pnpm resolution.
 - Do not modify closed issue documents.
+
+### Result: Pass
+
+Implemented on 2026-05-20.
+
+The repo is pnpm/Node-first again:
+
+- added `pnpm-workspace.yaml` and `pnpm-lock.yaml`
+- removed committed Bun lockfiles
+- converted root, webapp, benchmark, package, Docker, and docs commands from
+  Bun to pnpm/Node
+- restored Nitro as the production server runtime
+- removed the Bun custom server entrypoint
+- restored npm-compatible `dist` package output for `@keypears/client` and
+  `@keypears/pow5`
+- fixed the `@keypears/pow5` build so clean Docker builds copy the inline WASM
+  support files into `dist`
+- preserved the current raw-WGSL PoW browser path and latest-Chromium fix
+
+Verification passed:
+
+```bash
+pnpm install
+pnpm install --frozen-lockfile
+pnpm --filter @keypears/pow5 test
+pnpm --filter @keypears/pow5 build
+pnpm --filter @keypears/pow5 typecheck
+pnpm --filter @keypears/client build
+pnpm --filter @keypears/client typecheck
+pnpm --filter @keypears/webapp typecheck
+pnpm --filter @keypears/webapp test
+pnpm --filter @keypears/webapp build
+docker build -f webapp/Dockerfile -t keypears:pnpm-node-check .
+```
+
+Additional server-entry smoke tests passed after restoring the
+Nitro-compatible request entry:
+
+```bash
+curl -fsS http://localhost:4274/health
+curl -fsS http://localhost:4274/.well-known/keypears.json
+curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
+  -X POST http://localhost:4274/api/serverInfo \
+  -H 'content-type: application/json' \
+  --data '{}'
+```
+
+Results:
+
+- `/health` returned `ok`
+- `/.well-known/keypears.json` returned
+  `{"apiDomain":"keypears.test"}`
+- `/api/serverInfo` returned HTTP `200`
+
+The Bun surface audit is clean for active tooling. The only remaining matches
+are `moduleResolution: "Bundler"` false positives and historical blog/issue
+text.

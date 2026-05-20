@@ -98,15 +98,15 @@ separate docs site.
 ## Daily workflow
 
 1. Caddy runs in the background (start once per boot, or use `brew services`).
-2. From repo root: `bun run dev` — starts all servers via concurrently.
+2. From repo root: `pnpm run dev` — starts all servers via concurrently.
 3. Visit `https://keypears.test` — green lock, real HTTPS.
 
 Or run individual servers:
 
 ```bash
 cd webapp
-bun run dev:keypears      # keypears.test on port 3500
-bun run dev:passapples    # keypears.passapples.test on port 3512
+pnpm run dev:keypears     # keypears.test on port 3500
+pnpm run dev:passapples   # keypears.passapples.test on port 3512
 ```
 
 ## Useful commands
@@ -122,15 +122,15 @@ caddy fmt --overwrite ~/.caddy/Caddyfile   # format Caddyfile
 
 ```bash
 cd webapp
-bun run db:push           # push schema to MySQL (both databases)
-bun run db:clear           # drop all tables (both databases)
+pnpm run db:push          # push schema to MySQL (both databases)
+pnpm run db:clear         # drop all tables (both databases)
 ```
 
 ## Testing and linting
 
 ```bash
 cd webapp
-bun run test              # run tests
-bun run lint              # run linter (oxlint)
-bun run format            # format code (prettier)
+pnpm run test             # run tests
+pnpm run lint             # run linter (oxlint)
+pnpm run format           # format code (prettier)
 ```
