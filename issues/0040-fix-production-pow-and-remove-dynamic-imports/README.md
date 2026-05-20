@@ -400,3 +400,200 @@ import wgslCode from "./pow5-64b-wgsl-code.ts";
 Production returns to the same Vite WGSL ingestion path used before the npm
 publishing change. If the generated WGSL string module caused the break,
 production login PoW should complete again.
+
+### Result: Pending Production Verification
+
+The WGSL imports were reverted to Vite raw loading:
+
+- `packages/pow5-ts/src/pow5-64b-wgsl.ts` now imports
+  `./pow5-64b.wgsl?raw`.
+- `packages/pow5-ts/src/pow5-217a-wgsl.ts` now imports
+  `./pow5-217a.wgsl?raw`.
+
+Local verification passed:
+
+- `pnpm --filter @keypears/pow5 run build`
+- `pnpm --filter @keypears/webapp run typecheck`
+- `pnpm --filter @keypears/webapp run test`
+- `pnpm --filter @keypears/webapp run build`
+- `rg -n "import\\(" webapp/src packages/client/src packages/pow5-ts/src passapples lockberries -S`
+
+The rebuilt `@keypears/pow5` output now preserves `.wgsl?raw` imports in
+`dist`, and the webapp production build bundles the raw WGSL code into the
+`PowModal` asset. The existing diagnostics remain in place until production
+login is verified.
+
+Production verification showed the same failure:
+
+```text
+Proof of work exceeded 4280 batches without a solution.
+```
+
+Because Docker copies the dirty working tree into the build context with
+`COPY . .`, the raw-WGSL change was included in the deployed image. This means
+the generated WGSL string module is probably not the root cause.
+
+## Experiment 5: Revert Runtime Code and Config to the Known Working Baseline
+
+### Hypothesis
+
+Production PoW broke during the May 16-20 change burst. Reverting all runtime
+code, build config, package config, Docker config, and app config back to the
+known working baseline from `9d2dc9c8` will restore production login.
+
+Issue documentation should be preserved so the project keeps the record of what
+happened, but the executable app should return to the
+pre-pnpm/pre-npm/pre-Nitro/pre-SSRF/pre-PoW-debug state.
+
+### Baseline
+
+Known working baseline:
+
+```text
+9d2dc9c8 2026-04-27 19:28:47 -0500 Include whitepaper PDF in Docker builds
+```
+
+Recent change burst begins:
+
+```text
+8136918d 2026-05-16 15:39:12 -0500 Open pnpm migration issue
+```
+
+### Scope
+
+Revert all non-issue code/config changes after `9d2dc9c8`.
+
+Preserve:
+
+- `issues/**`
+- `issues/README.md`
+
+Revert:
+
+- Toolchain migration: pnpm/Node back to Bun
+- Lockfiles/workspace files: restore Bun lock state, remove pnpm workspace
+  state
+- Dockerfile and deploy/runtime config
+- TanStack/Nitro server changes
+- npm publishing package config
+- generated WGSL string module publishing path
+- package `dist`/exports build setup changes
+- app dynamic import removals
+- PoW modal/miner diagnostics and WGSL export changes
+- SSRF federation fetch hardening/simplification runtime code
+- type-safe navigation runtime/component changes
+- AGENTS-driven runtime changes
+- generated public feed timestamp churn
+- any other non-issue source/config file changed after the baseline
+
+### Plan
+
+1. Save the current issue documentation.
+
+   Create a temporary patch or copy of:
+
+   ```text
+   issues/
+   ```
+
+   This prevents issue history from being lost when the tree is reset to the
+   baseline state.
+
+2. Restore the repository's executable tree from `9d2dc9c8`.
+
+   Use Git path restore from the baseline for tracked files, then re-apply the
+   saved `issues/` documentation.
+
+   Conceptually:
+
+   ```bash
+   git restore --source 9d2dc9c8 -- .
+   git restore --source HEAD -- issues
+   ```
+
+   Then manually handle files that were added after `9d2dc9c8` and should
+   disappear from runtime/config, such as:
+
+   ```text
+   .npmrc
+   pnpm-lock.yaml
+   pnpm-workspace.yaml
+   packages/client/tsconfig.build.json
+   packages/pow5-ts/build-wgsl-modules.ts
+   packages/pow5-ts/src/pow5-64b-wgsl-code.ts
+   packages/pow5-ts/src/pow5-217a-wgsl-code.ts
+   packages/pow5-ts/src/wgsl.ts
+   webapp/src/no-dynamic-imports.test.ts
+   webapp/src/lib/federation-authority.ts
+   webapp/src/server/fetch.test.ts
+   webapp/src/components/ExternalLink.tsx
+   webapp/src/lib/navigation.ts
+   passapples/src/components/ExternalLink.astro
+   lockberries/src/components/ExternalLink.astro
+   ```
+
+3. Preserve intentional non-runtime docs only if explicitly desired.
+
+   Default preservation is only `issues/**`. Other docs that changed during the
+   burst, like `AGENTS.md`, `README.md`, and `webapp/src/docs/*`, should revert
+   with code/config unless explicitly kept.
+
+4. Verify the reverted tree matches the baseline for runtime files.
+
+   Compare against `9d2dc9c8` excluding issue docs:
+
+   ```bash
+   git diff --name-status 9d2dc9c8 -- . ':(exclude)issues/**'
+   ```
+
+   Expected result: only issue docs should differ from the baseline. Any
+   remaining code/config difference must be reviewed explicitly before
+   proceeding.
+
+5. Run the baseline build/test commands.
+
+   Since the baseline is Bun-based, verify with the baseline commands:
+
+   ```bash
+   bun install
+   bun run build
+   ```
+
+   If the baseline uses webapp-specific commands:
+
+   ```bash
+   cd webapp
+   bun run typecheck
+   bun run test
+   bun run build
+   ```
+
+6. Deploy and verify production login.
+
+   Production verification is the actual pass/fail condition.
+
+   Expected result:
+
+   - Login PoW completes.
+   - No overrun diagnostic exists, because that diagnostic code is reverted.
+   - Production behaves like the pre-May-16 app.
+
+### Success Criteria
+
+- Runtime/code/config files match `9d2dc9c8`.
+- Issue documentation remains current.
+- Bun-based local build succeeds.
+- Production login PoW works after deploy.
+
+### Failure Criteria
+
+- Any runtime/config file unintentionally remains on the May 16-20 code path.
+- Local baseline build cannot run.
+- Production login PoW still fails after the full revert.
+
+### Important Note
+
+This experiment intentionally sacrifices the npm publishing work, pnpm
+migration, Nitro server work, SSRF hardening implementation, navigation
+refactors, and PoW diagnostics. Those can be reintroduced one at a time only
+after production login is confirmed working again.
