@@ -6,6 +6,7 @@ const HEADER_SIZE = 64;
 const HASH_SIZE = 32;
 const COMPRESSED_HASH_SIZE: number = 32 / 4; // 8
 const WORKGROUP_SIZE = 256;
+const POW_LOG_PREFIX = "[keypears pow]";
 
 interface Pow5State {
   device: GPUDevice | null;
@@ -61,8 +62,20 @@ export class Pow5_64b {
     if (!adapter) {
       throw new Error("No adapter found");
     }
+    console.log(`${POW_LOG_PREFIX} webgpu adapter`, {
+      info: adapter.info,
+      isFallbackAdapter: adapter.info?.isFallbackAdapter,
+      features: Array.from(adapter.features ?? []),
+      limits: adapter.limits,
+    });
     const device = await adapter.requestDevice();
     this.state.device = device;
+    device.lost.then((info) => {
+      console.error(`${POW_LOG_PREFIX} device lost`, {
+        reason: info.reason,
+        message: info.message,
+      });
+    });
 
     const module = device.createShaderModule({ code: wgslCode });
     this.state.module = module;
@@ -112,6 +125,14 @@ export class Pow5_64b {
     const computePipelineNames = debug
       ? computePipelineNamesDebug
       : computePipelineNamesProd;
+
+    console.log(`${POW_LOG_PREFIX} webgpu init`, {
+      debug,
+      wgslLength: wgslCode.length,
+      pipelineNames: computePipelineNames,
+      deviceFeatures: Array.from(device.features ?? []),
+      deviceLimits: device.limits,
+    });
 
     for (const name of computePipelineNames) {
       const pipeline = device.createComputePipeline({

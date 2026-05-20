@@ -28,7 +28,9 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
     if (startedRef.current === challengeKey) return;
     startedRef.current = challengeKey;
 
-    miner.mine(challenge, { showSolved: true }).catch(() => {});
+    miner.mine(challenge, { showSolved: true }).catch((err) => {
+      console.error("[keypears pow] mining failed in modal", err);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
   }, [challenge]);
 

@@ -1,5 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 
+declare const __KEYPEARS_BUILD__: {
+  sha: string;
+  builtAt: string;
+};
+
 export interface PowChallenge {
   header: string;
   target: string;
@@ -22,6 +27,11 @@ export interface PowSolution {
 export type MinerPhase = "idle" | "mining" | "solved";
 
 const HASHES_PER_GPU_BATCH = 256 * 128; // workgroupSize * gridSize = 32,768
+const PROGRESS_CAP_WHILE_MINING = 95;
+const MIN_BATCH_OVERRUN_LIMIT = 1000;
+const EXPECTED_BATCH_OVERRUN_MULTIPLIER = 20;
+const HASH_SAMPLE_LIMIT = 5;
+const POW_LOG_PREFIX = "[keypears pow]";
 
 function formatTime(seconds: number): string {
   if (seconds < 1) return "less than a second";
@@ -29,6 +39,38 @@ function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.ceil(seconds % 60);
   return secs > 0 ? `~${mins}m ${secs}s` : `~${mins}m`;
+}
+
+interface PowDiagnostics {
+  batchCount: number;
+  hashCount: number;
+  zeroResultBatches: number;
+  nonZeroResultBatches: number;
+  expectedBatches: number;
+  overrunLimit: number;
+  targetPrefix: string;
+  difficulty: number;
+  elapsedSeconds: number;
+  hashRate: number;
+  lastBatchMs: number;
+  hashSamples: Array<{ nonce: number; hashPrefix: string }>;
+}
+
+function hexPrefix(hex: string): string {
+  return `${hex.slice(0, 16)}...`;
+}
+
+function logPow(label: string, data?: unknown): void {
+  if (data === undefined) {
+    console.log(`${POW_LOG_PREFIX} ${label}`);
+    return;
+  }
+  console.log(`${POW_LOG_PREFIX} ${label}`, data);
+}
+
+function powError(message: string, data?: unknown): Error {
+  console.error(`${POW_LOG_PREFIX} ${message}`, data);
+  return new Error(message);
 }
 
 export function usePowMiner() {
@@ -61,70 +103,227 @@ export function usePowMiner() {
       setResult(null);
       startTimeRef.current = performance.now();
 
-      const { Pow5_64b_Wasm, Pow5_64b_Wgsl, hashMeetsTarget } =
-        await import("@keypears/pow5");
-      const { FixedBuf } = await import("@webbuf/fixedbuf");
+      const removeDiagnosticsListeners = installBrowserDiagnostics();
 
-      const headerBuf = FixedBuf.fromHex(64, challenge.header);
-      const targetBuf = FixedBuf.fromHex(32, challenge.target);
+      try {
+        logPow("build", __KEYPEARS_BUILD__);
+        logPow("browser", {
+          userAgent: navigator.userAgent,
+          origin: location.origin,
+          isSecureContext,
+          crossOriginIsolated,
+          visibilityState: document.visibilityState,
+          hasWebGpu: "gpu" in navigator,
+        });
+        logPow("challenge", {
+          challenge,
+          types: {
+            header: typeof challenge.header,
+            target: typeof challenge.target,
+            difficulty: typeof challenge.difficulty,
+            expiresAt: typeof challenge.expiresAt,
+            signature: typeof challenge.signature,
+            senderAddress: typeof challenge.senderAddress,
+            recipientAddress: typeof challenge.recipientAddress,
+          },
+          summary: {
+            difficulty: challenge.difficulty,
+            headerPrefix: hexPrefix(challenge.header),
+            targetPrefix: hexPrefix(challenge.target),
+            hasSenderAddress: Boolean(challenge.senderAddress),
+            hasRecipientAddress: Boolean(challenge.recipientAddress),
+          },
+        });
 
-      let solvedHeaderHex: string | null = null;
-      let totalHashes = 0;
+        const {
+          Pow5_64b_Wasm,
+          Pow5_64b_Wgsl,
+          hashMeetsTarget,
+          targetFromDifficulty,
+        } = await import("@keypears/pow5");
+        const { FixedBuf } = await import("@webbuf/fixedbuf");
 
-      const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
-      await pow5.init();
+        const headerBuf = FixedBuf.fromHex(64, challenge.header);
+        const targetBuf = FixedBuf.fromHex(32, challenge.target);
 
-      let currentHeader = headerBuf;
+        let solvedHeaderHex: string | null = null;
+        let totalHashes = 0;
 
-      while (!solvedHeaderHex) {
-        const workResult = await pow5.work();
-        totalHashes += HASHES_PER_GPU_BATCH;
+        const pow5 = new Pow5_64b_Wgsl(headerBuf, targetBuf, 128);
+        await pow5.init(true);
 
-        const elapsed = (performance.now() - startTimeRef.current) / 1000;
-        const hashRate = totalHashes / elapsed;
-        const expectedRemaining =
-          hashRate > 0 ? challenge.difficulty / hashRate : 0;
-        setHashCount(totalHashes);
-        setProgress((elapsed / (elapsed + expectedRemaining)) * 100);
-        setTimeRemaining(formatTime(expectedRemaining));
-
-        const isZeroHash = workResult.hash.buf.every((b) => b === 0);
-
-        if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
-          solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
-            currentHeader,
-            workResult.nonce,
-          ).buf.toHex();
-        } else {
-          // Randomize nonce region for next batch
-          const newBuf = currentHeader.buf.clone();
-          const randomNonce = FixedBuf.fromRandom(32);
-          newBuf.set(randomNonce.buf, 0);
-          currentHeader = FixedBuf.fromBuf(64, newBuf);
-          await pow5.setInput(currentHeader, targetBuf, 128);
+        const wasmHash = Pow5_64b_Wasm.elementaryIteration(headerBuf);
+        const gpuHash = await pow5.debugElementaryIteration();
+        const wasmHashHex = wasmHash.buf.toHex();
+        const gpuHashHex = gpuHash.hash.buf.toHex();
+        const selfCheckMatches = wasmHashHex === gpuHashHex;
+        logPow("self-check", {
+          wasmHash: wasmHashHex,
+          gpuHash: gpuHashHex,
+          match: selfCheckMatches,
+        });
+        if (!selfCheckMatches) {
+          throw powError("WASM/GPU self-check mismatch", {
+            wasmHash: wasmHashHex,
+            gpuHash: gpuHashHex,
+          });
         }
-      }
 
-      const solution: PowSolution = {
-        solvedHeader: solvedHeaderHex,
-        target: challenge.target,
-        expiresAt: challenge.expiresAt,
-        signature: challenge.signature,
-        senderAddress: challenge.senderAddress,
-        recipientAddress: challenge.recipientAddress,
-      };
+        const easyTarget = targetFromDifficulty(1n);
+        await pow5.setInput(headerBuf, easyTarget, 128);
+        const smokeStart = performance.now();
+        const smokeResult = await pow5.work();
+        const smokeMs = performance.now() - smokeStart;
+        const smokeHashHex = smokeResult.hash.buf.toHex();
+        const smokeZero = smokeResult.hash.buf.every((b) => b === 0);
+        const smokeMeetsTarget = hashMeetsTarget(smokeResult.hash, easyTarget);
+        logPow("minimum-difficulty smoke test", {
+          nonce: smokeResult.nonce,
+          hash: smokeHashHex,
+          zero: smokeZero,
+          meetsTarget: smokeMeetsTarget,
+          batchMs: Number(smokeMs.toFixed(3)),
+        });
+        if (smokeZero || !smokeMeetsTarget) {
+          throw powError("minimum-difficulty smoke test failed", {
+            nonce: smokeResult.nonce,
+            hash: smokeHashHex,
+            zero: smokeZero,
+            meetsTarget: smokeMeetsTarget,
+          });
+        }
+        await pow5.setInput(headerBuf, targetBuf, 128);
 
-      setResult(solution);
+        let currentHeader = headerBuf;
+        let batchCount = 0;
+        let zeroResultBatches = 0;
+        let nonZeroResultBatches = 0;
+        const hashSamples: PowDiagnostics["hashSamples"] = [];
+        const expectedBatches = Math.max(
+          1,
+          Math.ceil(challenge.difficulty / HASHES_PER_GPU_BATCH),
+        );
+        const overrunLimit = Math.max(
+          MIN_BATCH_OVERRUN_LIMIT,
+          expectedBatches * EXPECTED_BATCH_OVERRUN_MULTIPLIER,
+        );
 
-      if (showSolved) {
-        setPhase("solved");
-        setProgress(100);
-        // Don't auto-dismiss — the caller handles transition via onComplete
-      } else {
+        while (!solvedHeaderHex) {
+          const batchStart = performance.now();
+          const workResult = await pow5.work();
+          const batchMs = performance.now() - batchStart;
+          batchCount += 1;
+          totalHashes += HASHES_PER_GPU_BATCH;
+
+          const elapsed = (performance.now() - startTimeRef.current) / 1000;
+          const hashRate = totalHashes / elapsed;
+          const expectedRemaining =
+            hashRate > 0 ? challenge.difficulty / hashRate : 0;
+          setHashCount(totalHashes);
+          setProgress(
+            Math.min(
+              PROGRESS_CAP_WHILE_MINING,
+              (elapsed / (elapsed + expectedRemaining)) * 100,
+            ),
+          );
+          setTimeRemaining(
+            batchCount >= expectedBatches
+              ? "searching past estimate"
+              : formatTime(expectedRemaining),
+          );
+
+          const isZeroHash = workResult.hash.buf.every((b) => b === 0);
+          const hashHex = workResult.hash.buf.toHex();
+          if (isZeroHash) {
+            zeroResultBatches += 1;
+          } else {
+            nonZeroResultBatches += 1;
+            if (hashSamples.length < HASH_SAMPLE_LIMIT) {
+              hashSamples.push({
+                nonce: workResult.nonce,
+                hashPrefix: hexPrefix(hashHex),
+              });
+            }
+          }
+
+          const diagnostics: PowDiagnostics = {
+            batchCount,
+            hashCount: totalHashes,
+            zeroResultBatches,
+            nonZeroResultBatches,
+            expectedBatches,
+            overrunLimit,
+            targetPrefix: hexPrefix(challenge.target),
+            difficulty: challenge.difficulty,
+            elapsedSeconds: Number(elapsed.toFixed(3)),
+            hashRate: Number(hashRate.toFixed(2)),
+            lastBatchMs: Number(batchMs.toFixed(3)),
+            hashSamples,
+          };
+
+          if (batchCount <= 5 || batchCount % 100 === 0) {
+            logPow("batch", {
+              ...diagnostics,
+              nonce: workResult.nonce,
+              zero: isZeroHash,
+              hashPrefix: hexPrefix(hashHex),
+            });
+          }
+
+          if (!isZeroHash && hashMeetsTarget(workResult.hash, targetBuf)) {
+            solvedHeaderHex = Pow5_64b_Wasm.insertNonce(
+              currentHeader,
+              workResult.nonce,
+            ).buf.toHex();
+            logPow("solved", {
+              batchCount,
+              hashCount: totalHashes,
+              nonce: workResult.nonce,
+              hash: hashHex,
+              solvedHeaderPrefix: hexPrefix(solvedHeaderHex),
+            });
+          } else if (batchCount >= overrunLimit) {
+            throw powError(
+              `Proof of work exceeded ${overrunLimit} batches without a solution.`,
+              diagnostics,
+            );
+          } else {
+            // Randomize nonce region for next batch
+            const newBuf = currentHeader.buf.clone();
+            const randomNonce = FixedBuf.fromRandom(32);
+            newBuf.set(randomNonce.buf, 0);
+            currentHeader = FixedBuf.fromBuf(64, newBuf);
+            await pow5.setInput(currentHeader, targetBuf, 128);
+          }
+        }
+
+        const solution: PowSolution = {
+          solvedHeader: solvedHeaderHex,
+          target: challenge.target,
+          expiresAt: challenge.expiresAt,
+          signature: challenge.signature,
+          senderAddress: challenge.senderAddress,
+          recipientAddress: challenge.recipientAddress,
+        };
+
+        setResult(solution);
+
+        if (showSolved) {
+          setPhase("solved");
+          setProgress(100);
+          // Don't auto-dismiss — the caller handles transition via onComplete
+        } else {
+          setPhase("idle");
+        }
+
+        return solution;
+      } catch (err) {
         setPhase("idle");
+        console.error(`${POW_LOG_PREFIX} mining failed`, err);
+        throw err;
+      } finally {
+        removeDiagnosticsListeners();
       }
-
-      return solution;
     },
     [],
   );
@@ -137,5 +336,36 @@ export function usePowMiner() {
     timeRemaining,
     progress,
     result,
+  };
+}
+
+function installBrowserDiagnostics(): () => void {
+  const onVisibilityChange = () => {
+    logPow("visibilitychange", {
+      visibilityState: document.visibilityState,
+    });
+  };
+
+  const onSecurityPolicyViolation = (event: SecurityPolicyViolationEvent) => {
+    console.error(`${POW_LOG_PREFIX} security policy violation`, {
+      blockedURI: event.blockedURI,
+      violatedDirective: event.violatedDirective,
+      effectiveDirective: event.effectiveDirective,
+      originalPolicy: event.originalPolicy,
+      sourceFile: event.sourceFile,
+      lineNumber: event.lineNumber,
+      columnNumber: event.columnNumber,
+    });
+  };
+
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("securitypolicyviolation", onSecurityPolicyViolation);
+
+  return () => {
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    window.removeEventListener(
+      "securitypolicyviolation",
+      onSecurityPolicyViolation,
+    );
   };
 }

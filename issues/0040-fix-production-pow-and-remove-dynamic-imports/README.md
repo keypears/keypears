@@ -895,3 +895,33 @@ construction, or post-solution submission.
 - Do not keep verbose console diagnostics permanently.
 - Do not start another broad rollback until the diagnostics identify a concrete
   failure point.
+
+### Result: Implemented, Pending Production Verification
+
+Implemented browser-visible PoW diagnostics with the stable
+`[keypears pow]` prefix. Mining now logs the webapp build fingerprint, raw
+challenge shape and field types, browser/origin/security context, visibility
+changes, CSP violations, WebGPU adapter/device details, WGSL initialization,
+`device.lost`, a same-header WASM-vs-GPU hash check, a minimum-difficulty
+WebGPU smoke test, periodic batch timing, zero-result counts, hash counts, and
+overrun diagnostics.
+
+`PowModal` no longer swallows miner failures. Estimated progress is capped below
+completion while mining so the modal only reaches completion after a real PoW
+solution.
+
+Verification:
+
+- `bun run --cwd webapp typecheck`
+- `bun run --cwd packages/pow5-ts typecheck`
+- `bun run --cwd webapp test`
+- `bun run --cwd webapp build`
+
+`bun run --cwd packages/pow5-ts test` could not complete locally because the
+Playwright Chromium browser is not installed in this workspace. The first
+sandboxed attempt also hit an `EPERM` localhost listener error; the escalated
+rerun reached the missing-browser failure.
+
+Production still needs a redeploy and one login attempt with the browser console
+open. The next experiment should be based on the first concrete production
+diagnostic that differs from development.
