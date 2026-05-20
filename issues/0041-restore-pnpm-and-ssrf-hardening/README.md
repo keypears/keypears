@@ -456,3 +456,197 @@ Results:
 The Bun surface audit is clean for active tooling. The only remaining matches
 are `moduleResolution: "Bundler"` false positives and historical blog/issue
 text.
+
+## Experiment 2: Harden and Reuse Federation Fetch
+
+### Hypothesis
+
+The SSRF fix does not need a broad federation rewrite. It should be a small,
+auditable change with two parts:
+
+1. every server-side request whose target host comes from a third-party
+   federation domain must use the same protected fetch path
+2. that protected fetch path must close the current DNS check/fetch gap
+
+Today `fetchKeypearsJson(domain)` uses `safeFetch()`, but the remote oRPC
+client path created from discovered `apiDomain` values uses normal
+`RPCLink`/`fetch`. That means a hostile `keypears.json` can move the second hop
+to an unintended host. Also, the current `safeFetch()` resolves DNS, checks the
+answer, and then calls normal `fetch(url)`, which performs its own lookup. The
+check and the actual connection can diverge.
+
+If we centralize all federation HTTP through a stronger `safeFetch()`, the
+remaining policy is simple: KeyPears federation may call HTTPS DNS hostnames,
+but not localhost, IP literals, private/link-local/reserved addresses, or
+redirect targets.
+
+### Scope
+
+In scope:
+
+- `webapp/src/server/fetch.ts`
+- `webapp/src/server/federation.server.ts`
+- `webapp/src/server/api.router.ts`
+- server-side oRPC client construction for federation calls
+- tests for `safeFetch()` and federation client routing
+- `webapp/src/docs/security.md` if the documented SSRF behavior changes
+
+Out of scope:
+
+- changing the KeyPears federation protocol
+- changing oRPC contracts
+- adding domain allowlists
+- adding broad environment-gated security exceptions
+- changing PoW, auth, message encryption, or package build behavior
+
+### Plan
+
+1. Inventory every third-party federation fetch.
+
+   Confirm all server-side paths where a host comes from a user address,
+   `keypears.json`, `apiDomain`, or another remote federation response:
+
+   - `fetchKeypearsJson(domain)`
+   - `resolveApiUrl(domain)`
+   - `fetchRemotePublicKey(address)`
+   - `fetchRemotePowChallenge(input)`
+   - `deliverRemoteMessage(...)`
+   - inbound `getPowChallenge` sender-key lookup
+   - inbound `notifyMessage` pull-message lookup
+   - domain-claim verification through `verifyDomainAdmin`
+
+   Also grep for direct server-side client creation:
+
+   ```bash
+   rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink|fetch\\(" webapp/src/server packages/client/src
+   ```
+
+2. Keep `safeFetch()` as the single server-side federation fetch primitive, but
+   make it stricter.
+
+   The function should:
+
+   - require `https:`
+   - reject userinfo, redirects, and malformed URLs
+   - reject `localhost` and localhost-like names
+   - reject IP literals as federation authorities
+   - resolve both A and AAAA records
+   - reject the target if any answer is loopback, private, link-local,
+     multicast, documentation, unspecified, reserved, IPv4-mapped IPv6, 6to4,
+     Teredo, or otherwise non-public
+   - connect to the vetted resolved address rather than handing the hostname
+     back to `fetch()` for a second lookup
+   - preserve the original hostname for TLS SNI and the `Host` header
+   - reject redirects
+   - preserve timeout behavior
+   - preserve response-size limits, with a configurable cap for small
+     `keypears.json` responses and larger oRPC responses
+
+   This can be implemented with Node HTTPS/Undici primitives if normal
+   `fetch()` cannot pin the resolved address safely.
+
+3. Route remote oRPC through `safeFetch()`.
+
+   Add a server-only federation client factory in `webapp/src/server`, rather
+   than changing the public `@keypears/client` API unless that is clearly
+   necessary. The factory should create the oRPC `RPCLink` with a custom
+   `fetch` implementation backed by `safeFetch()`.
+
+   Replace server-side federation uses of `createKeypearsClientFromUrl()` with
+   this factory. The public package client can continue to use normal browser
+   or app-level fetch behavior.
+
+4. Validate authority values before interpolation.
+
+   Do not let arbitrary strings flow into `https://${domain}/api`.
+
+   - Validate parsed address domains before discovery.
+   - Validate discovered `apiDomain` before building the API URL.
+   - Validate this server's own `KEYPEARS_API_DOMAIN` through the same path
+     before it is emitted in `/.well-known/keypears.json`.
+   - Normalize cache keys to the validated lowercase ASCII authority.
+
+5. Preserve local development deliberately.
+
+   Existing same-server local-domain shortcuts should continue to work. Do not
+   add a broad `.test` or `NODE_ENV` carveout unless implementation proves that
+   the current dev topology cannot work without one.
+
+   If cross-instance local federation fails because `.test` resolves to
+   loopback, stop and document the exact failing path before adding any policy
+   exception. The exception needs explicit approval because it changes the
+   security model.
+
+6. Add tests.
+
+   Cover:
+
+   - `safeFetch()` rejects non-HTTPS URLs
+   - `safeFetch()` rejects redirects
+   - `safeFetch()` rejects localhost names
+   - `safeFetch()` rejects IPv4 and IPv6 literals
+   - `safeFetch()` rejects private/link-local/reserved DNS answers
+   - mixed public/private DNS answers are rejected
+   - DNS is not re-resolved after validation
+   - response-size caps are enforced
+   - `fetchKeypearsJson()` uses the protected path
+   - remote oRPC federation calls use the protected path
+   - direct server-side `createKeypearsClientFromUrl()` use is gone from
+     federation code
+
+7. Update docs.
+
+   Update `webapp/src/docs/security.md` so the SSRF section describes the real
+   behavior:
+
+   - federation requests are HTTPS-only
+   - authorities must be valid DNS hostnames
+   - localhost/IP/private/reserved targets are rejected
+   - redirects are rejected
+   - DNS answers are pinned or equivalently bound to the actual connection
+   - response-size limits and timeouts apply
+
+### Verification
+
+Run:
+
+```bash
+pnpm --filter @keypears/webapp typecheck
+pnpm --filter @keypears/webapp test
+pnpm --filter @keypears/webapp build
+```
+
+Run the audit greps:
+
+```bash
+rg -n "createKeypearsClientFromUrl|RPCLink|new RPCLink" webapp/src/server
+rg -n "fetch\\(" webapp/src/server
+```
+
+The first grep should show no plain federation client construction. The second
+grep should leave only expected framework/server-function uses or calls that do
+not use third-party-controlled authorities.
+
+If the change touches production server entry behavior, also repeat the Nitro
+smoke tests from Experiment 1:
+
+```bash
+pnpm --filter @keypears/webapp build
+curl -fsS http://localhost:4274/health
+curl -fsS http://localhost:4274/.well-known/keypears.json
+curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
+  -X POST http://localhost:4274/api/serverInfo \
+  -H 'content-type: application/json' \
+  --data '{}'
+```
+
+### Success Criteria
+
+- All third-party-controlled federation hosts go through `safeFetch()`.
+- `safeFetch()` no longer has a DNS precheck followed by an independent
+  hostname fetch.
+- Federation still works for valid public HTTPS domains.
+- Local development still works, or implementation stops with a concrete
+  report before adding a dev-only exception.
+- Tests prove the dangerous authority and DNS cases are rejected.
+- Security docs match the implementation.
