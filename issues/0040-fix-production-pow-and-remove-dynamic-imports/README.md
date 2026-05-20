@@ -1105,3 +1105,149 @@ Playwright cannot find the Chromium binary at
 The next production run should answer whether the deployed GPU buffer readback
 is zero, differs from the JavaScript header, or matches the header while a later
 WGSL stage diverges.
+
+Production verification showed:
+
+```text
+[Buffer] usage (CopyDst|Storage) doesn't include CopySrc
+gpuHeaderReadbackHex: "0000..."
+gpuMatmulWork: "b1fee00a999ab4d93dcd2f6ced975c4e8ee110e0a1d48cb094fec3c934d0ee3c"
+gpuHash: "f473678f945d1d5a63f52a89fbd6a4f069f960265844776ca9ff8bf09572dca3"
+```
+
+The readback result is not yet trustworthy because the readback command is
+invalid without `GPUBufferUsage.COPY_SRC`. The stage hashes are trustworthy:
+both `gpuMatmulWork` and `gpuHash` match the known all-zero-header test vectors.
+Development does not fail this way, so the next step is to isolate why the
+production build writes or exposes an all-zero header to WGSL while development
+does not.
+
+## Experiment 8: Compare Header Upload Semantics
+
+### Hypothesis
+
+Production and development differ in the JavaScript-to-WebGPU header upload
+path. The current code constructs a GPU input array with:
+
+```ts
+const headerUint8Array = this.header.buf;
+const headerUint32Array = new Uint32Array(headerUint8Array);
+device.queue.writeBuffer(headerBuffer, 0, headerUint32Array.buffer);
+```
+
+This relies on `this.header.buf` behaving like a plain iterable byte array after
+production bundling. It also makes the shader representation unusual: the WGSL
+header is `array<u32, 64>`, where each `u32` stores one byte value. Development
+may preserve the expected `FixedBuf`/`WebBuf` behavior while the production
+bundle changes enough that the derived `Uint32Array` or uploaded buffer becomes
+zero.
+
+### Evidence
+
+- Production receives the real challenge header in JavaScript.
+- Production WASM hashes the real challenge header.
+- Production WGSL hashes the all-zero 64-byte header.
+- Production reports the correct deployed commit SHA, so this is not a stale
+  asset.
+- The direct readback diagnostic needs a `COPY_SRC` fix before it can be used as
+  evidence.
+- Development succeeds, so the source algorithm and ordinary dev WebGPU path are
+  not generally broken.
+
+### Plan
+
+1. Make readback valid, but do not change upload behavior yet.
+
+   Add `GPUBufferUsage.COPY_SRC` to `headerBuffer` so `debugReadHeader()` can
+   copy from it. This is diagnostic-only. Do not change the construction or
+   upload of `headerUint32Array` in this step.
+
+2. Log the exact JavaScript header upload inputs in dev and production.
+
+   In `Pow5_64b_Wgsl.init()` and `setInput()`, log:
+
+   - `this.header.buf.constructor.name`
+   - `this.header.buf.length`
+   - `this.header.buf.byteLength`
+   - `this.header.buf.byteOffset`
+   - `this.header.buf.buffer.byteLength`
+   - first 8 bytes from `Array.from(this.header.buf.slice(0, 8))`
+   - `headerUint32Array.constructor.name`
+   - `headerUint32Array.length`
+   - `headerUint32Array.byteLength`
+   - first 8 words from `Array.from(headerUint32Array.slice(0, 8))`
+   - whether all header bytes are zero
+   - whether all header words are zero
+
+   Use the same `[keypears pow]` prefix and label the logs `header upload init`
+   and `header upload setInput`.
+
+3. Compare against valid GPU readback.
+
+   Keep the existing `header input` browser log, but after the `COPY_SRC` fix
+   compare:
+
+   - JavaScript challenge header
+   - `headerBuf.buf`
+   - `headerUint32Array` first words
+   - GPU `debugReadHeader()` result
+   - shader `debug_header_prefix`
+
+   Interpretation:
+
+   - If JavaScript bytes and words are correct but GPU readback is zero, the bug
+     is in `queue.writeBuffer()` usage or buffer state.
+   - If JavaScript bytes are correct but words are zero/wrong only in
+     production, the bug is the `new Uint32Array(headerUint8Array)` conversion.
+   - If JavaScript bytes are already zero in production inside
+     `Pow5_64b_Wgsl.init()`, the bug is crossing the package/bundle boundary
+     before WebGPU sees the value.
+   - If GPU readback is correct but shader prefix is zero, the bug is the WGSL
+     storage layout or bind group.
+
+4. Run in three environments.
+
+   Compare console output from:
+
+   - dev server
+   - local production build served locally
+   - deployed production
+
+   The goal is to identify the first field that differs between dev and
+   deployed production.
+
+5. Only then implement the fix.
+
+   If the culprit is the typed-array conversion or upload, the likely fix is to
+   replace the implicit conversion with an explicit normalized upload buffer:
+
+   ```ts
+   const headerWords = new Uint32Array(64);
+   for (let i = 0; i < 64; i++) {
+     headerWords[i] = headerBytes[i] ?? 0;
+   }
+   device.queue.writeBuffer(headerBuffer, 0, headerWords);
+   ```
+
+   But do not make that behavior change until the comparison logs identify the
+   failing field.
+
+### Expected Result
+
+This experiment should explain why production sees an all-zero WGSL header while
+development does not. The desired output is a precise statement like:
+
+- production `headerUint32Array` is already zero before `writeBuffer`
+- production `writeBuffer` receives correct words but GPU readback is zero
+- production GPU readback is correct but WGSL storage reads zeros
+- production package boundary gives `Pow5_64b_Wgsl` a zeroed `FixedBuf`
+
+Once that is known, the next experiment can make the smallest fix with high
+confidence.
+
+### Non-Goals
+
+- Do not fix the upload path yet.
+- Do not change the shader representation yet.
+- Do not change PoW difficulty or login behavior.
+- Do not remove the current diagnostics until production login works.
