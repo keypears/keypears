@@ -9,7 +9,6 @@ import { getMyUser } from "~/server/user.functions";
 import { UserDropdown } from "~/components/UserDropdown";
 import { Footer } from "~/components/Footer";
 import { $icon } from "~/lib/icons";
-import type { FileRouteTypes } from "~/routeTree.gen";
 import {
   Home,
   BookOpen,
@@ -29,8 +28,6 @@ export const Route = createFileRoute("/_docs")({
   component: DocsLayout,
 });
 
-type DocsRoutePath = Extract<FileRouteTypes["to"], `/docs${string}`>;
-
 const docsNav = [
   { name: "Welcome", path: "/docs", icon: BookOpen },
   { name: "Addressing", path: "/docs/protocol/addressing", icon: FileText },
@@ -46,11 +43,7 @@ const docsNav = [
   { name: "Domain Claiming", path: "/docs/domain-claiming", icon: Globe },
   { name: "Security", path: "/docs/security", icon: Shield },
   { name: "Development", path: "/docs/development", icon: Code },
-] satisfies ReadonlyArray<{
-  name: string;
-  path: DocsRoutePath;
-  icon: typeof Home;
-}>;
+];
 
 function DocsLayout() {
   const user = Route.useLoaderData();

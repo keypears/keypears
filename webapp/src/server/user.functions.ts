@@ -328,27 +328,27 @@ export const rotateKey = createServerFn({ method: "POST" })
     return { keyNumber: result.keyNumber };
   });
 
-export const getMyKeys = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context: { userId } }) => {
-    const user = await getUserById(userId);
-    if (!user) return { keys: [], passwordHash: null };
-    const keyList = await getRecentKeys(userId, 100);
-    return {
-      keys: keyList.map((k) => ({
-        ...k,
-        ed25519PublicKey: k.ed25519PublicKey.toHex(),
-        encryptedEd25519Key: k.encryptedEd25519Key.toHex(),
-        x25519PublicKey: k.x25519PublicKey.toHex(),
-        encryptedX25519Key: k.encryptedX25519Key.toHex(),
-        signingPublicKey: k.signingPublicKey.toHex(),
-        encapPublicKey: k.encapPublicKey.toHex(),
-        encryptedSigningKey: k.encryptedSigningKey.toHex(),
-        encryptedDecapKey: k.encryptedDecapKey.toHex(),
-      })),
-      passwordHash: user.passwordHash,
-    };
-  });
+export const getMyKeys = createServerFn({ method: "GET" }).handler(async () => {
+  const userId = await getSessionUserId();
+  if (!userId) return { keys: [], passwordHash: null };
+  const user = await getUserById(userId);
+  if (!user) return { keys: [], passwordHash: null };
+  const keyList = await getRecentKeys(userId, 100);
+  return {
+    keys: keyList.map((k) => ({
+      ...k,
+      ed25519PublicKey: k.ed25519PublicKey.toHex(),
+      encryptedEd25519Key: k.encryptedEd25519Key.toHex(),
+      x25519PublicKey: k.x25519PublicKey.toHex(),
+      encryptedX25519Key: k.encryptedX25519Key.toHex(),
+      signingPublicKey: k.signingPublicKey.toHex(),
+      encapPublicKey: k.encapPublicKey.toHex(),
+      encryptedSigningKey: k.encryptedSigningKey.toHex(),
+      encryptedDecapKey: k.encryptedDecapKey.toHex(),
+    })),
+    passwordHash: user.passwordHash,
+  };
+});
 
 export const getProfile = createServerFn({ method: "GET" })
   .inputValidator(z.string())
@@ -498,11 +498,13 @@ export const claimDomainFn = createServerFn({ method: "POST" })
     return { id: domain.id, domain: domain.domain };
   });
 
-export const getMyDomains = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context: { userId } }) => {
+export const getMyDomains = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const userId = await getSessionUserId();
+    if (!userId) return [];
     return getDomainsForAdmin(userId);
-  });
+  },
+);
 
 export const getDomainUsersFn = createServerFn({ method: "GET" })
   .middleware([authMiddleware])

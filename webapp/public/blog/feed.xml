@@ -4,7 +4,7 @@
         <title>KeyPears Blog</title>
         <link>https://keypears.com</link>
         <description>Updates and insights from the KeyPears team</description>
-        <lastBuildDate>Sat, 16 May 2026 20:49:51 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 26 Apr 2026 22:49:29 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
@@ -452,7 +452,7 @@ that's where to start.</p>
 <p>KeyPears is MIT licensed. Every line of code is on
 <a href="https://github.com/keypears/keypears">GitHub</a>, including:</p>
 <ul>
-<li>The webapp itself (TanStack Start, Node.js, MySQL via Drizzle, React 19)</li>
+<li>The webapp itself (TanStack Start, Bun, MySQL via Drizzle, React 19)</li>
 <li>The proof-of-work algorithm (<code>pow5-64b</code>, Rust → WASM with TypeScript bindings)</li>
 <li>The whitepaper source (Typst)</li>
 <li>The Terraform stack that runs the production server (VPC, ALB, ECS Fargate,

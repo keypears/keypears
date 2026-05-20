@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://keypears.com</id>
     <title>KeyPears Blog</title>
-    <updated>2026-05-16T20:49:51.799Z</updated>
+    <updated>2026-04-26T22:49:29.983Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://keypears.com"/>
     <link rel="self" href="https://keypears.com/blog/atom.xml"/>
@@ -455,7 +455,7 @@ that's where to start.</p>
 <p>KeyPears is MIT licensed. Every line of code is on
 <a href="https://github.com/keypears/keypears">GitHub</a>, including:</p>
 <ul>
-<li>The webapp itself (TanStack Start, Node.js, MySQL via Drizzle, React 19)</li>
+<li>The webapp itself (TanStack Start, Bun, MySQL via Drizzle, React 19)</li>
 <li>The proof-of-work algorithm (<code>pow5-64b</code>, Rust → WASM with TypeScript bindings)</li>
 <li>The whitepaper source (Typst)</li>
 <li>The Terraform stack that runs the production server (VPC, ALB, ECS Fargate,

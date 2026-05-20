@@ -28,11 +28,10 @@ import {
   hexMaxBytes,
   addressSchema,
 } from "./schemas";
+import { getSessionUserId } from "./session";
 import { authMiddleware } from "./auth-middleware";
 import { z } from "zod";
 import { WebBuf } from "@webbuf/webbuf";
-import { FixedBuf } from "@webbuf/fixedbuf";
-import { difficultyFromTarget } from "@keypears/pow5";
 import { parseAddress, makeAddress } from "~/lib/config";
 import { verifyMessageSignature } from "~/lib/message";
 import {
@@ -266,6 +265,8 @@ export const sendMessage = createServerFn({ method: "POST" })
     }
 
     // Log PoW against the sender (they did the work)
+    const { difficultyFromTarget } = await import("@keypears/pow5");
+    const { FixedBuf } = await import("@webbuf/fixedbuf");
     const target = FixedBuf.fromHex(32, input.pow.target);
     const difficulty = difficultyFromTarget(target);
     await insertPowLog(senderId, "pow5-64b", difficulty);
@@ -273,9 +274,10 @@ export const sendMessage = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const getMyChannels = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context: { userId } }) => {
+export const getMyChannels = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const userId = await getSessionUserId();
+    if (!userId) return [];
     const [channelList, unreadCounts] = await Promise.all([
       getUserChannels(userId),
       getChannelUnreadCounts(userId),
@@ -289,7 +291,8 @@ export const getMyChannels = createServerFn({ method: "GET" })
       updatedAt: ch.updatedAt,
       unreadCount: unreadMap.get(ch.id) ?? 0,
     }));
-  });
+  },
+);
 
 async function resolveChannel(userId: string, counterpartyAddress: string) {
   const channel = await getChannelByCounterparty(userId, counterpartyAddress);
@@ -373,11 +376,13 @@ export const markChannelAsRead = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export const getMyUnreadCount = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context: { userId } }) => {
+export const getMyUnreadCount = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const userId = await getSessionUserId();
+    if (!userId) return 0;
     return getUnreadCount(userId);
-  });
+  },
+);
 
 export const getMyActiveEncryptedKey = createServerFn({
   method: "GET",

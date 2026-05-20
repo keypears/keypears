@@ -12,7 +12,7 @@
 )
 
 #set text(
-  font: "Charter",
+  font: "New Computer Modern",
   size: 10pt,
 )
 
@@ -48,16 +48,19 @@
   human-readable `name@domain` addresses, DNS-based federation, and the ability
   for any domain to run its own server. It adds encrypted message bodies,
   automatic public-key lookup, proof of work for abuse resistance, and
-  redirect-based third-party authentication. Private-key operations,
-  encryption, signing, and proof-of-work mining happen client-side. Servers
-  store encrypted message bodies and secret payloads, but do not possess the
-  keys needed to decrypt already-stored ciphertext. Domains remain trusted
-  authorities for their users' current public keys and hosted client code. This
-  email-like trust boundary keeps the protocol small enough for broad
-  implementation: if a user does not trust a hosted server in that role, the
-  trust exit is to switch providers or host their own domain. The cryptography
-  combines Ed25519 and X25519 with ML-DSA-65 (FIPS~204) and ML-KEM-768
-  (FIPS~203) for hybrid post-quantum defense-in-depth.
+  redirect-based third-party authentication.
+]
+
+#par(first-line-indent: 0pt)[
+  Private-key operations, encryption, signing, and proof-of-work mining happen
+  client-side. Servers store encrypted message bodies and secret payloads, but
+  do not possess the keys needed to decrypt already-stored ciphertext. Domains
+  remain trusted authorities for their users' current public keys and hosted
+  client code. This email-like trust boundary keeps the protocol small enough
+  for broad implementation: if a user does not trust a hosted server in that
+  role, the trust exit is to switch providers or host their own domain. The
+  cryptography combines Ed25519 and X25519 with ML-DSA-65 (FIPS~204) and
+  ML-KEM-768 (FIPS~203) for hybrid post-quantum defense-in-depth.
 ]
 
 #v(1em)

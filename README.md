@@ -24,16 +24,16 @@ Unsaved accounts expire after 24 hours and the address is recycled.
 
 ## Development
 
-Requires [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/), and MySQL.
+Requires [Bun](https://bun.sh) and MySQL.
 
 ```bash
-pnpm install
-pnpm run dev        # starts all dev servers (keypears on port 3500)
+bun install
+bun run dev        # starts all dev servers (keypears on port 3500)
 
 cd webapp
-pnpm run db:push    # push schema to MySQL
-pnpm run test       # run tests
-pnpm run lint       # run linter
+bun run db:push    # push schema to MySQL
+bun run test       # run tests
+bun run lint       # run linter
 ```
 
 ## License

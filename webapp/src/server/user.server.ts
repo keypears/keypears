@@ -7,7 +7,6 @@ import { WebBuf } from "@webbuf/webbuf";
 import { timingSafeEqual } from "node:crypto";
 import { getDomain } from "~/lib/config";
 import { newId } from "./utils";
-import { MIN_CHANNEL_DIFFICULTY, MIN_MESSAGE_DIFFICULTY } from "./pow.server";
 
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SERVER_KDF_ROUNDS = 600_000;
@@ -576,6 +575,9 @@ export async function updatePowSettings(
   channelDifficulty: bigint,
   messageDifficulty: bigint,
 ) {
+  const { MIN_CHANNEL_DIFFICULTY, MIN_MESSAGE_DIFFICULTY } =
+    await import("./pow.server");
+
   if (channelDifficulty < MIN_CHANNEL_DIFFICULTY) {
     throw new Error(
       `Channel difficulty must be at least ${MIN_CHANNEL_DIFFICULTY}`,

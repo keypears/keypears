@@ -23,7 +23,7 @@ PlanetScale (MySQL-compatible, managed database)
 ## Components
 
 **AWS Fargate** — Runs the KeyPears webapp as containers. No servers to manage.
-Auto-scales based on load. Each Fargate task runs the same Node server image.
+Auto-scales based on load. Each Fargate task runs the same Bun server image.
 
 **Application Load Balancer (ALB)** — Sits in front of Fargate tasks. Handles
 HTTPS termination, health checks, and traffic distribution across tasks.

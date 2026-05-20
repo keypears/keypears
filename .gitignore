@@ -1,6 +1,4 @@
 node_modules
-.nitro
-.output
 .astro
 .tanstack
 dist

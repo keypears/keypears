@@ -1,10 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { MarkdownRenderer } from "~/components/MarkdownRenderer";
-import type { FileRouteTypes } from "~/routeTree.gen";
 
 interface NavEntry {
   label: string;
-  path: Extract<FileRouteTypes["to"], `/docs${string}`>;
+  path: string;
 }
 
 const pageOrder: NavEntry[] = [

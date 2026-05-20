@@ -1,7 +1,7 @@
 import { implement } from "@orpc/server";
-import { contract } from "@keypears/client/contract";
+import { contract, createKeypearsClientFromUrl } from "@keypears/client";
 import { verifyMessageSignature } from "~/lib/message";
-import { fetchRemotePublicKey, getRemoteClient } from "./federation.server";
+import { fetchRemotePublicKey } from "./federation.server";
 import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -25,6 +25,7 @@ import {
 } from "./pow.server";
 import { channelExists, messageExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
+import { resolveApiUrl } from "./federation.server";
 
 // --- oRPC Router (implements @keypears/client contract) ---
 
@@ -66,7 +67,8 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     // server. KeyPears intentionally trusts hosted servers for current keys.
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
-    const remoteClient = await getRemoteClient(senderParsed.domain);
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
     const senderKeyResult = await remoteClient.getPublicKey({
       address: input.senderAddress,
     });
@@ -153,9 +155,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     // Resolve the sender's API URL from their domain (verified via TLS)
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
 
     // Pull the message from the sender's server via oRPC
-    const remoteClient = await getRemoteClient(senderParsed.domain);
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
     const messageData = await remoteClient.pullMessage({
       token: input.pullToken,
     });

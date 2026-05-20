@@ -4,20 +4,13 @@ import {
   type PowChallenge,
   type PowSolution,
 } from "~/lib/use-pow-miner";
-import { AlertCircle, Loader2, CheckCircle2, X } from "lucide-react";
+import { Loader2, CheckCircle2, X } from "lucide-react";
 import { PowBadge } from "~/components/PowBadge";
 
 interface PowModalProps {
   challenge: PowChallenge | null;
   onComplete: (solution: PowSolution) => void;
   onCancel: () => void;
-}
-
-function formatCount(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 1,
-    notation: value >= 1_000_000 ? "compact" : "standard",
-  }).format(value);
 }
 
 export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
@@ -35,9 +28,7 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
     if (startedRef.current === challengeKey) return;
     startedRef.current = challengeKey;
 
-    miner.mine(challenge, { showSolved: true }).catch((error: unknown) => {
-      console.error("Proof of work failed", error);
-    });
+    miner.mine(challenge, { showSolved: true }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when challenge changes
   }, [challenge]);
 
@@ -75,16 +66,8 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
             </div>
             <div className="text-muted-foreground flex w-full items-center justify-between text-xs">
               <PowBadge difficulty={miner.difficulty} />
-              <span>{miner.timeRemaining}</span>
+              <span>{miner.timeRemaining} remaining</span>
             </div>
-            {miner.diagnostics && (
-              <div className="text-muted-foreground mt-3 grid w-full grid-cols-2 gap-2 text-xs">
-                <span>Batches: {formatCount(miner.diagnostics.batchCount)}</span>
-                <span className="text-right">
-                  Hashes: {formatCount(miner.hashCount)}
-                </span>
-              </div>
-            )}
             <button
               onClick={onCancel}
               className="text-muted-foreground hover:text-foreground mt-5 text-sm underline"
@@ -100,35 +83,6 @@ export function PowModal({ challenge, onComplete, onCancel }: PowModalProps) {
               if (miner.result) onComplete(miner.result);
             }}
           />
-        )}
-
-        {miner.phase === "error" && (
-          <div className="flex flex-col items-center py-2">
-            <AlertCircle className="text-destructive mb-3 h-8 w-8" />
-            <p className="text-foreground mb-2 text-sm font-medium">
-              Proof of work failed
-            </p>
-            <p className="text-muted-foreground mb-5 text-center text-xs">
-              {miner.error ?? "Your browser could not start the miner."}
-            </p>
-            {miner.diagnostics && (
-              <div className="bg-muted text-muted-foreground mb-5 w-full rounded p-3 text-xs">
-                <div>Batches: {formatCount(miner.diagnostics.batchCount)}</div>
-                <div>Hashes: {formatCount(miner.diagnostics.hashCount)}</div>
-                <div>
-                  Zero-result batches:{" "}
-                  {formatCount(miner.diagnostics.zeroResultBatches)}
-                </div>
-                <div>Target: {miner.diagnostics.targetPrefix}...</div>
-              </div>
-            )}
-            <button
-              onClick={onCancel}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-6 py-2 text-sm transition-all"
-            >
-              Close
-            </button>
-          </div>
         )}
 
         {miner.phase === "idle" && (

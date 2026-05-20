@@ -1,10 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink } from "~/components/ExternalLink";
 
 export function Footer() {
   return (
     <footer className="border-border/30 text-muted-foreground mt-12 flex flex-col items-center gap-2 border-t pt-4 pb-6 text-xs">
-      <ExternalLink
+      <a
         href="https://astrohacker.com"
         className="hover:text-accent flex items-center gap-2 no-underline"
       >
@@ -21,7 +20,7 @@ export function Footer() {
           />
         </picture>
         An Astrohacker Project
-      </ExternalLink>
+      </a>
       <div className="flex gap-3">
         <Link to="/terms" className="hover:text-accent no-underline">
           Terms

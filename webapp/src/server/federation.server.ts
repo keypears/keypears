@@ -5,17 +5,13 @@ import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { newId, hashToken } from "./utils";
 import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
-import {
-  federationWellKnownUrl,
-  validateFederationAuthority,
-  type FederationAuthority,
-} from "~/lib/federation-authority";
-import { safeFederationFetch } from "./fetch";
+import { safeFetch } from "./fetch";
 import { isLocalDomain } from "./user.server";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
-import { type KeypearsJson, type KeypearsClient } from "@keypears/client";
-import { z } from "zod";
+import {
+  createKeypearsClientFromUrl,
+  type KeypearsJson,
+  type KeypearsClient,
+} from "@keypears/client";
 
 export type { KeypearsJson };
 
@@ -28,67 +24,40 @@ const keypearsJsonCache = new Map<
 >();
 
 export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
-  const authority = validateFederationAuthority(domain);
-  const cached = keypearsJsonCache.get(authority);
+  const cached = keypearsJsonCache.get(domain);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const response = await safeFederationFetch(
-    federationWellKnownUrl(authority),
-    undefined,
-    { maxResponseBytes: 64_000 },
-  );
+  // Use safeFetch for server-side (handles TLS, timeouts, etc.)
+  const url = `https://${domain}/.well-known/keypears.json`;
+  const response = await safeFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const parsed = z
+  const { z } = await import("zod");
+  const data = z
     .object({ apiDomain: z.string().optional(), admin: z.string().optional() })
     .parse(await response.json());
-  const data: KeypearsJson = {
-    ...parsed,
-    apiDomain: parsed.apiDomain
-      ? validateFederationAuthority(parsed.apiDomain)
-      : undefined,
-  };
-  keypearsJsonCache.set(authority, { data, fetchedAt: Date.now() });
+  keypearsJsonCache.set(domain, { data, fetchedAt: Date.now() });
   return data;
 }
 
-async function resolveApiAuthority(
-  domain: string,
-): Promise<FederationAuthority> {
-  if (await isLocalDomain(domain)) {
-    return validateFederationAuthority(getApiDomain());
-  }
+export async function resolveApiUrl(domain: string): Promise<string> {
+  if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
 
   const json = await fetchKeypearsJson(domain);
   if (!json.apiDomain) {
     throw new Error(`Invalid keypears.json from ${domain}: missing apiDomain`);
   }
-  return validateFederationAuthority(json.apiDomain);
-}
-
-export async function resolveApiUrl(domain: string): Promise<string> {
-  return apiUrlFromDomain(await resolveApiAuthority(domain));
+  return apiUrlFromDomain(json.apiDomain);
 }
 
 // --- oRPC client for remote servers ---
 
-function createFederationClient(apiUrl: string): KeypearsClient {
-  const link = new RPCLink({
-    url: apiUrl,
-    fetch: (request, init) =>
-      safeFederationFetch(request, init, { maxResponseBytes: 1_000_000 }),
-  });
-  return createORPCClient(link) as unknown as KeypearsClient;
-}
-
-export async function getRemoteClient(
-  domain: string,
-): Promise<KeypearsClient> {
+async function getRemoteClient(domain: string): Promise<KeypearsClient> {
   const apiUrl = await resolveApiUrl(domain);
-  return createFederationClient(apiUrl);
+  return createKeypearsClientFromUrl(apiUrl);
 }
 
 function generateToken(): string {

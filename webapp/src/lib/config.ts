@@ -1,11 +1,6 @@
 import { sha256Hmac } from "@webbuf/sha256";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
-import {
-  federationApiUrl,
-  type FederationAuthority,
-  validateFederationAuthority,
-} from "./federation-authority";
 
 // --- Environment variables ---
 
@@ -26,7 +21,7 @@ export function getDomain(): string {
 export function getApiDomain(): string {
   const d = process.env.KEYPEARS_API_DOMAIN;
   if (!d) throw new Error("KEYPEARS_API_DOMAIN env var is required");
-  return validateFederationAuthority(d);
+  return d;
 }
 
 /** Optional admin address advertised in /.well-known/keypears.json.
@@ -41,8 +36,8 @@ export function getAdminAddress(): string | null {
 }
 
 /** Build the API URL from a domain. Always https://{domain}/api. */
-export function apiUrlFromDomain(domain: FederationAuthority): string {
-  return federationApiUrl(domain);
+export function apiUrlFromDomain(domain: string): string {
+  return `https://${domain}/api`;
 }
 
 // --- Derived secrets ---

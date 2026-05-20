@@ -597,3 +597,26 @@ This experiment intentionally sacrifices the npm publishing work, pnpm
 migration, Nitro server work, SSRF hardening implementation, navigation
 refactors, and PoW diagnostics. Those can be reintroduced one at a time only
 after production login is confirmed working again.
+
+### Result: Implemented, Pending Production Verification
+
+All non-issue runtime/code/config files were restored to the known working
+baseline at `9d2dc9c8`. Issue documentation was preserved.
+
+The rollback restores the app to the Bun-based pre-pnpm/pre-npm/pre-Nitro
+state, including the previous Dockerfile, package scripts, Bun lockfiles,
+raw WGSL loading path, and pre-diagnostic PoW UI/miner code. The pnpm
+workspace files, npm publishing artifacts, generated WGSL string modules,
+SSRF runtime hardening implementation, navigation refactor components, and
+PoW diagnostic code are removed from the runtime tree.
+
+Local verification passed:
+
+- `bun install --frozen-lockfile`
+- `bun run --cwd webapp typecheck`
+- `bun run --cwd webapp test`
+- `bun run --cwd webapp build`
+
+The build regenerated blog feed timestamps, which were restored back to the
+baseline contents afterward. Production deployment is still required to confirm
+whether reverting to the known working runtime state restores login PoW.

@@ -1,7 +1,7 @@
 /**
  * Benchmark BLAKE3 hashing rate for whitepaper calculations.
  * Measures how many BLAKE3-MAC rounds per second this machine can compute.
- * Usage: pnpm run bench:blake3 (from packages/whitepaper-bench)
+ * Usage: bun src/bench-blake3.ts (from packages/whitepaper-bench)
  */
 import { blake3Mac } from "@webbuf/blake3";
 import { FixedBuf } from "@webbuf/fixedbuf";

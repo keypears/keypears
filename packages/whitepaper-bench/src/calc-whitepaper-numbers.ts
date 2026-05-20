@@ -2,16 +2,16 @@
  * Calculate all quantitative claims for the whitepaper.
  *
  * Usage:
- *   pnpm run calc -- <gpu_hash_rate> <blake3_rounds_per_sec>
+ *   bun src/calc-whitepaper-numbers.ts <gpu_hash_rate> <blake3_rounds_per_sec>
  *
  * Example:
- *   pnpm run calc -- 4500000 1200000
+ *   bun src/calc-whitepaper-numbers.ts 4500000 1200000
  */
 
-const args = process.argv.slice(2).filter((arg) => arg !== "--");
+const args = process.argv.slice(2);
 if (args.length < 2) {
   console.error(
-    "Usage: pnpm run calc -- <gpu_hash_rate> <blake3_rounds_per_sec>",
+    "Usage: bun src/calc-whitepaper-numbers.ts <gpu_hash_rate> <blake3_rounds_per_sec>",
   );
   console.error(
     "  gpu_hash_rate: GPU hashes per second (from bench-pow webapp)",
