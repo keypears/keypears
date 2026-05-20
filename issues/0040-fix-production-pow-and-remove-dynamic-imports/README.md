@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-05-20"
+closed = "2026-05-20"
 +++
 
 # Issue 40: Fix Production PoW and Remove Dynamic Imports
@@ -1828,3 +1829,29 @@ bun run --cwd webapp build
 
 The remaining confirmation is manual: successful login in latest Chrome should
 no longer spam routine PoW diagnostics in the browser console.
+
+## Conclusion
+
+Production login proof-of-work was restored. The initial production-only failure
+looked like a dynamic-import/export issue and then like a stalled miner, but the
+final root cause was a latest-Chromium WebGPU behavior change that broke the
+`pow5-64b` WGSL BLAKE3 header hash path.
+
+The investigation added enough browser diagnostics to expose the real failure:
+the GPU result diverged from the WASM/reference implementation before matmul or
+target checking. Playwright was updated to latest Chromium so the failure could
+be reproduced locally in `packages/pow5-ts` instead of through production
+deploys.
+
+The fix preserved exact PoW output compatibility. `blake3_hash_32` and
+`blake3_hash_64` were rewritten to pass fixed-size arrays by value and perform
+direct little-endian block conversion, avoiding the pointer/local-array pattern
+that latest Chromium mishandled. No expected vectors were changed; the WGSL
+implementation was brought back into byte-for-byte parity with the existing
+WASM/reference outputs. The package browser tests now cover the failing path
+under latest Chromium.
+
+After production login was confirmed working, the temporary console diagnostics
+were removed from the successful mining path. Successful PoW should now be quiet
+in the browser console, while real miner failures still emit compact diagnostic
+context.
