@@ -643,16 +643,21 @@ did not isolate the regression.
 ### Hypothesis
 
 The production failure is inside the browser PoW mining path, before login
-submission. WebGPU is available and the mining loop is running, but production
-either returns all-zero sentinel results forever, computes a different hash than
-the WASM reference for the same header, or throws an error that the modal
-currently swallows.
+submission, or production is not actually running the artifact we think it is.
+WebGPU is available and the mining loop is running, but production either
+returns all-zero sentinel results forever, computes a different hash than the
+WASM reference for the same header, loses the GPU device, receives a malformed
+challenge, runs a stale browser/deploy artifact, or throws an error that the
+modal currently swallows.
 
 Adding explicit browser-console diagnostics at the PoW boundary will reveal the
 first dev/prod difference.
 
 ### Evidence
 
+- Experiment 5 restored the non-issue runtime tree to `9d2dc9c8`, the April 27
+  baseline, but production login still failed after redeploy. This rules out
+  the May 16-20 npm/pnpm/Nitro/package-publishing burst as the direct cause.
 - Development login works.
 - Production login fetches a challenge and enters the mining modal.
 - Production does not show a browser-console error.
@@ -662,10 +667,30 @@ first dev/prod difference.
 - WebGPU failures can appear as valid execution that returns all-zero buffers,
   so the app must treat persistent zero results as diagnostic evidence instead
   of silently continuing forever.
+- The remaining live hypotheses are now stale deployed/browser artifacts,
+  browser or GPU driver behavior, device loss, production headers/CSP, malformed
+  production challenge data, AWS/deploy differences, or a real PoW WebGPU bug.
 
 ### Plan
 
-1. Stop swallowing miner errors.
+1. Log a build fingerprint at miner startup.
+
+   Inject a build identifier into the webapp bundle and log it before mining:
+
+   - git SHA when available
+   - build timestamp as a fallback
+
+   Example console output:
+
+   ```text
+   [keypears pow] build { sha: "...", builtAt: "..." }
+   ```
+
+   This proves whether the production browser is running the deployed rollback
+   artifact, rather than a stale chunk, stale image layer, browser cache, CDN
+   edge, or other old artifact.
+
+2. Stop swallowing miner errors.
 
    Replace the empty catch in `PowModal` with a console error:
 
@@ -675,7 +700,7 @@ first dev/prod difference.
    });
    ```
 
-2. Add console diagnostics with a stable prefix.
+3. Add console diagnostics with a stable prefix.
 
    Every diagnostic log should begin with:
 
@@ -683,25 +708,63 @@ first dev/prod difference.
    [keypears pow]
    ```
 
-   Log the challenge summary when mining starts:
+   Log the raw challenge object and field types when mining starts:
 
+   - full challenge object
    - difficulty
+   - `typeof difficulty`
    - target prefix
+   - `typeof target`
    - header prefix
+   - `typeof header`
+   - `typeof expiresAt`
+   - `typeof signature`
    - whether sender/recipient addresses are present
 
-3. Log WebGPU initialization details.
+4. Log browser, origin, visibility, and CSP context.
+
+   At miner startup, log:
+
+   - `navigator.userAgent`
+   - `location.origin`
+   - `isSecureContext`
+   - `crossOriginIsolated`
+   - `document.visibilityState`
+
+   Install temporary listeners while mining:
+
+   ```ts
+   document.addEventListener("visibilitychange", ...);
+   window.addEventListener("securitypolicyviolation", ...);
+   ```
+
+   Log CSP violations with blocked URI, violated directive, effective
+   directive, and source file/line when available.
+
+5. Log WebGPU initialization details.
 
    During miner startup, log:
 
    - whether `navigator.gpu` exists
    - adapter availability
-   - adapter info if available
+   - `adapter.info` if available
+   - `adapter.isFallbackAdapter`
    - selected device limits/features if cheap to read
    - WGSL source length
    - initialized pipeline names
 
-4. Add a same-header WASM-vs-GPU self-check.
+   Add a `device.lost` handler immediately after requesting the device:
+
+   ```ts
+   device.lost.then((info) => {
+     console.error("[keypears pow] device lost", info.reason, info.message);
+   });
+   ```
+
+   Device loss is a plausible explanation for "GPU starts, fans spin, then
+   readbacks return zeros forever."
+
+6. Add a same-header WASM-vs-GPU self-check.
 
    Initialize the WGSL miner with debug pipelines:
 
@@ -729,7 +792,25 @@ first dev/prod difference.
    - If they match, the basic GPU hash path works and the bug is likely in
      `workgroup_reduce`, batch search, or solution handling.
 
-5. Track and log batch-level mining state.
+7. Add a minimum-difficulty smoke test.
+
+   Before the real mining loop, run the same WebGPU mining path with a target
+   that any hash should satisfy, using the same challenge header and miner
+   machinery.
+
+   The smoke test should answer:
+
+   - Can `work()` ever return a non-zero result in this browser/build?
+   - Can the same `workgroup_reduce` path solve an easy target?
+
+   Interpretation:
+
+   - If the smoke test fails, the bug is structural: WGSL, buffers, device loss,
+     production bundling, or WebGPU execution.
+   - If the smoke test passes, the bug is specific to real target difficulty,
+     target construction, randomization, or rare-event search behavior.
+
+8. Track and log batch-level mining state.
 
    Track:
 
@@ -747,7 +828,11 @@ first dev/prod difference.
    - batches 1-5
    - every 100th batch after that
 
-6. Fail loudly after an excessive overrun.
+   Include per-batch wall time in the logs. If batch 1 is slow and later batches
+   become implausibly fast, that is evidence that the GPU is no longer doing
+   real work after initialization.
+
+9. Fail loudly after an excessive overrun.
 
    Compute:
 
@@ -759,26 +844,38 @@ first dev/prod difference.
    If no solution is found by `overrunLimit`, throw an error with the diagnostic
    summary and log it with `console.error`.
 
-7. Fix misleading progress during diagnostics.
+10. Fix misleading progress during diagnostics.
 
    While mining, cap estimated progress below completion, for example 95%.
    Progress should reach 100% only after a valid solution is found.
 
-8. Verify diagnostics in development first.
+11. Verify diagnostics in development first.
 
    In development, confirm the console shows:
 
+   - build fingerprint
    - challenge summary
+   - raw field types
+   - browser/origin context
    - WebGPU initialization
+   - adapter/fallback details
    - WASM/GPU self-check match
+   - minimum-difficulty smoke test pass
    - batch logs
    - successful solution
 
-9. Deploy and inspect production console output.
+12. Deploy and inspect production console output.
 
    Production should reveal one of these outcomes:
 
+   - Build fingerprint is stale or unexpected.
+   - Browser/origin/security context differs from expectation.
+   - CSP violation appears.
+   - Adapter is fallback or unexpected.
+   - GPU device is lost.
+   - Raw challenge data has wrong field types or malformed values.
    - GPU self-check differs from WASM.
+   - Minimum-difficulty smoke test fails.
    - GPU self-check matches, but `work()` returns only zero sentinels.
    - Non-zero hashes appear but never satisfy the target.
    - A swallowed exception is now visible.
