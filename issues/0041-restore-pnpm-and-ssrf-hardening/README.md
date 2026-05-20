@@ -776,3 +776,81 @@ Audit results:
 
 Build still reports the existing Vite/Tailwind CSS warnings and large chunk
 warnings; those are unchanged by this experiment.
+
+## Experiment 3: Remove Pinned Federation Fetch
+
+### Hypothesis
+
+The pinned-resolution `safeFederationFetch()` approach is too complex for
+KeyPears and breaks the local development topology. KeyPears federation already
+uses HTTPS domain names, so the application should rely on normal platform
+HTTPS behavior: DNS resolution, TLS validation, SNI, and the HTTP `Host`
+header.
+
+The security boundary should be simple:
+
+- federation uses HTTPS URLs
+- federation authorities are domain names, not arbitrary full URLs
+- local development works with normal `.test` DNS
+- remote oRPC uses the same normal fetch behavior as other HTTPS clients
+
+### Plan
+
+1. Remove pinned-resolution fetch.
+
+   - Delete private/reserved IP classification.
+   - Delete custom `https.request` handling.
+   - Delete DNS lookup pinning.
+   - Delete tests that assert private DNS answers are blocked.
+
+2. Restore normal fetch behavior.
+
+   - Use ordinary `fetch()` / oRPC `RPCLink` fetch behavior for federation.
+   - Keep redirects rejected only if that remains useful as a simple fetch
+     option.
+   - Keep timeout and response-size limits only for `keypears.json` if still
+     useful.
+
+3. Keep simple authority validation.
+
+   - Keep or simplify `FederationAuthority` so `apiDomain` cannot be a full
+     URL, path, query string, userinfo, or malformed host.
+   - Allow normal DNS names, including `.test`.
+   - Do not reject loopback/private DNS answers.
+   - Decide during implementation whether non-443 HTTPS ports should be
+     allowed for dev and self-hosting.
+
+4. Restore local dev federation.
+
+   - Verify sending from `keypears.test` to `passapples.test`.
+   - Verify domain claiming between local `.test` domains if that flow is
+     available.
+   - Verify production build still serves `/.well-known/keypears.json` and
+     `/api`.
+
+5. Update docs.
+
+   - Remove claims about SSRF private-IP blocking and pinned DNS.
+   - Document that federation uses normal HTTPS domain resolution and TLS
+     validation.
+
+### Verification
+
+```bash
+pnpm --filter @keypears/webapp typecheck
+pnpm --filter @keypears/webapp test
+pnpm --filter @keypears/webapp build
+```
+
+Manual checks:
+
+- send a message from `keypears.test` to `passapples.test`
+- verify local domain claiming if that flow is available
+- smoke test `/health`, `/.well-known/keypears.json`, and `/api/serverInfo`
+
+### Success Criteria
+
+- Local `.test` federation works again.
+- Federation code no longer contains pinned DNS or private-IP blocking logic.
+- Federation still uses HTTPS URLs and normal TLS validation.
+- The implementation is smaller and easier to reason about.
