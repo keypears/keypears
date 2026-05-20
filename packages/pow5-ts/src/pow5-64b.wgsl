@@ -186,63 +186,26 @@ fn root_output_bytes(output_ptr: ptr<function, Output>, out_slice_ptr: ptr<funct
 }
 
 // blake3 hash for 64-byte input
-fn blake3_hash_64(
-    input_ptr: ptr<function, array<u32, 64>>,
-) -> array<u32, 32> {
-    let input_len: u32 = 64u;
-
+fn blake3_hash_64(input: array<u32, 64>) -> array<u32, 32> {
     var chaining_value: array<u32, 8>;
     for (var i: u32 = 0u; i < 8u; i++) {
         chaining_value[i] = global_IV[i];
     }
-    var block: array<u32, 64>;
-    var block_len: u32 = 0u;
-    var blocks_compressed: u32 = 0u;
-
-    var remaining_input_len: u32 = input_len;
-    var remaining_input_ptr: u32 = 0u;
-
-    while remaining_input_len > 0u {
-        var start_flag: u32 = 0u;
-        if blocks_compressed == 0u {
-            start_flag = CHUNK_START;
-        }
-
-        if block_len == 64u {
-            var block_words: array<u32, 16>;
-            words_from_little_endian_bytes(&block, &block_words);
-            chaining_value = first_8_words(compress(
-                &chaining_value,
-                &block_words,
-                64u,
-                start_flag,
-            ));
-            blocks_compressed = blocks_compressed + 1u;
-            block = array<u32,64>();
-            block_len = 0u;
-        }
-
-        let take: u32 = min(64u - block_len, remaining_input_len);
-        for (var i: u32 = 0u; i < take; i++) {
-            block[block_len + i] = (*input_ptr)[remaining_input_ptr + i];
-        }
-        block_len = block_len + take;
-        remaining_input_ptr = remaining_input_ptr + take;
-        remaining_input_len = remaining_input_len - take;
-    }
 
     var block_words: array<u32, 16>;
-    words_from_little_endian_bytes(&block, &block_words);
-
-    var start_flag: u32 = 0u;
-    if blocks_compressed == 0u {
-        start_flag = CHUNK_START;
+    for (var i: u32 = 0u; i < 16u; i++) {
+        block_words[i] =
+            input[i * 4u] |
+            (input[i * 4u + 1u] << 8u) |
+            (input[i * 4u + 2u] << 16u) |
+            (input[i * 4u + 3u] << 24u);
     }
+
     var output: Output = Output(
         chaining_value,
         block_words,
-        block_len,
-        start_flag | CHUNK_END,
+        64u,
+        CHUNK_START | CHUNK_END,
     );
 
     var hash_output: array<u32, 32>;
@@ -362,7 +325,7 @@ fn debug_hash_header(@builtin(global_invocation_id) global_id: vec3<u32>) {
     for (var i: u32 = 0; i < HEADER_SIZE; i++) {
         local_header[i] = header[i];
     }
-    var hash_result: array<u32, 32> = blake3_hash_64(&local_header);
+    var hash_result: array<u32, 32> = blake3_hash_64(local_header);
 
     var compressed_result: array<u32, COMPRESSED_HASH_SIZE>;
     for (var i: u32 = 0; i < COMPRESSED_HASH_SIZE; i++) {
@@ -388,7 +351,7 @@ fn debug_double_hash_header(@builtin(global_invocation_id) global_id: vec3<u32>)
     for (var i: u32 = 0; i < HEADER_SIZE; i++) {
         local_header[i] = header[i];
     }
-    var hash_result: array<u32, 32> = blake3_hash_64(&local_header);
+    var hash_result: array<u32, 32> = blake3_hash_64(local_header);
     hash_result = blake3_hash_32(hash_result);
 
     var compressed_result: array<u32, COMPRESSED_HASH_SIZE>;
@@ -416,7 +379,7 @@ fn matmul_work(header: array<u32, HEADER_SIZE>) -> array<u32, HASH_SIZE> {
         header_clone[i] = header[i];
     }
     // first, hash the header
-    var matrix_A_row_1: array<u32, HASH_SIZE> = blake3_hash_64(&header_clone);
+    var matrix_A_row_1: array<u32, HASH_SIZE> = blake3_hash_64(header_clone);
 
     // next, we will do the following. we will hash this hash over and over, 32
     // times. we will then multiply and add (similar to matmul) each value of

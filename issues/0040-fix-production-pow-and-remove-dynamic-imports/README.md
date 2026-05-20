@@ -1663,3 +1663,38 @@ outputs as the existing WASM/reference implementation. The webapp's
 - Do not change difficulty, target calculation, or target comparison.
 - Do not remove useful browser diagnostics until latest Chrome login is
   confirmed working.
+
+### Result: Pass, Pending Manual Browser Login
+
+The `pow5-64b` Chrome/WebGPU regression was fixed by rewriting
+`blake3_hash_64` to follow the same fixed-size shape as the EBX
+`blake3_hash_32` fix:
+
+- `blake3_hash_64` now takes `array<u32, 64>` by value instead of
+  `ptr<function, array<u32, 64>>`.
+- The 64-byte BLAKE3 block is converted directly into sixteen little-endian
+  words.
+- The hash still uses `block_len = 64u` and `CHUNK_START | CHUNK_END`, preserving
+  the old algorithm and output contract.
+- All `blake3_hash_64(&value)` call sites were updated to `blake3_hash_64(value)`.
+
+No expected vectors were changed. The fix makes latest Chromium reproduce the
+existing WASM/reference outputs instead of accepting Chromium's broken output.
+
+Verification passed:
+
+```bash
+bun run --cwd packages/pow5-ts test
+bun run --cwd packages/pow5-ts typecheck
+bun run --cwd webapp typecheck
+bun run --cwd webapp test
+bun run --cwd webapp build
+```
+
+The package browser tests now pass under Playwright Chromium `1.60.0`: 2 test
+files, 17 tests. This covers the exact failing shader stages:
+`debugHashHeader()`, `debugDoubleHashHeader()`, `debugMatmulWork()`,
+`debugElementaryIteration()`, and `work()`.
+
+The remaining confirmation is manual: login in latest Chrome in development,
+then production after deploy.
