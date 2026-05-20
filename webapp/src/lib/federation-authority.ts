@@ -30,6 +30,9 @@ export function validateFederationAuthority(
   if (value.includes("://")) {
     throw new Error("Federation authority must not be a full URL");
   }
+  if (value.includes(":")) {
+    throw new Error("Federation authority must not include a port");
+  }
   if (/[/?#@\\[\]]/.test(value)) {
     throw new Error("Federation authority must be a DNS hostname only");
   }
@@ -37,9 +40,6 @@ export function validateFederationAuthority(
   const url = new URL(`https://${value}/`);
   if (url.username || url.password) {
     throw new Error("Federation authority must not include userinfo");
-  }
-  if (url.port && url.port !== "443") {
-    throw new Error("Federation authority must use the default HTTPS port");
   }
 
   const hostname = url.hostname.toLowerCase();
@@ -54,18 +54,6 @@ export function validateFederationAuthority(
   }
 
   return hostname as FederationAuthority;
-}
-
-export function federationAuthorityHostname(
-  authority: FederationAuthority,
-): string {
-  return authority;
-}
-
-export function federationAuthorityPort(
-  _authority: FederationAuthority,
-): number {
-  return 443;
 }
 
 export function federationApiUrl(authority: FederationAuthority): string {

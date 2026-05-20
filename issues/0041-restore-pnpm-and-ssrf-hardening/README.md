@@ -854,3 +854,47 @@ Manual checks:
 - Federation code no longer contains pinned DNS or private-IP blocking logic.
 - Federation still uses HTTPS URLs and normal TLS validation.
 - The implementation is smaller and easier to reason about.
+
+### Result: Pass
+
+Implemented on 2026-05-20.
+
+The pinned federation fetch implementation was removed from active code:
+
+- deleted `webapp/src/server/fetch.ts`
+- deleted the DNS/private-IP blocking tests from
+  `webapp/src/server/fetch.test.ts`
+- added focused authority validation tests in
+  `webapp/src/lib/federation-authority.test.ts`
+- removed `safeFederationFetch()` and the server-only custom oRPC fetch
+- restored normal `createKeypearsClientFromUrl()` oRPC behavior for remote
+  federation calls
+- kept strict domain authority validation with no schemes, ports, paths,
+  queries, fragments, userinfo, localhost names, IP literals, or non-ASCII
+  hostnames outside punycode form
+- kept self-constructed HTTPS federation URLs:
+  `https://{domain}/.well-known/keypears.json` and `https://{domain}/api`
+- updated the security docs to describe normal HTTPS DNS/TLS/SNI/Host behavior
+
+The active code no longer has `safeFetch`, `safeFederationFetch`,
+private-address DNS blocking, DNS pinning, or custom `https.request`
+federation transport.
+
+Verification passed:
+
+```bash
+pnpm --filter @keypears/webapp typecheck
+pnpm --filter @keypears/webapp test
+pnpm --filter @keypears/webapp build
+rg -n "safeFetch|safeFederationFetch|isBlockedIpAddress|resolveFederationAuthority|node:https|node:dns|private/reserved|pinned" webapp/src
+curl -fsS http://localhost:4274/health
+curl -fsS http://localhost:4274/.well-known/keypears.json
+curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
+  -X POST http://localhost:4274/api/serverInfo \
+  -H 'content-type: application/json' \
+  --data '{}'
+```
+
+The audit grep returned no active-code matches.
+The smoke tests returned `ok`, `{"apiDomain":"keypears.test"}`, and HTTP
+`200`.

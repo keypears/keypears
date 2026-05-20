@@ -11,11 +11,12 @@ import {
   validateFederationAuthority,
   type FederationAuthority,
 } from "~/lib/federation-authority";
-import { safeFederationFetch } from "./fetch";
 import { isLocalDomain } from "./user.server";
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
-import { type KeypearsJson, type KeypearsClient } from "@keypears/client";
+import {
+  createKeypearsClientFromUrl,
+  type KeypearsJson,
+  type KeypearsClient,
+} from "@keypears/client";
 
 export type { KeypearsJson };
 
@@ -34,18 +35,21 @@ export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
     return cached.data;
   }
 
-  const response = await safeFederationFetch(
-    federationWellKnownUrl(authority),
-    undefined,
-    { maxResponseBytes: 64_000 },
-  );
+  const response = await fetch(federationWellKnownUrl(authority), {
+    signal: AbortSignal.timeout(5_000),
+    redirect: "error",
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
+  }
+  const text = await response.text();
+  if (text.length > 64_000) {
+    throw new Error(`keypears.json from ${domain} is too large`);
   }
   const { z } = await import("zod");
   const parsed = z
     .object({ apiDomain: z.string().optional(), admin: z.string().optional() })
-    .parse(await response.json());
+    .parse(JSON.parse(text));
   const data: KeypearsJson = {
     ...parsed,
     apiDomain: parsed.apiDomain
@@ -74,20 +78,9 @@ export async function resolveApiUrl(domain: string): Promise<string> {
   return federationApiUrl(await resolveApiAuthority(domain));
 }
 
-// --- oRPC client for remote servers ---
-
-function createFederationClient(apiUrl: string): KeypearsClient {
-  const link = new RPCLink({
-    url: apiUrl,
-    fetch: (request, init) =>
-      safeFederationFetch(request, init, { maxResponseBytes: 1_000_000 }),
-  });
-  return createORPCClient(link) as unknown as KeypearsClient;
-}
-
 export async function getRemoteClient(domain: string): Promise<KeypearsClient> {
   const apiUrl = await resolveApiUrl(domain);
-  return createFederationClient(apiUrl);
+  return createKeypearsClientFromUrl(apiUrl);
 }
 
 function generateToken(): string {
