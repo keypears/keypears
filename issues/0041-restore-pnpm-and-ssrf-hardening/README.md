@@ -148,6 +148,7 @@ In scope:
 - package build/publish compatibility
 - Docker/deploy build commands if they still depend on Bun
 - verification commands rewritten to pnpm equivalents
+- Nitro as the Node production server runtime
 
 Out of scope:
 
@@ -155,10 +156,58 @@ Out of scope:
 - federation behavior changes
 - PoW algorithm or expected output changes
 - package version bumps unrelated to the toolchain
+- `@keypears/pow5/wgsl` subpath restoration
+- generated WGSL string modules such as `pow5-64b-wgsl-code.ts`
+- `packages/pow5-ts/build-wgsl-modules.ts`
+- intermediate custom Node bridge files such as `start-node.js`
+- `.npmrc` unless package publishing verification proves it is required here
+
+### Decisions
+
+- Start from issue 35's known completed migration rather than redesigning the
+  migration from scratch. Use the issue 35 close commit,
+  `d1724b7f Close pnpm and Node migration issue`, as the source of truth for
+  toolchain files, then adapt to the current tree and the issue 40 PoW fix.
+- Publishable packages should use built `dist` output with `.d.ts` files. This
+  preserves npm package behavior and means production builds must build
+  workspace packages before building the webapp.
+- The webapp production server runtime should be Nitro, matching the final issue
+  35 state. Do not restore the intermediate custom Node HTTP bridge.
+- The PoW package should keep the current `?raw` WGSL import path. Do not
+  restore the generated WGSL string-module detour from the production PoW
+  investigation.
+- The latest-Chromium PoW browser tests are the hard abort gate. If
+  `pnpm --filter @keypears/pow5 test` fails at any point, stop and fix that
+  before proceeding. Do not commit or deploy a pnpm migration that breaks the
+  issue 40 regression test.
 
 ### Plan
 
-1. Re-establish pnpm workspace ownership.
+1. Restore the issue 35 toolchain baseline.
+
+   Start by restoring known pnpm/Node files from `d1724b7f`, then adapt them to
+   the current repository rather than hand-authoring the migration again.
+
+   Likely restore targets include:
+
+   ```bash
+   git checkout d1724b7f -- \
+     pnpm-workspace.yaml \
+     package.json \
+     webapp/package.json \
+     webapp/Dockerfile \
+     passapples/package.json \
+     lockberries/package.json \
+     packages/client/package.json \
+     packages/client/tsconfig.build.json \
+     packages/pow5-ts/package.json \
+     packages/pow5-ts/tsconfig.build.json
+   ```
+
+   Then inspect every restored file against the current tree. Keep current issue
+   40 PoW source/test fixes and do not restore reverted WGSL-generation detours.
+
+2. Re-establish pnpm workspace ownership.
 
    Add or restore:
 
@@ -166,12 +215,24 @@ Out of scope:
    - root `pnpm-lock.yaml`
    - `packageManager` metadata for pnpm where appropriate
 
+   Generate the lockfile before attempting frozen installs:
+
+   ```bash
+   pnpm install
+   ```
+
+   After that, frozen install must work:
+
+   ```bash
+   pnpm install --frozen-lockfile
+   ```
+
    Remove committed Bun lockfiles after pnpm is authoritative:
 
    - root `bun.lock`
    - `webapp/bun.lock` if still present
 
-2. Convert root scripts.
+3. Convert root scripts.
 
    Replace root `bun run ...` invocations with pnpm equivalents while preserving
    the existing local topology:
@@ -181,15 +242,18 @@ Out of scope:
    - `passapples.test`
    - `lockberries.test`
 
-3. Convert package scripts.
+4. Convert package scripts.
 
    Update `webapp`, landing pages, and publishable packages so scripts run under
    pnpm/Node. Use `tsx` or plain `node` for TypeScript helper scripts instead of
    relying on Bun execution.
 
-   Audit and remove `@types/bun` if no source still needs Bun APIs.
+   Audit and remove `@types/bun` if no source still needs Bun APIs. Add or keep
+   `@types/node` where Node script/runtime types are needed. Prefer one shared
+   workspace `tsx` dependency when possible instead of duplicating it across
+   packages.
 
-4. Preserve package publishing behavior.
+5. Preserve package publishing behavior.
 
    Ensure publishable packages still build npm-compatible artifacts:
 
@@ -198,18 +262,75 @@ Out of scope:
    - copied WGSL/WASM assets where required
    - correct `exports`, `main`, and `types` fields
 
-5. Update deployment and Docker paths.
+   The intended package model is `dist`-main for publishable packages, not
+   source-TS main. Docker and production builds must account for that.
+
+6. Update deployment and Docker paths.
 
    If Docker or deploy scripts still install or run with Bun, switch them to the
    pnpm/Node flow. The production build must still build workspace packages
    before the webapp build when needed.
 
-6. Update docs.
+   Pin the Docker build order:
+
+   ```dockerfile
+   RUN pnpm --filter @keypears/client --filter @keypears/pow5 run build
+   RUN pnpm --filter @keypears/webapp run build
+   ```
+
+   The webapp runtime should use Nitro output:
+
+   ```bash
+   node .output/server/index.mjs
+   ```
+
+7. Update docs.
 
    Replace Bun commands and runtime references in contributor/self-hosting docs
    with pnpm/Node commands. Historical mentions inside issue documents can stay.
 
-7. Verify with pnpm.
+   Explicitly audit/update:
+
+   - `README.md`
+   - `AGENTS.md`
+   - `CLAUDE.md`
+   - `webapp/src/docs/development.md`
+   - `webapp/src/docs/self-hosting.md`
+   - `infra/README.md` if it exists or if infra docs mention Bun
+
+8. Verify incrementally.
+
+   After workspace and root script restoration:
+
+   ```bash
+   pnpm install
+   pnpm install --frozen-lockfile
+   pnpm --filter @keypears/pow5 test
+   ```
+
+   If the PoW test fails, stop immediately.
+
+   After package script/build restoration:
+
+   ```bash
+   pnpm --filter @keypears/pow5 build
+   pnpm --filter @keypears/pow5 typecheck
+   pnpm --filter @keypears/client build
+   pnpm --filter @keypears/client typecheck
+   pnpm --filter @keypears/webapp typecheck
+   pnpm --filter @keypears/webapp test
+   ```
+
+   After Docker/deploy restoration:
+
+   ```bash
+   pnpm --filter @keypears/webapp build
+   ```
+
+   Also build the Docker image locally if Docker is available. Confirm the image
+   uses pnpm/Node/Nitro and not Bun.
+
+9. Verify with pnpm.
 
    Required checks after migration:
 
@@ -229,17 +350,24 @@ Out of scope:
    pnpm --filter @keypears/client build
    ```
 
-8. Audit for remaining Bun surface.
+10. Audit for remaining Bun surface.
 
    Run:
 
    ```bash
    rg -n "\bbun\b|Bun|bunx|bun\.lock" \
-     package.json pnpm-workspace.yaml README.md infra webapp packages passapples lockberries
+     package.json pnpm-workspace.yaml README.md AGENTS.md CLAUDE.md infra \
+     webapp packages passapples lockberries
    ```
 
    Any remaining matches must be either removed or explicitly justified as
    historical/non-runtime text.
+
+   If Nitro is the runtime, also confirm no intermediate bridge file is restored:
+
+   ```bash
+   rg -n "start-node|Bun\\.serve|bun:" webapp infra package.json
+   ```
 
 ### Expected Result
 
