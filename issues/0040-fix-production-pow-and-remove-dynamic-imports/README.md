@@ -326,3 +326,77 @@ but it will no longer present false completion progress or hide indefinite PoW
 searches. The next production run should reveal whether the issue is excessive
 zero-result batches, non-zero candidates that fail target comparison, malformed
 challenge data, or a submit/verification path after a solution is found.
+
+## Experiment 4: Restore Vite Raw WGSL Loading
+
+### Hypothesis
+
+Production PoW broke when `@keypears/pow5` stopped loading WGSL through Vite's
+known-working `?raw` import path and started loading generated
+`*-wgsl-code.ts` string modules for npm publishing. The app should prioritize
+the working Vite path over package portability.
+
+The production diagnostics from Experiment 3 showed:
+
+```json
+{
+  "batchCount": 4280,
+  "hashCount": 140247040,
+  "zeroResultBatches": 4280,
+  "nonZeroResultBatches": 0,
+  "expectedBatches": 214,
+  "overrunLimit": 4280,
+  "targetPrefix": "000002659116f56b",
+  "difficulty": 7000000
+}
+```
+
+The GPU miner is running, but the shader never writes a winning result. The
+most suspicious recent change in that exact path is the replacement of:
+
+```ts
+import wgslCode from "./pow5-64b.wgsl?raw";
+```
+
+with:
+
+```ts
+import wgslCode from "./pow5-64b-wgsl-code.ts";
+```
+
+### Plan
+
+1. Revert the WGSL imports back to Vite raw source loading.
+   - Change `packages/pow5-ts/src/pow5-64b-wgsl.ts` to import
+     `./pow5-64b.wgsl?raw`.
+   - Change `packages/pow5-ts/src/pow5-217a-wgsl.ts` to import
+     `./pow5-217a.wgsl?raw`.
+
+2. Stop using generated WGSL string modules for the app path.
+   - Do not run or depend on `build-wgsl-modules.ts` for the webapp build.
+   - It is acceptable if npm publishing becomes less portable; production login
+     is the priority.
+
+3. Keep the existing browser PoW diagnostics temporarily.
+   - They verify whether the raw WGSL path restores non-zero or successful
+     result batches in production.
+   - Remove or reduce them only after login is confirmed stable.
+
+4. Verify locally.
+   - Run `pnpm --filter @keypears/webapp run typecheck`.
+   - Run `pnpm --filter @keypears/webapp run test`.
+   - Run `pnpm --filter @keypears/webapp run build`.
+   - Serve the local production build against dev env and confirm login still
+     works.
+
+5. Deploy and verify production login.
+   - Expected production behavior is that the miner finds a solution in roughly
+     the expected number of batches for 7M difficulty.
+   - If production still shows all-zero result batches, the generated WGSL
+     module was not the root cause.
+
+### Expected Result
+
+Production returns to the same Vite WGSL ingestion path used before the npm
+publishing change. If the generated WGSL string module caused the break,
+production login PoW should complete again.
