@@ -4,13 +4,8 @@ import { eq } from "drizzle-orm";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
 import { newId, hashToken } from "./utils";
-import { parseAddress, getApiDomain } from "~/lib/config";
-import {
-  federationApiUrl,
-  federationWellKnownUrl,
-  validateFederationAuthority,
-  type FederationAuthority,
-} from "~/lib/federation-authority";
+import { parseAddress, apiUrlFromDomain, getApiDomain } from "~/lib/config";
+import { safeFetch } from "./fetch";
 import { isLocalDomain } from "./user.server";
 import {
   createKeypearsClientFromUrl,
@@ -29,56 +24,38 @@ const keypearsJsonCache = new Map<
 >();
 
 export async function fetchKeypearsJson(domain: string): Promise<KeypearsJson> {
-  const authority = validateFederationAuthority(domain);
-  const cached = keypearsJsonCache.get(authority);
+  const cached = keypearsJsonCache.get(domain);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.data;
   }
 
-  const response = await fetch(federationWellKnownUrl(authority), {
-    signal: AbortSignal.timeout(5_000),
-    redirect: "error",
-  });
+  // Use safeFetch for server-side (handles TLS, timeouts, etc.)
+  const url = `https://${domain}/.well-known/keypears.json`;
+  const response = await safeFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch keypears.json from ${domain}`);
   }
-  const text = await response.text();
-  if (text.length > 64_000) {
-    throw new Error(`keypears.json from ${domain} is too large`);
-  }
   const { z } = await import("zod");
-  const parsed = z
+  const data = z
     .object({ apiDomain: z.string().optional(), admin: z.string().optional() })
-    .parse(JSON.parse(text));
-  const data: KeypearsJson = {
-    ...parsed,
-    apiDomain: parsed.apiDomain
-      ? validateFederationAuthority(parsed.apiDomain)
-      : undefined,
-  };
-  keypearsJsonCache.set(authority, { data, fetchedAt: Date.now() });
+    .parse(await response.json());
+  keypearsJsonCache.set(domain, { data, fetchedAt: Date.now() });
   return data;
 }
 
-async function resolveApiAuthority(
-  domain: string,
-): Promise<FederationAuthority> {
-  if (await isLocalDomain(domain)) {
-    return validateFederationAuthority(getApiDomain());
-  }
+export async function resolveApiUrl(domain: string): Promise<string> {
+  if (await isLocalDomain(domain)) return apiUrlFromDomain(getApiDomain());
 
   const json = await fetchKeypearsJson(domain);
   if (!json.apiDomain) {
     throw new Error(`Invalid keypears.json from ${domain}: missing apiDomain`);
   }
-  return validateFederationAuthority(json.apiDomain);
+  return apiUrlFromDomain(json.apiDomain);
 }
 
-export async function resolveApiUrl(domain: string): Promise<string> {
-  return federationApiUrl(await resolveApiAuthority(domain));
-}
+// --- oRPC client for remote servers ---
 
-export async function getRemoteClient(domain: string): Promise<KeypearsClient> {
+async function getRemoteClient(domain: string): Promise<KeypearsClient> {
   const apiUrl = await resolveApiUrl(domain);
   return createKeypearsClientFromUrl(apiUrl);
 }
@@ -104,7 +81,7 @@ export async function verifyDomainAdmin(
   if (!json.apiDomain) {
     return { valid: false, message: "Missing apiDomain in keypears.json" };
   }
-  if (json.apiDomain !== validateFederationAuthority(getApiDomain())) {
+  if (json.apiDomain !== getApiDomain()) {
     return {
       valid: false,
       message: `apiDomain "${json.apiDomain}" does not match this server`,
@@ -128,7 +105,9 @@ export async function verifyDomainAdmin(
 // of addresses it hosts. This is the protocol trust boundary, not a
 // transparency-backed key directory.
 
-export async function fetchRemotePublicKey(address: string): Promise<{
+export async function fetchRemotePublicKey(
+  address: string,
+): Promise<{
   ed25519PublicKey: string;
   x25519PublicKey: string;
   signingPublicKey: string;
@@ -140,14 +119,7 @@ export async function fetchRemotePublicKey(address: string): Promise<{
 
   const client = await getRemoteClient(parsed.domain);
   const result = await client.getPublicKey({ address });
-  if (
-    !result.signingPublicKey ||
-    !result.encapPublicKey ||
-    !result.ed25519PublicKey ||
-    !result.x25519PublicKey ||
-    result.keyNumber == null
-  )
-    return null;
+  if (!result.signingPublicKey || !result.encapPublicKey || !result.ed25519PublicKey || !result.x25519PublicKey || result.keyNumber == null) return null;
   return {
     ed25519PublicKey: result.ed25519PublicKey,
     x25519PublicKey: result.x25519PublicKey,

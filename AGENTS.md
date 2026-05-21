@@ -191,11 +191,6 @@ lockberries.test           → lockberries/ port 3520 (Astro landing, third-part
 
 ## Key conventions
 
-- Do not make code, config, documentation, git, dependency, database, or other
-  workspace changes unless the user explicitly asks for a change. A statement,
-  question, complaint, observation, or request for explanation is not a request
-  to modify files or run mutating commands. In those cases, answer or analyze
-  only.
 - Server functions follow the two-file pattern:
   - `*.functions.ts` — `createServerFn` wrappers, safe to import from client
   - `*.server.ts` — DB/crypto logic, only imported inside handler bodies

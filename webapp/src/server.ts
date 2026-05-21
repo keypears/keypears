@@ -5,7 +5,6 @@ import {
 import { RPCHandler } from "@orpc/server/fetch";
 import { apiRouter } from "./server/api.router";
 import { getAdminAddress, getApiDomain } from "./lib/config";
-import { validateFederationAuthority } from "./lib/federation-authority";
 
 const handler = createStartHandler(defaultStreamHandler);
 const rpcHandler = new RPCHandler(apiRouter);
@@ -23,9 +22,7 @@ export default {
     }
 
     if (url.pathname === "/.well-known/keypears.json") {
-      const json: Record<string, string> = {
-        apiDomain: validateFederationAuthority(getApiDomain()),
-      };
+      const json: Record<string, string> = { apiDomain: getApiDomain() };
       const admin = getAdminAddress();
       if (admin) json.admin = admin;
       return Response.json(json);

@@ -8,7 +8,6 @@
 
 | #                                              | Title                                      | Opened     | Closed     |
 | ---------------------------------------------- | ------------------------------------------ | ---------- | ---------- |
-| [0041](0041-restore-pnpm-and-ssrf-hardening/README.md) | Restore pnpm/Node and SSRF Hardening       | 2026-05-20 | 2026-05-20 |
 | [0039](0039-federation-ssrf-hardening/README.md) | Federation SSRF Hardening                  | 2026-05-17 | 2026-05-17 |
 | [0038](0038-agents-compliance-fixes/README.md)  | AGENTS Compliance Fixes (Deferred)         | 2026-05-16 | 2026-05-17 |
 | [0037](0037-type-safe-navigation/README.md)    | Type-Safe Navigation                       | 2026-05-16 | 2026-05-16 |

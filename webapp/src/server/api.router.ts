@@ -1,7 +1,7 @@
 import { implement } from "@orpc/server";
-import { contract } from "@keypears/client";
+import { contract, createKeypearsClientFromUrl } from "@keypears/client";
 import { verifyMessageSignature } from "~/lib/message";
-import { fetchRemotePublicKey, getRemoteClient } from "./federation.server";
+import { fetchRemotePublicKey } from "./federation.server";
 import { sigEd25519MldsaVerify } from "@webbuf/sig-ed25519-mldsa";
 import { FixedBuf } from "@webbuf/fixedbuf";
 import { WebBuf } from "@webbuf/webbuf";
@@ -25,6 +25,7 @@ import {
 } from "./pow.server";
 import { channelExists, messageExists } from "./message.server";
 import { verifyAndConsumePow } from "./pow.consume";
+import { resolveApiUrl } from "./federation.server";
 
 // --- oRPC Router (implements @keypears/client contract) ---
 
@@ -38,13 +39,7 @@ const serverInfo = os.serverInfo.handler(async () => {
 
 const getPublicKey = os.getPublicKey.handler(async ({ input }) => {
   const parsed = parseAddress(input.address);
-  const nullResult = {
-    ed25519PublicKey: null,
-    x25519PublicKey: null,
-    signingPublicKey: null,
-    encapPublicKey: null,
-    keyNumber: null,
-  };
+  const nullResult = { ed25519PublicKey: null, x25519PublicKey: null, signingPublicKey: null, encapPublicKey: null, keyNumber: null };
   if (!parsed) return nullResult;
   const domain = await getDomainByName(parsed.domain);
   if (!domain) return nullResult;
@@ -72,7 +67,8 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     // server. KeyPears intentionally trusts hosted servers for current keys.
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
-    const remoteClient = await getRemoteClient(senderParsed.domain);
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
     const senderKeyResult = await remoteClient.getPublicKey({
       address: input.senderAddress,
     });
@@ -89,9 +85,7 @@ const getPowChallengeEndpoint = os.getPowChallenge.handler(
     // Verify the composite Ed25519 + ML-DSA-65 signature
     const ed25519Pub = FixedBuf.fromHex(32, input.senderEd25519PubKey);
     const verifyingKey = FixedBuf.fromHex(1952, input.senderMldsaPubKey);
-    const message = WebBuf.fromUtf8(
-      `${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`,
-    );
+    const message = WebBuf.fromUtf8(`${input.senderAddress}:${input.recipientAddress}:${input.timestamp}`);
     const sig = FixedBuf.fromHex(3374, input.signature);
     const ok = sigEd25519MldsaVerify(ed25519Pub, verifyingKey, message, sig);
     if (!ok) {
@@ -161,9 +155,10 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     // Resolve the sender's API URL from their domain (verified via TLS)
     const senderParsed = parseAddress(input.senderAddress);
     if (!senderParsed) throw new Error("Invalid sender address");
+    const senderApiUrl = await resolveApiUrl(senderParsed.domain);
 
     // Pull the message from the sender's server via oRPC
-    const remoteClient = await getRemoteClient(senderParsed.domain);
+    const remoteClient = createKeypearsClientFromUrl(senderApiUrl);
     const messageData = await remoteClient.pullMessage({
       token: input.pullToken,
     });
@@ -180,19 +175,11 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
     const senderEncryptedContentBuf = WebBuf.fromHex(
       messageData.senderEncryptedContent,
     );
-    const senderEd25519PubKeyBuf = WebBuf.fromHex(
-      messageData.senderEd25519PubKey,
-    );
-    const senderX25519PubKeyBuf = WebBuf.fromHex(
-      messageData.senderX25519PubKey,
-    );
+    const senderEd25519PubKeyBuf = WebBuf.fromHex(messageData.senderEd25519PubKey);
+    const senderX25519PubKeyBuf = WebBuf.fromHex(messageData.senderX25519PubKey);
     const senderMldsaPubKeyBuf = WebBuf.fromHex(messageData.senderMldsaPubKey);
-    const recipientX25519PubKeyBuf = WebBuf.fromHex(
-      messageData.recipientX25519PubKey,
-    );
-    const recipientMlkemPubKeyBuf = WebBuf.fromHex(
-      messageData.recipientMlkemPubKey,
-    );
+    const recipientX25519PubKeyBuf = WebBuf.fromHex(messageData.recipientX25519PubKey);
+    const recipientMlkemPubKeyBuf = WebBuf.fromHex(messageData.recipientMlkemPubKey);
     const senderSignatureBuf = WebBuf.fromHex(messageData.senderSignature);
 
     // Verify sender signature over the message envelope
@@ -219,33 +206,20 @@ const notifyMessageHandler = os.notifyMessage.handler(async ({ input }) => {
       throw new Error("senderMldsaPubKey does not match federated signing key");
     }
     if (senderKeys.ed25519PublicKey !== messageData.senderEd25519PubKey) {
-      throw new Error(
-        "senderEd25519PubKey does not match federated ed25519 key",
-      );
+      throw new Error("senderEd25519PubKey does not match federated ed25519 key");
     }
     if (senderKeys.x25519PublicKey !== messageData.senderX25519PubKey) {
       throw new Error("senderX25519PubKey does not match federated x25519 key");
     }
 
     // Verify recipient keys match a retained key set (by keyNumber)
-    const recipientKey = await getKeyByNumber(
-      recipientUser.id,
-      messageData.recipientKeyNumber,
-    );
+    const recipientKey = await getKeyByNumber(recipientUser.id, messageData.recipientKeyNumber);
     if (!recipientKey) throw new Error("Recipient key not found for keyNumber");
-    if (
-      recipientKey.encapPublicKey.toHex() !== messageData.recipientMlkemPubKey
-    ) {
-      throw new Error(
-        "recipientMlkemPubKey does not match recipient's encap key",
-      );
+    if (recipientKey.encapPublicKey.toHex() !== messageData.recipientMlkemPubKey) {
+      throw new Error("recipientMlkemPubKey does not match recipient's encap key");
     }
-    if (
-      recipientKey.x25519PublicKey.toHex() !== messageData.recipientX25519PubKey
-    ) {
-      throw new Error(
-        "recipientX25519PubKey does not match recipient's x25519 key",
-      );
+    if (recipientKey.x25519PublicKey.toHex() !== messageData.recipientX25519PubKey) {
+      throw new Error("recipientX25519PubKey does not match recipient's x25519 key");
     }
 
     // Store in recipient's channel (idempotent: skip if duplicate)

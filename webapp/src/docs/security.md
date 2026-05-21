@@ -140,20 +140,18 @@ be found.
 
 ## Server-side request forgery
 
-The server makes outbound HTTPS requests during federation for remote
-`keypears.json` discovery and remote oRPC calls. Federation does not accept
-arbitrary URLs from remote domains. It validates federation authorities as DNS
-hostnames, rejects schemes, ports, paths, query strings, fragments, userinfo,
-localhost names, IP literals, and non-ASCII hostnames that are not already
-written in punycode form, then constructs the HTTPS URLs itself:
+The server makes outbound HTTPS requests during federation (fetching
+`keypears.json` from remote domains). These requests are mediated by a
+`safeFetch` wrapper that:
 
-- `https://{domain}/.well-known/keypears.json`
-- `https://{domain}/api`
-
-The actual network request uses normal platform HTTPS behavior: DNS resolution,
-TLS certificate validation, SNI, and the HTTP `Host` header. Remote oRPC calls
-use the normal oRPC fetch path. The `keypears.json` discovery request uses a
-5-second timeout, rejects redirects, and caps the response body size.
+- Resolves DNS before each request and rejects private IP ranges
+  (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`,
+  `169.254.0.0/16`, `0.0.0.0/8`).
+- Enforces a 5-second timeout.
+- Limits response size to 1 MB.
+- Rejects HTTP redirects entirely (`redirect: "error"`). This prevents an
+  attacker-controlled domain from redirecting federation lookups to internal
+  services such as the AWS instance metadata endpoint.
 
 ## Rate limiting
 
