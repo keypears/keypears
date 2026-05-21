@@ -1,18 +1,18 @@
 /**
- * Node-side crypto benchmark.
+ * Bun-side crypto benchmark.
  *
  * Usage (from packages/crypto-bench):
- *   pnpm run bench:node
+ *   bun src/bench-node.ts
  *
- * Compares @webbuf/* (WASM) against Node's crypto.subtle (native) for the
+ * Compares @webbuf/* (WASM) against Bun's crypto.subtle (native) for the
  * eight cases defined in cases.ts.
  */
 
 import { bench, formatComparison } from "./bench-util";
 import { CASES, initAllKeys } from "./cases";
 
-console.log("=== KeyPears Crypto Bench (server / Node) ===");
-console.log(`Node ${process.version}`);
+console.log("=== KeyPears Crypto Bench (server / Bun) ===");
+console.log(`Bun ${Bun.version}`);
 console.log(`Platform: ${process.platform} ${process.arch}`);
 console.log();
 

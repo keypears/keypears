@@ -2,17 +2,8 @@
   "name": "@keypears/pow5",
   "version": "1.0.0",
   "description": "KeyPears Proof-of-Work (PoW) Algorithm",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "type": "module",
   "scripts": {
     "clean": "rimraf dist",
@@ -23,10 +14,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "sync:from-rust": "cp -r ../pow5-rs/build/bundler/* src/rs-keypears_pow5-bundler/",
-    "build": "pnpm run clean && pnpm run build:wasm && pnpm run build:typescript && pnpm run build:cp-assets",
-    "build:cp-assets": "pnpm run build:cp-wgsl && pnpm run build:cp-wasm",
+    "build": "pnpm run build:wasm && pnpm run build:cp-wgsl && pnpm run build:typescript",
     "build:cp-wgsl": "mkdir -p dist && cp src/*.wgsl dist/",
-    "build:cp-wasm": "mkdir -p dist/rs-keypears_pow5-inline-base64 && cp src/rs-keypears_pow5-inline-base64/* dist/rs-keypears_pow5-inline-base64/",
     "build:bundler-to-inline-base64": "cp -r src/rs-keypears_pow5-bundler/* src/rs-keypears_pow5-inline-base64/",
     "build:inline-wasm": "tsx build-inline-wasm.ts",
     "build:wasm": "pnpm run build:bundler-to-inline-base64 && pnpm run build:inline-wasm",
@@ -42,14 +31,6 @@
   ],
   "author": "",
   "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/keypears/keypears.git",
-    "directory": "packages/pow5-ts"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/browser-chromium": "^1.60.0",
