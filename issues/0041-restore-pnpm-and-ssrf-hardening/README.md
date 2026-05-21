@@ -1,7 +1,6 @@
 +++
-status = "closed"
+status = "open"
 opened = "2026-05-20"
-closed = "2026-05-20"
 +++
 
 # Issue 41: Restore pnpm/Node and SSRF Hardening
@@ -127,8 +126,8 @@ public-domain federation.
 ### Hypothesis
 
 The workspace can be moved back from Bun-first tooling to pnpm/Node without
-changing application behavior and without regressing the latest-Chromium PoW
-fix from issue 40.
+changing application behavior and without regressing the latest-Chromium PoW fix
+from issue 40.
 
 This should be done before SSRF restoration because package manager/runtime
 changes affect every verification command and deployment path. Once pnpm is
@@ -367,22 +366,22 @@ Out of scope:
 
 10. Audit for remaining Bun surface.
 
-   Run:
+Run:
 
-   ```bash
-   rg -n "\bbun\b|Bun|bunx|bun\.lock" \
-     package.json pnpm-workspace.yaml README.md AGENTS.md CLAUDE.md infra \
-     webapp packages passapples lockberries
-   ```
+```bash
+rg -n "\bbun\b|Bun|bunx|bun\.lock" \
+  package.json pnpm-workspace.yaml README.md AGENTS.md CLAUDE.md infra \
+  webapp packages passapples lockberries
+```
 
-   Any remaining matches must be either removed or explicitly justified as
-   historical/non-runtime text.
+Any remaining matches must be either removed or explicitly justified as
+historical/non-runtime text.
 
-   If Nitro is the runtime, also confirm no intermediate bridge file is restored:
+If Nitro is the runtime, also confirm no intermediate bridge file is restored:
 
-   ```bash
-   rg -n "start-node|Bun\\.serve|bun:" webapp infra package.json
-   ```
+```bash
+rg -n "start-node|Bun\\.serve|bun:" webapp infra package.json
+```
 
 ### Expected Result
 
@@ -409,8 +408,8 @@ The repo is pnpm/Node-first again:
 
 - added `pnpm-workspace.yaml` and `pnpm-lock.yaml`
 - removed committed Bun lockfiles
-- converted root, webapp, benchmark, package, Docker, and docs commands from
-  Bun to pnpm/Node
+- converted root, webapp, benchmark, package, Docker, and docs commands from Bun
+  to pnpm/Node
 - restored Nitro as the production server runtime
 - removed the Bun custom server entrypoint
 - restored npm-compatible `dist` package output for `@keypears/client` and
@@ -435,8 +434,8 @@ pnpm --filter @keypears/webapp build
 docker build -f webapp/Dockerfile -t keypears:pnpm-node-check .
 ```
 
-Additional server-entry smoke tests passed after restoring the
-Nitro-compatible request entry:
+Additional server-entry smoke tests passed after restoring the Nitro-compatible
+request entry:
 
 ```bash
 curl -fsS http://localhost:4274/health
@@ -450,8 +449,7 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
 Results:
 
 - `/health` returned `ok`
-- `/.well-known/keypears.json` returned
-  `{"apiDomain":"keypears.test"}`
+- `/.well-known/keypears.json` returned `{"apiDomain":"keypears.test"}`
 - `/api/serverInfo` returned HTTP `200`
 
 The Bun surface audit is clean for active tooling. The only remaining matches
@@ -469,12 +467,12 @@ auditable change with two parts:
    federation domain must use the same protected fetch path
 2. that protected fetch path must close the current DNS check/fetch gap
 
-Today `fetchKeypearsJson(domain)` uses `safeFetch()`, but the remote oRPC
-client path created from discovered `apiDomain` values uses normal
-`RPCLink`/`fetch`. That means a hostile `keypears.json` can move the second hop
-to an unintended host. Also, the current `safeFetch()` resolves DNS, checks the
-answer, and then calls normal `fetch(url)`, which performs its own lookup. The
-check and the actual connection can diverge.
+Today `fetchKeypearsJson(domain)` uses `safeFetch()`, but the remote oRPC client
+path created from discovered `apiDomain` values uses normal `RPCLink`/`fetch`.
+That means a hostile `keypears.json` can move the second hop to an unintended
+host. Also, the current `safeFetch()` resolves DNS, checks the answer, and then
+calls normal `fetch(url)`, which performs its own lookup. The check and the
+actual connection can diverge.
 
 If we centralize all federation HTTP through a stronger `safeFetch()`, the
 remaining policy is simple: KeyPears federation may call HTTPS DNS hostnames,
@@ -571,8 +569,8 @@ Out of scope:
    - preserve response-size limits, with a configurable cap for small
      `keypears.json` responses and larger oRPC responses
 
-   This can be implemented with Node HTTPS/Undici primitives if normal
-   `fetch()` cannot pin the resolved address safely.
+   This can be implemented with Node HTTPS/Undici primitives if normal `fetch()`
+   cannot pin the resolved address safely.
 
    Request bodies can be buffered in memory before forwarding to the pinned
    HTTPS request. Current federation oRPC payloads are small enough for that
@@ -582,12 +580,12 @@ Out of scope:
 
    Add a server-only federation client factory in `webapp/src/server`, rather
    than changing the public `@keypears/client` API unless that is clearly
-   necessary. The factory should create the oRPC `RPCLink` with a custom
-   `fetch` implementation backed by `safeFetch()`.
+   necessary. The factory should create the oRPC `RPCLink` with a custom `fetch`
+   implementation backed by `safeFetch()`.
 
    Replace server-side federation uses of `createKeypearsClientFromUrl()` with
-   this factory. The public package client can continue to use normal browser
-   or app-level fetch behavior.
+   this factory. The public package client can continue to use normal browser or
+   app-level fetch behavior.
 
 4. Validate authority values before interpolation.
 
@@ -625,8 +623,7 @@ Out of scope:
    The manual dev flows to check are:
 
    - claim `keypears.passapples.test` from `keypears.test`
-   - send a message from `alice@keypears.test` to
-     `bob@keypears.passapples.test`
+   - send a message from `alice@keypears.test` to `bob@keypears.passapples.test`
    - log in as a user on the cross-instance local domain
 
    If a dev exception is later approved, the only acceptable shape is an
@@ -636,8 +633,8 @@ Out of scope:
    KEYPEARS_DEV_LOOPBACK_AUTHORITIES=keypears.test,keypears.passapples.test
    ```
 
-   Do not use `NODE_ENV`, do not use a blanket `.test` TLD rule, and do not
-   make the allowlist implicit.
+   Do not use `NODE_ENV`, do not use a blanket `.test` TLD rule, and do not make
+   the allowlist implicit.
 
 6. Add tests.
 
@@ -656,8 +653,8 @@ Out of scope:
    - remote oRPC federation calls use the protected path
    - direct server-side `createKeypearsClientFromUrl()` use is gone from
      federation code
-   - the in-memory `keypearsJsonCache` is keyed by normalized authority and
-     does not survive process restart
+   - the in-memory `keypearsJsonCache` is keyed by normalized authority and does
+     not survive process restart
 
 7. Update docs.
 
@@ -708,11 +705,11 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
 ### Success Criteria
 
 - All third-party-controlled federation hosts go through `safeFetch()`.
-- `safeFetch()` no longer has a DNS precheck followed by an independent
-  hostname fetch.
+- `safeFetch()` no longer has a DNS precheck followed by an independent hostname
+  fetch.
 - Federation still works for valid public HTTPS domains.
-- Local development still works, or implementation stops with a concrete
-  report before adding a dev-only exception.
+- Local development still works, or implementation stops with a concrete report
+  before adding a dev-only exception.
 - Tests prove the dangerous authority and DNS cases are rejected.
 - Security docs match the implementation.
 
@@ -766,8 +763,8 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
 
 Audit results:
 
-- `RPCLink` appears only in `webapp/src/server/federation.server.ts`, inside
-  the protected federation client factory.
+- `RPCLink` appears only in `webapp/src/server/federation.server.ts`, inside the
+  protected federation client factory.
 - No server-side raw `fetch(` calls remain in `webapp/src/server`.
 - No `nodeEnv`, `isDevTestAuthority`, or old `safeFetch` references remain in
   `webapp/src/server` or `webapp/src/lib`.
@@ -784,9 +781,8 @@ warnings; those are unchanged by this experiment.
 
 The pinned-resolution `safeFederationFetch()` approach is too complex for
 KeyPears and breaks the local development topology. KeyPears federation already
-uses HTTPS domain names, so the application should rely on normal platform
-HTTPS behavior: DNS resolution, TLS validation, SNI, and the HTTP `Host`
-header.
+uses HTTPS domain names, so the application should rely on normal platform HTTPS
+behavior: DNS resolution, TLS validation, SNI, and the HTTP `Host` header.
 
 The security boundary should be simple:
 
@@ -814,12 +810,12 @@ The security boundary should be simple:
 
 3. Keep simple authority validation.
 
-   - Keep or simplify `FederationAuthority` so `apiDomain` cannot be a full
-     URL, path, query string, userinfo, or malformed host.
+   - Keep or simplify `FederationAuthority` so `apiDomain` cannot be a full URL,
+     path, query string, userinfo, or malformed host.
    - Allow normal DNS names, including `.test`.
    - Do not reject loopback/private DNS answers.
-   - Decide during implementation whether non-443 HTTPS ports should be
-     allowed for dev and self-hosting.
+   - Decide during implementation whether non-443 HTTPS ports should be allowed
+     for dev and self-hosting.
 
 4. Restore local dev federation.
 
@@ -878,8 +874,8 @@ The pinned federation fetch implementation was removed from active code:
 - updated the security docs to describe normal HTTPS DNS/TLS/SNI/Host behavior
 
 The active code no longer has `safeFetch`, `safeFederationFetch`,
-private-address DNS blocking, DNS pinning, or custom `https.request`
-federation transport.
+private-address DNS blocking, DNS pinning, or custom `https.request` federation
+transport.
 
 Verification passed:
 
@@ -896,29 +892,115 @@ curl -fsS -o /tmp/keypears-api-smoke.txt -w '%{http_code}' \
   --data '{}'
 ```
 
-The audit grep returned no active-code matches.
-The smoke tests returned `ok`, `{"apiDomain":"keypears.test"}`, and HTTP
-`200`.
+The audit grep returned no active-code matches. The smoke tests returned `ok`,
+`{"apiDomain":"keypears.test"}`, and HTTP `200`.
 
-## Conclusion
+## Experiment 4: Restore Static PoW Imports
 
-Issue 41 restored the pnpm/Node workspace and npm-compatible package build
-setup after the production PoW rollback. The active toolchain now uses pnpm
-workspace commands, Node/Nitro for the production webapp runtime, committed
-`pnpm-workspace.yaml` and `pnpm-lock.yaml`, JavaScript plus `.d.ts` package
-build outputs, and Docker build steps that build workspace packages before the
-webapp.
+### Hypothesis
 
-The SSRF hardening track was intentionally closed as a non-issue for the
-current protocol. The active federation code no longer uses pinned DNS,
-private-address DNS blocking, `safeFetch`, `safeFederationFetch`, or a custom
-`https.request` transport. Federation keeps the simpler policy chosen here:
-validate federation authorities as DNS hostnames, reject full URLs, ports,
-paths, query strings, fragments, userinfo, localhost names, IP literals, and
-non-ASCII hostnames outside punycode form, then construct normal HTTPS URLs and
-rely on standard DNS, TLS, SNI, and Host behavior.
+Issue 41 accidentally restored the pre-issue-40 browser PoW dependency shape:
+`use-pow-miner.ts` dynamically imports `@keypears/pow5` and
+`@webbuf/fixedbuf`. In production, Vite rewrites the `@webbuf/fixedbuf`
+dynamic import to a generated app chunk that does not expose a runtime
+`FixedBuf` property, so `FixedBuf` is `undefined` and
+`FixedBuf.fromHex(...)` throws before mining starts.
 
-Local `.test` federation works again under the normal development DNS setup.
-The retained verification for this issue is the pnpm webapp typecheck, test,
-build, active-code grep for removed safe-fetch machinery, and Nitro endpoint
-smoke tests for `/health`, `/.well-known/keypears.json`, and `/api/serverInfo`.
+Restoring the issue 40 static import boundary should fix production PoW without
+changing the PoW algorithm, challenge format, difficulty, or verification
+semantics. The regression guard from issue 40 should also be restored so
+tooling or federation restoration cannot silently reintroduce app dynamic
+imports.
+
+### Scope
+
+In scope:
+
+- restore static browser PoW imports in `webapp/src/lib/use-pow-miner.ts`
+- restore the WASM-free browser PoW entry point if it was removed by the
+  tooling restore
+- restore JavaScript nonce insertion in the browser miner so solving does not
+  require the WASM wrapper
+- restore the visible PoW error state if it was lost
+- restore the no-application-dynamic-imports test from issue 40
+- remove remaining app dynamic imports or move code behind explicit server-only
+  static imports
+- inspect the production bundle to confirm `PowModal` no longer dynamically
+  imports `@webbuf/fixedbuf`
+
+Out of scope:
+
+- changing PoW outputs, difficulty, challenge format, or server verification
+- redesigning the miner loop or WebGPU WGSL
+- loosening production CSP
+- reopening federation transport decisions from Experiment 3
+
+### Plan
+
+1. Reapply the issue 40 import model.
+
+   Use the issue 40 final state as the source of truth, then adapt to the
+   current pnpm/Node tree:
+
+   - statically import `FixedBuf` from `@webbuf/fixedbuf`
+   - statically import `Pow5_64b_Wgsl` and `hashMeetsTarget` from the
+     WASM-free `@keypears/pow5/wgsl` entry point
+   - do not import `Pow5_64b_Wasm` in browser mining
+   - use local JavaScript `insertNonce64b()` to construct the solved header
+
+2. Restore package exports needed by the static browser path.
+
+   If `@keypears/pow5/wgsl` is missing after the pnpm restoration, restore that
+   subpath so browser mining can import only the WGSL implementation and shared
+   difficulty helpers without eagerly pulling in the inline WASM wrapper.
+
+3. Restore user-visible failure behavior.
+
+   Keep `PowModal` from swallowing mining failures. If mining cannot start, the
+   modal should show a clear error state and the console should include the
+   original thrown error.
+
+4. Restore and run the dynamic import guard.
+
+   Re-add `webapp/src/no-dynamic-imports.test.ts` from issue 40, then remove or
+   statically replace every `import(` match in application source. Server-only
+   code that previously used dynamic imports should use static imports behind
+   the existing `*.server.ts` / server-function boundaries instead of relying on
+   runtime module loading.
+
+5. Inspect the production output.
+
+   After a production build, inspect the generated `PowModal` asset and verify:
+
+   - it does not contain `import(` for `@webbuf/fixedbuf`
+   - it does not destructure `{ FixedBuf }` from a generated runtime chunk
+   - `FixedBuf.fromHex` is reached through a static bundle binding
+
+### Verification
+
+```bash
+pnpm --filter @keypears/pow5 run build
+pnpm --filter @keypears/pow5 run test
+pnpm --filter @keypears/webapp run typecheck
+pnpm --filter @keypears/webapp run test
+pnpm --filter @keypears/webapp run build
+rg -n "import\\(" webapp/src packages/client/src packages/pow5-ts/src passapples lockberries
+rg -n "FixedBuf.*import|fromHex|@webbuf/fixedbuf" webapp/.output/public/assets/PowModal-*.js
+```
+
+Manual production smoke check:
+
+- deploy or run the production build
+- open login or account creation in a WebGPU-capable Chromium browser
+- complete PoW and confirm the modal reaches the solved state
+- confirm the console no longer logs
+  `Cannot read properties of undefined (reading 'fromHex')`
+
+### Success Criteria
+
+- Production PoW no longer fails with `FixedBuf.fromHex` undefined.
+- No application source dynamic imports remain.
+- The no-dynamic-imports guard fails if a future change reintroduces
+  `import(...)`.
+- The production `PowModal` bundle uses static PoW dependencies.
+- Existing issue 41 pnpm/Node and federation behavior remains intact.
