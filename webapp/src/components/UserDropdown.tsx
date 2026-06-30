@@ -60,7 +60,7 @@ export function UserDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="cursor-pointer rounded-full">
+        <button className="cursor-pointer rounded-full" aria-label="User menu">
           <CircleUser className="text-muted-foreground h-7 w-7" />
         </button>
       </DropdownMenuTrigger>

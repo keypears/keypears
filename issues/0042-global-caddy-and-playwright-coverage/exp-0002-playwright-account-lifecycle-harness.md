@@ -181,12 +181,149 @@ Questions:
 
 ## Result
 
-Pending.
+Pass.
+
+Implemented the first Playwright E2E harness for the primary KeyPears local
+domain:
+
+- added `@playwright/test` to `webapp`;
+- added root and webapp `e2e` scripts;
+- added `webapp/playwright.config.ts` targeting `https://keypears.test` through
+  Caddy;
+- configured Playwright `webServer` to start the E2E KeyPears server on port
+  `3500` with the E2E env file and `reuseExistingServer: false`;
+- set both browser-context and `webServer` `ignoreHTTPSErrors: true` for Caddy's
+  internal TLS CA;
+- added `webapp/.env.e2e` with non-production local settings and the dedicated
+  `keypears_e2e` database;
+- added E2E database creation/reset scripts, with `db:clear:e2e` using
+  `--force` so repeat runs are non-interactive;
+- added an E2E-only low-difficulty PoW challenge issuance override via
+  `KEYPEARS_E2E_POW_DIFFICULTY`;
+- kept `verifyPowSolution`, target verification, production PoW constants, and
+  production-enforced minimums unchanged;
+- added a Playwright WebGPU preflight and account lifecycle smoke test;
+- updated self-hosting docs to state that `KEYPEARS_E2E_POW_DIFFICULTY` must
+  not be set in production and that production deployments must run with
+  `NODE_ENV=production`;
+- added an accessible label to the user menu trigger so logout can be tested
+  through stable role selectors;
+- added generated-output ignores for review logs and Playwright artifacts.
+
+The passing browser/channel was Playwright-managed Chromium 148.0.7778.96
+(`chromium-webgpu`) with `--headless=new`, `--enable-unsafe-webgpu`, and
+`--use-angle=metal`.
+
+Verification run:
+
+```bash
+caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile
+bun run db:reset:e2e
+bun run e2e
+bun run typecheck
+bun run lint
+bunx prettier --check package.json src/components/UserDropdown.tsx src/server/pow.server.ts playwright.config.ts e2e/account-lifecycle.spec.ts e2e/helpers/account.ts scripts/create-e2e-db.ts ../issues/0042-global-caddy-and-playwright-coverage/README.md ../issues/0042-global-caddy-and-playwright-coverage/exp-0002-playwright-account-lifecycle-harness.md
+scripts/build-issues-index.sh
+```
+
+Observed results:
+
+- Caddy config validated successfully.
+- `bun run db:reset:e2e` created/cleared/pushed schema for `keypears_e2e`.
+- `bun run e2e` passed: 2 tests, including a WebGPU preflight that solves a
+  real account-creation PoW challenge and a create/logout/login account
+  lifecycle through `https://keypears.test`.
+- `bun run typecheck` passed.
+- `bun run lint` passed with four existing `no-map-spread` warnings in
+  unrelated server functions and no errors.
+- Touched-file Prettier check passed.
+- `scripts/build-issues-index.sh` reported `4 open, 38 closed`.
 
 ## Conclusion
 
-Pending.
+Experiment 2 established the reusable local E2E harness for KeyPears account
+lifecycle testing. The harness runs through shared Caddy HTTPS routing, owns the
+primary E2E server lifecycle on port `3500`, resets a dedicated `keypears_e2e`
+database, and exercises real browser WebGPU proof-of-work at low non-production
+challenge difficulty. The implementation did not add a PoW bypass and did not
+weaken production PoW verification, constants, or minimums. Production safety
+depends on production deployments running with `NODE_ENV=production`, now
+documented in self-hosting docs alongside the E2E-only difficulty variable.
 
 ## Completion Review
 
-Pending.
+External Claude review via:
+
+```bash
+git diff --staged | python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0002-playwright-account-lifecycle-harness.md \
+  "You are reviewing KeyPears work. Take a code-review stance: findings first, ordered by severity, with file/line references where possible.
+
+Task:
+Completion review for Issue 42 Experiment 2. Review the staged diff plus issue/experiment result language. The experiment implements the first Playwright E2E harness for account lifecycle over Caddy HTTPS with real WebGPU PoW at low non-production difficulty.
+
+Verification claimed and run:
+- caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile passed.
+- bun run db:reset:e2e passed and used keypears_e2e.
+- bun run e2e passed: 2 tests, WebGPU preflight and create/logout/login over https://keypears.test.
+- bun run typecheck passed.
+- bun run lint passed with four existing unrelated warnings and no errors.
+- touched-file Prettier check passed.
+- scripts/build-issues-index.sh passed.
+
+Questions:
+1. Does the implementation match the approved experiment design?
+2. Are there correctness, security, production-safety, workflow, or test reliability issues that must be fixed before committing the result?
+3. Is the experiment result/conclusion language accurate?
+4. If acceptable, say VERDICT: APPROVED."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-064612-426737-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-064612-426737-stdout.json`
+- Verdict: **Changes requested**
+- Required findings:
+  - the preflight did not itself solve a real challenge even though the design
+    required a real-solve preflight;
+  - production safety for `KEYPEARS_E2E_POW_DIFFICULTY` depended on
+    `NODE_ENV=production` but that invariant was not documented.
+- Resolution: the preflight now starts account creation, waits for onboarding
+  after real browser WebGPU PoW, and deletes the unsaved account before the
+  lifecycle test. Self-hosting docs now state that
+  `KEYPEARS_E2E_POW_DIFFICULTY` must not be set in production and that
+  production deployments must run with `NODE_ENV=production`.
+
+Follow-up external Claude review via:
+
+```bash
+git diff --staged | python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0002-playwright-account-lifecycle-harness.md \
+  "You are reviewing KeyPears work. Take a code-review stance: findings first, ordered by severity, with file/line references where possible.
+
+Task:
+Follow-up completion review for Issue 42 Experiment 2. A prior completion review requested two fixes: strengthen the preflight so it solves a real challenge, and document the production NODE_ENV safety dependency for KEYPEARS_E2E_POW_DIFFICULTY. The staged diff has been updated.
+
+Verification rerun after fixes:
+- bun run e2e passed: 2 tests; the preflight now starts account creation, solves real WebGPU PoW, reaches onboarding, deletes the unsaved account, then the lifecycle test creates/logs out/logs in.
+- bun run typecheck passed.
+- bun run lint passed with four existing unrelated warnings and no errors.
+- scripts/build-issues-index.sh passed from repo root.
+
+Questions:
+1. Are the prior required findings resolved?
+2. Are there any remaining blockers before committing the result?
+3. Is the experiment result/conclusion language accurate now?
+4. If acceptable, say VERDICT: APPROVED."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-065057-876828-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-065057-876828-stdout.json`
+- Verdict: **Approved**
+- Resolution: no remaining blockers; the result is approved for commit.

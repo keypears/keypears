@@ -16,16 +16,21 @@ your own domain.
 
 ## Environment variables
 
-| Variable              | Description                                                                                                                                                | Example                                     |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `KEYPEARS_DOMAIN`     | Address domain (goes after `@` in user addresses)                                                                                                          | `acme.com`                                  |
-| `KEYPEARS_API_DOMAIN` | Where this server's API runs                                                                                                                               | `keypears.acme.com`                         |
-| `DATABASE_URL`        | MySQL connection string                                                                                                                                    | `mysql://user:pass@localhost:3306/keypears` |
-| `KEYPEARS_SECRET`     | Master secret for PoW signing keys (64-char hex)                                                                                                           | `a3b4c5...`                                 |
+| Variable              | Description                                                                                                                                                                                                           | Example                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `KEYPEARS_DOMAIN`     | Address domain (goes after `@` in user addresses)                                                                                                                                                                     | `acme.com`                                  |
+| `KEYPEARS_API_DOMAIN` | Where this server's API runs                                                                                                                                                                                          | `keypears.acme.com`                         |
+| `DATABASE_URL`        | MySQL connection string                                                                                                                                                                                               | `mysql://user:pass@localhost:3306/keypears` |
+| `KEYPEARS_SECRET`     | Master secret for PoW signing keys (64-char hex)                                                                                                                                                                      | `a3b4c5...`                                 |
 | `KEYPEARS_ADMIN`      | (Optional) KeyPears address allowed to claim this server's primary domain as admin. When unset, the primary domain is not automatically claimable. See [Claiming your primary domain](#claiming-your-primary-domain). | `ryan@acme.com`                             |
 
 For self-hosted deployments where the address domain and API domain are the
 same, set both `KEYPEARS_DOMAIN` and `KEYPEARS_API_DOMAIN` to the same value.
+
+Do not set `KEYPEARS_E2E_POW_DIFFICULTY` in production. It is a local E2E-only
+test knob that lowers issued proof-of-work challenge difficulty outside
+production, and the server rejects it when `NODE_ENV=production`. Production
+deployments must run with `NODE_ENV=production`.
 
 ## Database setup
 
