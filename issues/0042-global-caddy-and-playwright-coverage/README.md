@@ -149,4 +149,4 @@ as one unbounded pass.
 - [Experiment 2: Playwright account lifecycle harness](exp-0002-playwright-account-lifecycle-harness.md)
   — **Pass**
 - [Experiment 3: Same-domain messaging coverage](exp-0003-same-domain-messaging-coverage.md)
-  — **Designed**
+  — **Pass**

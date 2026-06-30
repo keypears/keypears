@@ -114,7 +114,19 @@ function ChannelPage() {
     encryptedDecapKey: string;
   } | null>(null);
   const [keyMap, setKeyMap] = useState<
-    Map<string, { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null }>
+    Map<
+      string,
+      {
+        encryptedEd25519Key: string;
+        encryptedX25519Key: string;
+        encryptedSigningKey: string;
+        encryptedDecapKey: string;
+        ed25519PublicKey: string;
+        x25519PublicKey: string;
+        encapPublicKey: string;
+        loginKeyHash: string | null;
+      }
+    >
   >(new Map());
   const [currentPasswordHash, setCurrentPasswordHash] = useState<string | null>(
     null,
@@ -135,7 +147,16 @@ function ChannelPage() {
     getMyKeys().then((data) => {
       const map = new Map<
         string,
-        { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null }
+        {
+          encryptedEd25519Key: string;
+          encryptedX25519Key: string;
+          encryptedSigningKey: string;
+          encryptedDecapKey: string;
+          ed25519PublicKey: string;
+          x25519PublicKey: string;
+          encapPublicKey: string;
+          loginKeyHash: string | null;
+        }
       >();
       for (const k of data.keys) {
         map.set(k.ed25519PublicKey, {
@@ -292,7 +313,18 @@ function ChannelPage() {
     // Look up the matching key entry. The keyMap is keyed by ed25519PublicKey.
     // If we're the sender, look up by senderEd25519PubKey.
     // If we're the recipient, recipientMlkemPubKey is an encap key — search by value.
-    let matchingKey: { encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string; ed25519PublicKey: string; x25519PublicKey: string; encapPublicKey: string; loginKeyHash: string | null } | undefined;
+    let matchingKey:
+      | {
+          encryptedEd25519Key: string;
+          encryptedX25519Key: string;
+          encryptedSigningKey: string;
+          encryptedDecapKey: string;
+          ed25519PublicKey: string;
+          x25519PublicKey: string;
+          encapPublicKey: string;
+          loginKeyHash: string | null;
+        }
+      | undefined;
     if (isSender) {
       matchingKey = keyMap.get(msg.senderEd25519PubKey ?? "");
     } else {
@@ -371,7 +403,11 @@ function ChannelPage() {
   );
 
   useEffect(() => {
-    if (!encryptionKey || keyMap.size === 0) return;
+    if (!encryptionKey || keyMap.size === 0 || !currentPasswordHash) {
+      setDecryptedMap(new Map());
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       let changed = false;
@@ -389,13 +425,7 @@ function ChannelPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageList, keyMap, currentPasswordHash, encryptionKey]);
-
-  // Reset the decrypted map when the encryption context changes (logout,
-  // password change, different key set).
-  useEffect(() => {
-    setDecryptedMap(new Map());
-  }, [keyMap, currentPasswordHash, encryptionKey]);
+  }, [messageList, keyMap, currentPasswordHash, encryptionKey, myAddress]);
 
   async function handleSaveSecret(
     secret: {
@@ -450,8 +480,11 @@ function ChannelPage() {
 
     try {
       // Look up recipient's public keys from existing messages or fetch them
-      const recipientKeyResult = await getPublicKeyForAddress({ data: address });
-      if (!recipientKeyResult) throw new Error("Cannot determine recipient key");
+      const recipientKeyResult = await getPublicKeyForAddress({
+        data: address,
+      });
+      if (!recipientKeyResult)
+        throw new Error("Cannot determine recipient key");
 
       const sender = await loadActiveSenderKeys();
       const senderAddress = myAddress!;
