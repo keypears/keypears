@@ -18,6 +18,7 @@ the attacker also obtains client-side keys, passwords, or active client access.
 keypears/
   package.json          # bun workspace root (orchestrates all projects)
   issues/               # issue tracking (see "Issues and experiments")
+  epics/                # multi-issue planning records
   kp1/                  # archived kp1 codebase (reference only)
   packages/
     client/             # @keypears/client — typed oRPC client + auth helpers
@@ -370,54 +371,144 @@ Two-layer auth gate:
 1. `_app.tsx` — requires logged in (any user), redirects to `/` if not
 2. `_app/_saved.tsx` — requires password set, redirects to `/welcome` if not
 
-## Issues and experiments
+## Epics
 
-Every significant piece of work gets an issue in `issues/`. Issues
-describe the problem, provide background, and propose solutions. Experiments
-are the incremental steps that solve the problem.
+Epics live in `epics/`. They describe coherent goals that are larger than one
+issue and track the checklist of work that should become issues or experiments.
 
-### Issue structure
+Use epics for product or workflow directions that need multiple issues to
+complete. Do not use an epic as a substitute for an issue: implementation work
+still happens through issues and experiments.
 
-Each issue is a **folder** containing a `README.md` with TOML frontmatter:
+See `epics/README.md` for the epic schema, index, and template. Regenerate the
+epic index after creating or closing epics with:
 
+```bash
+scripts/build-epics-index.sh
 ```
-issues/0001-some-topic/
-├── README.md          <- main issue document with frontmatter
-├── 01-sub-topic.md    <- optional: additional files for long issues
-└── 02-sub-topic.md
+
+## Issues and Experiments
+
+Every significant concrete work item gets an issue in `issues/`. Issues describe
+the problem, background, constraints, and proposed direction. Experiments are
+the incremental steps that solve the issue.
+
+The full issue index is at `issues/README.md`. Regenerate it with:
+
+```bash
+scripts/build-issues-index.sh
 ```
 
-The folder name is `{number}-{slug}`. The number is 4-digit, globally sequential.
+### Routing Contract
 
-#### Frontmatter
+`AGENTS.md` intentionally gives only the routing-level workflow rules. Detailed
+procedures live in workflow skills:
 
-```
+- `epics` for epic creation, updates, and closure;
+- `issues-and-experiments` for the default automated experiment workflow;
+- `manual-issues-and-experiments` for the manual workflow variant;
+- `adversarial-review` for same-agent in-session review when explicitly chosen;
+- `claude-review` and `codex-review` for explicit external review modes;
+- `orthogonal-review` for cross-harness review routing.
+
+Project skills live under `skills/`. Agent harnesses expose skills through
+`.codex/skills/` and `.claude/skills/`, which are real directories containing
+individual symlinks, not whole-directory symlinks. Shared skills may link to the
+same `skills/<name>/` implementation. Harness-specific skills may use the same
+public skill name with different targets, but the difference must be documented
+in the issue or docs that introduce it.
+
+When adding or auditing skill links, compare each agent directory against the
+shared skill list and check for broken symlinks. If a link intentionally
+diverges for one harness, document the exception near the change.
+
+Non-negotiable rules:
+
+- create or update an issue before significant work;
+- every new issue README frontmatter must specify both the solution workflow
+  (`workflow = "issues-and-experiments"` or
+  `workflow = "manual-issues-and-experiments"`) and the reviewer
+  (`review_mode = "same-agent"`, `review_mode = "external-claude"`, or
+  `review_mode = "external-codex"`). New automated issues default to orthogonal
+  review: Codex-authored issues use `review_mode = "external-claude"` and
+  Claude-authored issues use `review_mode = "external-codex"`, with
+  `review_routing = "orthogonal-review"`;
+- design and conclude one experiment at a time;
+- never list future experiments upfront;
+- get a separate AI review before implementation and before the result commit;
+- use the issue README's `review_mode` for design and completion reviews unless
+  a specific experiment records a deliberate deviation;
+- record the review mode, reviewer harness or command, verdict, required
+  findings, and resolutions in `## Design Review` and `## Completion Review`;
+- commit the reviewed plan before implementation;
+- commit the reviewed result before designing the next experiment;
+- record results in the experiment file and update the issue README experiment
+  status;
+- close issues by adding a `## Conclusion`, setting `status = "closed"` and
+  `closed = "YYYY-MM-DD"` in frontmatter, and rebuilding `issues/README.md`.
+
+### Issue Shape
+
+Each new issue is a folder named `issues/{NNNN}-{slug}/`, where `NNNN` is the
+next zero-padded issue number and the slug is lowercase hyphenated. The issue
+spine is `README.md` with TOML frontmatter:
+
+```toml
 +++
 status = "open"
-opened = "2026-04-02"
+opened = "YYYY-MM-DD"
+workflow = "issues-and-experiments"
+review_mode = "external-claude"
+review_routing = "orthogonal-review"
 +++
 ```
 
-### Experiments
+Use `workflow = "issues-and-experiments"` for the fully automated workflow and
+`workflow = "manual-issues-and-experiments"` for the manual workflow. Use
+orthogonal review by default for automated issues:
 
-Only after the issue's requirements are clear. Each experiment is designed,
-implemented, and concluded before the next one is designed.
+```toml
+review_mode = "external-claude" # Codex-authored issue
+review_routing = "orthogonal-review"
+```
 
-**Never list experiments upfront.** The outcome of each experiment informs what
-comes next.
+Claude-authored issues use `review_mode = "external-codex"` with the same
+`review_routing`. Use `review_mode = "same-agent"` only when the user explicitly
+requests same-harness in-session review or no external reviewer is available.
+Closed issue frontmatter also includes `closed = "YYYY-MM-DD"`.
 
-### Process summary
+New issue READMEs start with a title, goal, background, and analysis or proposed
+solution. A new issue does not list experiments until the first experiment is
+designed.
 
-1. Create the issue with frontmatter, goal, background. No experiments yet.
-2. Design Experiment 1.
-3. Implement Experiment 1.
-4. Record the result — Pass, partial, or fail with a conclusion.
-5. Repeat until the goal is met.
-6. Close the issue — write a Conclusion section, update frontmatter.
+### Future Experiment Shape
 
-Every closed issue MUST have a `## Conclusion` section summarizing what was
-accomplished, what changed, and key decisions made. The conclusion is the
-permanent record of the work — someone reading only the conclusion should
-understand the outcome without reading every experiment.
+For experiments created from now on, use:
 
-Closed issues are immutable and must NEVER be modified.
+```text
+exp-NNNN-{descriptive-name}.md
+```
+
+`NNNN` is zero-padded in creation order within the issue, and
+`{descriptive-name}` is lowercase hyphenated. Link each experiment from the
+issue README under `## Experiments` with one of these statuses: `Designed`,
+`In progress`, `Pass`, `Partial`, or `Fail`.
+
+Each experiment file contains:
+
+1. `# Experiment {N}: {descriptive title}`
+2. `## Description`
+3. `## Changes`
+4. `## Verification`
+5. `## Design Review`, when the design review is recorded
+6. `## Result` and `## Conclusion`, after implementation
+7. `## Completion Review`, when the result review is recorded
+
+### Historical Immutability
+
+Closed issues are historical records. They are immutable and must not be
+modified unless the user explicitly requests a specific historical edit.
+
+Do not migrate, rename, rewrite, normalize, or retrofit historical issue or
+experiment files to the future experiment naming convention. Older issues keep
+their original shapes and filenames.
