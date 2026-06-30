@@ -156,3 +156,5 @@ as one unbounded pass.
   — **Pass**
 - [Experiment 6: Account security controls coverage](exp-0006-account-security-controls-coverage.md)
   — **Pass**
+- [Experiment 7: Lockberries domain admin coverage](exp-0007-lockberries-domain-admin-coverage.md)
+  — **Designed**
