@@ -1,6 +1,7 @@
 +++
-status = "open"
+status = "closed"
 opened = "2026-06-30"
+closed = "2026-06-30"
 workflow = "issues-and-experiments"
 review_mode = "external-claude"
 review_routing = "orthogonal-review"
@@ -158,3 +159,44 @@ as one unbounded pass.
   — **Pass**
 - [Experiment 7: Lockberries domain admin coverage](exp-0007-lockberries-domain-admin-coverage.md)
   — **Pass**
+
+## Conclusion
+
+Issue 42 is complete.
+
+KeyPears local HTTPS routing now uses the shared user-level Caddy config at
+`~/.config/caddy/Caddyfile`. The config imports the TermSurf Caddyfile without
+modifying `~/dev/termsurf-com`, and includes all KeyPears local domains:
+`keypears.test`, `passapples.test`, `keypears.passapples.test`, and
+`lockberries.test`. The development docs now describe the shared config path,
+user-run versus Homebrew-service config locations, and the validate, format,
+run, start, reload, and stop commands.
+
+The Playwright E2E harness now runs against HTTPS `.test` domains through
+Caddy, starts the local KeyPears and landing-page servers, resets dedicated E2E
+databases, captures traces/screenshots/videos on failure, and fails early if
+the browser cannot expose WebGPU. Tests use low non-production PoW difficulty
+for repeatability, but account creation, login, message sending, and negative
+login checks all go through real browser WebGPU mining. No test-only PoW
+bypass, fake solution path, password bypass, auth bypass, or direct domain
+database seeding was added.
+
+The E2E suite covers the requested workflows: account creation, onboarding,
+logout/login, same-domain messaging with recipient read state and sender
+retention, vault entry create/search/open/edit/delete, key rotation state,
+password change with old-password rejection and new-password login, PoW
+difficulty settings persistence, passapples multi-domain federation in both
+directions, well-known discovery for passapples and lockberries, and the
+lockberries custom-domain admin flow from claim through hosted user login.
+
+Final verification on 2026-06-30:
+
+- `/opt/homebrew/bin/caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile`
+  passed.
+- `bun run e2e` passed: 8 tests.
+- `bun run typecheck` passed.
+- `bun run lint` passed with the pre-existing four `oxc(no-map-spread)`
+  warnings in `src/server/vault.functions.ts` and
+  `src/server/user.functions.ts`.
+- touched-file Prettier checks passed during the experiments.
+- `scripts/build-issues-index.sh` passed.

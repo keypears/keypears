@@ -2,17 +2,17 @@
 
 ## Open
 
-| #                                                           | Title                                                       | Opened     |
-| ----------------------------------------------------------- | ----------------------------------------------------------- | ---------- |
-| [0022](0022-email-compatible-names/README.md)               | Email-compatible address names                              | 2026-04-11 |
-| [0024](0024-admin-create-save-to-vault/README.md)           | Admin user creation → save credentials to vault in one step | 2026-04-12 |
-| [0033](0033-api-cleanup/README.md)                          | API cleanup and federation simplification                   | 2026-04-26 |
-| [0042](0042-global-caddy-and-playwright-coverage/README.md) | Global Caddy and Playwright Coverage                        | 2026-06-30 |
+| #                                                 | Title                                                       | Opened     |
+| ------------------------------------------------- | ----------------------------------------------------------- | ---------- |
+| [0022](0022-email-compatible-names/README.md)     | Email-compatible address names                              | 2026-04-11 |
+| [0024](0024-admin-create-save-to-vault/README.md) | Admin user creation → save credentials to vault in one step | 2026-04-12 |
+| [0033](0033-api-cleanup/README.md)                | API cleanup and federation simplification                   | 2026-04-26 |
 
 ## Closed
 
 | #                                                                    | Title                                                 | Opened     | Closed     |
 | -------------------------------------------------------------------- | ----------------------------------------------------- | ---------- | ---------- |
+| [0042](0042-global-caddy-and-playwright-coverage/README.md)          | Global Caddy and Playwright Coverage                  | 2026-06-30 | 2026-06-30 |
 | [0041](0041-epics-and-workflow-docs/README.md)                       | Epics and Workflow Docs                               | 2026-06-30 | 2026-06-30 |
 | [0040](0040-fix-production-pow-and-remove-dynamic-imports/README.md) | Fix Production PoW and Remove Dynamic Imports         | 2026-05-20 | 2026-05-20 |
 | [0039](0039-federation-ssrf-hardening/README.md)                     | Federation SSRF Hardening                             | 2026-05-17 | 2026-05-17 |
