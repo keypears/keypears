@@ -2,11 +2,12 @@
 
 ## Open
 
-| #                                                 | Title                                                       | Opened     |
-| ------------------------------------------------- | ----------------------------------------------------------- | ---------- |
-| [0022](0022-email-compatible-names/README.md)     | Email-compatible address names                              | 2026-04-11 |
-| [0024](0024-admin-create-save-to-vault/README.md) | Admin user creation → save credentials to vault in one step | 2026-04-12 |
-| [0033](0033-api-cleanup/README.md)                | API cleanup and federation simplification                   | 2026-04-26 |
+| #                                                           | Title                                                       | Opened     |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ---------- |
+| [0022](0022-email-compatible-names/README.md)               | Email-compatible address names                              | 2026-04-11 |
+| [0024](0024-admin-create-save-to-vault/README.md)           | Admin user creation → save credentials to vault in one step | 2026-04-12 |
+| [0033](0033-api-cleanup/README.md)                          | API cleanup and federation simplification                   | 2026-04-26 |
+| [0042](0042-global-caddy-and-playwright-coverage/README.md) | Global Caddy and Playwright Coverage                        | 2026-06-30 |
 
 ## Closed
 
