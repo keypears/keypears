@@ -32,11 +32,34 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "bun run dev:e2e:keypears",
-    url: "https://keypears.test",
-    ignoreHTTPSErrors: true,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "bun run dev:e2e:keypears",
+      url: "https://keypears.test",
+      ignoreHTTPSErrors: true,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "bun run dev:e2e:passapples",
+      url: "https://keypears.passapples.test",
+      ignoreHTTPSErrors: true,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "bun run dev:e2e:passapples-site",
+      url: "https://passapples.test/.well-known/keypears.json",
+      ignoreHTTPSErrors: true,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "bun run dev:e2e:lockberries-site",
+      url: "https://lockberries.test/.well-known/keypears.json",
+      ignoreHTTPSErrors: true,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
 });

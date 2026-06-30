@@ -18,12 +18,16 @@ function isBlockedIp(ip: string): boolean {
 export async function safeFetch(url: string): Promise<Response> {
   const parsed = new URL(url);
   const hostname = parsed.hostname;
+  // Local E2E federation resolves `.test` domains to loopback through dnsmasq
+  // and Caddy. Keep the private-address bypass limited to non-production so
+  // the SSRF guard remains fully enforced for deployed servers.
+  const allowLocalTestDomain =
+    process.env.NODE_ENV !== "production" && hostname.endsWith(".test");
 
   // Block obvious private hostnames
   if (
-    hostname === "localhost" ||
-    hostname === "[::1]" ||
-    isBlockedIp(hostname)
+    !allowLocalTestDomain &&
+    (hostname === "localhost" || hostname === "[::1]" || isBlockedIp(hostname))
   ) {
     throw new Error("Blocked: private address");
   }
@@ -32,7 +36,7 @@ export async function safeFetch(url: string): Promise<Response> {
   const { resolve4 } = await import("node:dns/promises");
   try {
     const ips = await resolve4(hostname);
-    if (ips.some(isBlockedIp)) {
+    if (!allowLocalTestDomain && ips.some(isBlockedIp)) {
       throw new Error("Blocked: private address");
     }
   } catch (err) {

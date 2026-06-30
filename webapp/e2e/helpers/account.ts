@@ -5,19 +5,44 @@ export interface TestAccount {
   password: string;
 }
 
-export function uniqueAccount(prefix: string): TestAccount {
+export interface TestServer {
+  origin: string;
+  domain: string;
+}
+
+export const KEYPEARS_SERVER: TestServer = {
+  origin: "https://keypears.test",
+  domain: "keypears.test",
+};
+
+export const PASSAPPLES_SERVER: TestServer = {
+  origin: "https://keypears.passapples.test",
+  domain: "passapples.test",
+};
+
+export function appUrl(server: TestServer, path: string) {
+  return new URL(path, server.origin).toString();
+}
+
+export function uniqueAccount(
+  prefix: string,
+  domain = KEYPEARS_SERVER.domain,
+): TestAccount {
   const safePrefix = prefix.toLowerCase().replace(/[^a-z0-9]/g, "");
   const suffix = `${Date.now().toString(36)}${Math.random()
     .toString(36)
     .slice(2, 6)}`;
   return {
-    address: `${safePrefix}${suffix}@keypears.test`,
+    address: `${safePrefix}${suffix}@${domain}`,
     password: `Correct Horse Battery Staple ${suffix}!`,
   };
 }
 
-export async function expectWebGpuAvailable(page: Page) {
-  await page.goto("/");
+export async function expectWebGpuAvailable(
+  page: Page,
+  server = KEYPEARS_SERVER,
+) {
+  await page.goto(appUrl(server, "/"));
   const result = await page.evaluate(async () => {
     if (!("gpu" in navigator)) {
       return { ok: false, reason: "navigator.gpu is missing" };
@@ -48,8 +73,8 @@ export async function expectRealPowMiningWorks(page: Page) {
   });
 }
 
-async function startAccountCreation(page: Page) {
-  await page.goto("/");
+async function startAccountCreation(page: Page, server = KEYPEARS_SERVER) {
+  await page.goto(appUrl(server, "/"));
   await page.getByRole("button", { name: "Create an Account" }).click();
   await expect(page.getByText("Computing proof of work...")).toBeVisible();
   await expect(
@@ -60,10 +85,15 @@ async function startAccountCreation(page: Page) {
   });
 }
 
-export async function createAccount(page: Page, account: TestAccount) {
-  await startAccountCreation(page);
-  await page.getByPlaceholder("yourname@keypears.test").fill(account.address);
-  await page.getByPlaceholder("yourname@keypears.test").blur();
+export async function createAccount(
+  page: Page,
+  account: TestAccount,
+  server = KEYPEARS_SERVER,
+) {
+  await startAccountCreation(page, server);
+  const addressInput = page.getByPlaceholder(`yourname@${server.domain}`);
+  await addressInput.fill(account.address);
+  await addressInput.blur();
   await expect(page.getByText("This address is available!")).toBeVisible();
   await page
     .getByPlaceholder("Password", { exact: true })
@@ -74,8 +104,8 @@ export async function createAccount(page: Page, account: TestAccount) {
   await expectHome(page, account);
 }
 
-export async function logout(page: Page) {
-  await page.goto("/home");
+export async function logout(page: Page, server = KEYPEARS_SERVER) {
+  await page.goto(appUrl(server, "/home"));
   await expect(page.getByRole("button", { name: "User menu" })).toBeVisible({
     timeout: 30_000,
   });
@@ -88,10 +118,14 @@ export async function logout(page: Page) {
   });
 }
 
-export async function login(page: Page, account: TestAccount) {
-  await page.goto("/login");
+export async function login(
+  page: Page,
+  account: TestAccount,
+  server = KEYPEARS_SERVER,
+) {
+  await page.goto(appUrl(server, "/login"));
   await page
-    .getByPlaceholder("KeyPears address (e.g. name@keypears.test)")
+    .getByPlaceholder(`KeyPears address (e.g. name@${server.domain})`)
     .fill(account.address);
   await page
     .getByPlaceholder("Password", { exact: true })

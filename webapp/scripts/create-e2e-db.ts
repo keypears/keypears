@@ -13,9 +13,14 @@ if (!database) {
   throw new Error("DATABASE_URL must include a database name");
 }
 
-if (database !== "keypears_e2e") {
+const allowedE2eDatabases = new Set([
+  "keypears_e2e",
+  "keypears_e2e_passapples",
+]);
+
+if (!allowedE2eDatabases.has(database)) {
   throw new Error(
-    `Refusing to create non-E2E database "${database}". Expected "keypears_e2e".`,
+    `Refusing to create non-E2E database "${database}". Expected one of: ${[...allowedE2eDatabases].join(", ")}.`,
   );
 }
 

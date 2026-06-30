@@ -177,12 +177,115 @@ python3 skills/claude-review/scripts/claude_review.py \
 
 ## Result
 
-Pending.
+Pass.
+
+Implemented a multi-domain E2E harness that runs both local KeyPears nodes and
+the passapples/lockberries landing pages through the shared Caddy HTTPS config.
+The Playwright suite now starts:
+
+- `https://keypears.test` backed by the webapp on port 3500;
+- `https://keypears.passapples.test` backed by the webapp on port 3512 with
+  `KEYPEARS_DOMAIN="passapples.test"`;
+- `https://passapples.test` backed by the Astro landing page on port 3510;
+- `https://lockberries.test` backed by the Astro landing page on port 3520.
+
+The E2E database reset now creates, clears, and pushes both `keypears_e2e` and
+`keypears_e2e_passapples` before Playwright starts web servers. The database
+creation script keeps an explicit allowlist for those two databases and refuses
+all other names.
+
+The account helpers now support a supplied origin and address domain, while
+preserving `keypears.test` defaults for existing tests. The new federation spec
+verifies:
+
+- `passapples.test` advertises `apiDomain:
+"keypears.passapples.test"`;
+- `lockberries.test` advertises `apiDomain: "keypears.test"` and `admin:
+"lockberries@keypears.test"`;
+- Alice can create/login on `keypears.test`;
+- Bob can create/login on `keypears.passapples.test` with a
+  `bob...@passapples.test` address;
+- Alice can send an encrypted message to Bob across domains;
+- Bob receives, decrypts, reads, and clears the unread message;
+- Bob can reply across domains;
+- Alice receives, decrypts, reads, and clears Bob's reply.
+
+The first implementation run surfaced two real harness/protocol issues:
+
+- Playwright was launched under `.env.e2e`, causing child webServer processes
+  to inherit `KEYPEARS_DOMAIN="keypears.test"`. The E2E script now runs
+  Playwright without a parent dotenv wrapper; each webServer command loads its
+  own env file.
+- `safeFetch` blocked local `.test` federation because dnsmasq resolves those
+  domains to `127.0.0.1`. `safeFetch` now allows `.test` hostnames only when
+  `NODE_ENV !== "production"`, preserving production private-address blocking
+  while allowing local Caddy federation tests.
+
+Verification run:
+
+```text
+/opt/homebrew/bin/caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile
+Valid configuration
+
+bun run e2e -- multi-domain-federation.spec.ts
+2 passed
+
+bun run e2e
+6 passed
+
+bun run typecheck
+tsc --noEmit
+
+bun run lint
+Found 4 warnings and 0 errors.
+
+bunx prettier --check e2e/multi-domain-federation.spec.ts e2e/helpers/account.ts package.json playwright.config.ts scripts/create-e2e-db.ts src/server/fetch.ts
+All matched files use Prettier code style!
+
+scripts/build-issues-index.sh
+issues/README.md: 4 open, 38 closed
+```
+
+The lint warnings are the existing `no-map-spread` warnings in
+`src/server/vault.functions.ts` and `src/server/user.functions.ts`.
 
 ## Conclusion
 
-Pending.
+Experiment 5 passes. Issue 42 now has E2E coverage for well-known discovery and
+bidirectional encrypted federation between separate local KeyPears nodes with
+separate databases, distinct address domains, and real browser WebGPU
+proof-of-work. The harness proves the cross-domain path through remote key
+lookup, remote PoW challenge retrieval, `notifyMessage`, `pullMessage`,
+recipient decryption, and unread clearing without a test-only PoW bypass.
 
 ## Completion Review
 
-Pending.
+External Claude review via:
+
+```bash
+python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0005-multi-domain-federation-coverage.md \
+  --context webapp/e2e/multi-domain-federation.spec.ts \
+  --context webapp/e2e/helpers/account.ts \
+  --context webapp/package.json \
+  --context webapp/playwright.config.ts \
+  --context webapp/scripts/create-e2e-db.ts \
+  --context webapp/src/server/fetch.ts \
+  --context webapp/.env.e2e.passapples \
+  "Completion review for Issue 42 Experiment 5..."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-080647-984029-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-080647-984029-stdout.json`
+- Verdict: **Approved**
+- Required findings: none.
+- Non-blocking recommendations:
+  - add an explanatory comment to the non-production `.test` `safeFetch`
+    allowance;
+  - explicitly pin the Astro E2E site ports in package scripts.
+- Resolution: added the `safeFetch` comment and pinned passapples/lockberries
+  E2E Astro script ports to 3510/3520 before the result commit.
