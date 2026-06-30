@@ -143,4 +143,4 @@ as one unbounded pass.
 ## Experiments
 
 - [Experiment 1: Shared Caddy config](exp-0001-shared-caddy-config.md) —
-  **Designed**
+  **Pass**
