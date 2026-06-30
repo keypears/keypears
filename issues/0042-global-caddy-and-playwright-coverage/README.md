@@ -154,3 +154,5 @@ as one unbounded pass.
   — **Pass**
 - [Experiment 5: Multi-domain federation coverage](exp-0005-multi-domain-federation-coverage.md)
   — **Pass**
+- [Experiment 6: Account security controls coverage](exp-0006-account-security-controls-coverage.md)
+  — **Designed**
