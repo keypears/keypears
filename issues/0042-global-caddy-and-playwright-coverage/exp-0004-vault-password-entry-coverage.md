@@ -152,12 +152,90 @@ python3 skills/claude-review/scripts/claude_review.py \
 
 ## Result
 
-Pending.
+Pass.
+
+Implemented vault login-entry E2E coverage through the real UI and encrypted
+vault functions. The new spec creates a saved `keypears.test` account, creates
+a login entry with unique metadata and encrypted secret fields, verifies
+decrypted values after navigation, searches for the entry, edits it, verifies
+the updated decrypted values, checks the post-edit history control, reveals the
+updated password after save, deletes the entry through the entry-level actions
+menu, and verifies the entry is gone from both the full vault list and search
+results.
+
+The implementation also made existing visible vault labels programmatically
+associated with their fields and gave icon-only controls distinct accessible
+names:
+
+- create-entry labels now target name, search terms, domain, username, email,
+  password, and notes inputs;
+- edit-entry labels now target name, search terms, domain, username, email,
+  password, and notes inputs;
+- the password reveal toggle is named `Show password` / `Hide password`;
+- the entry-level actions trigger is named `Entry actions`;
+- version action triggers are named by version, such as
+  `Version 1 actions`.
+
+Verification run:
+
+```text
+/opt/homebrew/bin/caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile
+Valid configuration
+
+bun run e2e -- vault-password-entry.spec.ts
+1 passed
+
+bun run e2e
+4 passed
+
+bun run typecheck
+tsc --noEmit
+
+bun run lint
+Found 4 warnings and 0 errors.
+
+bunx prettier --check e2e/vault-password-entry.spec.ts src/routes/_app/_saved/_chrome/vault.tsx 'src/routes/_app/_saved/vault.$id.tsx'
+All matched files use Prettier code style!
+
+scripts/build-issues-index.sh
+issues/README.md: 4 open, 38 closed
+```
+
+The lint warnings are pre-existing `no-map-spread` warnings in
+`src/server/vault.functions.ts` and `src/server/user.functions.ts`.
 
 ## Conclusion
 
-Pending.
+Experiment 4 passes. The Playwright suite now covers account lifecycle,
+same-domain messaging, and vault login-entry CRUD against the local HTTPS
+domain with real browser WebGPU proof-of-work for account setup. The vault test
+uses accessibility-positive selectors and exercises the encrypted vault path
+without test-only hooks.
 
 ## Completion Review
 
-Pending.
+External Claude review via:
+
+```bash
+python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0004-vault-password-entry-coverage.md \
+  --context webapp/e2e/vault-password-entry.spec.ts \
+  --context webapp/src/routes/_app/_saved/_chrome/vault.tsx \
+  --context 'webapp/src/routes/_app/_saved/vault.$id.tsx' \
+  "Completion review for Issue 42 Experiment 4..."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-074555-310308-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-074555-310308-stdout.json`
+- Verdict: **Approved**
+- Required findings: none.
+- Non-blocking notes:
+  - `getByText("v2", { exact: false })` is loose, but corroborated by the
+    exact `History (1 version)` assertion.
+  - Text-entry textarea labels and copy-button naming can be improved in future
+    text-entry or copy-control coverage.
+- Resolution: no implementation changes were required after completion review.

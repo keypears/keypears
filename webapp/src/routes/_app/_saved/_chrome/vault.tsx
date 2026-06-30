@@ -41,9 +41,9 @@ function VaultPage() {
   }, [initialEntries]);
 
   // Build key map — tracks which keyIds are unlockable with the current password.
-  const [keyMap, setKeyMap] = useState<
-    Map<string, { keyNumber: number }>
-  >(new Map());
+  const [keyMap, setKeyMap] = useState<Map<string, { keyNumber: number }>>(
+    new Map(),
+  );
   const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -320,10 +320,14 @@ function CreateEntryForm({
           </p>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-name"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Name
               </label>
               <input
+                id="vault-create-name"
                 type="text"
                 placeholder="e.g. Google, AWS, SSH key"
                 value={name}
@@ -333,10 +337,14 @@ function CreateEntryForm({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-search-terms"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Search terms
               </label>
               <input
+                id="vault-create-search-terms"
                 type="text"
                 placeholder="e.g. work, production, personal"
                 value={searchTerms}
@@ -358,10 +366,14 @@ function CreateEntryForm({
         {type === "login" ? (
           <>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-domain"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Domain
               </label>
               <input
+                id="vault-create-domain"
                 type="text"
                 placeholder="e.g. google.com"
                 value={domain}
@@ -393,10 +405,14 @@ function CreateEntryForm({
                 })()}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-username"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Username
               </label>
               <input
+                id="vault-create-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -404,10 +420,14 @@ function CreateEntryForm({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-email"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Email
               </label>
               <input
+                id="vault-create-email"
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -420,10 +440,14 @@ function CreateEntryForm({
               )}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-password"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Password
               </label>
               <input
+                id="vault-create-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -448,10 +472,14 @@ function CreateEntryForm({
               )}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-create-notes"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Notes
               </label>
               <textarea
+                id="vault-create-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"

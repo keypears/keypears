@@ -151,4 +151,4 @@ as one unbounded pass.
 - [Experiment 3: Same-domain messaging coverage](exp-0003-same-domain-messaging-coverage.md)
   — **Pass**
 - [Experiment 4: Vault password entry coverage](exp-0004-vault-password-entry-coverage.md)
-  — **Designed**
+  — **Pass**

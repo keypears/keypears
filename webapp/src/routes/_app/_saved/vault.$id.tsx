@@ -113,9 +113,9 @@ function VaultDetailPage() {
   // Key map — tracks which keyIds are unlockable with the current password.
   // Vault encryption uses the cached encryptionKey directly (same for all keys
   // under the same password), so we don't need to store decrypted keys here.
-  const [keyMap, setKeyMap] = useState<
-    Map<string, { keyNumber: number }>
-  >(new Map());
+  const [keyMap, setKeyMap] = useState<Map<string, { keyNumber: number }>>(
+    new Map(),
+  );
   const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -701,10 +701,14 @@ function EntryDetail({
           </p>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-name"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Name
               </label>
               <input
+                id="vault-edit-name"
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
@@ -713,10 +717,14 @@ function EntryDetail({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-search-terms"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Search terms
               </label>
               <input
+                id="vault-edit-search-terms"
                 type="text"
                 value={editSearchTerms}
                 onChange={(e) => setEditSearchTerms(e.target.value)}
@@ -737,10 +745,14 @@ function EntryDetail({
         {data.type === "login" ? (
           <>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-domain"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Domain
               </label>
               <input
+                id="vault-edit-domain"
                 type="text"
                 value={editDomain}
                 onChange={(e) => setEditDomain(e.target.value)}
@@ -772,10 +784,14 @@ function EntryDetail({
                 })()}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-username"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Username
               </label>
               <input
+                id="vault-edit-username"
                 type="text"
                 value={editUsername}
                 onChange={(e) => setEditUsername(e.target.value)}
@@ -783,10 +799,14 @@ function EntryDetail({
               />
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-email"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Email
               </label>
               <input
+                id="vault-edit-email"
                 type="text"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
@@ -799,10 +819,14 @@ function EntryDetail({
               )}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-password"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Password
               </label>
               <input
+                id="vault-edit-password"
                 type="text"
                 value={editPassword}
                 onChange={(e) => setEditPassword(e.target.value)}
@@ -827,10 +851,14 @@ function EntryDetail({
               )}
             </div>
             <div>
-              <label className="text-muted-foreground mb-1 block text-xs">
+              <label
+                htmlFor="vault-edit-notes"
+                className="text-muted-foreground mb-1 block text-xs"
+              >
                 Notes
               </label>
               <textarea
+                id="vault-edit-notes"
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
@@ -928,7 +956,10 @@ function EntryDetail({
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <button
+                  aria-label="Entry actions"
+                  className="text-muted-foreground hover:text-foreground cursor-pointer"
+                >
                   <EllipsisVertical className="h-5 w-5" />
                 </button>
               </DropdownMenuTrigger>
@@ -1043,6 +1074,7 @@ function EntryDetail({
               </div>
               <button
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 className="text-muted-foreground hover:text-foreground shrink-0"
               >
                 {showPassword ? (
@@ -1129,7 +1161,10 @@ function EntryDetail({
                       </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground cursor-pointer">
+                          <button
+                            aria-label={`Version ${ver.version} actions`}
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
                             <EllipsisVertical className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
@@ -1137,7 +1172,8 @@ function EntryDetail({
                           <DropdownMenuItem
                             onClick={async () => {
                               const encKey = getCachedEncryptionKey();
-                              if (!verDecrypted?.ok || !isUnlockable || !encKey) return;
+                              if (!verDecrypted?.ok || !isUnlockable || !encKey)
+                                return;
                               const encryptedDataBuf = await encryptVaultEntry(
                                 verDecrypted.data,
                                 encKey,
