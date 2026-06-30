@@ -75,6 +75,10 @@ export async function createAccount(page: Page, account: TestAccount) {
 }
 
 export async function logout(page: Page) {
+  await page.goto("/home");
+  await expect(page.getByRole("button", { name: "User menu" })).toBeVisible({
+    timeout: 30_000,
+  });
   await page.getByRole("button", { name: "User menu" }).click();
   await page.getByRole("menuitem", { name: "Log out" }).click();
   await expect(
@@ -97,7 +101,7 @@ export async function login(page: Page, account: TestAccount) {
   await expectHome(page, account);
 }
 
-async function expectHome(page: Page, account: TestAccount) {
+export async function expectHome(page: Page, account: TestAccount) {
   await expect(
     page.getByRole("main").getByRole("link", { name: account.address }),
   ).toBeVisible({
