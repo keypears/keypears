@@ -241,6 +241,8 @@ function KeysPage() {
               return (
                 <div key={key.keyNumber}>
                   <div
+                    role="group"
+                    aria-label={`Key #${key.keyNumber}`}
                     className={`border-border/30 flex items-center gap-3 rounded border px-4 py-3 ${
                       active ? "bg-accent/5" : "bg-background-dark/50"
                     }`}

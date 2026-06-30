@@ -67,7 +67,13 @@ function PasswordPage() {
         await deriveEncryptionKeyFromPasswordKey(newPasswordKey);
       const newLoginKey = await deriveLoginKeyFromPasswordKey(newPasswordKey);
 
-      const reEncryptedKeys: { id: string; encryptedEd25519Key: string; encryptedX25519Key: string; encryptedSigningKey: string; encryptedDecapKey: string }[] = [];
+      const reEncryptedKeys: {
+        id: string;
+        encryptedEd25519Key: string;
+        encryptedX25519Key: string;
+        encryptedSigningKey: string;
+        encryptedDecapKey: string;
+      }[] = [];
       for (const key of encryptedKeys) {
         try {
           const ed25519KeyBuf = await aesgcmDecryptNative(
@@ -157,23 +163,29 @@ function PasswordPage() {
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        <input
-          type="password"
-          placeholder="Current password"
-          value={oldPassword}
-          onChange={(e) => setOldPassword(e.target.value)}
-          className="bg-background-dark border-border text-foreground rounded border px-4 py-2"
-          required
-        />
-        <div>
+        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+          Current password
           <input
             type="password"
-            placeholder="New password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
+            placeholder="Current password"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+            className="bg-background-dark border-border text-foreground rounded border px-4 py-2 text-sm"
             required
           />
+        </label>
+        <div>
+          <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            New password
+            <input
+              type="password"
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              required
+            />
+          </label>
           {newPassword.length > 0 && (
             <div className="mt-1 flex justify-between text-xs">
               <span className="text-muted-foreground">
@@ -193,14 +205,17 @@ function PasswordPage() {
           )}
         </div>
         <div>
-          <input
-            type="password"
-            placeholder="Confirm new password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2"
-            required
-          />
+          <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            Confirm new password
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="bg-background-dark border-border text-foreground w-full rounded border px-4 py-2 text-sm"
+              required
+            />
+          </label>
           {confirm.length > 0 && newPassword !== confirm && (
             <p className="text-destructive mt-1 text-xs">
               Passwords do not match
@@ -217,7 +232,7 @@ function PasswordPage() {
           disabled={saving}
           className="bg-accent text-accent-foreground hover:bg-accent/90 rounded px-4 py-2 font-sans transition-all duration-300 disabled:opacity-50"
         >
-          {saving ? "Changing..." : "Password"}
+          {saving ? "Changing..." : "Change password"}
         </button>
       </form>
     </div>

@@ -143,12 +143,79 @@ python3 skills/claude-review/scripts/claude_review.py \
 
 ## Result
 
-Pending.
+Pass.
+
+Implemented account-security E2E coverage in
+`webapp/e2e/account-security-controls.spec.ts` and added small accessibility
+improvements needed for stable real UI testing:
+
+- password-change fields now have accessible labels for current password, new
+  password, and confirmation;
+- the password-change submit button now says `Change password`;
+- the two PoW settings sliders now have accessible names;
+- key rows are exposed as named groups so tests can scope status assertions to
+  `Key #1` and `Key #2`.
+
+The new test creates a saved `keypears.test` account, verifies the initial key
+state, rotates keys, proves both rotated keys remain active/unlocked, updates
+and persists both PoW difficulty sliders, validates password confirmation
+errors, changes the account password, verifies the old password is rejected
+after real browser login PoW, logs in with the new password, and verifies the
+rotated keys still show as active/unlocked.
+
+Verification run on 2026-06-30:
+
+- `/opt/homebrew/bin/caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile`
+  passed.
+- `bun run e2e -- account-security-controls.spec.ts` passed: 1 test.
+- `bun run e2e` passed: 7 tests.
+- `bun run typecheck` passed.
+- `bun run lint` passed with the pre-existing four `oxc(no-map-spread)`
+  warnings in `src/server/vault.functions.ts` and
+  `src/server/user.functions.ts`.
+- `bunx prettier --check e2e/account-security-controls.spec.ts src/routes/_app/_saved/_chrome/password.tsx src/routes/_app/_saved/_chrome/settings.tsx src/routes/_app/_saved/_chrome/keys.tsx`
+  passed.
+- `scripts/build-issues-index.sh` passed and reported 4 open, 38 closed
+  issues.
 
 ## Conclusion
 
-Pending.
+Experiment 6 added durable E2E coverage for the account-security controls that
+Issue 42 called out: key rotation state, proof-of-work difficulty settings, and
+password changes. The coverage uses the existing HTTPS `.test` Playwright
+harness and real browser WebGPU PoW, including the negative old-password login
+path. No test-only PoW, password, or key bypass was added.
 
 ## Completion Review
 
-Pending.
+External Claude review via:
+
+```bash
+git diff --staged | python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0006-account-security-controls-coverage.md \
+  --context webapp/e2e/helpers/account.ts \
+  --context webapp/src/routes/_app/_saved/_chrome/password.tsx \
+  --context webapp/src/routes/_app/_saved/_chrome/keys.tsx \
+  --context webapp/src/routes/_app/_saved/_chrome/settings.tsx \
+  --context webapp/playwright.config.ts \
+  "Completion review for Issue 42 Experiment 6..."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-083317-559447-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-083317-559447-stdout.json`
+- Verdict: **Approved**
+- Required findings: none.
+- Non-blocking findings:
+  - avoid a latent settings-test flake where two slider saves could overlap and
+    race as last-write-wins;
+  - avoid relying on the final transient `Saved` status as durable proof;
+  - tighten result wording so the test claims key rows still show
+    active/unlocked rather than implying private-key decryption.
+- Resolution: the settings test now waits for the first save before changing
+  the second slider, relies on the reload persistence assertions for durable
+  proof, and the result text now says the rotated keys still show as
+  active/unlocked. The targeted spec was rerun after these changes and passed.

@@ -82,6 +82,7 @@ function SettingsPage() {
         </p>
         <div className="mt-3">
           <input
+            aria-label="New conversation difficulty"
             type="range"
             min={0}
             max={PRESETS.length - 1}
@@ -111,6 +112,7 @@ function SettingsPage() {
         </p>
         <div className="mt-3">
           <input
+            aria-label="Message difficulty"
             type="range"
             min={0}
             max={PRESETS.length - 1}
