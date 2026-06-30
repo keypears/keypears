@@ -90,6 +90,25 @@ given, look at all uncommitted changes and commit everything.
 5. **Compose the poem**: Pick a style that fits the change, make it fun
 6. **Stage and commit** using the poetic message
 
+## Commit Command
+
+When creating a multi-line commit body from the shell, use ANSI-C quoting for
+the body so `\n` becomes real line breaks:
+
+```bash
+git commit -m "Accurate title" -m $'line one,\nline two.'
+```
+
+Do **not** put escaped newlines inside a normal quoted `-m` argument:
+
+```bash
+# Wrong: this records literal "\n" text in the commit body.
+git commit -m "Accurate title" -m "line one,\nline two."
+```
+
+If the body is long or quoting would be awkward, write the message to a temporary
+file and use `git commit -F <file>` instead.
+
 ## When NOT to use GitPoet
 
 - Merge commits (use standard merge messages)
