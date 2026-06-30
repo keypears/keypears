@@ -152,3 +152,5 @@ as one unbounded pass.
   — **Pass**
 - [Experiment 4: Vault password entry coverage](exp-0004-vault-password-entry-coverage.md)
   — **Pass**
+- [Experiment 5: Multi-domain federation coverage](exp-0005-multi-domain-federation-coverage.md)
+  — **Designed**
