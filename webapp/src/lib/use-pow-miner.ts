@@ -143,6 +143,7 @@ export function usePowMiner() {
             hash: smokeHashHex,
             zero: smokeZero,
             meetsTarget: smokeMeetsTarget,
+            elapsedMs: Number(smokeMs.toFixed(3)),
           });
         }
         await pow5.setInput(headerBuf, targetBuf, 128);

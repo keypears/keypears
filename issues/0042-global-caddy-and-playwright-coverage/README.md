@@ -147,4 +147,4 @@ as one unbounded pass.
 - [Experiment 1: Shared Caddy config](exp-0001-shared-caddy-config.md) —
   **Pass**
 - [Experiment 2: Playwright account lifecycle harness](exp-0002-playwright-account-lifecycle-harness.md)
-  — **Designed**
+  — **Pass**

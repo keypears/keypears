@@ -9,6 +9,7 @@ import {
 import { getPowSigningKey } from "~/lib/config";
 
 const CHALLENGE_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+const E2E_POW_DIFFICULTY_ENV = "KEYPEARS_E2E_POW_DIFFICULTY";
 export const REGISTRATION_DIFFICULTY = 70_000_000n;
 export const CHANNEL_DIFFICULTY = 70_000_000n;
 export const LOGIN_DIFFICULTY = 7_000_000n;
@@ -17,6 +18,22 @@ export const MIN_CHANNEL_DIFFICULTY = 7_000_000n;
 export const MIN_MESSAGE_DIFFICULTY = 7_000_000n;
 const NONCE_SIZE = 32; // bytes 0-31 are nonce
 const HEADER_SIZE = 64 as const;
+
+function getEffectiveChallengeDifficulty(difficulty: bigint): bigint {
+  const override = process.env[E2E_POW_DIFFICULTY_ENV];
+  if (!override) return difficulty;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${E2E_POW_DIFFICULTY_ENV} must not be set in production`);
+  }
+
+  const parsed = BigInt(override);
+  if (parsed < 1n) {
+    throw new Error(`${E2E_POW_DIFFICULTY_ENV} must be at least 1`);
+  }
+
+  return parsed;
+}
 
 function signChallenge(
   header: WebBuf,
@@ -44,7 +61,9 @@ export function createPowChallenge(
   senderAddress?: string,
   recipientAddress?: string,
 ) {
-  const diff = difficulty ?? REGISTRATION_DIFFICULTY;
+  const diff = getEffectiveChallengeDifficulty(
+    difficulty ?? REGISTRATION_DIFFICULTY,
+  );
   const header = FixedBuf.fromRandom(HEADER_SIZE);
   const target = targetFromDifficulty(diff);
   const expiresAt = Date.now() + CHALLENGE_EXPIRY_MS;

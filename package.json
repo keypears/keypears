@@ -15,6 +15,7 @@
     "dev:lockberries": "cd lockberries && bun run dev",
     "db:push": "cd webapp && bun run db:push",
     "db:clear": "cd webapp && bun run db:clear",
+    "e2e": "cd webapp && bun run e2e",
     "deploy": "infra/deploy.sh"
   },
   "devDependencies": {
