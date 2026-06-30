@@ -31,7 +31,7 @@ After this, any `*.test` domain resolves to `127.0.0.1` automatically.
 
 ### Configure Caddy
 
-Create `~/.caddy/Caddyfile`:
+Create `~/.config/caddy/Caddyfile`:
 
 ```
 keypears.test {
@@ -55,20 +55,40 @@ lockberries.test {
 }
 ```
 
+You can also share one Caddy instance with other local projects by importing
+their Caddyfiles:
+
+```
+import /path/to/other-project/Caddyfile
+```
+
+Keep shared project imports at the top of the file so any imported global
+options remain valid. Only add imports for files that exist on your machine.
+
 The `tls internal` directive uses Caddy's built-in local CA instead of Let's
 Encrypt. First run installs the root cert in your macOS keychain (prompts for
 password once).
 
-Start Caddy:
+`~/.config/caddy/Caddyfile` is the default user-run development config. If you
+choose to run Caddy as a Homebrew service instead, manage the service config at
+`/opt/homebrew/etc/Caddyfile` and keep the commands below pointed at that path.
+
+Run Caddy in a dedicated terminal:
 
 ```bash
-caddy start --config ~/.caddy/Caddyfile
+caddy run --config ~/.config/caddy/Caddyfile
 ```
 
-To reload after config changes:
+Or start it in the background:
 
 ```bash
-caddy reload --config ~/.caddy/Caddyfile
+caddy start --config ~/.config/caddy/Caddyfile --pidfile ~/.config/caddy/caddy.pid
+```
+
+To reload after config changes while Caddy is running:
+
+```bash
+caddy reload --config ~/.config/caddy/Caddyfile
 ```
 
 ## Dev topology
@@ -97,7 +117,8 @@ separate docs site.
 
 ## Daily workflow
 
-1. Caddy runs in the background (start once per boot, or use `brew services`).
+1. Caddy runs in a dedicated terminal, in the background, or as a Homebrew
+   service.
 2. From repo root: `bun run dev` — starts all servers via concurrently.
 3. Visit `https://keypears.test` — green lock, real HTTPS.
 
@@ -112,10 +133,12 @@ bun run dev:passapples    # keypears.passapples.test on port 3512
 ## Useful commands
 
 ```bash
-caddy start --config ~/.caddy/Caddyfile   # start daemon
-caddy stop                                 # stop daemon
-caddy reload --config ~/.caddy/Caddyfile   # reload after config change
-caddy fmt --overwrite ~/.caddy/Caddyfile   # format Caddyfile
+caddy validate --config ~/.config/caddy/Caddyfile
+caddy fmt --overwrite ~/.config/caddy/Caddyfile
+caddy run --config ~/.config/caddy/Caddyfile
+caddy start --config ~/.config/caddy/Caddyfile --pidfile ~/.config/caddy/caddy.pid
+caddy reload --config ~/.config/caddy/Caddyfile
+caddy stop
 ```
 
 ## Database
