@@ -78,9 +78,11 @@ preserve the existing dnsmasq `.test` setup.
 - Tests must run against the local HTTPS `.test` domains through Caddy, not only
   raw localhost ports.
 - Tests must have a reliable way to prepare databases for repeatable runs.
-- Tests must handle proof-of-work deterministically enough for CI/local
-  repeatability, either by using configured low difficulty, test-only fixtures,
-  or another documented approach that does not weaken production behavior.
+- Tests must perform real browser WebGPU proof-of-work mining. They may use
+  configured low non-production difficulty for repeatability, but must not add a
+  test-only PoW bypass or fake solution path.
+- Tests must fail early with a clear setup error if the Playwright browser
+  cannot expose WebGPU.
 - Tests must avoid embedding real secrets.
 - Tests should collect useful traces, screenshots, or videos on failure.
 
@@ -144,3 +146,5 @@ as one unbounded pass.
 
 - [Experiment 1: Shared Caddy config](exp-0001-shared-caddy-config.md) —
   **Pass**
+- [Experiment 2: Playwright account lifecycle harness](exp-0002-playwright-account-lifecycle-harness.md)
+  — **Designed**
