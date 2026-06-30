@@ -124,12 +124,80 @@ python3 skills/claude-review/scripts/claude_review.py \
 
 ## Result
 
-Pending.
+Pass.
+
+Added `webapp/e2e/lockberries-domain-admin.spec.ts`, which exercises the
+supported `lockberries.test` third-party hosted domain flow through the real UI
+and server authorization path:
+
+- creates the exact advertised admin account,
+  `lockberries@keypears.test`, through the normal account creation flow;
+- opens the Domains page on `keypears.test` and verifies the generated claim
+  form is prefilled with `keypears.test` as API domain and
+  `lockberries@keypears.test` as admin;
+- claims `lockberries.test`, which forces the server-side
+  `claimDomainFn -> verifyDomainAdmin -> fetchKeypearsJson` path to fetch the
+  live `https://lockberries.test/.well-known/keypears.json` file through Caddy;
+- expands the claimed domain card, creates a unique `@lockberries.test` user
+  through the admin add-user form, and verifies the new user appears in the
+  domain user list;
+- logs out as the admin and logs in as the new `@lockberries.test` user through
+  the `keypears.test` server.
+
+Verification run on 2026-06-30:
+
+- `/opt/homebrew/bin/caddy validate --config /Users/astrohacker/.config/caddy/Caddyfile`
+  passed.
+- `bun run e2e -- lockberries-domain-admin.spec.ts` passed: 1 test.
+- `bun run e2e` passed: 8 tests.
+- `bun run typecheck` passed.
+- `bun run lint` passed with the pre-existing four `oxc(no-map-spread)`
+  warnings in `src/server/vault.functions.ts` and
+  `src/server/user.functions.ts`.
+- `bunx prettier --check e2e/lockberries-domain-admin.spec.ts` passed.
+- `scripts/build-issues-index.sh` passed and reported 4 open, 38 closed
+  issues.
 
 ## Conclusion
 
-Pending.
+Experiment 7 added the missing lockberries/custom-domain administration
+coverage for Issue 42. The test proves that a domain advertised by a local
+third-party landing page can be claimed by its well-known admin, administered
+from the KeyPears Domains UI, and used for a hosted `@lockberries.test` login on
+the `keypears.test` server. The flow uses the real Caddy-backed `.test`
+topology, real server-side well-known verification, normal authenticated admin
+server functions, and real browser WebGPU PoW for account creation and login.
+No test-only domain, auth, password, or PoW bypass was added.
 
 ## Completion Review
 
-Pending.
+External Claude review via:
+
+```bash
+git diff --staged | python3 skills/claude-review/scripts/claude_review.py \
+  --context issues/0042-global-caddy-and-playwright-coverage/README.md \
+  --context issues/0042-global-caddy-and-playwright-coverage/exp-0007-lockberries-domain-admin-coverage.md \
+  --context webapp/e2e/helpers/account.ts \
+  --context webapp/e2e/lockberries-domain-admin.spec.ts \
+  --context webapp/src/routes/_app/_saved/_chrome/domains.tsx \
+  --context webapp/src/server/user.functions.ts \
+  --context webapp/src/server/federation.server.ts \
+  --context lockberries/src/pages/.well-known/keypears.json.ts \
+  "Completion review for Issue 42 Experiment 7..."
+```
+
+- Session: `e82c0071-96fc-4e3a-98a4-deb13904774d`
+- Prompt:
+  `logs/claude-review/20260630-085028-001421-prompt.md`
+- Stdout:
+  `logs/claude-review/20260630-085028-001421-stdout.json`
+- Verdict: **Approved**
+- Required findings: none.
+- Non-blocking finding:
+  - prefer `toHaveValue` label/property assertions over CSS
+    `input[value="..."]` selectors for the prefilled API domain and admin
+    fields.
+- Resolution: the prefilled field assertions now use
+  `getByLabel("API domain").toHaveValue("keypears.test")` and
+  `getByLabel("Admin").toHaveValue("lockberries@keypears.test")`. The targeted
+  spec was rerun after this change and passed.
